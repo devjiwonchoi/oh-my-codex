@@ -98,17 +98,17 @@ Steering invariants:
 
 UserPromptSubmit uses the same steering API only for structured directives such as `NOMX_ULTRAGOAL_STEER: { ... }`, `nomx.ultragoal.steer: { ... }`, or `nomx ultragoal steer: { ... }`. Normal prose does not mutate state, and repeated prompt-submit directives dedupe by prompt signature or idempotency key.
 
-## Use Ultragoal and Team together
+## Use Ultragoal with native Codex subagents
 
-Use ultragoal and team together for a durable Ultragoal story that benefits from parallel execution. Ultragoal remains leader-owned: `.nomx/ultragoal/goals.json` stores the story plan and `.nomx/ultragoal/ledger.jsonl` stores checkpoints. Team is the parallel execution engine and returns task/evidence status to the leader.
+Use native Codex subagents for bounded, independent lanes inside a durable Ultragoal story that benefits from parallel execution. Ultragoal remains leader-owned: `.nomx/ultragoal/goals.json` stores the story plan, `.nomx/ultragoal/ledger.jsonl` stores checkpoints, and the leader owns integration and final verification. Each subagent returns scoped evidence upward.
 
-The leader checkpoints Ultragoal from Team evidence with a fresh `get_goal` snapshot:
+The leader checkpoints Ultragoal from native-subagent evidence with a fresh `get_goal` snapshot:
 
 ```sh
-nomx ultragoal checkpoint --goal-id <id> --status complete --evidence "<team evidence mentioning .nomx/ultragoal and <id>>" --codex-goal-json <fresh-get_goal-json-or-path>
+nomx ultragoal checkpoint --goal-id <id> --status complete --evidence "<native-subagent evidence mentioning .nomx/ultragoal and <id>>" --codex-goal-json <fresh-get_goal-json-or-path>
 ```
 
-Workers do not own ultragoal goal state, do not create worker ultragoal ledgers, and do not checkpoint Ultragoal. Team launch remains explicit; Ultragoal does not auto-launch Team and performs no hidden Codex goal mutation.
+Subagents do not own Ultragoal goal state, create separate Ultragoal ledgers, or checkpoint Ultragoal. Native-subagent dispatch is explicit and leader-owned within the current Codex session; Ultragoal performs no hidden dispatch or Codex goal mutation.
 
 ## Mandatory final cleanup and review gate
 

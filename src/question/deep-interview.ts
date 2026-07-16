@@ -1,5 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { getStateFilePath } from '../mcp/state-paths.js';
 import type { TerminalLifecycleOutcome } from '../runtime/terminal-lifecycle.js';
 import type { DownstreamAuthority } from '../state/workflow-transition.js';

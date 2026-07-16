@@ -291,6 +291,49 @@ describe('ralplan runtime', () => {
     }
   });
 
+  it('records a leader-owned native-subagent handoff without starting a ghost runtime mode', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-native-subagents-'));
+    try {
+      const result = await runRalplanConsensus({
+        async draft() {
+          const plansDir = join(cwd, '.nomx', 'plans');
+          await mkdir(plansDir, { recursive: true });
+          const prdPath = join(plansDir, 'prd-native-subagents.md');
+          await writeFile(prdPath, '# plan\n');
+          await writeFile(join(plansDir, 'test-spec-native-subagents.md'), '# tests\n');
+          return { summary: 'draft', planPath: prdPath };
+        },
+        async architectReview() {
+          return { verdict: 'approve', summary: 'architect ok' };
+        },
+        async criticReview() {
+          return { verdict: 'approve', summary: 'critic ok' };
+        },
+      }, {
+        task: 'approval prepares native subagents',
+        cwd,
+        maxIterations: 1,
+        selectedExecutionLane: 'native-subagents',
+      });
+
+      assert.equal(result.status, 'completed');
+      assert.equal(result.executionHandoffStarted, false);
+      const finalState = await readModeState('ralplan', cwd);
+      const ralplanHandoff = (finalState?.handoff_artifacts as { ralplan?: Record<string, unknown> } | undefined)?.ralplan;
+      assert.equal(finalState?.selected_execution_lane, 'native-subagents');
+      assert.equal(ralplanHandoff?.selected_execution_lane, 'native-subagents');
+      assert.equal(ralplanHandoff?.execution_handoff_status, 'leader_dispatch_required');
+      assert.equal(ralplanHandoff?.execution_handoff_owner, 'leader');
+      assert.equal(ralplanHandoff?.execution_handoff_surface, 'native_subagents');
+      assert.equal(ralplanHandoff?.planning_only_terminal, false);
+      assert.match(String(finalState?.status_message || ''), /leader-owned native-subagent dispatch/);
+      assert.equal(existsSync(join(cwd, '.nomx', 'state', 'team-state.json')), false);
+      assert.equal(existsSync(join(cwd, '.nomx', 'state', 'native-subagents-state.json')), false);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
   it('passes and enforces reusable Architect lane on re-review iterations', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-architect-reuse-'));
     try {

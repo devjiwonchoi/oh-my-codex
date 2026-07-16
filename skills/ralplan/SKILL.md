@@ -50,7 +50,7 @@ The consensus workflow:
    - Deliberate mode only: pre-mortem (3 scenarios) + expanded test plan (unit/integration/e2e/observability)
 2. **User feedback** *(--interactive only)*: If `--interactive` is set, use native structured input when available to present the draft plan **plus the Principles / Drivers / Options summary** before review (Proceed to review / Request changes / Skip review). Otherwise, automatically proceed to review.
 **Native role-routing rule:** When the native surface exposes `agent_type` role routing, set `agent_type` to an installed NOMX role and never omit it for NOMX work. When it does not (`role_routing_unavailable`, for example a Codex App `spawn_agent` surface exposing only `task_name`, `message`, and `fork_turns`), do not fabricate `agent_type`; follow the NOMX adapted role-pass protocol by recording a pre-validated role intent in the NOMX subagent ledger, and never fake the role via a prompt label.
-**Adapted role-intent step:** On a `role_routing_unavailable` surface, before each App Architect or Critic spawn, run `nomx ralplan role-intent write --role <role> --parent-thread <leader-thread-id> --json`; read `spawn_task_name` from its receipt (`nomx_role_intent_<correlation_token>`), the App-compatible `task_name` value (lowercase letters, digits, and underscores only), then spawn the App Architect or Critic with `task_name` set to that exact unmodified value, **not** `agent_nickname`. The recorded validated intent and correlation token are the authoritative role carrier, never a prompt label.
+**Adapted role-intent step:** On a `role_routing_unavailable` surface, `CODEX_THREAD_ID` is the authenticated current leader identity. Before each App Architect or Critic spawn, run `nomx ralplan role-intent write --role <role> --parent-thread "$CODEX_THREAD_ID" --json`; read `spawn_task_name` from its receipt (`nomx_role_intent_<correlation_token>`), the App-compatible `task_name` value (lowercase letters, digits, and underscores only), then spawn the App Architect or Critic with `task_name` set to that exact unmodified value, **not** `agent_nickname`. The recorded validated intent and correlation token are the authoritative role carrier, never a prompt label.
 
 3. **Architect** reviews for architectural soundness and must provide the strongest steelman antithesis, at least one real tradeoff tension, and (when possible) synthesis — **await completion before step 4**. Launch this as a subsequent role-specific `Architect` subagent and pass the full task statement, context snapshot, PRD/test-spec paths, and relevant prior findings; do not substitute an unvalidated reviewer identity or a short improvised reviewer prompt. In deliberate mode, Architect should explicitly flag principle violations.
 4. **Critic** evaluates against quality criteria — run only after step 3 completes. Launch this as a subsequent role-specific `Critic` subagent with the full task statement, context snapshot, PRD/test-spec paths, and the completed Architect review; do not ask the Architect subagent to perform the Critic gate and do not substitute an unvalidated reviewer identity or a short improvised reviewer prompt. Critic must enforce principle-option consistency, fair alternatives, risk mitigation clarity, testable acceptance criteria, and concrete verification steps. In deliberate mode, Critic must reject missing/weak pre-mortem or expanded test plan.
@@ -72,6 +72,7 @@ The consensus workflow:
 The canonical flow is:
 
 ```
+$ralplan -> durable consensus artifact -> ultragoal | native-subagents | ralph
 ```
 
 Before any execution lane begins, ralplan must emit terminal planning state (complete, paused, failed, or waiting for input) and the durable handoff record below. Do not continue from consensus planning into direct code edits in the same ralplan session.
@@ -80,7 +81,7 @@ Before any execution lane begins, ralplan must emit terminal planning state (com
 
 Ralplan is not complete, skippable, or ready for execution merely because `.nomx/plans/prd-*.md` and `.nomx/plans/test-spec-*.md` exist. Those files are planning artifacts, not consensus evidence.
 
-Before any Autopilot, Pipeline, Ultragoal, Team, Ralph, or implementation handoff, persist a durable handoff record that distinguishes:
+Before any Autopilot, Pipeline, Ultragoal, native-subagent, Ralph, or implementation handoff, persist a durable handoff record that distinguishes:
 
 - `planning_artifacts`: PRD/test-spec paths.
 - `ralplan_architect_review`: the completed Architect review with an approving verdict.
@@ -121,7 +122,7 @@ Do not hand off to execution modes until this intake is complete; if urgency for
 
 ### Why the Gate Exists
 
-Execution modes (ralph, autopilot, team, ultrawork) spin up heavy multi-agent orchestration. When launched on a vague request like "ralph improve the app", agents have no clear target — they waste cycles on scope discovery that should happen during planning, often delivering partial or misaligned work that requires rework.
+Execution modes and native-subagent lanes can consume substantial context and compute. When launched on a vague request like "ralph improve the app", agents have no clear target — they waste cycles on scope discovery that should happen during planning, often delivering partial or misaligned work that requires rework.
 
 The ralplan-first gate intercepts underspecified execution requests and redirects them through the ralplan consensus planning workflow. This ensures:
 - **Explicit scope**: A PRD defines exactly what will be built
@@ -134,14 +135,14 @@ The ralplan-first gate intercepts underspecified execution requests and redirect
 **Passes the gate** (specific enough for direct execution):
 - `ralph fix the null check in src/hooks/bridge.ts:326`
 - `autopilot implement issue #42`
-- `team add validation to function processKeywordDetector`
+- `use native subagents to add validation to function processKeywordDetector`
 - `ralph do:\n1. Add input validation\n2. Write tests\n3. Update README`
 - `ultrawork add the user model in src/models/user.ts`
 
 **Gated — redirected to ralplan** (needs scoping first):
 - `ralph fix this`
 - `autopilot build the app`
-- `team improve performance`
+- `use native subagents to improve performance`
 - `ralph add authentication`
 - `ultrawork make it better`
 
@@ -159,7 +160,7 @@ The gate auto-passes when it detects **any** concrete signal. You do not need al
 | Issue/PR number | `ralph implement #42` | Has a concrete work item |
 | camelCase symbol | `ralph fix processKeywordDetector` | Names a specific function |
 | PascalCase symbol | `ralph update UserModel` | Names a specific class |
-| snake_case symbol | `team fix user_model` | Names a specific identifier |
+| snake_case symbol | `use native subagents to fix user_model` | Names a specific identifier |
 | Test runner | `ralph npm test && fix failures` | Has an explicit test target |
 | Numbered steps | `ralph do:\n1. Add X\n2. Test Y` | Structured deliverables |
 | Acceptance criteria | `ralph add login - acceptance criteria: ...` | Explicit success definition |
@@ -178,7 +179,7 @@ The gate auto-passes when it detects **any** concrete signal. You do not need al
    - **Critic** validates quality and testability
 5. On consensus approval, user chooses execution path:
    - **ultragoal**: default durable follow-up for sequential goal execution with ledger checkpoints
-   - **team**: coordinated parallel execution for stories that need multiple lanes, with evidence ready for Ultragoal checkpoints
+   - **native subagents**: bounded parallel execution for independent lanes, with leader-owned integration and evidence ready for Ultragoal checkpoints
    - **ralph**: explicit single-owner fallback only when the user intentionally wants a persistent verification/completion loop instead of the default durable goal ledger
 6. Execution begins with a clear, bounded plan through the selected handoff path
 

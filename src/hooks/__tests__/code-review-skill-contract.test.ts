@@ -9,6 +9,19 @@ const codeReviewSkill = readFileSync(
   join(__dirname, '../../../skills/code-review/SKILL.md'),
   'utf-8',
 );
+const ralphSkill = readFileSync(join(__dirname, '../../../skills/ralph/SKILL.md'), 'utf-8');
+const metisPrompt = readFileSync(
+  join(__dirname, '../../../prompts/prometheus-strict-metis.md'),
+  'utf-8',
+);
+const pluginCodeReviewSkill = readFileSync(
+  join(__dirname, '../../../plugins/nomx/skills/code-review/SKILL.md'),
+  'utf-8',
+);
+const pluginRalphSkill = readFileSync(
+  join(__dirname, '../../../plugins/nomx/skills/ralph/SKILL.md'),
+  'utf-8',
+);
 
 describe('code-review skill contract', () => {
   it('requires parallel code-reviewer and architect lanes', () => {
@@ -22,15 +35,53 @@ describe('code-review skill contract', () => {
     assert.match(codeReviewSkill, /do \*\*not\*\* substitute the current\/authoring lane/i);
   });
 
-  it('uses native task agent_type examples without overriding user model or effort', () => {
-    assert.match(codeReviewSkill, /Respect the user's current model and reasoning\/effort selection/i);
-    assert.match(codeReviewSkill, /Do not pass `model` or `reasoning_effort` overrides/i);
-    assert.match(codeReviewSkill, /task\(\s*agent_type="code-reviewer",\s*prompt=/s);
-    assert.match(codeReviewSkill, /task\(\s*agent_type="architect",\s*prompt=/s);
-    assert.doesNotMatch(codeReviewSkill, /task\(\s*agent_type="code-reviewer",\s*(?:model=|reasoning_effort=)/s);
-    assert.doesNotMatch(codeReviewSkill, /task\(\s*agent_type="architect",\s*(?:model=|reasoning_effort=)/s);
+  it('uses receipt-backed spawn_agent examples with only supported fields', () => {
+    assert.match(codeReviewSkill, /Native subagents inherit the active session defaults/i);
+    assert.match(codeReviewSkill, /role-intent write --role code-reviewer/i);
+    assert.match(codeReviewSkill, /role-intent write --role architect/i);
+    assert.match(codeReviewSkill, /CODEX_THREAD_ID.*authenticated current leader identity/i);
+    assert.match(codeReviewSkill, /--parent-thread "\$CODEX_THREAD_ID"/i);
+    assert.match(
+      codeReviewSkill,
+      /spawn_agent\(\{\s*task_name: "<code-reviewer receipt\.spawn_task_name>",\s*message:/s,
+    );
+    assert.match(
+      codeReviewSkill,
+      /spawn_agent\(\{\s*task_name: "<architect receipt\.spawn_task_name>",\s*message:/s,
+    );
+    assert.match(codeReviewSkill, /ledger receipt carries role identity/i);
+    assert.match(codeReviewSkill, /Never fake a role through the prompt/i);
     assert.doesNotMatch(codeReviewSkill, /delegate\(\s*role=/s);
     assert.doesNotMatch(codeReviewSkill, /tier="/);
+  });
+
+  it('forbids unsupported dispatch fields across active guidance and plugin mirrors', () => {
+    const guidanceFiles = [
+      ['code-review', codeReviewSkill],
+      ['ralph', ralphSkill],
+      ['prometheus-strict-metis', metisPrompt],
+      ['plugin code-review', pluginCodeReviewSkill],
+      ['plugin ralph', pluginRalphSkill],
+    ] as const;
+
+    for (const [name, contents] of guidanceFiles) {
+      assert.doesNotMatch(contents, /\btask\(\s*(?:agent_type|subagent_type)\s*=/, name);
+      assert.doesNotMatch(contents, /\brun_in_background\s*[:=]/, name);
+      assert.doesNotMatch(contents, /\bload_skills\s*[:=]/, name);
+      assert.doesNotMatch(contents, /\breasoning_effort\s*[:=]/, name);
+      assert.doesNotMatch(contents, /(?:^|[,{]\s*)model\s*[:=]/m, name);
+      assert.doesNotMatch(contents, /<leader-thread-id>/i, name);
+    }
+
+    assert.equal(pluginCodeReviewSkill, codeReviewSkill);
+    assert.equal(pluginRalphSkill, ralphSkill);
+  });
+
+  it('bounds Metis fan-out to runtime-reported native capacity', () => {
+    assert.match(metisPrompt, /respect the native surface's reported capacity/i);
+    assert.match(metisPrompt, /count the leader in that total/i);
+    assert.match(metisPrompt, /batch the excess into later waves/i);
+    assert.match(metisPrompt, /native reported capacity minus the leader per wave/i);
   });
 
   it('frames architect as the devil’s-advocate lane with deterministic blocker status', () => {

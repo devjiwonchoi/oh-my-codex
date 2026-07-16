@@ -39,24 +39,24 @@ async function withIsolatedStateEnv(fn: () => Promise<void>): Promise<void> {
 }
 
 describe('workflow transition rules', () => {
-  it('allows the approved overlap matrix and denies unsupported combinations', () => {
+  it('treats retired Team state as read-only history outside the active overlap matrix', () => {
     const cases: Array<{
       current: string[];
       requested: 'team' | 'ralph' | 'ultrawork' | 'autopilot';
       allowed: boolean;
       resulting: string[];
     }> = [
-      { current: [], requested: 'team', allowed: true, resulting: ['team'] },
-      { current: ['team'], requested: 'ralph', allowed: true, resulting: ['team', 'ralph'] },
-      { current: ['ralph'], requested: 'team', allowed: true, resulting: ['ralph', 'team'] },
-      { current: ['team'], requested: 'ultrawork', allowed: true, resulting: ['team', 'ultrawork'] },
-      { current: ['ultrawork'], requested: 'team', allowed: true, resulting: ['ultrawork', 'team'] },
+      { current: [], requested: 'team', allowed: false, resulting: [] },
+      { current: ['team'], requested: 'ralph', allowed: true, resulting: ['ralph'] },
+      { current: ['ralph'], requested: 'team', allowed: false, resulting: ['ralph'] },
+      { current: ['team'], requested: 'ultrawork', allowed: true, resulting: ['ultrawork'] },
+      { current: ['ultrawork'], requested: 'team', allowed: false, resulting: ['ultrawork'] },
       { current: ['ralph'], requested: 'ultrawork', allowed: true, resulting: ['ralph', 'ultrawork'] },
       { current: ['ultrawork'], requested: 'ralph', allowed: true, resulting: ['ultrawork', 'ralph'] },
       { current: ['autopilot'], requested: 'team', allowed: false, resulting: ['autopilot'] },
-      { current: ['team'], requested: 'autopilot', allowed: false, resulting: ['team'] },
-      { current: ['team', 'ralph'], requested: 'ultrawork', allowed: true, resulting: ['team', 'ralph', 'ultrawork'] },
-      { current: ['team', 'ultrawork'], requested: 'ralph', allowed: true, resulting: ['team', 'ultrawork', 'ralph'] },
+      { current: ['team'], requested: 'autopilot', allowed: true, resulting: ['autopilot'] },
+      { current: ['team', 'ralph'], requested: 'ultrawork', allowed: true, resulting: ['ralph', 'ultrawork'] },
+      { current: ['team', 'ultrawork'], requested: 'ralph', allowed: true, resulting: ['ultrawork', 'ralph'] },
     ];
 
     for (const testCase of cases) {
@@ -66,14 +66,11 @@ describe('workflow transition rules', () => {
     }
   });
 
-  it('builds actionable denial guidance that names both clearing paths', () => {
-    const error = buildWorkflowTransitionError(['team'], 'autopilot', 'start');
-    assert.match(error, /Cannot start autopilot: team is already active\./);
-    assert.match(error, /Unsupported workflow overlap: team \+ autopilot\./);
-    assert.match(error, /Current state is unchanged\./);
-    assert.match(error, /Clear incompatible workflow state yourself via/);
-    assert.match(error, /`nomx state clear --input '{"mode":"<mode>"}' --json`/);
-    assert.match(error, /explicit MCP compatibility is enabled/);
+  it('builds explicit read-only compatibility guidance for retired Team requests', () => {
+    const error = buildWorkflowTransitionError([], 'team', 'start');
+    assert.match(error, /Cannot start team: the Team workflow is retired/i);
+    assert.match(error, /read-only compatibility/i);
+    assert.match(error, /native Codex subagents/i);
   });
 
   it('returns auto-complete decisions for allowlisted forward transitions', () => {
@@ -203,15 +200,14 @@ describe('workflow transition rules', () => {
           'utf-8',
         );
 
-        const transition = await reconcileWorkflowTransition(wd, 'team', {
-          action: 'start',
-          sessionId,
-          source: 'test',
-        });
-
-        assert.equal(transition.decision.allowed, true);
-        assert.deepEqual(transition.decision.currentModes, []);
-        assert.deepEqual(transition.completedPaths, []);
+        await assert.rejects(
+          reconcileWorkflowTransition(wd, 'team', {
+            action: 'start',
+            sessionId,
+            source: 'test',
+          }),
+          /Team workflow is retired/i,
+        );
 
         const staleRalplan = JSON.parse(await readFile(staleRalplanPath, 'utf-8')) as { active?: unknown };
         assert.equal(staleRalplan.active, true);
@@ -259,7 +255,7 @@ describe('workflow transition rules', () => {
     });
   });
 
-  it('still rejects planning rollback when root Team detail is genuinely active', async () => {
+  it('ignores genuinely active legacy Team detail during retained workflow transitions', async () => {
     await withIsolatedStateEnv(async () => {
       const wd = await mkdtemp(join(tmpdir(), 'nomx-workflow-foreign-team-active-'));
       try {
@@ -278,10 +274,12 @@ describe('workflow transition rules', () => {
           active_skills: [{ skill: 'team', phase: 'team-exec', active: true }],
         }, null, 2));
 
-        await assert.rejects(
-          reconcileWorkflowTransition(wd, 'deep-interview', { action: 'write', source: 'test' }),
-          /team is already active/,
-        );
+        const transition = await reconcileWorkflowTransition(wd, 'deep-interview', {
+          action: 'write',
+          source: 'test',
+        });
+        assert.equal(transition.decision.allowed, true);
+        assert.deepEqual(transition.decision.currentModes, []);
       } finally {
         await rm(wd, { recursive: true, force: true });
       }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -72,6 +72,24 @@ test('ensureReusableNodeModules returns warning when no reusable parent dependen
     });
     assert.equal(result.strategy, 'missing');
     assert.match(String(result.warning || ''), /No reusable parent-repo node_modules was found/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('ensureReusableNodeModules never replaces an existing project dependency directory', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'nomx-existing-node-modules-'));
+  try {
+    const sentinel = join(root, 'node_modules', 'project-only-package', 'package.json');
+    await mkdir(join(root, 'node_modules', 'project-only-package'), { recursive: true });
+    await writeFile(sentinel, '{"name":"project-only-package"}\n');
+
+    const result = ensureReusableNodeModules(root, {
+      gitRunner: () => ({ status: 1, stdout: '', stderr: 'not a worktree' }) as any,
+    });
+
+    assert.equal(result.strategy, 'existing');
+    assert.equal(await readFile(sentinel, 'utf8'), '{"name":"project-only-package"}\n');
   } finally {
     await rm(root, { recursive: true, force: true });
   }

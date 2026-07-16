@@ -6,32 +6,11 @@ import { spawn, type ChildProcess } from 'child_process';
 import { dirname, join, resolve } from 'path';
 import { homedir } from 'os';
 import { StringDecoder } from 'string_decoder';
-import {
-  readScopedJsonIfExists,
-} from './notify-hook/state-io.js';
-import { isTerminalPhase } from './notify-hook/utils.js';
 import { isSessionStale, isSessionStateAuthoritativeForCwd, readSessionState } from '../hooks/session.js';
-import {
-  DEFAULT_SUBAGENT_ACTIVE_WINDOW_MS,
-  readSubagentSessionSummary,
-} from '../subagents/tracker.js';
 import { sameFilePath } from '../utils/paths.js';
 import { validateSessionId } from '../mcp/state-paths.js';
 import { shouldContinueRun } from '../runtime/run-loop.js';
 import { deliverNotifyFallback, compactNotifyFallbackDeliveries, NOTIFY_FALLBACK_LEASE_MS } from './notify-fallback-delivery.js';
-
-// Legacy interactive-control helpers are intentionally inert. The fallback
-// watcher now only delivers completed rollout events to the notify hook.
-const resolveLeaderStalenessThresholdMs = () => 0;
-const isLeaderStale: (...args: any[]) => Promise<any> = async () => false;
-const maybeNudgeTeamLeader: (...args: any[]) => Promise<any> = async () => undefined;
-const drainPendingTeamDispatch: (...args: any[]) => Promise<any> = async () => ({ processed: 0 });
-const maybeAutoNudge: (...args: any[]) => Promise<any> = async () => ({ nudged: false });
-const isDeepInterviewInputLockActive: (...args: any[]) => Promise<any> = async () => false;
-const isDeepInterviewStateActive: (...args: any[]) => Promise<any> = async () => false;
-const loadAutoNudgeConfig: (...args: any[]) => Promise<any> = async () => ({ enabled: false });
-const normalizeAutoNudgeSignatureText = (value: unknown) => safeString(value);
-const resolveAutoNudgeSignature: (...args: any[]) => any = () => '';
 
 function argValue(name: string, fallback = ''): string {
   const idx = process.argv.indexOf(name);
@@ -56,10 +35,6 @@ function normalizeValidSessionId(value: unknown): string {
   } catch {
     return '';
   }
-}
-
-function normalizeValidTeamName(value: unknown): string {
-  return safeString(value).trim();
 }
 
 function parsePositivePid(value: unknown): number | null {
@@ -111,10 +86,9 @@ async function waitForPidExit(pid: number, timeoutMs = 3000, stepMs = 50): Promi
 const cwd = resolve(argValue('--cwd', process.cwd()));
 const notifyScript = resolve(argValue('--notify-script', join(cwd, 'dist', 'scripts', 'notify-hook.js')));
 const runOnce = process.argv.includes('--once');
-const authorityOnly = process.argv.includes('--authority-only');
-// Keep fallback control-plane ticks comfortably below the default dispatch
-// ack budget so leaderless team dispatch + stale-alert recovery do not feel
-// laggy between native notify-hook turns.
+const fallbackIfPrimaryIdle = process.argv.includes('--fallback-if-primary-idle');
+// Keep notification delivery responsive without coupling the watcher to any
+// orchestration control plane.
 const pollMs = Math.max(50, asNumber(argValue('--poll-ms', '250'), 250));
 const idleMaxPollMs = Math.max(
   pollMs,
@@ -132,10 +106,10 @@ const configuredMaxLifetimeMs = Number.isSafeInteger(requestedMaxLifetimeMs) && 
   ? requestedMaxLifetimeMs
   : defaultMaxLifetimeMs;
 const maxLifetimeMs = runOnce ? 0 : Math.max(pollMs, configuredMaxLifetimeMs);
-const authorityLifetimeMs = runOnce
+const deliveryLifetimeMs = runOnce
   ? NOTIFY_FALLBACK_LEASE_MS
   : Math.min(Math.max(pollMs, configuredMaxLifetimeMs), 24 * 60 * 60 * 1000);
-const authorityDeadlineAtMs = startedAt + authorityLifetimeMs;
+const deliveryDeadlineAtMs = startedAt + deliveryLifetimeMs;
 
 const runtimeRoot = resolve(process.env.NOMX_ROOT || process.env.NOMX_STATE_ROOT || cwd);
 const nomxDir = join(runtimeRoot, '.nomx');
@@ -151,14 +125,9 @@ const maxLogBytes = Math.max(
   0,
   asNumber(argValue('--log-max-bytes', process.env.NOMX_NOTIFY_FALLBACK_LOG_MAX_BYTES || String(defaultMaxLogBytes)), defaultMaxLogBytes),
 );
-const ralphSteerTimestampPath = join(stateDir, 'ralph-last-steer-at');
-const ralphSteerLockPath = join(stateDir, 'ralph-continue-steer.lock');
 const watcherOwnerToken = `${process.pid}-${startedAt}-${Math.random().toString(36).slice(2, 10)}`;
-const RALPH_CONTINUE_TEXT = 'Ralph loop active continue';
-const RALPH_CONTINUE_CADENCE_MS = 60_000;
-const RALPH_STEER_LOCK_STALE_MS = 30_000;
 const RALPH_TERMINAL_PHASES = new Set(['blocked_on_user', 'complete', 'failed', 'cancelled']);
-const RALPH_STARTING_PHASE_TIMEOUT_MS = RALPH_CONTINUE_CADENCE_MS * 2;
+const RALPH_STARTING_PHASE_TIMEOUT_MS = 2 * 60_000;
 const QUIET_ONCE_EVENT_TYPES = new Set(['watcher_start', 'watcher_once_complete']);
 
 interface WatcherFileMeta {
@@ -167,27 +136,6 @@ interface WatcherFileMeta {
   size: number;
   partial: string;
   decoder: StringDecoder;
-}
-
-interface RalphContinueSteerState {
-  enabled: boolean;
-  cadence_ms: number;
-  message: string;
-  active: boolean;
-  last_state_check_at: string | null;
-  last_sent_at: string;
-  cooldown_anchor_at: string;
-  last_reason: string;
-  last_error: string | null;
-  state_path: string;
-  pane_id: string;
-  pane_current_command: string;
-  current_phase: string;
-  subagent_session_id: string;
-  active_subagent_thread_ids: string[];
-  shared_timestamp_path: string;
-  shared_last_sent_at: string;
-  singleton_lock_path: string;
 }
 
 interface PidFileRecord {
@@ -199,55 +147,19 @@ interface PidFileRecord {
   owner_token?: string;
 }
 
-interface RalphSteerLockRecord {
-  pid: number;
-  acquired_at: string;
-}
-
-interface DispatchDrainState {
-  leader_only: boolean;
-  last_tick_at: string | null;
-  last_result: unknown;
-  last_error: string | null;
-}
-
-interface LeaderNudgeState {
-  enabled: boolean;
-  leader_only: boolean;
-  stale_threshold_ms: number | null;
-  precomputed_leader_stale: boolean | null;
-  last_tick_at: string | null;
-  last_error: string | null;
-}
-
 interface ParentGuardState {
   reason: string;
   state_path: string;
   current_phase: string;
-  team_name?: string;
-  pane_count?: number;
 }
 
-interface AuthorityBackoffState {
-  active: boolean;
+interface PrimaryWatcherHealthState {
+  healthy: boolean;
   reason: string;
   primary_pid: number | null;
-  primary_last_tick_at: string;
+  heartbeat_at: string;
   freshness_ms: number | null;
   threshold_ms: number | null;
-}
-
-interface FallbackAutoNudgeState {
-  enabled: boolean;
-  stall_ms: number;
-  last_tick_at: string | null;
-  last_turn_at: string;
-  last_turn_count: number | null;
-  last_message: string;
-  last_reason: string;
-  last_error: string | null;
-  last_nudged_signature: string;
-  last_nudged_at: string;
 }
 
 interface AdaptivePollState {
@@ -292,71 +204,10 @@ async function terminateActiveNotifyHookChild(): Promise<boolean> {
     activeNotifyHookTermination = null;
   }
 }
-const dispatchTickMax = Math.max(1, asNumber(argValue('--dispatch-max-per-tick', '5'), 5));
-let dispatchDrainRuns = 0;
-let lastDispatchDrain: DispatchDrainState = {
-  leader_only: safeString(process.env.NOMX_TEAM_WORKER || '').trim() === '',
-  last_tick_at: null,
-  last_result: null,
-  last_error: null,
-};
-let leaderNudgeRuns = 0;
-let lastLeaderNudge: LeaderNudgeState = {
-  enabled: true,
-  leader_only: safeString(process.env.NOMX_TEAM_WORKER || '').trim() === '',
-  stale_threshold_ms: null,
-  precomputed_leader_stale: null,
-  last_tick_at: null,
-  last_error: null,
-};
-let lastRalphContinueSteer: RalphContinueSteerState = {
-  enabled: true,
-  cadence_ms: RALPH_CONTINUE_CADENCE_MS,
-  message: RALPH_CONTINUE_TEXT,
-  active: false,
-  last_state_check_at: null,
-  last_sent_at: '',
-  cooldown_anchor_at: '',
-  last_reason: 'init',
-  last_error: null,
-  state_path: '',
-  pane_id: '',
-  pane_current_command: '',
-  current_phase: '',
-  subagent_session_id: '',
-  active_subagent_thread_ids: [],
-  shared_timestamp_path: ralphSteerTimestampPath,
-  shared_last_sent_at: '',
-  singleton_lock_path: ralphSteerLockPath,
-};
 let lastParentGuard: ParentGuardState = {
   reason: '',
   state_path: '',
   current_phase: '',
-};
-let lastAuthorityBackoff: AuthorityBackoffState = {
-  active: false,
-  reason: '',
-  primary_pid: null,
-  primary_last_tick_at: '',
-  freshness_ms: null,
-  threshold_ms: null,
-};
-const AUTO_NUDGE_STALL_MS = Math.max(
-  pollMs,
-  asNumber(process.env.NOMX_NOTIFY_FALLBACK_AUTO_NUDGE_STALL_MS || '5000', 5000),
-);
-let lastFallbackAutoNudge: FallbackAutoNudgeState = {
-  enabled: true,
-  stall_ms: AUTO_NUDGE_STALL_MS,
-  last_tick_at: null,
-  last_turn_at: '',
-  last_turn_count: null,
-  last_message: '',
-  last_reason: 'init',
-  last_error: null,
-  last_nudged_signature: '',
-  last_nudged_at: '',
 };
 let adaptivePollState: AdaptivePollState = {
   enabled: true,
@@ -421,10 +272,6 @@ async function eventLog(event: Record<string, unknown>): Promise<void> {
   }
 }
 
-function shouldLogLeaderNudgeTick(reason: string): boolean {
-  return reason === 'leader_nudge_checked' || reason === 'leader_nudge_failed';
-}
-
 function nextIdlePollMs(currentMs: number): number {
   return Math.min(idleMaxPollMs, Math.max(pollMs, currentMs * 2));
 }
@@ -460,43 +307,6 @@ function updateAdaptivePollState(summary: CycleActivitySummary): number {
   return adaptivePollState.current_ms;
 }
 
-function shouldLogDispatchDrainTick(result: unknown): boolean {
-  if (!result || typeof result !== 'object') return false;
-  const record = result as Record<string, unknown>;
-  const processed = asNumber(record.processed as string | number | undefined, 0);
-  const skipped = asNumber(record.skipped as string | number | undefined, 0);
-  const failed = asNumber(record.failed as string | number | undefined, 0);
-  if (processed > 0 || skipped > 0 || failed > 0) return true;
-  const reason = safeString(record.reason).trim();
-  return reason !== '' && reason !== 'worker_context';
-}
-
-function normalizeRalphContinueSteerState(raw: Record<string, unknown> | null | undefined): RalphContinueSteerState {
-  if (!raw || typeof raw !== 'object') return { ...lastRalphContinueSteer };
-  return {
-    enabled: raw.enabled !== false,
-    cadence_ms: Number.isFinite(raw.cadence_ms) && (raw.cadence_ms as number) > 0 ? raw.cadence_ms as number : RALPH_CONTINUE_CADENCE_MS,
-    message: safeString(raw.message) || RALPH_CONTINUE_TEXT,
-    active: raw.active === true,
-    last_state_check_at: safeString(raw.last_state_check_at) || null,
-    last_sent_at: safeString(raw.last_sent_at),
-    cooldown_anchor_at: safeString(raw.cooldown_anchor_at),
-    last_reason: safeString(raw.last_reason) || 'init',
-    last_error: safeString(raw.last_error) || null,
-    state_path: safeString(raw.state_path),
-    pane_id: safeString(raw.pane_id),
-    pane_current_command: safeString(raw.pane_current_command),
-    current_phase: safeString(raw.current_phase),
-    subagent_session_id: safeString(raw.subagent_session_id),
-    active_subagent_thread_ids: Array.isArray(raw.active_subagent_thread_ids)
-      ? raw.active_subagent_thread_ids.map((value) => safeString(value).trim()).filter(Boolean)
-      : [],
-    shared_timestamp_path: safeString(raw.shared_timestamp_path) || ralphSteerTimestampPath,
-    shared_last_sent_at: safeString(raw.shared_last_sent_at),
-    singleton_lock_path: safeString(raw.singleton_lock_path) || ralphSteerLockPath,
-  };
-}
-
 function hasRalphTerminalState(raw: Record<string, unknown> | null | undefined): boolean {
   if (!raw || typeof raw !== 'object') return true;
   if (raw.active !== true) return true;
@@ -520,24 +330,6 @@ async function loadPersistedWatcherState(): Promise<void> {
   const persisted = await readFile(statePath, 'utf-8')
     .then((content) => JSON.parse(content) as Record<string, unknown>)
     .catch(() => null);
-  lastRalphContinueSteer = normalizeRalphContinueSteerState(persisted?.ralph_continue_steer as Record<string, unknown> | null | undefined);
-  const persistedAutoNudge = persisted?.fallback_auto_nudge as Record<string, unknown> | null | undefined;
-  if (persistedAutoNudge && typeof persistedAutoNudge === 'object') {
-    lastFallbackAutoNudge = {
-      enabled: persistedAutoNudge.enabled !== false,
-      stall_ms: Number.isFinite(persistedAutoNudge.stall_ms) && (persistedAutoNudge.stall_ms as number) > 0
-        ? persistedAutoNudge.stall_ms as number
-        : AUTO_NUDGE_STALL_MS,
-      last_tick_at: safeString(persistedAutoNudge.last_tick_at) || null,
-      last_turn_at: safeString(persistedAutoNudge.last_turn_at),
-      last_turn_count: Number.isFinite(persistedAutoNudge.last_turn_count) ? persistedAutoNudge.last_turn_count as number : null,
-      last_message: safeString(persistedAutoNudge.last_message),
-      last_reason: safeString(persistedAutoNudge.last_reason) || 'init',
-      last_error: safeString(persistedAutoNudge.last_error) || null,
-      last_nudged_signature: safeString(persistedAutoNudge.last_nudged_signature),
-      last_nudged_at: safeString(persistedAutoNudge.last_nudged_at),
-    };
-  }
   const persistedAdaptivePoll = persisted?.adaptive_poll as Record<string, unknown> | null | undefined;
   if (persistedAdaptivePoll && typeof persistedAdaptivePoll === 'object') {
     adaptivePollState = {
@@ -628,152 +420,6 @@ async function resolveActiveRalphState(): Promise<ActiveModeResult> {
   return resolveActiveModeState('ralph');
 }
 
-async function readRalphSteerTimestamp(): Promise<string> {
-  return readFile(ralphSteerTimestampPath, 'utf-8')
-    .then((content) => safeString(content).trim())
-    .catch(() => '');
-}
-
-async function writeRalphSteerTimestamp(nowIso: string): Promise<void> {
-  await mkdir(dirname(ralphSteerTimestampPath), { recursive: true }).catch(() => {});
-  const tempPath = `${ralphSteerTimestampPath}.${process.pid}.tmp`;
-  await writeFile(tempPath, `${nowIso}\n`, 'utf-8');
-  await rename(tempPath, ralphSteerTimestampPath);
-}
-
-async function readRalphSteerLock(path: string): Promise<RalphSteerLockRecord | null> {
-  const raw = await readFile(path, 'utf-8').catch(() => '');
-  if (!raw.trim()) return null;
-  try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const pid = parsePositivePid(parsed.pid);
-    const acquiredAt = safeString(parsed.acquired_at).trim();
-    if (pid === null || !acquiredAt) return null;
-    return { pid, acquired_at: acquiredAt };
-  } catch {
-    return null;
-  }
-}
-
-const RALPH_STEER_LOCK_MAX_RETRIES = 5;
-
-async function withRalphSteerLock<T>(task: () => Promise<T>): Promise<T | null> {
-  await mkdir(dirname(ralphSteerLockPath), { recursive: true }).catch(() => {});
-
-  let acquired = false;
-  for (let attempt = 0; attempt < RALPH_STEER_LOCK_MAX_RETRIES; attempt++) {
-    let handle;
-    try {
-      handle = await open(ralphSteerLockPath, 'wx');
-      const payload: RalphSteerLockRecord = {
-        pid: process.pid,
-        acquired_at: new Date().toISOString(),
-      };
-      await handle.writeFile(JSON.stringify(payload, null, 2));
-      acquired = true;
-      break;
-    } catch (error) {
-      const code = error !== null && typeof error === 'object' ? (error as NodeJS.ErrnoException).code : '';
-      if (code !== 'EEXIST') throw error;
-      const existing = await readRalphSteerLock(ralphSteerLockPath);
-      const lockAgeMs = parseIsoMillis(existing?.acquired_at) ?? 0;
-      const stale = existing !== null
-        && (!isPidAlive(existing.pid) || (lockAgeMs > 0 && Date.now() - lockAgeMs > RALPH_STEER_LOCK_STALE_MS));
-      if (stale) {
-        await unlink(ralphSteerLockPath).catch(() => {});
-        continue;
-      }
-      lastRalphContinueSteer.last_reason = 'global_lock_busy';
-      return null;
-    } finally {
-      await handle?.close().catch(() => {});
-    }
-  }
-
-  if (!acquired) {
-    lastRalphContinueSteer.last_reason = 'global_lock_exhausted';
-    return null;
-  }
-
-  try {
-    return await task();
-  } finally {
-    const existing = await readRalphSteerLock(ralphSteerLockPath);
-    if (existing?.pid === process.pid) {
-      await unlink(ralphSteerLockPath).catch(() => {});
-    }
-  }
-}
-
-interface RalphProgressGateResult {
-  allow: boolean;
-  reason: string;
-  progress_at: string;
-  subagent_session_id?: string;
-  active_subagent_thread_ids?: string[];
-}
-
-async function readRalphProgressGate(
-  activeRalphState: Record<string, unknown> | null,
-  now: number,
-): Promise<RalphProgressGateResult> {
-  const subagentSessionId = safeString(activeRalphState?.owner_codex_session_id).trim();
-  if (subagentSessionId) {
-    const summary = await readSubagentSessionSummary(cwd, subagentSessionId, {
-      now: new Date(now),
-      activeWindowMs: DEFAULT_SUBAGENT_ACTIVE_WINDOW_MS,
-    });
-    if ((summary?.activeSubagentThreadIds.length ?? 0) > 0) {
-      return {
-        allow: false,
-        reason: 'subagents_active',
-        progress_at: '',
-        subagent_session_id: subagentSessionId,
-        active_subagent_thread_ids: summary?.activeSubagentThreadIds ?? [],
-      };
-    }
-  }
-
-  const hudState = await readScopedJsonIfExists(stateDir, 'hud-state.json', undefined, null);
-  if (!hudState || typeof hudState !== 'object') {
-    return { allow: false, reason: 'progress_missing', progress_at: '', subagent_session_id: subagentSessionId };
-  }
-
-  const progressAt = safeString(hudState.last_progress_at).trim();
-  if (!progressAt) {
-    return { allow: false, reason: 'progress_missing', progress_at: '', subagent_session_id: subagentSessionId };
-  }
-
-  const progressMs = parseIsoMillis(progressAt);
-  if (progressMs === null) {
-    return { allow: false, reason: 'progress_invalid', progress_at: progressAt, subagent_session_id: subagentSessionId };
-  }
-
-  if (now - progressMs < RALPH_CONTINUE_CADENCE_MS) {
-    return { allow: false, reason: 'progress_fresh', progress_at: progressAt, subagent_session_id: subagentSessionId };
-  }
-
-  return { allow: true, reason: 'progress_stale', progress_at: progressAt, subagent_session_id: subagentSessionId };
-}
-
-function shouldSkipRalphContinue(now: number, candidateIso: string): { skip: boolean; reason: string; anchorMs: number; anchorIso: string } {
-  const sharedMs = parseIsoMillis(candidateIso);
-  const localMs = parseIsoMillis(lastRalphContinueSteer.last_sent_at);
-  const startupAnchorIso = lastRalphContinueSteer.cooldown_anchor_at;
-  const startupAnchorMs = parseIsoMillis(startupAnchorIso);
-  const startupCooldown = sharedMs === null && localMs === null && startupAnchorMs !== null;
-  const anchorMs = sharedMs ?? localMs ?? startupAnchorMs ?? 0;
-  const anchorIso = sharedMs !== null
-    ? candidateIso
-    : (localMs !== null ? lastRalphContinueSteer.last_sent_at : startupAnchorIso);
-  return {
-    skip: anchorMs > 0 && now - anchorMs < RALPH_CONTINUE_CADENCE_MS,
-    reason: startupCooldown ? 'startup_cooldown' : (sharedMs !== null ? 'global_cooldown' : 'cooldown'),
-    anchorMs,
-    anchorIso,
-  };
-}
-
 async function readPidFileRecord(path: string): Promise<PidFileRecord | null> {
   const raw = await readFile(path, 'utf-8').catch(() => '');
   const trimmed = raw.trim();
@@ -796,103 +442,86 @@ async function readPidFileRecord(path: string): Promise<PidFileRecord | null> {
   }
 }
 
-function createAuthorityBackoffState(
+function createPrimaryWatcherHealthState(
   reason: string,
-  overrides: Partial<AuthorityBackoffState> = {},
-): AuthorityBackoffState {
+  overrides: Partial<PrimaryWatcherHealthState> = {},
+): PrimaryWatcherHealthState {
   return {
-    active: false,
+    healthy: false,
     reason,
     primary_pid: null,
-    primary_last_tick_at: '',
+    heartbeat_at: '',
     freshness_ms: null,
     threshold_ms: null,
     ...overrides,
   };
 }
 
-function latestWatcherTickIso(state: Record<string, unknown> | null): string {
-  if (!state || typeof state !== 'object') return '';
-  const candidates = [
-    safeString((state.dispatch_drain as Record<string, unknown> | undefined)?.last_tick_at),
-    safeString((state.leader_nudge as Record<string, unknown> | undefined)?.last_tick_at),
-    safeString((state.fallback_auto_nudge as Record<string, unknown> | undefined)?.last_tick_at),
-    safeString((state.ralph_continue_steer as Record<string, unknown> | undefined)?.last_state_check_at),
-  ]
-    .map((value) => value.trim())
-    .filter(Boolean);
-  let latestIso = '';
-  let latestMs = -1;
-  for (const candidate of candidates) {
-    const parsed = parseIsoMillis(candidate);
-    if (parsed === null || parsed <= latestMs) continue;
-    latestMs = parsed;
-    latestIso = candidate;
-  }
-  return latestIso;
-}
-
-async function resolveAuthorityPrimaryWatcherHealth(now = Date.now()): Promise<AuthorityBackoffState> {
-  if (!authorityOnly) return createAuthorityBackoffState('not_authority');
-
+async function resolvePrimaryWatcherHealth(now = Date.now()): Promise<PrimaryWatcherHealthState> {
   const existingRecord = await readPidFileRecord(pidFilePath).catch(() => null);
-  if (!existingRecord) return createAuthorityBackoffState('pid_missing');
-  if (existingRecord.cwd && !sameFilePath(existingRecord.cwd, cwd)) return createAuthorityBackoffState('cwd_mismatch');
+  if (!existingRecord) return createPrimaryWatcherHealthState('pid_missing');
+  if (existingRecord.cwd && !sameFilePath(existingRecord.cwd, cwd)) return createPrimaryWatcherHealthState('cwd_mismatch');
   if (!isPidAlive(existingRecord.pid)) {
-    return createAuthorityBackoffState('pid_stale', {
+    return createPrimaryWatcherHealthState('pid_stale', {
       primary_pid: existingRecord.pid,
     });
   }
 
   const persistedState = await readJsonObject(statePath);
   if (!persistedState) {
-    return createAuthorityBackoffState('state_missing', {
+    return createPrimaryWatcherHealthState('state_missing', {
       primary_pid: existingRecord.pid,
     });
   }
 
   const persistedPid = Math.trunc(asNumber(persistedState.pid as string | number | undefined, 0));
   if (persistedPid > 0 && persistedPid !== existingRecord.pid) {
-    return createAuthorityBackoffState('state_pid_mismatch', {
+    return createPrimaryWatcherHealthState('state_pid_mismatch', {
       primary_pid: existingRecord.pid,
     });
   }
 
-  const lastTickAt = latestWatcherTickIso(persistedState);
-  if (!lastTickAt) {
-    return createAuthorityBackoffState('tick_missing', {
+  const heartbeatAt = safeString(persistedState.heartbeat_at).trim();
+  if (!heartbeatAt) {
+    return createPrimaryWatcherHealthState('heartbeat_missing', {
       primary_pid: existingRecord.pid,
     });
   }
 
-  const lastTickMs = parseIsoMillis(lastTickAt);
-  const primaryPollMs = Math.max(50, asNumber(persistedState.poll_ms as string | number | undefined, 250));
+  const heartbeatMs = parseIsoMillis(heartbeatAt);
+  const primaryPollMs = Math.max(
+    50,
+    asNumber(
+      persistedState.effective_poll_ms as string | number | undefined,
+      asNumber(persistedState.poll_ms as string | number | undefined, 250),
+    ),
+  );
   const thresholdMs = Math.max(1_000, primaryPollMs * 4);
-  if (lastTickMs === null) {
-    return createAuthorityBackoffState('tick_invalid', {
+  if (heartbeatMs === null) {
+    return createPrimaryWatcherHealthState('heartbeat_invalid', {
       primary_pid: existingRecord.pid,
-      primary_last_tick_at: lastTickAt,
+      heartbeat_at: heartbeatAt,
       threshold_ms: thresholdMs,
     });
   }
 
-  const freshnessMs = now - lastTickMs;
+  const freshnessMs = now - heartbeatMs;
   if (freshnessMs > thresholdMs) {
     return {
-      active: false,
-      reason: 'tick_stale',
+      healthy: false,
+      reason: 'heartbeat_stale',
       primary_pid: existingRecord.pid,
-      primary_last_tick_at: lastTickAt,
+      heartbeat_at: heartbeatAt,
       freshness_ms: freshnessMs,
       threshold_ms: thresholdMs,
     };
   }
 
   return {
-    active: true,
+    healthy: true,
     reason: 'primary_watcher_healthy',
     primary_pid: existingRecord.pid,
-    primary_last_tick_at: lastTickAt,
+    heartbeat_at: heartbeatAt,
     freshness_ms: freshnessMs,
     threshold_ms: thresholdMs,
   };
@@ -908,13 +537,6 @@ async function writePidFileRecord(): Promise<void> {
     owner_token: watcherOwnerToken,
   };
   await writeFile(pidFilePath, JSON.stringify(nextRecord, null, 2)).catch(() => {});
-}
-
-async function buildWatcherManagedPayload(): Promise<Record<string, string> | null> {
-  const session = await readSessionState(cwd).catch(() => null);
-  const sessionId = safeString(session?.session_id).trim();
-  if (!sessionId || !session || isSessionStale(session)) return null;
-  return { session_id: sessionId };
 }
 
 async function registerPidFile(): Promise<void> {
@@ -972,9 +594,10 @@ async function writeState(extra: Record<string, unknown> = {}): Promise<void> {
     pid: process.pid,
     parent_pid: parentPid,
     started_at: new Date(startedAt).toISOString(),
+    heartbeat_at: new Date().toISOString(),
     cwd,
     notify_script: notifyScript,
-    authority_only: authorityOnly,
+    delivery_mode: runOnce ? 'once' : 'persistent',
     poll_ms: pollMs,
     effective_poll_ms: adaptivePollState.current_ms,
     idle_max_poll_ms: idleMaxPollMs,
@@ -983,28 +606,21 @@ async function writeState(extra: Record<string, unknown> = {}): Promise<void> {
     tracked_files: fileState.size,
     seen_turns: seenTurnKeys.size,
     dispatch_drain: {
-      enabled: true,
-      max_per_tick: dispatchTickMax,
-      run_count: dispatchDrainRuns,
-      ...lastDispatchDrain,
+      enabled: false,
+      reason: 'retired_control_plane',
     },
     leader_nudge: {
-      ...lastLeaderNudge,
-      enabled: true,
-      run_count: leaderNudgeRuns,
+      enabled: false,
+      reason: 'retired_control_plane',
     },
     ralph_continue_steer: {
-      ...lastRalphContinueSteer,
-      enabled: true,
-      cadence_ms: RALPH_CONTINUE_CADENCE_MS,
-      message: RALPH_CONTINUE_TEXT,
+      enabled: false,
+      reason: 'retired_control_plane',
     },
     fallback_auto_nudge: {
-      ...lastFallbackAutoNudge,
-      enabled: true,
-      stall_ms: AUTO_NUDGE_STALL_MS,
+      enabled: false,
+      reason: 'retired_control_plane',
     },
-    authority_backoff: lastAuthorityBackoff,
     adaptive_poll: {
       ...adaptivePollState,
       enabled: true,
@@ -1016,132 +632,10 @@ async function writeState(extra: Record<string, unknown> = {}): Promise<void> {
   await writeJsonObjectAtomically(statePath, state).catch(() => {});
 }
 
-async function writeAuthorityBackoffState(): Promise<void> {
-  await mkdir(stateDir, { recursive: true }).catch(() => {});
-  const existing = await readJsonObject(statePath);
-  const state = existing && typeof existing === 'object'
-    ? { ...existing, authority_backoff: lastAuthorityBackoff }
-    : { authority_backoff: lastAuthorityBackoff };
-  await writeJsonObjectAtomically(statePath, state).catch(() => {});
-}
-
 async function readJsonObject(path: string): Promise<Record<string, unknown> | null> {
   return readFile(path, 'utf-8')
     .then((content) => JSON.parse(content) as Record<string, unknown>)
     .catch(() => null);
-}
-
-async function readAutoNudgeCount(): Promise<number> {
-  const parsed = await readScopedJsonIfExists(stateDir, 'auto-nudge-state.json', undefined, null);
-  return Math.max(0, Math.trunc(asNumber(parsed?.nudgeCount as string | number | undefined, 0)));
-}
-
-async function readAutoNudgeState(): Promise<Record<string, unknown> | null> {
-  return readScopedJsonIfExists(stateDir, 'auto-nudge-state.json', undefined, null);
-}
-
-async function runFallbackAutoNudgeTick(): Promise<void> {
-  const now = Date.now();
-  const nowIso = new Date(now).toISOString();
-  const hudState = await readScopedJsonIfExists(stateDir, 'hud-state.json', undefined, null);
-
-  lastFallbackAutoNudge = {
-    ...lastFallbackAutoNudge,
-    enabled: true,
-    stall_ms: AUTO_NUDGE_STALL_MS,
-    last_tick_at: nowIso,
-    last_error: null,
-  };
-
-  if (!hudState) {
-    lastFallbackAutoNudge.last_reason = 'hud_state_missing';
-    return;
-  }
-
-  const lastTurnAt = safeString(hudState.last_turn_at);
-  const turnCount = Number.isFinite(hudState.turn_count) ? hudState.turn_count as number : null;
-  const lastMessage = safeString(hudState.last_agent_output || hudState.last_agent_message || '');
-  const lastTurnMs = parseIsoMillis(lastTurnAt);
-
-  lastFallbackAutoNudge.last_turn_at = lastTurnAt;
-  lastFallbackAutoNudge.last_turn_count = turnCount;
-  lastFallbackAutoNudge.last_message = lastMessage.slice(0, 400);
-
-  if (!lastTurnAt || lastTurnMs === null || turnCount === null || turnCount < 1) {
-    lastFallbackAutoNudge.last_reason = 'hud_state_incomplete';
-    return;
-  }
-  if (!lastMessage.trim()) {
-    lastFallbackAutoNudge.last_reason = 'no_last_message';
-    return;
-  }
-  if (now - lastTurnMs < AUTO_NUDGE_STALL_MS) {
-    lastFallbackAutoNudge.last_reason = 'recent_turn_activity';
-    return;
-  }
-
-  const signature = await resolveAutoNudgeSignature(stateDir, {
-    type: 'agent-turn-complete',
-    cwd,
-    source: 'notify-fallback-watcher-stall',
-    'thread-id': 'notify-fallback-watcher-stall',
-    'turn-id': `stalled-turn-${turnCount}`,
-    'input-messages': ['[notify-fallback] synthesized from stalled hud-state'],
-    'last-assistant-message': lastMessage,
-  }, lastMessage);
-  const persistedAutoNudgeState = await readAutoNudgeState();
-  const autoNudgeConfig = await loadAutoNudgeConfig();
-  const semanticSignature = normalizeAutoNudgeSignatureText(lastMessage);
-  if (signature && safeString(persistedAutoNudgeState?.lastSignature) === signature) {
-    lastFallbackAutoNudge.last_reason = 'already_nudged_for_signature';
-    lastFallbackAutoNudge.last_nudged_signature = signature;
-    return;
-  }
-  const lastNudgeAtMs = parseIsoMillis(safeString(persistedAutoNudgeState?.lastNudgeAt));
-  if (
-    semanticSignature
-    && safeString(persistedAutoNudgeState?.lastSemanticSignature) === semanticSignature
-    && autoNudgeConfig.ttlMs > 0
-    && lastNudgeAtMs !== null
-    && (now - lastNudgeAtMs) < autoNudgeConfig.ttlMs
-  ) {
-    lastFallbackAutoNudge.last_reason = 'ttl_active';
-    lastFallbackAutoNudge.last_nudged_signature = signature;
-    return;
-  }
-
-  const beforeCount = await readAutoNudgeCount();
-  await maybeAutoNudge({
-    cwd,
-    stateDir,
-    logsDir,
-    payload: {
-      type: 'agent-turn-complete',
-      cwd,
-      source: 'notify-fallback-watcher-stall',
-      'thread-id': 'notify-fallback-watcher-stall',
-      'turn-id': `stalled-turn-${turnCount}`,
-      'input-messages': ['[notify-fallback] synthesized from stalled hud-state'],
-      'last-assistant-message': lastMessage,
-    },
-  });
-  const afterCount = await readAutoNudgeCount();
-
-  if (afterCount > beforeCount) {
-    lastFallbackAutoNudge.last_nudged_signature = signature;
-    lastFallbackAutoNudge.last_nudged_at = nowIso;
-    lastFallbackAutoNudge.last_reason = 'sent';
-    await eventLog({
-      type: 'fallback_auto_nudge_tick',
-      reason: 'sent',
-      turn_count: turnCount,
-      last_turn_at: lastTurnAt,
-      stall_ms: AUTO_NUDGE_STALL_MS,
-    });
-    return;
-  }
-
-  lastFallbackAutoNudge.last_reason = 'eligible_but_not_sent';
 }
 
 async function requestShutdown(reason: string, signal: string | null = null): Promise<void> {
@@ -1179,8 +673,6 @@ async function enforceLifecycleGuards(): Promise<boolean> {
         lastParentGuard.reason !== nextParentGuard.reason
         || lastParentGuard.state_path !== nextParentGuard.state_path
         || lastParentGuard.current_phase !== nextParentGuard.current_phase
-        || lastParentGuard.team_name !== nextParentGuard.team_name
-        || lastParentGuard.pane_count !== nextParentGuard.pane_count
       ) {
         await eventLog({
           type: 'watcher_parent_guard',
@@ -1321,7 +813,7 @@ async function invokeNotifyHook(payload: Record<string, unknown>): Promise<{ spa
       finish({ spawned: true, childPid: child.pid, status: closed?.status ?? null, signal: closed?.signal ?? null, timedOut, authorityDeadline: deadlineTimedOut, terminationUnconfirmed: !confirmed || closed === null, error: isDeadline ? new Error('authority_deadline') : new Error('hook_timeout') });
     };
     const hookTimeout = setTimeout(() => { void stopForTimeout(false); }, 10_000);
-    const deadlineTimeout = setTimeout(() => { void stopForTimeout(true); }, Math.max(0, authorityDeadlineAtMs - Date.now()));
+    const deadlineTimeout = setTimeout(() => { void stopForTimeout(true); }, Math.max(0, deliveryDeadlineAtMs - Date.now()));
     child.once('error', (error) => finish({ spawned, childPid: child.pid, error }));
     child.once('spawn', () => { spawned = true; });
     void close.then(({ status, signal }) => finish({ spawned, childPid: child.pid, status, signal }));
@@ -1359,7 +851,7 @@ async function processLine(meta: WatcherFileMeta, line: string, filePath: string
     eventTimestampMs: evtTs,
     rolloutPath: filePath,
     watcherMode: runOnce ? 'once' : 'persistent',
-    deadlineAtMs: authorityDeadlineAtMs,
+    deadlineAtMs: deliveryDeadlineAtMs,
     stopping: () => stopping,
     spawnHook: async () => {
       spawnResult = await invokeNotifyHook(payload);
@@ -1370,7 +862,7 @@ async function processLine(meta: WatcherFileMeta, line: string, filePath: string
   const result = await deliveryPromise.finally(() => {
     if (activeDeliveryPromise === deliveryPromise) activeDeliveryPromise = null;
   });
-  if (result.kind === 'retry_eligible' && !stopping && Date.now() + 250 < authorityDeadlineAtMs) {
+  if (result.kind === 'retry_eligible' && !stopping && Date.now() + 250 < deliveryDeadlineAtMs) {
     await sleep(250);
     await processLine(meta, line, filePath);
     return;
@@ -1476,165 +968,35 @@ async function pollFiles(): Promise<number> {
   return processedCount;
 }
 
-async function runLeaderNudgeTick(): Promise<boolean> {
-  const startedIso = new Date().toISOString();
-  const leaderOnly = safeString(process.env.NOMX_TEAM_WORKER || '').trim() === '';
-  const staleThresholdMs = resolveLeaderStalenessThresholdMs();
-
-  if (!leaderOnly) {
-    leaderNudgeRuns += 1;
-    lastLeaderNudge = {
-      enabled: true,
-      leader_only: false,
-      stale_threshold_ms: staleThresholdMs,
-      precomputed_leader_stale: null,
-      last_tick_at: startedIso,
-      last_error: 'worker_context',
-    };
-    return false;
-  }
-
-  try {
-    const preComputedLeaderStale = await isLeaderStale(stateDir, staleThresholdMs, Date.now());
-    await maybeNudgeTeamLeader({
-      cwd,
-      stateDir,
-      logsDir,
-      preComputedLeaderStale,
-      allowFreshMailboxNudges: false,
-      source: 'notify_fallback_watcher',
-    });
-    leaderNudgeRuns += 1;
-    lastLeaderNudge = {
-      enabled: true,
-      leader_only: true,
-      stale_threshold_ms: staleThresholdMs,
-      precomputed_leader_stale: preComputedLeaderStale,
-      last_tick_at: startedIso,
-      last_error: null,
-    };
-    const reason = preComputedLeaderStale ? 'leader_nudge_checked' : 'leader_nudge_skipped_not_stale';
-    if (shouldLogLeaderNudgeTick(reason)) {
-      await eventLog({
-        type: 'leader_nudge_tick',
-        leader_only: true,
-        run_count: leaderNudgeRuns,
-        stale_threshold_ms: staleThresholdMs,
-        precomputed_leader_stale: preComputedLeaderStale,
-        reason,
-      });
-    }
-    return preComputedLeaderStale;
-  } catch (err) {
-    leaderNudgeRuns += 1;
-    lastLeaderNudge = {
-      enabled: true,
-      leader_only: true,
-      stale_threshold_ms: staleThresholdMs,
-      precomputed_leader_stale: null,
-      last_tick_at: startedIso,
-      last_error: err instanceof Error ? err.message : safeString(err),
-    };
-    await eventLog({
-      type: 'leader_nudge_tick',
-      leader_only: true,
-      run_count: leaderNudgeRuns,
-      stale_threshold_ms: staleThresholdMs,
-      reason: 'leader_nudge_failed',
-      error: lastLeaderNudge.last_error,
-    });
-    return true;
-  }
-}
-
-async function runDispatchDrainTick(): Promise<boolean> {
-  const startedIso = new Date().toISOString();
-  try {
-    const result = await drainPendingTeamDispatch({ cwd, stateDir, logsDir, maxPerTick: dispatchTickMax } as any);
-    dispatchDrainRuns += 1;
-    lastDispatchDrain = {
-      leader_only: safeString(process.env.NOMX_TEAM_WORKER || '').trim() === '',
-      last_tick_at: startedIso,
-      last_result: result,
-      last_error: null,
-    };
-    if (shouldLogDispatchDrainTick(result)) {
-      await eventLog({
-        type: 'dispatch_drain_tick',
-        leader_only: lastDispatchDrain.leader_only,
-        dispatch_max_per_tick: dispatchTickMax,
-        run_count: dispatchDrainRuns,
-        ...(result && typeof result === 'object' ? result as Record<string, unknown> : {}),
-      });
-    }
-    return shouldLogDispatchDrainTick(result);
-  } catch (err) {
-    dispatchDrainRuns += 1;
-    lastDispatchDrain = {
-      leader_only: safeString(process.env.NOMX_TEAM_WORKER || '').trim() === '',
-      last_tick_at: startedIso,
-      last_result: null,
-      last_error: err instanceof Error ? err.message : safeString(err),
-    };
-    await eventLog({
-      type: 'dispatch_drain_tick',
-      leader_only: lastDispatchDrain.leader_only,
-      dispatch_max_per_tick: dispatchTickMax,
-      run_count: dispatchDrainRuns,
-      reason: 'dispatch_drain_failed',
-      error: lastDispatchDrain.last_error,
-    });
-    return true;
-  }
-}
-
-async function shouldSuppressInteractiveFallbackTicks(): Promise<boolean> {
-  const [deepInterviewStateActive, deepInterviewInputLockActive] = await Promise.all([
-    isDeepInterviewStateActive(stateDir, undefined),
-    isDeepInterviewInputLockActive(stateDir, undefined),
-  ]);
-  return deepInterviewStateActive || deepInterviewInputLockActive;
-}
-
-async function pumpTeamControlPlaneTick(): Promise<CycleActivitySummary> {
-  const dispatchActive = await runDispatchDrainTick();
-  if (await shouldSuppressInteractiveFallbackTicks()) {
-    return { active: dispatchActive, reason: dispatchActive ? 'dispatch_drain' : 'deep_interview_locked' };
-  }
-  const leaderActive = await runLeaderNudgeTick();
-  await runFallbackAutoNudgeTick();
-  const autoNudgeActive = lastFallbackAutoNudge.last_reason === 'sent';
-  if (dispatchActive) return { active: true, reason: 'dispatch_drain' };
-  if (leaderActive) return { active: true, reason: 'leader_nudge' };
-  if (autoNudgeActive) return { active: true, reason: 'fallback_auto_nudge' };
-  return { active: false, reason: lastFallbackAutoNudge.last_reason || 'control_plane_idle' };
-}
-
-
 async function runWatcherCycle(): Promise<number> {
   await compactNotifyFallbackDeliveries(stateDir).catch(async (error) => {
     await eventLog({ type: 'fallback_notify_claim', reason: 'compaction_io_skip', error: error instanceof Error ? error.message : String(error) });
   });
-  let processedRolloutCount = 0;
-  if (authorityOnly) {
-    const authorityBackoff = await resolveAuthorityPrimaryWatcherHealth();
-    lastAuthorityBackoff = authorityBackoff;
-    if (authorityBackoff.active) {
-      await writeAuthorityBackoffState();
-      return processedRolloutCount;
+  let primaryWatcherHealth: PrimaryWatcherHealthState | null = null;
+  if (fallbackIfPrimaryIdle) {
+    primaryWatcherHealth = await resolvePrimaryWatcherHealth();
+    if (primaryWatcherHealth.healthy) {
+      await eventLog({
+        type: 'watcher_fallback_skipped',
+        ...primaryWatcherHealth,
+      });
+      return pollMs;
     }
-  } else {
-    lastAuthorityBackoff = createAuthorityBackoffState('');
+    await eventLog({
+      type: 'watcher_fallback_scan',
+      ...primaryWatcherHealth,
+    });
   }
-  if (!authorityOnly) {
-    await ensureTrackedFiles();
-    processedRolloutCount = await pollFiles();
-  }
+
+  await ensureTrackedFiles();
+  const processedRolloutCount = await pollFiles();
   const summary: CycleActivitySummary = processedRolloutCount > 0
     ? { active: true, reason: 'rollout_event' }
     : { active: false, reason: 'idle' };
   const nextDelayMs = updateAdaptivePollState(summary);
-  await writeState({ last_cycle_activity: summary.reason });
+  if (!fallbackIfPrimaryIdle) {
+    await writeState({ last_cycle_activity: summary.reason });
+  }
   return nextDelayMs;
 }
 
@@ -1667,21 +1029,19 @@ async function main(): Promise<void> {
 
   await registerPidFile();
   await loadPersistedWatcherState();
-  if (!(runOnce && authorityOnly)) {
-    await eventLog({
-      type: 'watcher_start',
-      cwd,
-      notify_script: notifyScript,
-      authority_only: authorityOnly,
-      poll_ms: pollMs,
-      effective_poll_ms: adaptivePollState.current_ms,
-      idle_max_poll_ms: idleMaxPollMs,
-      once: runOnce,
-      parent_pid: parentPid,
-      pid_file: runOnce ? null : pidFilePath,
-      max_lifetime_ms: maxLifetimeMs,
-    });
-  }
+  await eventLog({
+    type: 'watcher_start',
+    cwd,
+    notify_script: notifyScript,
+    fallback_if_primary_idle: fallbackIfPrimaryIdle,
+    poll_ms: pollMs,
+    effective_poll_ms: adaptivePollState.current_ms,
+    idle_max_poll_ms: idleMaxPollMs,
+    once: runOnce,
+    parent_pid: parentPid,
+    pid_file: runOnce ? null : pidFilePath,
+    max_lifetime_ms: maxLifetimeMs,
+  });
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGHUP', () => shutdown('SIGHUP'));
@@ -1690,9 +1050,11 @@ async function main(): Promise<void> {
 
   if (runOnce) {
     await runWatcherCycle();
-    if (!authorityOnly) {
-      await eventLog({ type: 'watcher_once_complete', authority_only: authorityOnly, seen_turns: seenTurnKeys.size });
-    }
+    await eventLog({
+      type: 'watcher_once_complete',
+      fallback_if_primary_idle: fallbackIfPrimaryIdle,
+      seen_turns: seenTurnKeys.size,
+    });
     process.exit(0);
   }
 

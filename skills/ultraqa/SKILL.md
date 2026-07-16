@@ -82,9 +82,9 @@ Generated harnesses are part of the QA evidence chain; until setup succeeds, the
    - `--lint`: Run the project's lint command.
    - `--typecheck`: Run the project's type check command.
    - `--custom`: Run the appropriate command and check the pattern plus exit status and failure markers.
-   - `--interactive`: Use qa-tester or an equivalent CLI/service harness:
+   - `--interactive`: Use test-engineer or an equivalent CLI/service harness:
      ```
-     Use `/prompts:qa-tester` with:
+     Use `/prompts:test-engineer` with:
      Goal: [describe what to verify]
      Service: [how to start]
      Test cases: [normal, hostile, malformed, interruption, resume, stale-state, dirty-worktree, hung-command, flaky, and misleading-output scenarios]

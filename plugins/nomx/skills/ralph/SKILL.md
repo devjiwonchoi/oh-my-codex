@@ -31,10 +31,10 @@ Complex tasks often fail silently: partial implementations get declared "done", 
 
 <Execution_Policy>
 - Fire independent agent calls simultaneously -- never wait sequentially for independent work
-- Use `run_in_background: true` for long operations (installs, builds, test suites)
-- When the native surface exposes `agent_type` role routing, set `agent_type` to an installed NOMX role and never omit it for NOMX work; use `reasoning_effort` for per-dispatch intensity when needed
-- When it does not (`role_routing_unavailable`, for example a Codex App `spawn_agent` surface exposing only `task_name`, `message`, and `fork_turns`), do not fabricate `agent_type`; follow the NOMX adapted role-pass protocol by recording a pre-validated role intent in the NOMX subagent ledger, and never fake the role via a prompt label
-- Preserve legacy Ralph tier intent through native reasoning effort: LOW -> `low`, STANDARD -> `medium`, THOROUGH -> `xhigh`
+- Use the native `spawn_agent` contract that is actually available: a bounded `task_name`, a precise `message`, and `fork_turns` only when controlling inherited context materially helps. Do not invent dispatch fields.
+- Native subagents inherit the current repository and session defaults. When explicit role routing is unavailable and a pass requires a NOMX role, use `CODEX_THREAD_ID` as the authenticated current leader identity and run `nomx ralplan role-intent write --role <role> --parent-thread "$CODEX_THREAD_ID" --json`, then use the receipt's `spawn_task_name` as the exact `task_name`. The validated ledger receipt carries role identity; `message` carries only the bounded work, evidence requirements, and output contract. Never replace the receipt with a prompt role label.
+- Preserve legacy Ralph tier intent through task scope and message detail: LOW for a narrow lookup, STANDARD for bounded implementation, and THOROUGH for complex or high-risk analysis.
+- For long operations (installs, builds, test suites), use the command runner's yielded process session and poll it while independent native subagents continue their lanes.
 - Deliver the full implementation: no scope reduction, no partial completion, no deleting tests to make them pass
 - Apply the shared workflow guidance pattern: outcome-first framing, concise visible updates for multi-step execution, local overrides for the active workflow branch, validation proportional to risk, explicit stop rules, and automatic continuation for safe reversible steps. Ask only for material, destructive, credentialed, external-production, or preference-dependent branches.
 - Integrate with Codex goal mode when goal tools are available: inspect the active thread goal with `get_goal`, preserve it as the top-level stop condition, and only call `update_goal({status: "complete"})` after a Ralph completion audit proves the objective is actually achieved.
@@ -55,12 +55,13 @@ Complex tasks often fail silently: partial implementations get declared "done", 
    - Do not begin Ralph execution work (delegation, implementation, or verification loops) until snapshot grounding exists. If forced to proceed quickly, note explicit risk tradeoffs.
 1. **Review progress**: Check TODO list and any prior iteration state
 2. **Continue from where you left off**: Pick up incomplete tasks
-3. **Delegate in parallel**: Route tasks to specialist native agents with explicit `agent_type` and appropriate `reasoning_effort`
-   - Simple lookups: `reasoning_effort="low"` -- "What does this function return?"
-   - Standard work: `reasoning_effort="medium"` -- "Add error handling to this module"
-   - Complex analysis: `reasoning_effort="xhigh"` -- "Debug this race condition"
-   - When Ralph is entered as a ralplan follow-up, start from the approved **available-agent-types roster** and make the delegation plan explicit: implementation lane, evidence/regression lane, and final sign-off lane using only known agent types
-4. **Run long operations in background**: Builds, installs, test suites use `run_in_background: true`
+3. **Delegate in parallel**: Route independent tasks through native `spawn_agent` calls using only `task_name`, `message`, and optional `fork_turns`
+   - Simple lookup message: "Inspect the named function and return its behavior with file:line evidence."
+   - Standard work message: "Implement the bounded error-handling change, run targeted tests, and report changed files plus evidence."
+   - Complex analysis message: "Investigate the race condition; return root cause, evidence, and the smallest safe fix."
+   - For every role-specific lane on an adapted App surface, record validated role intent first and use the receipt's exact `spawn_task_name`; do not improvise a descriptive task name or role prompt.
+   - When Ralph is entered as a ralplan follow-up, preserve the approved implementation, evidence/regression, and final sign-off role assignments through their role-intent receipts, and keep each child message bounded to its assigned work.
+4. **Run long operations through yielded command sessions**: Start builds, installs, and test suites with the command runner; poll the returned session without blocking independent agent lanes.
 5. **Visual task gate (when screenshot/reference images are present)**:
    - Run the Visual Ralph verdict step **before every next edit**.
    - Require structured JSON output: `score`, `verdict`, `category_match`, `differences[]`, `suggestions[]`, `reasoning`.
@@ -74,16 +75,17 @@ Complex tasks often fail silently: partial implementations get declared "done", 
    c. Read the output -- confirm it actually passed
    d. Check: zero pending/in_progress TODO items
 7. **Architect verification** (native role):
-   - <5 files, <100 lines with full tests: `task(agent_type="architect", reasoning_effort="medium", prompt="...")` minimum
-   - Standard changes: `task(agent_type="architect", reasoning_effort="medium", prompt="...")`
-   - >20 files or security/architectural changes: `task(agent_type="architect", reasoning_effort="xhigh", prompt="...")`
-   - Ralph floor: always run an explicit `architect` native subagent, even for small changes
-   - On a `role_routing_unavailable` surface, before each App Architect spawn, run `nomx ralplan role-intent write --role architect --parent-thread <leader-thread-id> --json`; read `spawn_task_name` from its receipt (`nomx_role_intent_<correlation_token>`), the App-compatible `task_name` value (lowercase letters, digits, and underscores only), then spawn the App Architect with `task_name` set to that exact unmodified value, **not** `agent_nickname`. The recorded validated intent and correlation token are the authoritative role carrier, never a prompt label.
+   - Before every adapted App verification spawn, run `nomx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json` and read `spawn_task_name` from the validated receipt.
+   - <5 files, <100 lines with full tests: `spawn_agent({task_name: "<receipt.spawn_task_name>", message: "Independently verify the change's architecture against the task, diff, and fresh test evidence; return APPROVED or blockers."})` minimum
+   - Standard changes: use the same receipt-backed call shape with the full task, diff scope, constraints, and verification evidence in `message`
+   - >20 files or security/architectural changes: expand the bounded work message with explicit boundary, threat, tradeoff, and regression checks
+   - Ralph floor: always run an independent architecture-verification subagent, even for small changes
+   - The validated role-intent receipt and correlation token are the authoritative role carrier. Never substitute a descriptive `task_name`, fake the role through `message`, or fabricate extra dispatch fields.
 7.5 **Regression Re-verification**:
    - Re-run all required tests/build/lint after final fixes and read the output to confirm they still pass.
    - Do not proceed to completion until the final verification is green.
 8. **On approval**: If Codex goal mode is active, call `update_goal({status: "complete"})` before `/cancel`; report final elapsed time and token-budget usage when the tool returns it. Then run `/cancel` to cleanly exit and clean up all state files.
-9. **On rejection**: Fix the issues raised, then re-verify with the same `agent_type` and `reasoning_effort` profile
+9. **On rejection**: Fix the issues raised, then re-verify with the same architecture-verification task scope and evidence contract
 </Steps>
 
 <Tool_Usage>
@@ -146,11 +148,11 @@ Use the CLI-first state surface for Ralph lifecycle state (`nomx state write/rea
 <Good>
 Correct parallel delegation:
 ```
-task(agent_type="executor", reasoning_effort="low", prompt="Add type export for UserConfig")
-task(agent_type="executor", reasoning_effort="medium", prompt="Implement the caching layer for API responses")
-task(agent_type="executor", reasoning_effort="xhigh", prompt="Refactor auth module to support OAuth2 flow")
+spawn_agent({task_name: "user_config_export", message: "Add the UserConfig type export, run the narrow type check, and report the changed file plus evidence."})
+spawn_agent({task_name: "api_cache_layer", message: "Implement the API response caching layer, run targeted tests, and report changed files plus evidence."})
+spawn_agent({task_name: "oauth_refactor", message: "Refactor the auth module to support OAuth2; preserve existing behavior, run relevant tests, and report risks."})
 ```
-Why good: Three independent tasks fired simultaneously while explicitly selecting the installed `executor` native role, so the UI/tracker does not show default subagents; legacy tier intent is preserved through native reasoning effort (`LOW` -> `low`, `STANDARD` -> `medium`, `THOROUGH` -> `xhigh`).
+Why good: Three independent tasks are started before waiting, each uses only supported native fields, and each message carries its scope, intent, and evidence contract.
 </Good>
 
 <Good>
@@ -159,8 +161,9 @@ Correct verification before completion:
 1. Run: npm test           → Output: "42 passed, 0 failed"
 2. Run: npm run build      → Output: "Build succeeded"
 3. Run: lsp_diagnostics    → Output: 0 errors
-4. task(agent_type="architect", reasoning_effort="medium", prompt="verify completion") → Verdict: "APPROVED"
-5. Run /cancel
+4. Run `nomx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json` and read `spawn_task_name`
+5. spawn_agent({task_name: "<receipt.spawn_task_name>", message: "Independently verify completion against the task, diff, and fresh test evidence; return APPROVED or blockers."}) → Verdict: "APPROVED"
+6. Run /cancel
 ```
 Why good: Fresh evidence at each step, architect verification, then clean exit.
 </Good>
@@ -174,9 +177,9 @@ Why bad: Uses "should" and "look good" -- no fresh test/build output, no archite
 <Bad>
 Sequential execution of independent tasks:
 ```
-task(agent_type="executor", reasoning_effort="low", prompt="Add type export") → wait →
-task(agent_type="executor", reasoning_effort="medium", prompt="Implement caching") → wait →
-task(agent_type="executor", reasoning_effort="xhigh", prompt="Refactor auth")
+spawn_agent({task_name: "type_export", message: "Add the type export and report evidence."}) → wait →
+spawn_agent({task_name: "cache_layer", message: "Implement caching and report evidence."}) → wait →
+spawn_agent({task_name: "auth_refactor", message: "Refactor auth and report evidence."})
 ```
 Why bad: These are independent tasks that should run in parallel, not sequentially.
 </Bad>
@@ -196,7 +199,7 @@ Why bad: These are independent tasks that should run in parallel, not sequential
 - [ ] Fresh test run output shows all tests pass
 - [ ] Fresh build output shows success
 - [ ] lsp_diagnostics shows 0 errors on affected files
-- [ ] Architect verification passed: on a routing-capable surface via explicit `task(agent_type="architect", reasoning_effort="medium"...)` minimum; on a `role_routing_unavailable` surface via a validated NOMX-adapted Architect role-pass (pre-recorded role intent + `nomx_adapted` provenance in the subagent ledger)
+- [ ] Independent architecture verification passed via `spawn_agent` using the validated architect role-intent receipt's exact `spawn_task_name` and a bounded work/evidence/verdict message
 - [ ] Codex goal-mode completion audit passed, and `update_goal({status: "complete"})` was called when an active goal exists
 - [ ] Final regression tests pass
 - [ ] `nomx cancel` run for clean state cleanup
@@ -267,9 +270,9 @@ Workflow: Detect flag, extract task, create `.nomx/plans/prd-{slug}.md`, create 
 - If `.nomx/progress.txt` exists and canonical progress ledger is absent, import one-way into `.nomx/state/{scope}/ralph-progress.json`.
 - Keep legacy files unchanged for one release cycle.
 
-## Background Execution Rules
+## Long-Running Command Rules
 
-**Run in background** (`run_in_background: true`):
+**Use yielded command sessions and poll them**:
 - Package installation (npm install, pip install, cargo build)
 - Build processes (make, project build commands)
 - Test suites

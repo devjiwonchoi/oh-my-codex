@@ -2,10 +2,6 @@ import { existsSync, readFileSync } from "fs";
 import { readFile } from "fs/promises";
 import { mkdir, rename, rm, writeFile } from "fs/promises";
 import { join } from "path";
-import {
-	isSetupTeamMode,
-	type SetupTeamMode,
-} from "../config/team-mode.js";
 
 export const SETUP_SCOPES = ["user", "project"] as const;
 export type SetupScope = (typeof SETUP_SCOPES)[number];
@@ -20,7 +16,6 @@ export interface PersistedSetupScope {
 	scope: SetupScope;
 	installMode?: SetupInstallMode;
 	mcpMode?: SetupMcpMode;
-	teamMode?: SetupTeamMode;
 	mergeAgents?: boolean;
 }
 
@@ -100,7 +95,6 @@ function parsePersistedSetupPreferences(
 		scope: unknown;
 		installMode: unknown;
 		mcpMode: unknown;
-		teamMode: unknown;
 		mergeAgents: unknown;
 	}>;
 	const persisted: PartialPersistedSetupScope = {};
@@ -125,10 +119,6 @@ function parsePersistedSetupPreferences(
 
 	if (typeof parsed.mcpMode === "string" && isSetupMcpMode(parsed.mcpMode)) {
 		persisted.mcpMode = parsed.mcpMode;
-	}
-
-	if (typeof parsed.teamMode === "string" && isSetupTeamMode(parsed.teamMode)) {
-		persisted.teamMode = parsed.teamMode;
 	}
 
 	if (persisted.scope && typeof parsed.mergeAgents === "boolean") {

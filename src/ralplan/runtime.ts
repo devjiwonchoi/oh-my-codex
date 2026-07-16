@@ -13,7 +13,7 @@ export const RALPLAN_ACTIVE_PHASES = [
 export type RalplanActivePhase = (typeof RALPLAN_ACTIVE_PHASES)[number];
 export type RalplanTerminalPhase = 'complete' | 'cancelled' | 'failed';
 export type RalplanReviewVerdict = 'approve' | 'iterate' | 'reject';
-export type RalplanExecutionLane = 'ultragoal' | 'team' | 'ralph' | 'conductor' | 'execution' | 'none';
+export type RalplanExecutionLane = 'ultragoal' | 'native-subagents' | 'ralph' | 'conductor' | 'execution' | 'none';
 
 export interface RalplanReusableRoleLane {
   agent_role: 'architect' | 'critic';
@@ -332,8 +332,10 @@ function assertRoleLaneReuse(
   }
 }
 
-function normalizeExecutionLane(lane: RalplanExecutionLane | undefined): 'ultragoal' | 'team' | 'ralph' | 'none' {
-  if (lane === 'team' || lane === 'ralph' || lane === 'none') return lane;
+type NormalizedRalplanExecutionLane = 'ultragoal' | 'native-subagents' | 'ralph' | 'none';
+
+function normalizeExecutionLane(lane: RalplanExecutionLane | undefined): NormalizedRalplanExecutionLane {
+  if (lane === 'native-subagents' || lane === 'ralph' || lane === 'none') return lane;
   if (lane === 'ultragoal' || lane === 'conductor' || lane === 'execution') return 'ultragoal';
   return 'none';
 }
@@ -343,12 +345,35 @@ function buildRalplanHandoffArtifact(
   options: { selectedExecutionLane?: RalplanExecutionLane; started: boolean },
 ): Record<string, unknown> {
   const selectedExecutionLane = normalizeExecutionLane(options.selectedExecutionLane);
+  const nativeSubagentHandoff = selectedExecutionLane === 'native-subagents';
   return {
     selected_execution_lane: selectedExecutionLane,
-    execution_handoff_status: selectedExecutionLane === 'none' ? 'planning_only_terminal' : options.started ? 'started' : 'selected_pending_start',
+    execution_handoff_status: selectedExecutionLane === 'none'
+      ? 'planning_only_terminal'
+      : nativeSubagentHandoff
+        ? 'leader_dispatch_required'
+        : options.started
+          ? 'started'
+          : 'selected_pending_start',
+    ...(nativeSubagentHandoff
+      ? {
+          execution_handoff_owner: 'leader',
+          execution_handoff_surface: 'native_subagents',
+        }
+      : {}),
     planning_only_terminal: selectedExecutionLane === 'none',
     ralplan_consensus_gate: consensusGate,
   };
+}
+
+function completionStatusMessage(selectedExecutionLane: NormalizedRalplanExecutionLane): string {
+  if (selectedExecutionLane === 'none') {
+    return 'Status: complete — ralplan consensus approved, planning artifacts are ready, and no execution lane was selected.';
+  }
+  if (selectedExecutionLane === 'native-subagents') {
+    return 'Status: complete — ralplan consensus approved and planning artifacts are ready for leader-owned native-subagent dispatch.';
+  }
+  return 'Status: complete — ralplan consensus approved and planning artifacts are ready for execution handoff.';
 }
 
 async function startSelectedExecutionLane(
@@ -357,7 +382,7 @@ async function startSelectedExecutionLane(
   selectedExecutionLane: RalplanExecutionLane | undefined,
 ): Promise<boolean> {
   const lane = normalizeExecutionLane(selectedExecutionLane);
-  if (lane === 'none') return false;
+  if (lane === 'none' || lane === 'native-subagents') return false;
   await startMode(lane, task, 50, cwd);
   return true;
 }
@@ -568,6 +593,7 @@ export async function runRalplanConsensus(
           };
         }
 
+        const selectedExecutionLane = normalizeExecutionLane(options.selectedExecutionLane);
         await updateRalplanState(cwd, {
           active: false,
           iteration,
@@ -576,16 +602,14 @@ export async function runRalplanConsensus(
           planning_complete: true,
           latest_plan_path: latestPlanPath,
           ralplan_consensus_gate: consensusGate,
-          selected_execution_lane: normalizeExecutionLane(options.selectedExecutionLane),
+          selected_execution_lane: selectedExecutionLane,
           handoff_artifacts: {
             ralplan: buildRalplanHandoffArtifact(consensusGate, {
               selectedExecutionLane: options.selectedExecutionLane,
               started: false,
             }),
           },
-          status_message: normalizeExecutionLane(options.selectedExecutionLane) === 'none'
-            ? 'Status: complete — ralplan consensus approved, planning artifacts are ready, and no execution lane was selected.'
-            : 'Status: complete — ralplan consensus approved and planning artifacts are ready for execution handoff.',
+          status_message: completionStatusMessage(selectedExecutionLane),
           review_history: reviewHistory,
         });
         const executionHandoffStarted = await startSelectedExecutionLane(cwd, options.task, options.selectedExecutionLane);

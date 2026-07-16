@@ -3,7 +3,7 @@
  * Multi-agent orchestration for OpenAI Codex CLI
  */
 
-import { execFileSync, spawn } from "child_process";
+import { execFileSync, spawn, spawnSync } from "child_process";
 import { basename, dirname, join, posix, resolve, win32 } from "path";
 import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "fs";
 import { copyFile, cp, lstat, mkdir, readFile, readdir, rm, stat, symlink, utimes, writeFile } from "fs/promises";
@@ -44,6 +44,7 @@ import {
   XHIGH_REASONING_FLAG,
   SPARK_FLAG,
   MADMAX_SPARK_FLAG,
+  MODEL_FLAG,
   CONFIG_FLAG,
   LONG_CONFIG_FLAG,
 } from "./constants.js";
@@ -75,8 +76,11 @@ import {
 import { escapeTomlString, readTopLevelTomlString, upsertTopLevelTomlString } from "../utils/toml.js";
 import {
   CANONICAL_REASONING_EFFORTS,
+  getSparkDefaultModel,
   isAmbiguousUnsupportedReasoningEffort,
 } from "../config/models.js";
+import { ensureReusableNodeModules } from "../utils/repo-deps.js";
+import { resolveWorktreeToolContext, worktreeToolContextEnv } from "../utils/worktree-tool-context.js";
 
 
 export {
@@ -95,7 +99,10 @@ import {
   syncCanonicalSkillStateForMode,
   type SkillActiveStateLike,
 } from "../state/skill-active.js";
-import { isTrackedWorkflowMode } from "../state/workflow-transition.js";
+import {
+  isRetiredTeamCompatibilityState,
+  isTrackedWorkflowMode,
+} from "../state/workflow-transition.js";
 import { maybeCheckAndPromptUpdate, runImmediateUpdate, type UpdateChannel } from "./update.js";
 import { maybePromptGithubStar } from "./star-prompt.js";
 import {
@@ -202,7 +209,7 @@ Options:
   --madmax      DANGEROUS: bypass Codex approvals and sandbox
                 (alias for --dangerously-bypass-approvals-and-sandbox)
   --spark       Use the Codex spark model (~1.3x faster)
-  --madmax-spark  spark model for workers + bypass approvals for leader and workers
+  --madmax-spark  Use the Codex spark model and bypass approvals/sandbox
                 (shorthand for: --spark --madmax)
   --notify-temp  Enable temporary notification routing for this run/session only
   --discord      Select Discord provider for temporary notification mode
@@ -485,7 +492,7 @@ export function resolveCliInvocation(args: string[]): ResolvedCliInvocation {
   if (firstArg === "--version" || firstArg === "-v") {
     return { command: "version", launchArgs: [] };
   }
-  if (!firstArg || firstArg.startsWith("--")) {
+  if (!firstArg || firstArg.startsWith("-")) {
     return { command: "launch", launchArgs: firstArg ? args : [] };
   }
   if (firstArg === "launch") {
@@ -1402,6 +1409,286 @@ export function buildHudPaneCleanupTargets(
   return [...targets];
 }
 
+export type LaunchWorktreeMode =
+  | { enabled: false }
+  | { enabled: true; detached: true; name: null }
+  | { enabled: true; detached: false; name: string };
+
+export interface ParsedLaunchWorktreeMode {
+  mode: LaunchWorktreeMode;
+  remainingArgs: string[];
+}
+
+export interface PlannedLaunchWorktreeTarget {
+  enabled: true;
+  repoRoot: string;
+  worktreePath: string;
+  detached: boolean;
+  baseRef: string;
+  branchName: string | null;
+}
+
+export interface EnsuredLaunchWorktree {
+  enabled: true;
+  repoRoot: string;
+  worktreePath: string;
+  detached: boolean;
+  branchName: string | null;
+  created: boolean;
+  reused: boolean;
+  createdBranch: boolean;
+  dirty?: boolean;
+}
+
+interface LaunchGitWorktreeEntry {
+  path: string;
+  head: string;
+  branchRef: string | null;
+  detached: boolean;
+}
+
+const LAUNCH_BRANCH_IN_USE_PATTERN = /already checked out|already used by worktree|is already checked out/i;
+
+export function parseLaunchWorktreeMode(args: string[]): ParsedLaunchWorktreeMode {
+  let mode: LaunchWorktreeMode = { enabled: false };
+  const remainingArgs: string[] = [];
+
+  for (let index = 0; index < args.length; index += 1) {
+    const rawArg = args[index];
+    const arg = String(rawArg || "");
+
+    if (arg === "--") {
+      remainingArgs.push(...args.slice(index));
+      break;
+    }
+
+    if (arg === "--worktree" || arg === "-w") {
+      mode = { enabled: true, detached: true, name: null };
+      continue;
+    }
+
+    if (arg.startsWith("--worktree=")) {
+      const value = arg.slice("--worktree=".length).trim();
+      mode = value
+        ? { enabled: true, detached: false, name: value }
+        : { enabled: true, detached: true, name: null };
+      continue;
+    }
+
+    if (arg.startsWith("-w=")) {
+      const value = arg.slice("-w=".length).trim();
+      mode = value
+        ? { enabled: true, detached: false, name: value }
+        : { enabled: true, detached: true, name: null };
+      continue;
+    }
+
+    remainingArgs.push(rawArg);
+  }
+
+  return { mode, remainingArgs };
+}
+
+function sanitizeLaunchWorktreePathToken(value: string): string {
+  const normalized = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return normalized || "default";
+}
+
+function readLaunchGit(cwd: string, args: string[]): string {
+  try {
+    return execFileSync("git", args, {
+      cwd,
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    }).trim();
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException & { stderr?: string | Buffer };
+    const stderr = typeof err.stderr === "string"
+      ? err.stderr.trim()
+      : err.stderr instanceof Buffer
+        ? err.stderr.toString("utf-8").trim()
+        : "";
+    throw new Error(stderr || `git ${args.join(" ")} failed`);
+  }
+}
+
+function validateLaunchWorktreeBranch(repoRoot: string, branchName: string): void {
+  const result = spawnSync("git", ["check-ref-format", "--branch", branchName], {
+    cwd: repoRoot,
+    encoding: "utf-8",
+    windowsHide: true,
+  });
+  if (result.status === 0) return;
+  throw new Error((result.stderr || "").trim() || `invalid_worktree_branch:${branchName}`);
+}
+
+function listLaunchGitWorktrees(repoRoot: string): LaunchGitWorktreeEntry[] {
+  const raw = readLaunchGit(repoRoot, ["worktree", "list", "--porcelain"]);
+  if (!raw) return [];
+
+  return raw
+    .split(/\n\n+/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .flatMap((chunk) => {
+      const lines = chunk.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+      const worktreeLine = lines.find((line) => line.startsWith("worktree "));
+      const headLine = lines.find((line) => line.startsWith("HEAD "));
+      const branchLine = lines.find((line) => line.startsWith("branch "));
+      if (!worktreeLine || !headLine) return [];
+      return [{
+        path: resolve(worktreeLine.slice("worktree ".length)),
+        head: headLine.slice("HEAD ".length).trim(),
+        branchRef: branchLine ? branchLine.slice("branch ".length).trim() : null,
+        detached: lines.includes("detached") || !branchLine,
+      }];
+    });
+}
+
+function isLaunchWorktreeDirty(worktreePath: string): boolean {
+  const result = spawnSync("git", ["status", "--porcelain"], {
+    cwd: worktreePath,
+    encoding: "utf-8",
+    windowsHide: true,
+  });
+  if (result.status !== 0) {
+    throw new Error((result.stderr || "").trim() || `worktree_status_failed:${worktreePath}`);
+  }
+  return (result.stdout || "").trim() !== "";
+}
+
+export function planLaunchWorktreeTarget(input: {
+  cwd: string;
+  mode: LaunchWorktreeMode;
+}): PlannedLaunchWorktreeTarget | { enabled: false } {
+  if (!input.mode.enabled) return { enabled: false };
+
+  const repoRoot = readLaunchGit(input.cwd, ["rev-parse", "--show-toplevel"]);
+  const baseRef = readLaunchGit(repoRoot, ["rev-parse", "HEAD"]);
+  const branchName = input.mode.detached ? null : input.mode.name;
+  if (branchName) validateLaunchWorktreeBranch(repoRoot, branchName);
+
+  const worktreeBucket = join(dirname(repoRoot), `${basename(repoRoot)}.nomx-worktrees`);
+  const worktreePath = input.mode.detached
+    ? join(worktreeBucket, `launch-detached-${baseRef.slice(0, 12)}`)
+    : join(worktreeBucket, `launch-${sanitizeLaunchWorktreePathToken(input.mode.name)}`);
+
+  return {
+    enabled: true,
+    repoRoot,
+    worktreePath,
+    detached: input.mode.detached,
+    baseRef,
+    branchName,
+  };
+}
+
+export function ensureLaunchWorktree(
+  plan: PlannedLaunchWorktreeTarget | { enabled: false },
+  options: { allowDirtyReuse?: boolean } = {},
+): EnsuredLaunchWorktree | { enabled: false } {
+  if (!plan.enabled) return { enabled: false };
+
+  let worktrees = listLaunchGitWorktrees(plan.repoRoot);
+  const resolvedTarget = resolve(plan.worktreePath);
+  const staleAtPath = worktrees.find((entry) => resolve(entry.path) === resolvedTarget);
+  if (staleAtPath && !existsSync(staleAtPath.path)) {
+    const prune = spawnSync("git", ["worktree", "prune"], {
+      cwd: plan.repoRoot,
+      encoding: "utf-8",
+      windowsHide: true,
+    });
+    if (prune.status !== 0) {
+      throw new Error((prune.stderr || "").trim() || `worktree_prune_failed:${plan.worktreePath}`);
+    }
+    worktrees = listLaunchGitWorktrees(plan.repoRoot);
+  }
+
+  const existingAtPath = worktrees.find((entry) => resolve(entry.path) === resolvedTarget);
+  const expectedBranchRef = plan.branchName ? `refs/heads/${plan.branchName}` : null;
+  if (existingAtPath) {
+    if (
+      (plan.detached && (!existingAtPath.detached || existingAtPath.head !== plan.baseRef)) ||
+      (!plan.detached && existingAtPath.branchRef !== expectedBranchRef)
+    ) {
+      throw new Error(`worktree_target_mismatch:${plan.worktreePath}`);
+    }
+
+    const dirty = isLaunchWorktreeDirty(plan.worktreePath);
+    if (dirty && !options.allowDirtyReuse) {
+      throw new Error(`worktree_dirty:${plan.worktreePath}`);
+    }
+    return {
+      enabled: true,
+      repoRoot: plan.repoRoot,
+      worktreePath: resolvedTarget,
+      detached: plan.detached,
+      branchName: plan.branchName,
+      created: false,
+      reused: true,
+      createdBranch: false,
+      ...(dirty ? { dirty: true } : {}),
+    };
+  }
+
+  if (existsSync(plan.worktreePath)) {
+    throw new Error(`worktree_path_conflict:${plan.worktreePath}`);
+  }
+
+  if (plan.branchName) {
+    const branchRef = `refs/heads/${plan.branchName}`;
+    if (worktrees.some((entry) => entry.branchRef === branchRef)) {
+      throw new Error(`branch_in_use:${plan.branchName}`);
+    }
+  }
+
+  mkdirSync(dirname(plan.worktreePath), { recursive: true });
+  const branchExists = plan.branchName
+    ? spawnSync("git", ["show-ref", "--verify", "--quiet", `refs/heads/${plan.branchName}`], {
+        cwd: plan.repoRoot,
+        encoding: "utf-8",
+        windowsHide: true,
+      }).status === 0
+    : false;
+  const addArgs = ["worktree", "add"];
+  if (plan.detached) {
+    addArgs.push("--detach", plan.worktreePath, plan.baseRef);
+  } else if (branchExists) {
+    addArgs.push(plan.worktreePath, plan.branchName as string);
+  } else {
+    addArgs.push("-b", plan.branchName as string, plan.worktreePath, plan.baseRef);
+  }
+
+  const added = spawnSync("git", addArgs, {
+    cwd: plan.repoRoot,
+    encoding: "utf-8",
+    windowsHide: true,
+  });
+  if (added.status !== 0) {
+    const stderr = (added.stderr || "").trim();
+    if (plan.branchName && LAUNCH_BRANCH_IN_USE_PATTERN.test(stderr)) {
+      throw new Error(`branch_in_use:${plan.branchName}`);
+    }
+    throw new Error(stderr || `worktree_add_failed:${addArgs.join(" ")}`);
+  }
+
+  return {
+    enabled: true,
+    repoRoot: plan.repoRoot,
+    worktreePath: resolvedTarget,
+    detached: plan.detached,
+    branchName: plan.branchName,
+    created: true,
+    reused: false,
+    createdBranch: Boolean(plan.branchName && !branchExists),
+  };
+}
+
 function isCrossPlatformAbsolutePath(raw: string): boolean {
   return posix.isAbsolute(raw) || win32.isAbsolute(raw);
 }
@@ -1472,6 +1759,32 @@ export function resolveDisposableWorktreeOmxRootForLaunch(
   if (!ensuredWorktree?.enabled) return undefined;
   if (hasExplicitOmxRootEnv(env)) return undefined;
   return ensuredWorktree.repoRoot;
+}
+
+function applyDisposableWorktreeOmxRootForLaunch(
+  ensuredWorktree: { enabled: true; repoRoot: string } | { enabled: false } | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  const root = resolveDisposableWorktreeOmxRootForLaunch(ensuredWorktree, env);
+  if (root) env.NOMX_ROOT = root;
+}
+
+function applyWorktreeToolContextForLaunch(
+  cwd: string,
+  ensuredWorktree:
+    | { enabled: true; repoRoot: string; worktreePath: string }
+    | { enabled: false }
+    | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  const context = resolveWorktreeToolContext({
+    cwd,
+    scope: "launch",
+    repoRoot: ensuredWorktree?.enabled ? ensuredWorktree.repoRoot : undefined,
+    worktreeRoot: ensuredWorktree?.enabled ? ensuredWorktree.worktreePath : cwd,
+    env,
+  });
+  Object.assign(env, worktreeToolContextEnv(context));
 }
 
 interface MadmaxWorktreeRuntimeContext {
@@ -1895,6 +2208,7 @@ export async function main(args: string[]): Promise<void> {
           mergeAgentsPolicy: resolveSetupAgentsMergePolicyArg(args.slice(1)),
           dryRun: options.dryRun,
           verbose: options.verbose,
+          requireComplete: flags.has("--require-complete"),
           scope: resolveSetupScopeArg(args.slice(1)),
           installMode: resolveSetupInstallModeArg(args.slice(1)),
           mcpMode: resolveSetupMcpModeArg(args.slice(1)),
@@ -2054,14 +2368,27 @@ async function showStatus(): Promise<void> {
   const { readFile } = await import("fs/promises");
   const cwd = process.cwd();
   try {
-    let refs = await listModeStateFilesWithScopePreference(cwd);
+    const filterRetiredTeamStateRefs = async (candidate: ModeStateFileRef[]): Promise<ModeStateFileRef[]> => {
+      const visible: ModeStateFileRef[] = [];
+      for (const ref of candidate) {
+        try {
+          const state = JSON.parse(await readFile(ref.path, "utf-8")) as Record<string, unknown>;
+          if (isRetiredTeamCompatibilityState(ref.mode, state)) continue;
+        } catch {
+          // Preserve malformed files in status so their parse error remains observable.
+        }
+        visible.push(ref);
+      }
+      return visible;
+    };
+    let refs = await filterRetiredTeamStateRefs(await listModeStateFilesWithScopePreference(cwd));
     // Reconcile with hook-visible run-dir state when the worktree-scoped state
     // list reports no active workflow mode (parity with `nomx cancel`). This
     // surfaces detached/madmax sessions whose state lives under the run dir.
     const hasActiveWorkflowMode = async (candidate: ModeStateFileRef[]): Promise<boolean> => {
       for (const ref of candidate) {
         const mode = basename(ref.path).replace("-state.json", "");
-        if (mode === SKILL_ACTIVE_STATE_MODE) continue;
+        if (mode === SKILL_ACTIVE_STATE_MODE || mode === "team") continue;
         try {
           const parsed = JSON.parse(await readFile(ref.path, "utf-8")) as Record<string, unknown>;
           if (parsed.active === true) return true;
@@ -2073,7 +2400,7 @@ async function showStatus(): Promise<void> {
     };
     let hasAuthoritativeActiveMode = await hasActiveWorkflowMode(refs);
     if (!hasAuthoritativeActiveMode) {
-      const runDirRefs = await listHookVisibleRunDirStateRefs(cwd);
+      const runDirRefs = await filterRetiredTeamStateRefs(await listHookVisibleRunDirStateRefs(cwd));
       if (await hasActiveWorkflowMode(runDirRefs)) {
         refs = runDirRefs;
         hasAuthoritativeActiveMode = true;
@@ -2175,18 +2502,73 @@ async function reasoningCommand(args: string[]): Promise<void> {
   console.log(`Set ${REASONING_KEY}="${mode}" in ${configPath}`);
 }
 
+function prepareLaunchWorktree(
+  launchCwd: string,
+  args: string[],
+): {
+  parsed: ParsedLaunchWorktreeMode;
+  cwd: string;
+  dirty: boolean;
+  ensured?: EnsuredLaunchWorktree | { enabled: false };
+} {
+  const parsed = parseLaunchWorktreeMode(args);
+  if (!parsed.mode.enabled) {
+    return { parsed, cwd: launchCwd, dirty: false };
+  }
+
+  const planned = planLaunchWorktreeTarget({ cwd: launchCwd, mode: parsed.mode });
+  const ensured = ensureLaunchWorktree(planned, { allowDirtyReuse: true });
+  if (!ensured.enabled) {
+    return { parsed, cwd: launchCwd, dirty: false, ensured };
+  }
+
+  if (ensured.dirty) {
+    process.stderr.write(
+      `[nomx] Caution: worktree at ${ensured.worktreePath} has uncommitted changes.\n` +
+      "  The session will launch as-is. Resolve the dirty state with NOMX after launch, then proceed with your task.\n",
+    );
+  }
+
+  const dependencyBootstrap = ensureReusableNodeModules(ensured.worktreePath);
+  if (dependencyBootstrap.strategy === "symlink") {
+    console.log(`[nomx] Reusing node_modules from ${dependencyBootstrap.sourceNodeModulesPath}`);
+  } else if (dependencyBootstrap.strategy === "missing" && dependencyBootstrap.warning) {
+    console.warn(`[nomx] ${dependencyBootstrap.warning}`);
+  }
+
+  return {
+    parsed,
+    cwd: ensured.worktreePath,
+    dirty: ensured.dirty === true,
+    ensured,
+  };
+}
+
 export async function launchWithHud(args: string[]): Promise<void> {
   const launchCwd = process.cwd();
+  const preparedWorktree = prepareLaunchWorktree(launchCwd, args);
   const notifyTempResult = resolveNotifyTempContract(
-    args,
+    preparedWorktree.parsed.remainingArgs,
     process.env,
   );
-  const enableNotifyFallbackAuthority = true;
+  const persistentCodexHomeForLaunch = resolveCodexHomeForLaunch(launchCwd, process.env);
   let normalizedArgs = normalizeCodexLaunchArgs(
     notifyTempResult.passthroughArgs,
+    { codexHomeOverride: persistentCodexHomeForLaunch },
   );
-  const cwd = launchCwd;
-  const worktreeDirty = false;
+  const cwd = preparedWorktree.cwd;
+  const worktreeDirty = preparedWorktree.dirty;
+  const madmaxWorktreeRuntimeContext = captureMadmaxWorktreeRuntimeContext({
+    originalLaunchArgs: args,
+    worktreeEnabled: preparedWorktree.ensured?.enabled === true,
+    sourceCwd: launchCwd,
+    worktreeCwd: preparedWorktree.ensured?.enabled
+      ? preparedWorktree.ensured.worktreePath
+      : undefined,
+    env: process.env,
+  });
+  applyDisposableWorktreeOmxRootForLaunch(preparedWorktree.ensured);
+  applyWorktreeToolContextForLaunch(cwd, preparedWorktree.ensured);
 
   const sessionId = `nomx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   try {
@@ -2236,7 +2618,7 @@ export async function launchWithHud(args: string[]): Promise<void> {
 
   // ── Phase 1: preLaunch ──────────────────────────────────────────────────
   try {
-    await preLaunch(cwd, sessionId, notifyTempResult.contract, codexHomeOverride, enableNotifyFallbackAuthority, worktreeDirty);
+    await preLaunch(cwd, sessionId, notifyTempResult.contract, codexHomeOverride, worktreeDirty);
   } catch (err) {
     if (isSessionPointerLaunchAbort(err)) {
       console.error(`[nomx] session pointer launch aborted: ${err.code}`);
@@ -2273,13 +2655,13 @@ export async function launchWithHud(args: string[]): Promise<void> {
       "direct",
       projectLocalCodexHomeForCleanup,
       preparedCodexHome.runtimeCodexHomeForCleanup,
-      undefined,
+      madmaxWorktreeRuntimeContext,
     );
     postLaunchHandledExternally = launchResult.postLaunchHandledExternally;
   } finally {
     // ── Phase 3: postLaunch ─────────────────────────────────────────────
     if (!postLaunchHandledExternally) {
-      await postLaunch(cwd, sessionId, codexHomeOverride, enableNotifyFallbackAuthority, projectLocalCodexHomeForCleanup);
+      await postLaunch(cwd, sessionId, codexHomeOverride, projectLocalCodexHomeForCleanup);
       await cleanupRuntimeCodexHome(preparedCodexHome.runtimeCodexHomeForCleanup, projectLocalCodexHomeForCleanup).catch(logCliOperationFailure);
     }
   }
@@ -2287,15 +2669,20 @@ export async function launchWithHud(args: string[]): Promise<void> {
 
 export async function execWithOverlay(args: string[]): Promise<void> {
   const launchCwd = process.cwd();
+  const preparedWorktree = prepareLaunchWorktree(launchCwd, args);
   const notifyTempResult = resolveNotifyTempContract(
-    args,
+    preparedWorktree.parsed.remainingArgs,
     process.env,
   );
+  const persistentCodexHomeForLaunch = resolveCodexHomeForLaunch(launchCwd, process.env);
   const normalizedArgs = normalizeCodexLaunchArgs(
     notifyTempResult.passthroughArgs,
+    { codexHomeOverride: persistentCodexHomeForLaunch },
   );
-  const cwd = launchCwd;
-  const worktreeDirty = false;
+  const cwd = preparedWorktree.cwd;
+  const worktreeDirty = preparedWorktree.dirty;
+  applyDisposableWorktreeOmxRootForLaunch(preparedWorktree.ensured);
+  applyWorktreeToolContextForLaunch(cwd, preparedWorktree.ensured);
 
   const sessionId = `nomx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -2331,7 +2718,7 @@ export async function execWithOverlay(args: string[]): Promise<void> {
   const projectLocalCodexHomeForCleanup = preparedCodexHome.projectLocalCodexHomeForCleanup;
 
   try {
-    await preLaunch(cwd, sessionId, notifyTempResult.contract, codexHomeOverride, true, worktreeDirty);
+    await preLaunch(cwd, sessionId, notifyTempResult.contract, codexHomeOverride, worktreeDirty);
   } catch (err) {
     if (isSessionPointerLaunchAbort(err)) {
       console.error(`[nomx] session pointer launch aborted: ${err.code}`);
@@ -2375,18 +2762,44 @@ export async function execWithOverlay(args: string[]): Promise<void> {
       : codexEnvBase;
     runCodexBlocking(cwd, codexArgs, codexEnv);
   } finally {
-    await postLaunch(cwd, sessionId, codexHomeOverride, true, projectLocalCodexHomeForCleanup);
+    await postLaunch(cwd, sessionId, codexHomeOverride, projectLocalCodexHomeForCleanup);
     await cleanupRuntimeCodexHome(preparedCodexHome.runtimeCodexHomeForCleanup, projectLocalCodexHomeForCleanup).catch(logCliOperationFailure);
   }
 }
 
-export function normalizeCodexLaunchArgs(args: string[]): string[] {
+export interface NormalizeCodexLaunchArgsOptions {
+  sparkModel?: string;
+  codexHomeOverride?: string;
+}
+
+function hasExplicitCodexModel(args: readonly string[]): boolean {
+  for (const arg of args) {
+    if (arg === "--") return false;
+    if (arg === MODEL_FLAG || arg === "-m") return true;
+    if (arg.startsWith(`${MODEL_FLAG}=`) || arg.startsWith("-m=")) return true;
+  }
+  return false;
+}
+
+export function normalizeCodexLaunchArgs(
+  args: string[],
+  options: NormalizeCodexLaunchArgsOptions = {},
+): string[] {
+  const parsedWorktree = parseLaunchWorktreeMode(args);
+  const separatorIndex = parsedWorktree.remainingArgs.indexOf("--");
+  const launchArgs = separatorIndex === -1
+    ? parsedWorktree.remainingArgs
+    : parsedWorktree.remainingArgs.slice(0, separatorIndex);
+  const promptArgs = separatorIndex === -1
+    ? []
+    : parsedWorktree.remainingArgs.slice(separatorIndex);
   const normalized: string[] = [];
   let wantsBypass = false;
   let hasBypass = false;
+  let wantsSpark = false;
   let reasoningMode: ReasoningMode | null = null;
 
-  for (const arg of args) {
+  for (const arg of launchArgs) {
     if (arg === MADMAX_FLAG) {
       wantsBypass = true;
       continue;
@@ -2416,13 +2829,13 @@ export function normalizeCodexLaunchArgs(args: string[]): string[] {
     }
 
     if (arg === SPARK_FLAG) {
-      // Spark model is injected into worker env only (not the leader). Consume flag.
+      wantsSpark = true;
       continue;
     }
 
     if (arg === MADMAX_SPARK_FLAG) {
-      // Bypass applies to leader; spark model goes to workers only. Consume flag.
       wantsBypass = true;
+      wantsSpark = true;
       continue;
     }
 
@@ -2437,7 +2850,12 @@ export function normalizeCodexLaunchArgs(args: string[]): string[] {
     normalized.push(CONFIG_FLAG, `${REASONING_KEY}="${reasoningMode}"`);
   }
 
-  return normalized;
+  if (wantsSpark && !hasExplicitCodexModel(normalized)) {
+    const sparkModel = options.sparkModel?.trim() || getSparkDefaultModel(options.codexHomeOverride);
+    normalized.push(MODEL_FLAG, sparkModel);
+  }
+
+  return [...normalized, ...promptArgs];
 }
 
 function isModelInstructionsOverride(value: string): boolean {
@@ -2623,7 +3041,6 @@ export function buildNotifyFallbackWatcherEnv(
   options: {
     codexHomeOverride?: string;
     nomxRootOverride?: string;
-    enableAuthority?: boolean;
     sessionId?: string;
   } = {},
 ): NodeJS.ProcessEnv {
@@ -2633,7 +3050,6 @@ export function buildNotifyFallbackWatcherEnv(
     ...(options.codexHomeOverride ? { CODEX_HOME: options.codexHomeOverride } : {}),
     ...(options.nomxRootOverride ? { NOMX_ROOT: options.nomxRootOverride } : {}),
     ...(options.sessionId ? { NOMX_SESSION_ID: options.sessionId } : {}),
-    NOMX_HUD_AUTHORITY: options.enableAuthority ? "1" : "0",
   };
 }
 
@@ -3077,7 +3493,6 @@ export async function preLaunch(
   sessionId: string,
   notifyTempContract?: NotifyTempContract,
   codexHomeOverride?: string,
-  enableNotifyFallbackAuthority: boolean = false,
   worktreeDirty: boolean = false,
 ): Promise<void> {
   // 1. Best-effort launch-safe orphan cleanup
@@ -3124,7 +3539,7 @@ ${launchAppendix}${dirtyWorktreeGuidance}`
 
   // 5. Start notify fallback watcher (best effort)
   try {
-    await startNotifyFallbackWatcher(cwd, { codexHomeOverride, enableAuthority: enableNotifyFallbackAuthority, sessionId });
+    await startNotifyFallbackWatcher(cwd, { codexHomeOverride, sessionId });
   } catch (err) {
     logCliOperationFailure(err);
     // Non-fatal
@@ -3273,7 +3688,6 @@ export async function postLaunch(
   cwd: string,
   sessionId: string,
   codexHomeOverride?: string,
-  enableNotifyFallbackAuthority: boolean = false,
   projectLocalCodexHomeForCleanup?: string,
 ): Promise<void> {
   // Capture session start time before cleanup (writeSessionEnd deletes session.json)
@@ -3291,7 +3705,7 @@ export async function postLaunch(
 
   // 0. Flush fallback watcher once to reduce race with fast codex exit.
   try {
-    await flushNotifyFallbackOnce(cwd, { codexHomeOverride, enableAuthority: enableNotifyFallbackAuthority, sessionId });
+    await flushNotifyFallbackOnce(cwd, { codexHomeOverride, sessionId });
   } catch (err) {
     logCliOperationFailure(err);
     // Non-fatal
@@ -3421,7 +3835,6 @@ export async function runDetachedSessionPostLaunch(
     cwd,
     sessionId,
     codexHomeOverride,
-    false,
     projectLocalCodexHomeForCleanup,
   );
   await cleanupRuntimeCodexHome(runtimeCodexHomeForCleanup, projectLocalCodexHomeForCleanup).catch(logCliOperationFailure);
@@ -3718,7 +4131,7 @@ function tryKillPid(pid: number, signal: NodeJS.Signals = "SIGTERM"): boolean {
 
 async function startNotifyFallbackWatcher(
   cwd: string,
-  options: { codexHomeOverride?: string; enableAuthority?: boolean; sessionId?: string } = {},
+  options: { codexHomeOverride?: string; sessionId?: string } = {},
 ): Promise<void> {
   const { mkdir, writeFile } = await import("fs/promises");
   const pidPath = notifyFallbackPidPath(cwd);
@@ -3746,7 +4159,6 @@ async function startNotifyFallbackWatcher(
   const watcherEnv = buildNotifyFallbackWatcherEnv(process.env, {
     codexHomeOverride: options.codexHomeOverride,
     nomxRootOverride: resolveOmxRootForLaunch(cwd, process.env),
-    enableAuthority: options.enableAuthority === true,
     sessionId: options.sessionId,
   });
   let watcherPid: number | undefined;
@@ -3937,7 +4349,7 @@ async function stopHookDerivedWatcher(cwd: string): Promise<void> {
 
 async function flushNotifyFallbackOnce(
   cwd: string,
-  options: { codexHomeOverride?: string; enableAuthority?: boolean; sessionId?: string } = {},
+  options: { codexHomeOverride?: string; sessionId?: string } = {},
 ): Promise<void> {
   if (!shouldEnableNotifyFallbackWatcher(process.env, process.platform)) return;
   const { spawnSync } = await import("child_process");
@@ -3955,7 +4367,6 @@ async function flushNotifyFallbackOnce(
       windowsHide: true,
       env: buildNotifyFallbackWatcherEnv(process.env, {
         codexHomeOverride: options.codexHomeOverride,
-        enableAuthority: options.enableAuthority === true,
         sessionId: options.sessionId,
       }),
     },
@@ -4106,6 +4517,7 @@ async function cancelModes(args: string[] = []): Promise<void> {
     >();
 
       for (const ref of refs) {
+        if (ref.mode === "team") continue;
         const content = await readFile(ref.path, "utf-8");
         let parsedState: Record<string, unknown>;
         try {
@@ -4114,6 +4526,7 @@ async function cancelModes(args: string[] = []): Promise<void> {
           logCliOperationFailure(err);
           continue;
         }
+        if (isRetiredTeamCompatibilityState(ref.mode, parsedState)) continue;
         loaded.set(ref.mode, {
           path: ref.path,
           scope: ref.scope,

@@ -33,6 +33,7 @@ function normalizePhaseText(value: unknown): string {
   if (normalized === 'completed') return 'complete';
   if (normalized === 'planning' || normalized === 'replan') return 'ralplan';
   if (normalized === 'fix' || normalized === 'review-fix' || normalized === 'implementation-fix') return 'rework';
+  if (normalized === 'team') return 'ultragoal';
   return normalized;
 }
 

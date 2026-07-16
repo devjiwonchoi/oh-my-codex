@@ -42,6 +42,32 @@ describe("persisted setup merge policy", () => {
 		}
 	});
 
+	it("ignores retired Team mode preferences while preserving supported setup choices", async () => {
+		const root = await mkdtemp(join(tmpdir(), "nomx-setup-preferences-"));
+		try {
+			const path = join(root, ".nomx", "setup-scope.json");
+			await mkdir(join(root, ".nomx"), { recursive: true });
+
+			for (const teamMode of ["enabled", "disabled"]) {
+				await writeFile(path, JSON.stringify({
+					scope: "user",
+					installMode: "plugin",
+					mcpMode: "none",
+					teamMode,
+					mergeAgents: true,
+				}));
+				assert.deepEqual(await readPersistedSetupPreferences(root), {
+					scope: "user",
+					installMode: "plugin",
+					mcpMode: "none",
+					mergeAgents: true,
+				});
+			}
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
 	it("writes canonical newline-terminated state atomically without retaining temporary files", async () => {
 		const root = await mkdtemp(join(tmpdir(), "nomx-setup-preferences-"));
 		try {

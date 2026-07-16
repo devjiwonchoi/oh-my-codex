@@ -46,7 +46,6 @@ import {
   getScopedStatePathAtScope,
   readScopedJsonAtScope,
   hasExistingScopedSessionDir,
-  readCurrentSessionId,
   readScopedJsonIfExists,
   getScopedStateDirsForCurrentSession,
   normalizeNotifyState,

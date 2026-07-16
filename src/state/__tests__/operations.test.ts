@@ -809,7 +809,7 @@ describe('state operations directory initialization', () => {
       const writes = Array.from({ length: 16 }, (_, i) =>
         executeStateOperation('state_write', {
           workingDirectory: wd,
-          mode: 'team',
+          mode: 'scratch',
           state: { [`k${i}`]: i },
         }),
       );
@@ -819,11 +819,85 @@ describe('state operations directory initialization', () => {
         assert.equal(response.isError, undefined);
       }
 
-      const filePath = join(wd, '.nomx', 'state', 'team-state.json');
+      const filePath = join(wd, '.nomx', 'state', 'scratch-state.json');
       const state = JSON.parse(await readFile(filePath, 'utf-8')) as Record<string, unknown>;
       for (let i = 0; i < 16; i++) {
         assert.equal(state[`k${i}`], i);
       }
+    } finally {
+      await rm(wd, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects writes to retired Team state while preserving historical reads', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-retired-team-'));
+    try {
+      const stateDir = join(wd, '.nomx', 'state');
+      const teamPath = join(stateDir, 'team-state.json');
+      const runPath = join(stateDir, 'run-state.json');
+      const legacyState = { mode: 'team', active: true, current_phase: 'running' };
+      const legacyRunState = { mode: 'team', active: true, current_phase: 'running', version: 1 };
+      await mkdir(stateDir, { recursive: true });
+      await writeFile(teamPath, JSON.stringify(legacyState, null, 2));
+      await writeFile(runPath, JSON.stringify(legacyRunState, null, 2));
+
+      const rejected = await executeStateOperation('state_write', {
+        workingDirectory: wd,
+        mode: 'team',
+        active: true,
+        current_phase: 'running',
+      });
+      assert.equal(rejected.isError, true);
+      assert.match(String((rejected.payload as { error?: string }).error || ''), /retired.*read-only compatibility/i);
+
+      const historical = await executeStateOperation('state_read', {
+        workingDirectory: wd,
+        mode: 'team',
+      });
+      assert.deepEqual(historical.payload, legacyState);
+      assert.deepEqual(JSON.parse(await readFile(teamPath, 'utf-8')), legacyState);
+
+      await assert.rejects(
+        () => updateModeState('team', { current_phase: 'changed' }, wd),
+        /retired.*read-only compatibility/i,
+      );
+
+      const listed = await executeStateOperation('state_list_active', {
+        workingDirectory: wd,
+      });
+      assert.deepEqual(listed.payload, { active_modes: [] });
+
+      const aggregateStatus = responsePayload<{ statuses: Record<string, unknown> }>(
+        await executeStateOperation('state_get_status', { workingDirectory: wd }),
+      );
+      assert.equal(Object.prototype.hasOwnProperty.call(aggregateStatus.statuses, 'team'), false);
+      assert.equal(Object.prototype.hasOwnProperty.call(aggregateStatus.statuses, 'run'), false);
+
+      const explicitStatus = responsePayload<{ statuses: Record<string, {
+        active?: boolean;
+        retired?: boolean;
+        historical_active?: boolean;
+        phase?: string;
+      }> }>(await executeStateOperation('state_get_status', {
+        workingDirectory: wd,
+        mode: 'team',
+      }));
+      assert.deepEqual(explicitStatus.statuses.team, {
+        active: false,
+        retired: true,
+        historical_active: true,
+        phase: 'retired',
+        path: teamPath,
+        data: legacyState,
+      });
+
+      const cleared = await executeStateOperation('state_clear', {
+        workingDirectory: wd,
+        mode: 'team',
+      });
+      assert.equal(cleared.isError, undefined);
+      assert.equal(existsSync(teamPath), false);
+      assert.equal(existsSync(runPath), false);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
@@ -1762,7 +1836,7 @@ describe('state operations directory initialization', () => {
 
         const beforeList = await executeStateOperation('state_list_active', { workingDirectory: wd });
         const beforeTeam = await executeStateOperation('state_read', { workingDirectory: wd, mode: 'team' });
-        assert.deepEqual(beforeList.payload, { active_modes: ['run'] });
+        assert.deepEqual(beforeList.payload, { active_modes: [] });
         assert.deepEqual(beforeTeam.payload, teamState);
 
         const response = await executeStateOperation('state_write', {
@@ -1785,7 +1859,7 @@ describe('state operations directory initialization', () => {
           foreignSkillState,
         );
         const afterList = await executeStateOperation('state_list_active', { workingDirectory: wd });
-        assert.deepEqual(afterList.payload, { active_modes: ['deep-interview', 'run'] });
+        assert.deepEqual(afterList.payload, { active_modes: ['deep-interview'] });
       } finally {
         await rm(wd, { recursive: true, force: true });
       }
@@ -1895,7 +1969,7 @@ describe('state operations directory initialization', () => {
       const listed = await executeStateOperation('state_list_active', {
         workingDirectory: wd,
       });
-      assert.deepEqual(listed.payload, { active_modes: ['team'] });
+      assert.deepEqual(listed.payload, { active_modes: [] });
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
@@ -2499,7 +2573,7 @@ describe('state operations directory initialization', () => {
         workingDirectory: wd,
         session_id: sessionId,
       });
-      assert.deepEqual(sessionListed.payload, { active_modes: ['team'] });
+      assert.deepEqual(sessionListed.payload, { active_modes: [] });
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
@@ -2585,7 +2659,7 @@ describe('state operations directory initialization', () => {
         workingDirectory: wd,
         session_id: sessionId,
       });
-      assert.deepEqual(sessionListed.payload, { active_modes: ['team'] });
+      assert.deepEqual(sessionListed.payload, { active_modes: [] });
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
@@ -2691,40 +2765,40 @@ describe('state operations directory initialization', () => {
         workingDirectory: wd,
         session_id: sessionId,
       });
-      assert.deepEqual(sessionListed.payload, { active_modes: ['team'] });
+      assert.deepEqual(sessionListed.payload, { active_modes: [] });
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it('denies unsupported overlaps without writing the requested mode state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-deny-overlap-'));
+  it('ignores legacy active Team state when writing a supported workflow', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ignore-retired-team-'));
     try {
-      const existing = await executeStateOperation('state_write', {
-        workingDirectory: wd,
-        session_id: 'sess-deny',
+      const sessionDir = join(wd, '.nomx', 'state', 'sessions', 'sess-retired-team');
+      await mkdir(sessionDir, { recursive: true });
+      await writeFile(join(sessionDir, 'team-state.json'), JSON.stringify({
         mode: 'team',
         active: true,
         current_phase: 'running',
-      });
-      assert.equal(existing.isError, undefined);
+      }, null, 2));
+      await writeFile(join(sessionDir, 'skill-active-state.json'), JSON.stringify({
+        active: true,
+        skill: 'team',
+        session_id: 'sess-retired-team',
+        active_skills: [{ skill: 'team', phase: 'running', active: true, session_id: 'sess-retired-team' }],
+      }, null, 2));
 
-      const denied = await executeStateOperation('state_write', {
+      const written = await executeStateOperation('state_write', {
         workingDirectory: wd,
-        session_id: 'sess-deny',
+        session_id: 'sess-retired-team',
         mode: 'autopilot',
         active: true,
-        current_phase: 'planning',
+        current_phase: 'ultragoal',
       });
 
-      assert.equal(denied.isError, true);
-      assert.match(String((denied.payload as { error?: string }).error || ''), /Unsupported workflow overlap: team \+ autopilot\./);
-      assert.equal(existsSync(join(wd, '.nomx', 'state', 'sessions', 'sess-deny', 'autopilot-state.json')), false);
-
-      const canonical = JSON.parse(
-        await readFile(join(wd, '.nomx', 'state', 'sessions', 'sess-deny', 'skill-active-state.json'), 'utf-8'),
-      ) as { active_skills?: Array<{ skill: string }> };
-      assert.deepEqual(canonical.active_skills?.map((entry) => entry.skill), ['team']);
+      assert.equal(written.isError, undefined);
+      assert.equal(existsSync(join(sessionDir, 'autopilot-state.json')), true);
+      assert.equal(existsSync(join(sessionDir, 'team-state.json')), true);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }

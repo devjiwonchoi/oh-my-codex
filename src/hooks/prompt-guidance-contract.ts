@@ -213,7 +213,6 @@ export const CATALOG_CONTRACTS: GuidanceSurfaceContract[] = [
   'performance-reviewer',
   'product-analyst',
   'product-manager',
-  'qa-tester',
   'quality-strategist',
   'style-reviewer',
   'ux-researcher',

@@ -84,6 +84,8 @@ describe('config generator', () => {
       assert.match(toml, /AGENTS\.md is the orchestration brain and main control surface/);
       assert.match(toml, /Follow AGENTS\.md for skill\/keyword routing, \$name workflow invocation, and role-specialized subagents/);
       assert.match(toml, /Native subagents live in \.codex\/agents/);
+      assert.match(toml, /independent parallel subtasks within one Codex session/);
+      assert.doesNotMatch(toml, /team pane|tmux/i);
       assert.match(toml, /when the native surface exposes `agent_type` role routing, set `agent_type` to an installed role and never omit it for NOMX work/i);
       assert.match(toml, /role_routing_unavailable/i);
       assert.match(toml, /do not fabricate `agent_type`/i);

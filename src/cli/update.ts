@@ -452,11 +452,6 @@ export function resolveSetupRefreshArgs(cwd: string): string[] {
   if (preferences?.mcpMode) {
     args.push('--mcp', preferences.mcpMode);
   }
-  if (preferences?.teamMode === 'disabled') {
-    args.push('--disable-team');
-  } else if (preferences?.teamMode === 'enabled') {
-    args.push('--enable-team');
-  }
   const mergeAgents = resolvePersistedSetupMergeAgents(preferences, preferences?.scope ?? 'user');
   if (mergeAgents === true) {
     args.push('--merge-agents');
@@ -843,12 +838,16 @@ export function spawnInstalledSetupRefresh(
   cwd: string,
   spawnProcess: SpawnSyncLike = spawnSync,
 ): RunSetupRefreshResult {
-  const result = spawnProcess(process.execPath, [cliEntry, ...resolveSetupRefreshArgs(cwd)], {
+  const result = spawnProcess(
+    process.execPath,
+    [cliEntry, ...resolveSetupRefreshArgs(cwd), '--require-complete'],
+    {
     cwd,
     env: process.env,
     stdio: 'inherit',
     windowsHide: true,
-  });
+    },
+  );
 
   if (result.error) {
     return { ok: false, stderr: result.error.message };

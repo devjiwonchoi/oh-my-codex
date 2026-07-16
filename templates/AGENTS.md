@@ -15,7 +15,7 @@ When NOMX is installed, load the installed prompt/skill/agent surfaces from `~/.
 <guidance_schema_contract>
 Keep runtime marker contracts stable and non-destructive when overlays are applied:
 - `<!-- OMX:RUNTIME:START --> ... <!-- OMX:RUNTIME:END -->`
-- `<!-- OMX:TEAM:WORKER:START --> ... <!-- OMX:TEAM:WORKER:END -->`
+- Legacy merge compatibility only: preserve `<!-- OMX:TEAM:WORKER:START --> ... <!-- OMX:TEAM:WORKER:END -->` when encountered; it does not imply a live Team runtime.
 </guidance_schema_contract>
 
 <operating_principles>
@@ -24,7 +24,7 @@ Keep runtime marker contracts stable and non-destructive when overlays are appli
 - Keep progress short, concrete, and useful.
 - Prefer evidence over assumption; verify before claiming completion.
 - Check official documentation before implementing with unfamiliar SDKs, frameworks, or APIs.
-- Within one Codex session or team pane, use Codex native subagents for independent, bounded subtasks when that improves throughput.
+- Within one Codex session, use Codex native subagents for independent, bounded subtasks when that improves throughput.
 <!-- NOMX:GUIDANCE:OPERATING:START -->
 - Default to outcome-first, quality-focused responses: identify the user's target result, success criteria, constraints, available evidence, expected output, and stop condition before adding process detail.
 - Keep collaboration style short and direct. Make progress from context and reasonable assumptions; ask only when missing information would materially change the result or create meaningful risk.
@@ -71,7 +71,7 @@ Use Codex native subagents for bounded implementation, research, review, or veri
 Leader responsibilities: choose the mode, delegate bounded verifiable subtasks, integrate results, and own final verification.
 Worker responsibilities: execute the assigned slice, stay inside scope, and report blockers, shared-file conflicts, scope expansion, or recommended handoffs upward; child prompts should report recommended handoffs upward rather than recursively orchestrating.
 Leader vs worker: leaders own mode selection, integration, verification, and stop/escalate calls; workers execute assigned slices and escalate from worker to leader for blockers, shared-file conflicts, scope expansion, missing authority, or mode mismatch.
-Rules: max 6 concurrent child agents; child prompts remain under AGENTS.md authority; prefer inherited model defaults unless a task has a concrete model reason.
+Rules: respect the native collaboration surface's reported concurrency capacity and count the leader in that total; child prompts remain under AGENTS.md authority; prefer inherited model defaults unless a task has a concrete model reason.
 </child_agent_protocol>
 
 

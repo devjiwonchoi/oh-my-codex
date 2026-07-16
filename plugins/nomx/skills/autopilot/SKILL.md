@@ -151,9 +151,8 @@ Required fields:
 When the user says `continue`, `resume`, or `keep going` while Autopilot is active, read `autopilot-state.json` and continue from `current_phase`:
 - `deep-interview`: clarify requirements and record the handoff artifact.
 - `ralplan`: run/update consensus planning from current handoffs and any `return_to_ralplan_reason`.
-- `ultragoal`: execute the approved plan durably and record verification/ledger evidence.
+- `ultragoal`: execute the approved plan durably, using leader-owned native-subagent lanes when useful, and record verification/ledger evidence.
 - `rework`: perform only the implementation fixes required by the current code-review findings, record fresh implementation/verification evidence, and return to `code-review`.
-- `team`: continue explicit team work only when it is nested under the active Ultragoal story and report evidence back to the leader.
 - `code-review`: review the current diff and decide clean vs return-to-ralplan.
 - `ultraqa`: run or explicitly skip adversarial QA based on the documented condition, then finish if clean or transition to `ralplan` with findings if not clean.
 - `ralph`: resume only for explicit legacy Ralph-path Autopilot state.

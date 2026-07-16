@@ -101,9 +101,9 @@ Optional ADDITIONAL dispatch on top of the mandatory minimum (fire when signals 
 - Multi-module integration surface → extra `explore` to map the cross-module boundary.
 
 Fan-out budget and shape:
-- Max **2 explore + 4 researcher** agents per round, all dispatched in parallel via `run_in_background=true` in a single tool block (never sequential). `researcher` is pinned to the exact cheap `gpt-5.6-terra` lane, so breadth comes from more citation-focused researchers while Metis/Momus/Oracle keep stronger judgment roles.
+- Overall round budget: max **2 explore + 4 researcher** agents. Every concurrent wave MUST respect the native surface's reported capacity and count the leader in that total. Launch no more children than the currently available child slots; if a mandatory minimum or optional lane exceeds that capacity, batch the excess into later waves. Start all independent agents in the current wave before waiting. Use only `spawn_agent` with `task_name`, `message`, and `fork_turns` when controlling inherited context materially helps. On an adapted App surface without explicit role routing, use `CODEX_THREAD_ID` as the authenticated current leader identity, record each explore/researcher role through `nomx ralplan role-intent write --role <role> --parent-thread "$CODEX_THREAD_ID" --json`, and use that receipt's exact `spawn_task_name`; never carry role identity through a prompt label.
 - Each prompt MUST follow the structured format: `[CONTEXT]` (task + current decision + repo path), `[GOAL]` (what the answer unblocks), `[DOWNSTREAM]` (which question or assumption depends on this), `[REQUEST]` (what to find, return format, what to skip). Vague single-line prompts are forbidden. When dispatching multiple researcher lanes, split `[REQUEST]` by evidence lane: official docs, release notes/changelog, OSS reference implementations, and pitfalls/migration notes.
-- Wait for all dispatched agents to complete before generating questions; do not interleave fan-out with user-facing questions.
+- Wait for every capacity-bounded wave and all dispatched agents to complete before generating questions; do not interleave fan-out with user-facing questions.
 
 Result handling:
 1. Treat every returned finding as Evidence with citation: `file:line` for repo facts, full doc URL for external docs, `org/repo@sha:file:line` for OSS references.
@@ -205,7 +205,7 @@ Trace anchor: the 2026-05-22 prometheus-strict run showed the user responding `p
 <execution_loop>
 1. **Classify intent** using `<intent_classification>` (trivial / simple / refactor / build-from-scratch / research / spec-driven / test-infra / architecture / collaboration). For trivial, skip the interview entirely; for simple, cap at 1-2 targeted questions; for others, use the matching question family axes.
 2. **Run `<spec_prefill>`**: scan the task prompt and the repo for spec signals (PRD / RFC / issue / framework artifacts) and prefill scope / constraints / non-goals / acceptance criteria with cited evidence.
-3. **Run `<research_fan_out>`**: default-on for every non-trivial intent unless a skip-out rule applies; batch-issue the mandatory-minimum background `explore` and/or `researcher` agents in parallel (budget 2 explore + 4 researcher max, structured `[CONTEXT] / [GOAL] / [DOWNSTREAM] / [REQUEST]` prompts). Wait for every dispatched agent to complete, treat the results as Evidence with citation, and re-run `<spec_prefill>` so the new facts move into the prefilled artifact instead of into the question slate.
+3. **Run `<research_fan_out>`**: default-on for every non-trivial intent unless a skip-out rule applies; issue the mandatory-minimum `explore` and/or `researcher` agents in capacity-respecting waves (overall round budget 2 explore + 4 researcher max, native reported capacity minus the leader per wave, structured `[CONTEXT] / [GOAL] / [DOWNSTREAM] / [REQUEST]` messages). Batch any excess mandatory lanes into the next wave, wait for every dispatched agent to complete, treat the results as Evidence with citation, and re-run `<spec_prefill>` so the new facts move into the prefilled artifact instead of into the question slate.
 4. Identify the target result and user-visible outcome.
 5. Extract must-have deliverables and excluded work.
 6. Convert vague success language into measurable acceptance criteria.
@@ -233,7 +233,7 @@ Trace anchor: the 2026-05-22 prometheus-strict run showed the user responding `p
 
 <tools>
 - Use read-only repository inspection (Read, Grep, Glob, Bash for `ls`/`cat`/`head`/`git log`/`gh api`) when referenced paths or commands need verification.
-- Dispatch background sub-agents via `task(subagent_type="explore", load_skills=[], run_in_background=true, prompt="...")` and `task(subagent_type="researcher", load_skills=[], run_in_background=true, prompt="...")` whenever `<research_fan_out>` mandates baseline dispatch or adds optional evidence gathering; this is the ONLY tool-call permission required to run the fan-out. Wait for every dispatched agent to complete before generating the next question slate.
+- Whenever `<research_fan_out>` mandates baseline dispatch or adds optional evidence gathering on an adapted App surface, run `nomx ralplan role-intent write --role <explore-or-researcher> --parent-thread "$CODEX_THREAD_ID" --json` once per child, then launch it with `spawn_agent({task_name: "<receipt.spawn_task_name>", message: "[CONTEXT] ... [GOAL] ... [DOWNSTREAM] ... [REQUEST] ..."})`. The receipt carries validated role identity; the structured message carries bounded work and evidence requirements. Start every independent lane in the current capacity-bounded wave before waiting, then wait for all results before generating the next question slate.
 - Do not edit source files. Do not run destructive shell commands. Do not commit or push.
 </tools>
 
