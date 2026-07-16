@@ -158,6 +158,21 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
         JSON.stringify({
           cwd,
           type: 'agent-turn-complete',
+          session_id: nativeSessionId,
+          thread_id: childThreadId,
+          turn_id: 'child-ordinary-turn',
+          input_messages: ['Continue the assigned work.'],
+          last_assistant_message: 'Still working',
+        }),
+      ], { cwd, stdio: 'pipe', env: process.env });
+      const activeChild = (await readSubagentTrackingState(cwd)).sessions[nativeSessionId]?.threads[childThreadId];
+      assert.equal(activeChild?.last_turn_id, 'child-ordinary-turn');
+      assert.equal(activeChild?.turn_count, 2);
+      execFileSync(process.execPath, [
+        join(process.cwd(), 'dist', 'scripts', 'notify-hook.js'),
+        JSON.stringify({
+          cwd,
+          type: 'agent-turn-complete',
           source: 'notify-fallback-watcher',
           session_id: nativeSessionId,
           thread_id: childThreadId,

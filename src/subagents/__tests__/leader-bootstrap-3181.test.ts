@@ -8,6 +8,8 @@ import {
   attestLeaderThread,
   ensureLeaderAndRecordIntent,
   readSubagentTrackingState,
+  recordKnownSubagentActivityForSession,
+  recordKnownSubagentCompletionForSession,
   recordNativeLeaderIntent,
   recordSubagentTurnForSession,
   subagentTrackingPath,
@@ -150,6 +152,92 @@ describe('#3181 leader bootstrap tracker carrier', () => {
       assert.deepEqual(result, { ok: false, reason: 'native_anchor_mismatch' });
       const state = await readSubagentTrackingState(cwd);
       assert.equal(state.sessions['child-thread'], undefined);
+    });
+  });
+
+  it('lets an unproven notify fallback close only an already-trusted child', async () => {
+    await withCwd(async (cwd) => {
+      await recordSubagentTurnForSession(cwd, {
+        sessionId: 'native-root',
+        threadId: 'known-child',
+        kind: 'subagent',
+        leaderThreadId: 'native-root',
+      });
+      assert.equal(await recordKnownSubagentCompletionForSession(cwd, {
+        sessionId: 'native-root',
+        threadId: 'known-child',
+        completionSource: 'notify-fallback-watcher',
+      }), true);
+      assert.equal(await recordKnownSubagentCompletionForSession(cwd, {
+        sessionId: 'native-root',
+        threadId: 'unproven-title-helper',
+        completionSource: 'notify-fallback-watcher',
+      }), false);
+
+      const state = await readSubagentTrackingState(cwd);
+      assert.ok(state.sessions['native-root']?.threads['known-child']?.completed_at);
+      assert.equal(state.sessions['native-root']?.threads['known-child']?.completion_source, 'notify-fallback-watcher');
+      assert.equal(state.sessions['native-root']?.threads['unproven-title-helper'], undefined);
+    });
+  });
+
+  it('lets an ordinary notification refresh only an already-trusted child', async () => {
+    await withCwd(async (cwd) => {
+      await recordSubagentTurnForSession(cwd, {
+        sessionId: 'native-root',
+        threadId: 'known-child',
+        kind: 'subagent',
+        leaderThreadId: 'native-root',
+        timestamp: '2026-07-17T00:00:00.000Z',
+      });
+      assert.equal(await recordKnownSubagentActivityForSession(cwd, {
+        sessionId: 'native-root',
+        threadId: 'known-child',
+        turnId: 'ordinary-turn',
+        timestamp: '2026-07-17T00:01:00.000Z',
+      }), true);
+      assert.equal(await recordKnownSubagentActivityForSession(cwd, {
+        sessionId: 'native-root',
+        threadId: 'unproven-title-helper',
+        turnId: 'title-turn',
+        timestamp: '2026-07-17T00:01:00.000Z',
+      }), false);
+
+      const state = await readSubagentTrackingState(cwd);
+      assert.equal(state.sessions['native-root']?.threads['known-child']?.last_seen_at, '2026-07-17T00:01:00.000Z');
+      assert.equal(state.sessions['native-root']?.threads['known-child']?.last_turn_id, 'ordinary-turn');
+      assert.equal(state.sessions['native-root']?.threads['unproven-title-helper'], undefined);
+    });
+  });
+
+  it('preserves trusted-child completion when a late ordinary notification refreshes activity', async () => {
+    await withCwd(async (cwd) => {
+      await recordSubagentTurnForSession(cwd, {
+        sessionId: 'native-root',
+        threadId: 'known-child',
+        kind: 'subagent',
+        leaderThreadId: 'native-root',
+        timestamp: '2026-07-17T00:00:00.000Z',
+      });
+      assert.equal(await recordKnownSubagentCompletionForSession(cwd, {
+        sessionId: 'native-root',
+        threadId: 'known-child',
+        completionSource: 'notify-fallback-watcher',
+        timestamp: '2026-07-17T00:01:00.000Z',
+      }), true);
+      assert.equal(await recordKnownSubagentActivityForSession(cwd, {
+        sessionId: 'native-root',
+        threadId: 'known-child',
+        turnId: 'late-ordinary-turn',
+        timestamp: '2026-07-17T00:02:00.000Z',
+      }), true);
+
+      const child = (await readSubagentTrackingState(cwd)).sessions['native-root']?.threads['known-child'];
+      assert.equal(child?.last_seen_at, '2026-07-17T00:02:00.000Z');
+      assert.equal(child?.last_turn_id, 'late-ordinary-turn');
+      assert.equal(child?.completed_at, '2026-07-17T00:01:00.000Z');
+      assert.equal(child?.completion_source, 'notify-fallback-watcher');
+      assert.equal(child?.status, 'closed');
     });
   });
 
