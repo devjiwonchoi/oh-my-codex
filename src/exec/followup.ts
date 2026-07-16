@@ -362,7 +362,7 @@ export function parseExecInjectArgs(args: string[]): {
 } {
   const [, sessionIdRaw, ...rest] = args;
   const sessionId = sessionIdRaw?.trim();
-  if (!sessionId) throw new Error("Usage: omx exec inject <session-id> --prompt <text> [--actor <name>] [--json]");
+  if (!sessionId) throw new Error("Usage: nomx exec inject <session-id> --prompt <text> [--actor <name>] [--json]");
 
   let prompt = "";
   let actor: string | undefined;

@@ -117,14 +117,9 @@ const TMUX_SUBMIT_REPEAT_DELAY_MS = 100;
 
 /**
  * Returns the number of C-m (submit) key presses needed for a given worker CLI.
- * Source of truth: Rust runtime's submit_presses_for_worker_cli (Claude=1, Codex/Other=2).
- * Mirrors the Rust logic inline to avoid shelling out for a trivial mapping.
+ * Claude uses one submit press; Codex and other workers use two.
  */
 export function getSubmitPresses(workerCli: string): number {
-  if (process.env.OMX_RUNTIME_BRIDGE === '0') {
-    return workerCli.toLowerCase() === 'claude' ? 1 : 2;
-  }
-  // Rust-owned mapping: Claude=1, Codex/Other=2
   return workerCli.toLowerCase() === 'claude' ? 1 : 2;
 }
 

@@ -32,7 +32,7 @@ describe('VULNERABILITY – old string-interpolation approach', () => {
 
   it('cwd containing $() is injectable via double-quote context', () => {
     const maliciousCwd = '/tmp/foo"$(touch /tmp/pwned)"bar';
-    const shellCmd = buildOldCommand(maliciousCwd, '/usr/bin/omx.js');
+    const shellCmd = buildOldCommand(maliciousCwd, '/usr/bin/nomx.js');
 
     // The double-quoted -c argument lets the shell evaluate $()
     assert.ok(
@@ -43,7 +43,7 @@ describe('VULNERABILITY – old string-interpolation approach', () => {
 
   it('cwd containing backticks is injectable via double-quote context', () => {
     const maliciousCwd = '/tmp/`id>/tmp/leak`';
-    const shellCmd = buildOldCommand(maliciousCwd, '/usr/bin/omx.js');
+    const shellCmd = buildOldCommand(maliciousCwd, '/usr/bin/nomx.js');
 
     assert.ok(
       shellCmd.includes('`id>/tmp/leak`'),
@@ -52,13 +52,13 @@ describe('VULNERABILITY – old string-interpolation approach', () => {
   });
 
   it("omxBin containing single quote breaks out of the '-quoted command", () => {
-    const maliciousOmx = "/tmp/it';touch /tmp/pwned;echo '/omx.js";
+    const maliciousOmx = "/tmp/it';touch /tmp/pwned;echo '/nomx.js";
     const shellCmd = buildOldCommand('/home/user', maliciousOmx);
 
     // The injected single quote terminates the tmux shell-command argument
     // early, allowing arbitrary commands to follow.
     assert.ok(
-      shellCmd.includes("'node /tmp/it';touch /tmp/pwned;echo '/omx.js"),
+      shellCmd.includes("'node /tmp/it';touch /tmp/pwned;echo '/nomx.js"),
       `Old code allows single-quote breakout: ${shellCmd}`,
     );
   });
@@ -96,17 +96,17 @@ describe('shellEscape', () => {
 
 describe('buildTmuxSplitArgs – shell injection hardening', () => {
   it('produces correct argv for normal inputs', () => {
-    const args = buildTmuxSplitArgs('/home/user/project', '/usr/local/bin/omx.js');
+    const args = buildTmuxSplitArgs('/home/user/project', '/usr/local/bin/nomx.js');
     assert.deepEqual(args, [
       'split-window', '-v', '-l', String(HUD_TMUX_HEIGHT_LINES),
       // split height should come from shared HUD constants
       '-c', '/home/user/project',
-      `exec env OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/usr/local/bin/omx.js' hud --watch`,
+      `exec env OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/usr/local/bin/nomx.js' hud --watch`,
     ]);
   });
 
   it('starts HUD watch via exec so tmux shell wrappers cannot accumulate bash processes (#2420)', () => {
-    const args = buildTmuxSplitArgs('/home/user/project', '/usr/local/bin/omx.js');
+    const args = buildTmuxSplitArgs('/home/user/project', '/usr/local/bin/nomx.js');
     const cmd = args[6];
     assert.match(cmd, /^exec /);
     assert.doesNotMatch(cmd, /^env /);
@@ -114,7 +114,7 @@ describe('buildTmuxSplitArgs – shell injection hardening', () => {
 
   it('cwd is an isolated array element – never shell-interpreted', () => {
     const maliciousCwd = '/tmp/foo"$(touch /tmp/pwned)"bar';
-    const args = buildTmuxSplitArgs(maliciousCwd, '/usr/bin/omx.js');
+    const args = buildTmuxSplitArgs(maliciousCwd, '/usr/bin/nomx.js');
 
     // cwd is element [5], passed directly to execFileSync as a tmux arg.
     // tmux receives it as a literal string – no shell expansion.
@@ -126,13 +126,13 @@ describe('buildTmuxSplitArgs – shell injection hardening', () => {
 
   it('cwd with backticks is isolated from the shell command', () => {
     const maliciousCwd = '/tmp/`id>/tmp/leak`';
-    const args = buildTmuxSplitArgs(maliciousCwd, '/usr/bin/omx.js');
+    const args = buildTmuxSplitArgs(maliciousCwd, '/usr/bin/nomx.js');
     assert.equal(args[5], maliciousCwd);
     assert.ok(!args[6].includes('`id'));
   });
 
   it("omxBin with single quote is properly escaped in command string", () => {
-    const maliciousOmx = "/tmp/it's/omx.js";
+    const maliciousOmx = "/tmp/it's/nomx.js";
     const args = buildTmuxSplitArgs('/home/user', maliciousOmx);
     const cmd = args[6];
 
@@ -141,28 +141,28 @@ describe('buildTmuxSplitArgs – shell injection hardening', () => {
       cmd.includes("'\\''"),
       `Expected escaped single quote in: ${cmd}`,
     );
-    assert.equal(cmd, `exec env OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/tmp/it'\\''s/omx.js' hud --watch`);
+    assert.equal(cmd, `exec env OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/tmp/it'\\''s/nomx.js' hud --watch`);
   });
 
   it('omxBin with $() is neutralised by single-quote wrapping', () => {
-    const maliciousOmx = '/tmp/$(id)/omx.js';
+    const maliciousOmx = '/tmp/$(id)/nomx.js';
     const args = buildTmuxSplitArgs('/home/user', maliciousOmx);
     const cmd = args[6];
 
     // Inside single quotes, $() is literal.
-    assert.equal(cmd, `exec env OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/tmp/$(id)/omx.js' hud --watch`);
+    assert.equal(cmd, `exec env OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/tmp/$(id)/nomx.js' hud --watch`);
   });
 
   it('omxBin with backticks is neutralised by single-quote wrapping', () => {
-    const maliciousOmx = '/tmp/`whoami`/omx.js';
+    const maliciousOmx = '/tmp/`whoami`/nomx.js';
     const args = buildTmuxSplitArgs('/home/user', maliciousOmx);
     const cmd = args[6];
 
-    assert.equal(cmd, `exec env OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/tmp/\`whoami\`/omx.js' hud --watch`);
+    assert.equal(cmd, `exec env OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/tmp/\`whoami\`/nomx.js' hud --watch`);
   });
 
   it("omxBin with ';command' breakout attempt is neutralised", () => {
-    const maliciousOmx = "/tmp/x';touch /tmp/pwned;echo '/omx.js";
+    const maliciousOmx = "/tmp/x';touch /tmp/pwned;echo '/nomx.js";
     const args = buildTmuxSplitArgs('/home/user', maliciousOmx);
     const cmd = args[6];
 
@@ -170,10 +170,10 @@ describe('buildTmuxSplitArgs – shell injection hardening', () => {
     // quotes escaped as '\''.  In a POSIX shell the result is a single word;
     // the semicolons never act as command separators.
     //
-    // Raw expected value: exec node '/tmp/x'\\'';touch /tmp/pwned;echo '\\''/omx.js' hud --watch
+    // Raw expected value: exec node '/tmp/x'\\'';touch /tmp/pwned;echo '\\''/nomx.js' hud --watch
     assert.equal(
       cmd,
-      `exec env OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/tmp/x'\\'';touch /tmp/pwned;echo '\\''/omx.js' hud --watch`,
+      `exec env OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/tmp/x'\\'';touch /tmp/pwned;echo '\\''/nomx.js' hud --watch`,
     );
 
     // Both original single quotes are escaped (two '\'' sequences).
@@ -183,13 +183,13 @@ describe('buildTmuxSplitArgs – shell injection hardening', () => {
   });
 
   it('preset is appended safely', () => {
-    const args = buildTmuxSplitArgs('/home/user', '/usr/bin/omx.js', 'minimal');
+    const args = buildTmuxSplitArgs('/home/user', '/usr/bin/nomx.js', 'minimal');
     const cmd = args[6];
     assert.ok(cmd.endsWith('--preset=minimal'));
   });
 
   it('absent preset produces no --preset flag', () => {
-    const args = buildTmuxSplitArgs('/home/user', '/usr/bin/omx.js');
+    const args = buildTmuxSplitArgs('/home/user', '/usr/bin/nomx.js');
     const cmd = args[6];
     assert.ok(!cmd.includes('--preset'));
   });
@@ -197,24 +197,24 @@ describe('buildTmuxSplitArgs – shell injection hardening', () => {
   it('invalid preset is dropped (defense in depth)', () => {
     const args = buildTmuxSplitArgs(
       '/home/user',
-      '/usr/bin/omx.js',
+      '/usr/bin/nomx.js',
       'minimal;touch /tmp/pwned',
     );
     const cmd = args[6];
-    assert.equal(cmd, `exec env OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/usr/bin/omx.js' hud --watch`);
+    assert.equal(cmd, `exec env OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/usr/bin/nomx.js' hud --watch`);
     assert.ok(!cmd.includes('--preset='));
   });
 
   it('prepends OMX_SESSION_ID when provided', () => {
-    const args = buildTmuxSplitArgs('/home/user', '/usr/bin/omx.js', 'focused', 'sess-managed');
+    const args = buildTmuxSplitArgs('/home/user', '/usr/bin/nomx.js', 'focused', 'sess-managed');
     const cmd = args[6];
-    assert.equal(cmd, `exec env OMX_SESSION_ID='sess-managed' OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/usr/bin/omx.js' hud --watch --preset=focused`);
+    assert.equal(cmd, `exec env OMX_SESSION_ID='sess-managed' OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/usr/bin/nomx.js' hud --watch --preset=focused`);
   });
 
   it('forwards OMX_ROOT with OMX_SESSION_ID using shell-safe quoting', () => {
     const args = buildTmuxSplitArgs(
       '/home/user',
-      '/usr/bin/omx.js',
+      '/usr/bin/nomx.js',
       'focused',
       'sess managed',
       "/tmp/boxed root/it's/$(literal)",
@@ -222,41 +222,41 @@ describe('buildTmuxSplitArgs – shell injection hardening', () => {
     const cmd = args[6];
     assert.equal(
       cmd,
-      `exec env OMX_SESSION_ID='sess managed' OMX_TMUX_HUD_OWNER=1 OMX_ROOT='/tmp/boxed root/it'\\''s/$(literal)' ${runtimePrefix} '/usr/bin/omx.js' hud --watch --preset=focused`,
+      `exec env OMX_SESSION_ID='sess managed' OMX_TMUX_HUD_OWNER=1 OMX_ROOT='/tmp/boxed root/it'\\''s/$(literal)' ${runtimePrefix} '/usr/bin/nomx.js' hud --watch --preset=focused`,
     );
   });
 
   it('omits OMX_ROOT when unset while preserving existing OMX_SESSION_ID behavior', () => {
-    const args = buildTmuxSplitArgs('/home/user', '/usr/bin/omx.js', undefined, 'sess-managed');
+    const args = buildTmuxSplitArgs('/home/user', '/usr/bin/nomx.js', undefined, 'sess-managed');
     const cmd = args[6];
-    assert.equal(cmd, `exec env OMX_SESSION_ID='sess-managed' OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/usr/bin/omx.js' hud --watch`);
+    assert.equal(cmd, `exec env OMX_SESSION_ID='sess-managed' OMX_TMUX_HUD_OWNER=1 ${runtimePrefix} '/usr/bin/nomx.js' hud --watch`);
     assert.doesNotMatch(cmd, /OMX_ROOT=/);
   });
 
   it('tags tmux-launched HUD panes with the emitting leader pane', () => {
-    const args = buildTmuxSplitArgs('/home/user', '/usr/bin/omx.js', undefined, 'sess-managed', undefined, '%leader');
+    const args = buildTmuxSplitArgs('/home/user', '/usr/bin/nomx.js', undefined, 'sess-managed', undefined, '%leader');
     const cmd = args.at(-1) ?? '';
     assert.deepEqual(args.slice(0, 7), ['split-window', '-v', '-l', String(HUD_TMUX_HEIGHT_LINES), '-t', '%leader', '-c']);
-    assert.equal(cmd, `exec env OMX_SESSION_ID='sess-managed' OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%leader' ${runtimePrefix} '/usr/bin/omx.js' hud --watch`);
+    assert.equal(cmd, `exec env OMX_SESSION_ID='sess-managed' OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%leader' ${runtimePrefix} '/usr/bin/nomx.js' hud --watch`);
   });
 });
 
 describe('buildHudWatchCommand', () => {
   it('forwards OMX_ROOT and OMX_TMUX_HUD_OWNER for reconciled HUD panes with shell-safe quoting', () => {
     const cmd = buildHudWatchCommand(
-      '/usr/bin/omx.js',
+      '/usr/bin/nomx.js',
       'minimal',
       'sess managed',
       "/tmp/boxed root/it's/$(literal)",
     );
     assert.equal(
       cmd,
-      `exec env OMX_SESSION_ID='sess managed' OMX_TMUX_HUD_OWNER='1' OMX_ROOT='/tmp/boxed root/it'\\''s/$(literal)' ${runtimePrefix} '/usr/bin/omx.js' hud --watch --preset=minimal`,
+      `exec env OMX_SESSION_ID='sess managed' OMX_TMUX_HUD_OWNER='1' OMX_ROOT='/tmp/boxed root/it'\\''s/$(literal)' ${runtimePrefix} '/usr/bin/nomx.js' hud --watch --preset=minimal`,
     );
   });
 
   it('always emits OMX_TMUX_HUD_OWNER even when OMX_SESSION_ID and OMX_ROOT are unset', () => {
-    const cmd = buildHudWatchCommand('/usr/bin/omx.js');
-    assert.equal(cmd, `exec env OMX_TMUX_HUD_OWNER='1' ${runtimePrefix} '/usr/bin/omx.js' hud --watch`);
+    const cmd = buildHudWatchCommand('/usr/bin/nomx.js');
+    assert.equal(cmd, `exec env OMX_TMUX_HUD_OWNER='1' ${runtimePrefix} '/usr/bin/nomx.js' hud --watch`);
   });
 });

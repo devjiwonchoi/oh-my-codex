@@ -80,7 +80,7 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
           thread_id: nativeSessionId,
           tool_name: 'Bash',
           tool_use_id: 'tool-exec-first',
-          tool_input: { command: 'omx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json' },
+          tool_input: { command: 'nomx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json' },
         },
         { cwd, sessionOwnerPid: process.pid },
       );
@@ -132,7 +132,7 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
           thread_id: childThreadId,
           tool_name: 'Bash',
           tool_use_id: 'tool-child-selfpromote',
-          tool_input: { command: 'omx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json' },
+          tool_input: { command: 'nomx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json' },
         },
         { cwd, sessionOwnerPid: process.pid },
       );
@@ -166,7 +166,7 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
           tool_name: 'Bash',
           tool_use_id: 'tool-malformed-spawn',
           source: { subagent: { thread_spawn: { parent_thread_id: '' } } },
-          tool_input: { command: 'omx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json' },
+          tool_input: { command: 'nomx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json' },
         },
         { cwd, sessionOwnerPid: process.pid },
       );
@@ -199,7 +199,7 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
           agent_role: 'collaboration-child',
           tool_name: 'Bash',
           tool_use_id: 'tool-unknown-role',
-          tool_input: { command: 'omx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json' },
+          tool_input: { command: 'nomx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json' },
         },
         { cwd, sessionOwnerPid: process.pid },
       );

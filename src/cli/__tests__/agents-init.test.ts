@@ -14,7 +14,7 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error?: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'omx.js');
+  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
   const result = spawnSync(process.execPath, [omxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
@@ -56,7 +56,7 @@ async function readCurrentLinuxStartTicks(): Promise<number | undefined> {
   }
 }
 
-describe('omx agents-init', () => {
+describe('nomx agents-init', () => {
   it('creates a managed root AGENTS.md plus direct-child AGENTS.md files while skipping ignored directories', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-agents-init-'));
     try {
@@ -190,12 +190,12 @@ describe('omx agents-init', () => {
       const helpRes = runOmx(wd, ['agents-init', '--help']);
       if (shouldSkipForSpawnPermissions(helpRes.error)) return;
       assert.equal(helpRes.status, 0, helpRes.stderr || helpRes.stdout);
-      assert.match(helpRes.stdout, /Usage: omx agents-init/);
+      assert.match(helpRes.stdout, /Usage: nomx agents-init/);
 
       const aliasRes = runOmx(wd, ['deepinit', '--help']);
       if (shouldSkipForSpawnPermissions(aliasRes.error)) return;
       assert.equal(aliasRes.status, 0, aliasRes.stderr || aliasRes.stdout);
-      assert.match(aliasRes.stdout, /Usage: omx agents-init/);
+      assert.match(aliasRes.stdout, /Usage: nomx agents-init/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }

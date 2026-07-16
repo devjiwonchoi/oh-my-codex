@@ -38,7 +38,7 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'omx.js');
+  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
   const result = spawnSync(process.execPath, [omxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
@@ -119,7 +119,7 @@ async function createLaunchFixture(
   };
 }
 
-describe('omx launch fallback when tmux is unavailable', () => {
+describe('nomx launch fallback when tmux is unavailable', () => {
   it('surfaces direct Codex startup stderr and preserves the child exit code', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-launch-child-error-'));
     try {
@@ -229,7 +229,7 @@ exit 42
   });
 });
 
-describe('omx --worktree disposable state root', () => {
+describe('nomx --worktree disposable state root', () => {
   it('keeps launch worktree state under the source repo root by default', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-launch-worktree-state-'));
     try {
@@ -446,7 +446,7 @@ exit 0
   });
 });
 
-describe('omx launcher when tmux is available', () => {
+describe('nomx launcher when tmux is available', () => {
   it('reuses the same boxed madmax detached launch context instead of spawning duplicate tmux sessions', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-launch-madmax-reuse-'));
     try {

@@ -3,7 +3,7 @@ import type { CatalogAgentEntry, CatalogSkillEntry } from "../catalog/schema.js"
 
 const LIST_USAGE = [
   "Usage:",
-  "  omx list [--json]",
+  "  nomx list [--json]",
   "",
   "List OMX skills and native agent prompts from the packaged catalog.",
 ].join("\n");

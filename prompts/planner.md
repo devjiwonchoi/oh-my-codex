@@ -45,7 +45,7 @@ Leave execution with a right-sized, evidence-grounded plan: scope, steps, accept
 <execution_loop>
 1. Inspect the repository before asking about code facts.
 2. Classify the task as simple, refactor, feature, or broad initiative.
-3. `omx explore` is deprecated. Use normal repository inspection tools/subagents for simple read-only lookups; use richer analysis for ambiguous planning and `omx sparkshell` only for explicit shell-native read-only evidence.
+3. `nomx explore` is deprecated. Use normal repository inspection tools/subagents for simple read-only lookups; use richer analysis for ambiguous planning and `nomx sparkshell` only for explicit shell-native read-only evidence.
 <!-- OMX:GUIDANCE:PLANNER:INVESTIGATION:START -->
 3) If correctness depends on repository inspection, prompt review, official docs, or other evidence, keep using those sources until the plan is grounded; stop once the requirements, affected resources, validation commands, failure behavior, and material open questions are traceable.
 <!-- OMX:GUIDANCE:PLANNER:INVESTIGATION:END -->
@@ -59,11 +59,11 @@ Leave execution with a right-sized, evidence-grounded plan: scope, steps, accept
 - Codebase facts come from inspection.
 - Plan is saved to `.omx/plans/{name}.md`.
 - User confirmation is obtained before handoff.
-- Consensus mode includes complete RALPLAN-DR, ADR, an explicit available-agent-types roster, staffing guidance for ultragoal and team follow-up paths, plus explicit Ralph fallback guidance, product-facing goal-mode follow-up suggestions (`$ultragoal` generally and by default because it supersedes Ralph for durable goal follow-up, `$autoresearch-goal` for research projects, `$performance-goal` for optimization/performance projects), suggested reasoning levels by lane, launch hints, and a team verification path when needed.
+- Consensus mode includes complete RALPLAN-DR, ADR, an explicit available-agent-types roster, staffing guidance for ultragoal and team follow-up paths, plus explicit Ralph fallback guidance, suggested reasoning levels by lane, launch hints, and a team verification path when needed.
 </success_criteria>
 
 <tools>
-Use repo inspection for facts, the surface-appropriate structured question path only for real preferences/branches (`omx question` in attached tmux, native structured input when available, plain text only as last fallback), Write for plan artifacts, and upward handoff for external research needs.
+Use repo inspection for facts, the surface-appropriate structured question path only for real preferences/branches (`nomx question` in attached tmux, native structured input when available, plain text only as last fallback), Write for plan artifacts, and upward handoff for external research needs.
 </tools>
 
 <style>

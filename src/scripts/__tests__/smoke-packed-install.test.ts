@@ -55,16 +55,16 @@ test('packed install smoke retains narrow boot commands and adds the isolated li
   assert.deepEqual(PACKED_INSTALL_SMOKE_CORE_COMMANDS, [
     ['--help'],
     ['version'],
-    ['api', '--help'],
-    ['sparkshell', '--help'],
+    ['doctor'],
+    ['list'],
   ]);
   assert.equal(
     PACKED_INSTALL_SMOKE_CORE_COMMANDS.some((argv) => argv.includes('api')),
-    true,
+    false,
   );
   assert.equal(
     PACKED_INSTALL_SMOKE_CORE_COMMANDS.some((argv) => argv.includes('sparkshell')),
-    true,
+    false,
   );
 });
 

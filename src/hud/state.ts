@@ -9,8 +9,6 @@ import { execFileSync } from 'child_process';
 import { join, basename } from 'path';
 import { findGitLayout, readGitLayoutFile } from '../utils/git-layout.js';
 import { resolveOmxDisplayVersionSync } from '../utils/version.js';
-import { getDefaultBridge, isBridgeEnabled } from '../runtime/bridge.js';
-import type { RuntimeSnapshot } from '../runtime/bridge.js';
 import { getBaseStateDir, getStateFilePath, readCurrentSessionId, resolveRuntimeStateScope } from '../mcp/state-paths.js';
 import { teamReadPhase as readTeamPhase } from '../team/team-ops.js';
 
@@ -712,14 +710,6 @@ export async function readAllState(cwd: string, config: ResolvedHudConfig = DEFA
     )
     : null;
 
-  // When the Rust runtime bridge is enabled, prefer Rust-authored snapshot
-  // for authority/backlog/readiness display over JS-inferred state.
-  let runtimeSnapshot: RuntimeSnapshot | null = null;
-  if (isBridgeEnabled()) {
-    const bridge = getDefaultBridge(stateDir);
-    runtimeSnapshot = bridge.readCompatFile<RuntimeSnapshot>('snapshot.json');
-  }
-
   return {
     version,
     gitBranch,
@@ -736,7 +726,6 @@ export async function readAllState(cwd: string, config: ResolvedHudConfig = DEFA
     metrics,
     hudNotify,
     session,
-    runtimeSnapshot,
     staleAutopilot,
   };
 }

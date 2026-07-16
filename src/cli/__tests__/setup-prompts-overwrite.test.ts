@@ -11,7 +11,7 @@ import {
   getInstallableNativeAgentNames,
 } from '../../agents/policy.js';
 
-describe('omx setup prompt/native-agent overwrite behavior', () => {
+describe('nomx setup prompt/native-agent overwrite behavior', () => {
   const obsoleteNativeAgentField = ['skill', 'ref'].join('_');
 
   it('installs setup-owned prompts separately from active/internal native agents', async () => {

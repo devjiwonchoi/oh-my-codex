@@ -2408,7 +2408,7 @@ case "\${1:-}" in
   list-panes)
     case "$*" in
       *"pane_current_command"*)
-        printf "%%1\\tnode\\t'codex'\\n%%2\\tgemini\\t'gemini'\\n%%3\\tnode\\t'node omx hud --watch'\\n"
+        printf "%%1\\tnode\\t'codex'\\n%%2\\tgemini\\t'gemini'\\n%%3\\tnode\\t'node nomx hud --watch'\\n"
         ;;
       *)
         printf "%%1\\n%%2\\n%%3\\n"
@@ -4605,7 +4605,7 @@ case "\${1:-}" in
       *"pane_current_command"* )
         printf "%%1\\tnode\\t'codex'\\n%%2\\tgemini\\tgemini\\n"
         if [ "$(cat "$hud_state")" != "absent" ]; then
-          printf "%%3\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%1' node /tmp/bin/omx.js hud --watch\\n"
+          printf "%%3\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%1' node /tmp/bin/nomx.js hud --watch\\n"
         fi
         ;;
       *"#{pane_dead} #{pane_pid}"*)
@@ -6221,7 +6221,7 @@ exec "${realGit}" "$@"
 
       await assert.rejects(
         () => shutdownTeam('team-shutdown-gate-failed', cwd),
-        /shutdown_confirm_issues_required:failed=1:rerun=omx team shutdown team-shutdown-gate-failed --confirm-issues/,
+        /shutdown_confirm_issues_required:failed=1:rerun=nomx team shutdown team-shutdown-gate-failed --confirm-issues/,
       );
 
       const teamRoot = teamStateTestPath(cwd, 'team', 'team-shutdown-gate-failed');
@@ -6641,9 +6641,9 @@ case "$1" in
         exit 0
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\tnode /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\texec /bin/sh '/tmp/.omx/state/team/team-shutdown-pane-reconcile/runtime/worker-1-startup.sh'\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-pane-reconcile/worker-2 codex\\n%%15\\tcodex\\tcodex unrelated-not-worker\\n%%16\\tcodex\\tenv OMX_TEAM_WORKER=team-shutdown-pane-reconcile/worker-3 codex\\n%%17\\tcodex\\tworker-wrapper OMX_TEAM_INTERNAL_WORKER='team-shutdown-pane-reconcile/worker-4' codex\\n%%18\\tcodex\\tenv 'OMX_TEAM_INTERNAL_WORKER=team-shutdown-pane-reconcile/worker-5' codex\\n%%19\\tpowershell.exe\\tpowershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${powershellWorkerCommand}\\n%%20\\tzsh\\techo 'OMX_TEAM_INTERNAL_WORKER=team-shutdown-pane-reconcile/worker-7'\\n%%21\\tzsh\\tprintf 'OMX_TEAM_INTERNAL_WORKER=team-shutdown-pane-reconcile/worker-8 codex'\\n%%22\\tzsh\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-pane-reconcile/worker-9 bash -lc 'echo codex'\\n"
+        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\tnode /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\texec /bin/sh '/tmp/.omx/state/team/team-shutdown-pane-reconcile/runtime/worker-1-startup.sh'\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-pane-reconcile/worker-2 codex\\n%%15\\tcodex\\tcodex unrelated-not-worker\\n%%16\\tcodex\\tenv OMX_TEAM_WORKER=team-shutdown-pane-reconcile/worker-3 codex\\n%%17\\tcodex\\tworker-wrapper OMX_TEAM_INTERNAL_WORKER='team-shutdown-pane-reconcile/worker-4' codex\\n%%18\\tcodex\\tenv 'OMX_TEAM_INTERNAL_WORKER=team-shutdown-pane-reconcile/worker-5' codex\\n%%19\\tpowershell.exe\\tpowershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${powershellWorkerCommand}\\n%%20\\tzsh\\techo 'OMX_TEAM_INTERNAL_WORKER=team-shutdown-pane-reconcile/worker-7'\\n%%21\\tzsh\\tprintf 'OMX_TEAM_INTERNAL_WORKER=team-shutdown-pane-reconcile/worker-8 codex'\\n%%22\\tzsh\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-pane-reconcile/worker-9 bash -lc 'echo codex'\\n"
         if [ -f "$restored_marker" ]; then
-          printf "%%44\\tnode\\tnode /tmp/bin/omx.js hud --watch\\n"
+          printf "%%44\\tnode\\tnode /tmp/bin/nomx.js hud --watch\\n"
         fi
         exit 0
         ;;
@@ -6749,9 +6749,9 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%10\\tzsh\\tzsh\\n%%11\\tnode\\tnode existing-user-work\\n%%12\\tnode\\tnode /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-unrelated-pane/worker-1 codex\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-unrelated-pane/worker-2 codex\\n%%15\\tnode\\tnode /tmp/bin/omx.js sidecar --watch\\n"
+        printf "%%10\\tzsh\\tzsh\\n%%11\\tnode\\tnode existing-user-work\\n%%12\\tnode\\tnode /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-unrelated-pane/worker-1 codex\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-unrelated-pane/worker-2 codex\\n%%15\\tnode\\tnode /tmp/bin/nomx.js sidecar --watch\\n"
         if [ -f "$restored_marker" ]; then
-          printf "%%44\\tnode\\tnode /tmp/bin/omx.js hud --watch\\n"
+          printf "%%44\\tnode\\tnode /tmp/bin/nomx.js hud --watch\\n"
         fi
         exit 0
         ;;
@@ -6846,7 +6846,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%10\\tzsh\\tzsh\\n%%12\\tnode\\tnode /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-stale-worker-pane-id/worker-1 codex\\n%%15\\tcodex\\tcodex unrelated-user-pane\\n"
+        printf "%%10\\tzsh\\tzsh\\n%%12\\tnode\\tnode /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-stale-worker-pane-id/worker-1 codex\\n%%15\\tcodex\\tcodex unrelated-user-pane\\n"
         exit 0
         ;;
       *)
@@ -6930,7 +6930,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\tnode /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-worker-owner-mismatch/worker-1 codex\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-worker-owner-mismatch/worker-2 codex\\n"
+        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\tnode /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-worker-owner-mismatch/worker-1 codex\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-worker-owner-mismatch/worker-2 codex\\n"
         exit 0
         ;;
       *)
@@ -7016,7 +7016,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\tnode /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-worker-owner-read-error/worker-1 codex\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-worker-owner-read-error/worker-2 codex\\n"
+        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\tnode /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-worker-owner-read-error/worker-1 codex\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-worker-owner-read-error/worker-2 codex\\n"
         exit 0
         ;;
       *)
@@ -7100,7 +7100,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tzsh\\tvim notes.md\\n%%12\\tnode\\tnode /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv 'OMX_TEAM_INTERNAL_WORKER=team-stale-leader-worker/worker-1' codex\\n"
+        printf "%%11\\tzsh\\tvim notes.md\\n%%12\\tnode\\tnode /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv 'OMX_TEAM_INTERNAL_WORKER=team-stale-leader-worker/worker-1' codex\\n"
         exit 0
         ;;
       *)
@@ -7176,7 +7176,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tzsh\\tvim unrelated-notes.md\\n%%12\\tnode\\tnode /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv 'OMX_TEAM_INTERNAL_WORKER=team-reused-leader-pane/worker-1' codex\\n"
+        printf "%%11\\tzsh\\tvim unrelated-notes.md\\n%%12\\tnode\\tnode /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv 'OMX_TEAM_INTERNAL_WORKER=team-reused-leader-pane/worker-1' codex\\n"
         exit 0
         ;;
       *)
@@ -7260,7 +7260,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tpwsh\\tpwsh\\n%%12\\tnode\\tnode /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-win32-split/worker-1 codex\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-win32-split/worker-2 codex\\n"
+        printf "%%11\\tpwsh\\tpwsh\\n%%12\\tnode\\tnode /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-win32-split/worker-1 codex\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-win32-split/worker-2 codex\\n"
         exit 0
         ;;
       *)
@@ -7355,7 +7355,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tpwsh\\tpwsh\\n%%22\\tnode\\tnode /tmp/bin/omx.js hud --watch\\n%%23\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-win32-stale-topo/worker-1 codex\\n%%24\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-win32-stale-topo/worker-2 codex\\n"
+        printf "%%11\\tpwsh\\tpwsh\\n%%22\\tnode\\tnode /tmp/bin/nomx.js hud --watch\\n%%23\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-win32-stale-topo/worker-1 codex\\n%%24\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-win32-stale-topo/worker-2 codex\\n"
         exit 0
         ;;
       *)
@@ -7441,7 +7441,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\tnode /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-shared-session/worker-1 codex\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-shared-session/worker-2 codex\\n"
+        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\tnode /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-shared-session/worker-1 codex\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-shared-session/worker-2 codex\\n"
         exit 0
         ;;
       *)
@@ -7539,7 +7539,7 @@ case "$1" in
   list-panes)
     case "$*" in
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' node /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-restore-hud/worker-2 codex\\n"
+        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' node /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-shutdown-restore-hud/worker-2 codex\\n"
         exit 0
         ;;
       *)
@@ -7642,7 +7642,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' node /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-unpersisted-legacy-worker/worker-1 codex\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-unpersisted-legacy-worker/worker-2 codex\\n"
+        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' node /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-unpersisted-legacy-worker/worker-1 codex\\n%%14\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-unpersisted-legacy-worker/worker-2 codex\\n"
         exit 0
         ;;
       *"-t %11 -F #{pane_id}"*"#{pane_current_command}"*)
@@ -7736,7 +7736,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' node /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-stale-hud-live-owner/worker-1 codex\\n"
+        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' node /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-stale-hud-live-owner/worker-1 codex\\n"
         exit 0
         ;;
       *"-t %11 -F #{pane_id}"*"#{pane_current_command}"*)
@@ -7833,7 +7833,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' node /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-legacy-hud-owner/worker-1 codex\\n"
+        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' node /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-legacy-hud-owner/worker-1 codex\\n"
         exit 0
         ;;
       *"-t %11 -F #{pane_id}"*"#{pane_current_command}"*)
@@ -7927,7 +7927,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' node /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-legacy-leader-instance/worker-1 codex\\n"
+        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' node /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-legacy-leader-instance/worker-1 codex\\n"
         exit 0
         ;;
       *"-t %11 -F #{pane_id}"*"#{pane_current_command}"*)
@@ -8026,7 +8026,7 @@ case "$1" in
         exit 1
         ;;
       *"-t leader:0 -F #{pane_id}"*"#{pane_current_command}"*)
-        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' node /tmp/bin/omx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-hud-owner-read-error/worker-1 codex\\n"
+        printf "%%11\\tzsh\\tzsh\\n%%12\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' node /tmp/bin/nomx.js hud --watch\\n%%13\\tcodex\\tenv OMX_TEAM_INTERNAL_WORKER=team-hud-owner-read-error/worker-1 codex\\n"
         exit 0
         ;;
       *)
@@ -8204,8 +8204,8 @@ esac
         [
           '# Approved plan',
           '',
-          `Launch via omx team 2:executor "${approvedTask}"`,
-          `Launch via omx team 5:debugger "${approvedTask}"`,
+          `Launch via nomx team 2:executor "${approvedTask}"`,
+          `Launch via nomx team 5:debugger "${approvedTask}"`,
         ].join('\n'),
       );
       await writeFile(join(cwd, '.omx', 'plans', 'test-spec-issue-2111.md'), '# Test spec\n');
@@ -8238,7 +8238,7 @@ esac
           '',
           '- pack: created `.omx/context/context-20260507T120000Z-other.json`',
           '',
-          'Launch via omx team 1:executor "Execute approved issue 2112 plan"',
+          'Launch via nomx team 1:executor "Execute approved issue 2112 plan"',
         ].join('\n'),
       );
       await writeFile(join(cwd, '.omx', 'plans', 'test-spec-issue-2112.md'), '# Test spec\n');
@@ -8281,7 +8281,7 @@ esac
       const prdPath = join(plansDir, 'prd-issue-2110.md');
       await writeFile(
         prdPath,
-        '# Approved plan\n\nLaunch via omx team 1:executor "Execute approved issue 2110 plan"\n',
+        '# Approved plan\n\nLaunch via nomx team 1:executor "Execute approved issue 2110 plan"\n',
       );
       await writeFile(join(plansDir, 'test-spec-issue-2110.md'), '# Test spec\n');
       await writePersistedApprovedTeamExecutionBinding(
@@ -8290,7 +8290,7 @@ esac
         {
           prd_path: prdPath,
           task: 'Execute approved issue 2110 plan',
-          command: 'omx team 1:executor "Execute approved issue 2110 plan"',
+          command: 'nomx team 1:executor "Execute approved issue 2110 plan"',
         },
         sharedStateRoot,
       );
@@ -8543,7 +8543,7 @@ esac
         '',
         buildContextPackOutcome(canonicalContextPackRelativePath('issue-1314')),
         '',
-        'Launch via omx team 1:executor "Execute approved issue 1314 plan"',
+        'Launch via nomx team 1:executor "Execute approved issue 1314 plan"',
       ].join('\n'),
     );
     await writeFile(testSpecPath, '# Test spec\n');
@@ -8568,7 +8568,7 @@ esac
               approvedExecution: {
                 prd_path: prdPath,
                 task: 'Execute approved issue 1314 plan',
-                command: 'omx team 1:executor "Execute approved issue 1314 plan"',
+                command: 'nomx team 1:executor "Execute approved issue 1314 plan"',
               },
             },
           ),
@@ -8585,7 +8585,7 @@ esac
       assert.deepEqual(binding, {
         prd_path: prdPath,
         task: 'Execute approved issue 1314 plan',
-        command: 'omx team 1:executor "Execute approved issue 1314 plan"',
+        command: 'nomx team 1:executor "Execute approved issue 1314 plan"',
       });
       assert.deepEqual(Object.keys(binding).sort(), ['command', 'prd_path', 'task']);
     } finally {
@@ -8660,7 +8660,7 @@ esac
         'utf-8',
       );
       assert.doesNotMatch(inbox, /Leader-owned Ultragoal context/);
-      assert.doesNotMatch(inbox, /omx ultragoal checkpoint --goal-id G001-completed-story/);
+      assert.doesNotMatch(inbox, /nomx ultragoal checkpoint --goal-id G001-completed-story/);
     } finally {
       if (runtime) {
         await shutdownTeam(runtime.teamName, cwd, { force: true }).catch(() => {});
@@ -8766,7 +8766,7 @@ esac
         '',
         buildContextPackOutcome(canonicalContextPackRelativePath('issue-1314-handoff')),
         '',
-        `Launch via omx team 1:executor "${approvedTask}"`,
+        `Launch via nomx team 1:executor "${approvedTask}"`,
       ].join('\n'),
     );
     await writeFile(testSpecPath, '# Test spec\n');
@@ -8795,7 +8795,7 @@ esac
               approvedExecution: {
                 prd_path: prdPath,
                 task: approvedTask,
-                command: `omx team 1:executor "${approvedTask}"`,
+                command: `nomx team 1:executor "${approvedTask}"`,
               },
             },
           ),
@@ -8829,7 +8829,7 @@ esac
     await mkdir(join(cwd, '.omx', 'plans'), { recursive: true });
     await writeFile(
       join(cwd, '.omx', 'plans', 'prd-issue-1314-plan-only.md'),
-      '# Approved plan\n\nLaunch via omx team 1:executor "Execute approved issue 1314 plan-only"\n',
+      '# Approved plan\n\nLaunch via nomx team 1:executor "Execute approved issue 1314 plan-only"\n',
     );
     await writeFile(join(cwd, '.omx', 'plans', 'test-spec-issue-1314-plan-only.md'), '# Test spec\n');
     await writeFakePromptWorkerBinary(
@@ -8852,7 +8852,7 @@ esac
               approvedExecution: {
                 prd_path: join(cwd, '.omx', 'plans', 'prd-issue-1314-plan-only.md'),
                 task: 'Execute approved issue 1314 plan-only',
-                command: 'omx team 1:executor "Execute approved issue 1314 plan-only"',
+                command: 'nomx team 1:executor "Execute approved issue 1314 plan-only"',
               },
             },
           ),
@@ -8898,7 +8898,7 @@ esac
         '',
         '- pack: created `.omx/context/context-20260507T120000Z-other.json`',
         '',
-        'Launch via omx team 1:executor "Execute approved issue 1314 obsolete-marker plan"',
+        'Launch via nomx team 1:executor "Execute approved issue 1314 obsolete-marker plan"',
       ].join('\n'),
     );
     await writeFile(join(cwd, '.omx', 'plans', 'test-spec-issue-1314-obsolete-marker.md'), '# Test spec\n');
@@ -8956,7 +8956,7 @@ esac
     const stalePrdPath = join(cwd, '.omx', 'plans', 'prd-issue-1315.md');
     await writeFile(
       stalePrdPath,
-      '# Approved plan\n\nLaunch via omx team 1:executor "Execute approved issue 1315 plan"\n',
+      '# Approved plan\n\nLaunch via nomx team 1:executor "Execute approved issue 1315 plan"\n',
     );
     await writeFile(join(cwd, '.omx', 'plans', 'test-spec-issue-1315.md'), '# Test spec\n');
     await rm(stalePrdPath, { force: true });
@@ -9009,8 +9009,8 @@ esac
       [
         '# Approved plan',
         '',
-        `Launch via omx team 2:executor "${approvedTask}"`,
-        `Launch via omx team 5:debugger "${approvedTask}"`,
+        `Launch via nomx team 2:executor "${approvedTask}"`,
+        `Launch via nomx team 5:debugger "${approvedTask}"`,
       ].join('\n'),
     );
     await writeFile(join(cwd, '.omx', 'plans', 'test-spec-issue-1316.md'), '# Test spec\n');
@@ -9260,7 +9260,7 @@ esac
           '',
           buildContextPackOutcome(canonicalContextPackRelativePath('issue-1320')),
           '',
-          `Launch via omx team 1:executor "${approvedTask}"`,
+          `Launch via nomx team 1:executor "${approvedTask}"`,
         ].join('\n'),
       );
       await writeFile(testSpecPath, '# Test spec\n');
@@ -9272,7 +9272,7 @@ esac
       await writePersistedApprovedTeamExecutionBinding('team-approved-followup', cwd, {
         prd_path: prdPath,
         task: approvedTask,
-        command: `omx team 1:executor "${approvedTask}"`,
+        command: `nomx team 1:executor "${approvedTask}"`,
       });
       const task = await createTask(
         'team-approved-followup',

@@ -500,7 +500,7 @@ function defaultSpawnDetachedRenderer(command: string, args: string[], options: 
 
 function defaultExecTmux(args: string[]): string {
   const tmux = resolveTmuxBinaryForPlatform();
-  if (!tmux) throw new Error('tmux is unavailable; omx question requires tmux for OMX-owned question UI rendering.');
+  if (!tmux) throw new Error('tmux is unavailable; nomx question requires tmux for OMX-owned question UI rendering.');
   return execFileSync(tmux, args, {
     encoding: 'utf-8',
     ...(process.platform === 'win32' ? { windowsHide: true } : {}),
@@ -669,7 +669,7 @@ export function closeQuestionRenderer(
 }
 
 export function formatQuestionAnswerForInjection(answer: QuestionAnswer): string {
-  const prefix = '[omx question answered]';
+  const prefix = '[nomx question answered]';
   if (answer.kind === 'other') {
     return sanitizeReplyInput(`${prefix} ${answer.other_text ?? String(answer.value)}`);
   }
@@ -681,7 +681,7 @@ export function formatQuestionAnswerForInjection(answer: QuestionAnswer): string
 }
 
 export function formatQuestionAnswersForInjection(answers: Array<{ question_id: string; answer: QuestionAnswer }>): string {
-  const prefix = '[omx question answered]';
+  const prefix = '[nomx question answered]';
   const body = answers
     .map((entry) => {
       const value = Array.isArray(entry.answer.value) ? entry.answer.value.join(', ') : String(entry.answer.value);
@@ -795,7 +795,7 @@ export function supersedeLiveQuestionsForSession(
       updated_at: nowIso,
       error: {
         code: 'question_superseded',
-        message: 'Question was superseded by a newer omx question launch for the same session.',
+        message: 'Question was superseded by a newer nomx question launch for the same session.',
         at: nowIso,
       },
     });
@@ -828,7 +828,7 @@ export function launchQuestionRenderer(
 
   if (strategy === 'unsupported') {
     throw new Error(
-      'omx question cannot open a visible renderer because this process is outside an attached tmux pane and has no explicit tmux return bridge. Codex App/outside-tmux sessions need an attached tmux OMX CLI session or OMX_QUESTION_RETURN_PANE bridge. Run omx question from inside tmux.',
+      'nomx question cannot open a visible renderer because this process is outside an attached tmux pane and has no explicit tmux return bridge. Codex App/outside-tmux sessions need an attached tmux OMX CLI session or OMX_QUESTION_RETURN_PANE bridge. Run nomx question from inside tmux.',
     );
   }
 
@@ -866,7 +866,7 @@ export function launchQuestionRenderer(
       : undefined;
     if (safeString(env.TMUX).trim() && !isCurrentTmuxSessionAttached(execTmux, env, attachedCheckTarget)) {
       throw new Error(
-        'omx question cannot open a visible renderer because this tmux session has no attached client. Run omx question from an attached tmux pane.',
+        'nomx question cannot open a visible renderer because this tmux session has no attached client. Run nomx question from an attached tmux pane.',
       );
     }
 
@@ -1019,5 +1019,5 @@ export function launchQuestionRenderer(
   }
 
   const exhaustiveStrategy: never = strategy;
-  throw new Error(`Unsupported omx question renderer strategy: ${exhaustiveStrategy}`);
+  throw new Error(`Unsupported nomx question renderer strategy: ${exhaustiveStrategy}`);
 }

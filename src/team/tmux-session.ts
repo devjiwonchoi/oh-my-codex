@@ -3000,7 +3000,7 @@ export function listTeamSessions(): string[] {
  * Notify the leader through durable mailbox state only.
  *
  * Team leaders are a coordination endpoint, not a direct tmux control target:
- * workers and runtime paths may message `leader-fixed` via `omx team api`
+ * workers and runtime paths may message `leader-fixed` via `nomx team api`
  * / mailbox persistence, but team code must not inject text or control keys
  * into the leader pane. This is the async mailbox-based replacement for
  * `notifyLeaderStatus()`.

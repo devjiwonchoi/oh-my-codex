@@ -36,7 +36,7 @@ describe("repo artifact ownership doctor check", () => {
 			assert.equal(check.status, "warn");
 			assert.match(check.message, /\.omx[\\/]plans[\\/]root-owned\.md \(root-owned uid=0 gid=0\)/);
 			assert.match(check.message, /sudo chown -R \$\(id -u\):\$\(id -g\)/);
-			assert.match(check.message, /omx doctor --force/);
+			assert.match(check.message, /nomx doctor --force/);
 		} finally {
 			await rm(wd, { recursive: true, force: true });
 		}

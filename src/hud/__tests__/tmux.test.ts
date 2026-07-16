@@ -307,7 +307,7 @@ describe('HUD resize hook helpers', () => {
 describe('HUD pane ownership helpers', () => {
   it('parses pane geometry from tmux pane snapshots without corrupting the start command or cwd', () => {
     const [pane] = parseTmuxPaneSnapshot(
-      `%2\tnode\t0\t47\t160\t3\t49\t160\t50\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' node omx hud --watch\t/tmp/repo`,
+      `%2\tnode\t0\t47\t160\t3\t49\t160\t50\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' node nomx hud --watch\t/tmp/repo`,
     );
 
     assert.deepEqual(pane, {
@@ -320,14 +320,14 @@ describe('HUD pane ownership helpers', () => {
       paneBottom: 49,
       windowWidth: 160,
       windowHeight: 50,
-      startCommand: `exec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' node omx hud --watch`,
+      startCommand: `exec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' node nomx hud --watch`,
       currentPath: '/tmp/repo',
     });
   });
 
   it('reads session and leader ownership from env-prefixed HUD commands', () => {
     const [pane] = parseTmuxPaneSnapshot(
-      `%9\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
+      `%9\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
     );
 
     assert.deepEqual(readHudPaneOwner(pane!), {
@@ -340,7 +340,7 @@ describe('HUD pane ownership helpers', () => {
 
   it('reads ownership from quoted tmux shell env arguments used by inside-tmux launch', () => {
     const [pane] = parseTmuxPaneSnapshot(
-      `%9\tnode\t/bin/zsh -c 'exec '\\''env'\\'' '\\''OMX_SESSION_ID=sess-a'\\'' '\\''${OMX_TMUX_HUD_LEADER_PANE_ENV}=%1'\\'' '\\''node'\\'' '\\''/omx.js'\\'' '\\''hud'\\'' '\\''--watch'\\'''`,
+      `%9\tnode\t/bin/zsh -c 'exec '\\''env'\\'' '\\''OMX_SESSION_ID=sess-a'\\'' '\\''${OMX_TMUX_HUD_LEADER_PANE_ENV}=%1'\\'' '\\''node'\\'' '\\''/nomx.js'\\'' '\\''hud'\\'' '\\''--watch'\\'''`,
     );
 
     assert.deepEqual(readHudPaneOwner(pane!), {
@@ -357,7 +357,7 @@ describe('HUD pane ownership helpers', () => {
         [
           '%202',
           'node',
-          `"exec env OMX_SESSION_ID='sess-a' OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%140' OMX_ROOT='/tmp/run' '/usr/bin/node' '/repo/dist/cli/omx.js' hud --watch --preset=focused"`,
+          `"exec env OMX_SESSION_ID='sess-a' OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%140' OMX_ROOT='/tmp/run' '/usr/bin/node' '/repo/dist/cli/nomx.js' hud --watch --preset=focused"`,
           '/home/tools/oh-my-codex.omx-worktrees/launch-fix-default-subagent-fix',
         ].join(escapedSeparator),
       ].join('\n'),
@@ -385,9 +385,9 @@ describe('HUD pane ownership helpers', () => {
   });
 
   it('preserves tab-containing start commands when reading the optional cwd column', () => {
-    const [pane] = parseTmuxPaneSnapshot('%9\tnode\tnode\t/omx.js hud --watch\t/tmp/repo');
+    const [pane] = parseTmuxPaneSnapshot('%9\tnode\tnode\t/nomx.js hud --watch\t/tmp/repo');
 
-    assert.equal(pane?.startCommand, 'node\t/omx.js hud --watch');
+    assert.equal(pane?.startCommand, 'node\t/nomx.js hud --watch');
     assert.equal(pane?.currentPath, '/tmp/repo');
   });
 
@@ -395,9 +395,9 @@ describe('HUD pane ownership helpers', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        `%2\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
+        `%2\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
         '%3\tcodex\tcodex',
-        `%4\tnode\texec env OMX_SESSION_ID='sess-b' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%3' /node /omx.js hud --watch`,
+        `%4\tnode\texec env OMX_SESSION_ID='sess-b' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%3' /node /nomx.js hud --watch`,
       ].join('\n'),
     );
 
@@ -409,10 +409,10 @@ describe('HUD pane ownership helpers', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        `%2\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
-        `%3\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%3' /node /omx.js hud --watch`,
-        "%4\tnode\texec env OMX_SESSION_ID='sess-a' /node /omx.js hud --watch",
-        `%5\tnode\texec env OMX_SESSION_ID='sess-b' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
+        `%2\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
+        `%3\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%3' /node /nomx.js hud --watch`,
+        "%4\tnode\texec env OMX_SESSION_ID='sess-a' /node /nomx.js hud --watch",
+        `%5\tnode\texec env OMX_SESSION_ID='sess-b' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
       ].join('\n'),
     );
     
@@ -425,8 +425,8 @@ describe('HUD pane ownership helpers', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        `%2\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
-        `%3\tnode\texec env OMX_SESSION_ID='sess-b' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
+        `%2\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
+        `%3\tnode\texec env OMX_SESSION_ID='sess-b' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
       ].join('\n'),
     );
 
@@ -437,7 +437,7 @@ describe('HUD pane ownership helpers', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        `%2\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
+        `%2\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
       ].join('\n'),
     );
 
@@ -449,7 +449,7 @@ describe('HUD pane ownership helpers', () => {
       [
         '%1\tcodex\tcodex',
         '%3\tcodex\tcodex',
-        `%4\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%3' /node /omx.js hud --watch`,
+        `%4\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%3' /node /nomx.js hud --watch`,
       ].join('\n'),
     );
 
@@ -460,7 +460,7 @@ describe('HUD pane ownership helpers', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        '%2\tnode\tnode /tmp/bin/omx.js hud --watch',
+        '%2\tnode\tnode /tmp/bin/nomx.js hud --watch',
       ].join('\n'),
     );
 
@@ -472,14 +472,14 @@ describe('HUD pane ownership helpers', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        '%2\tnode\tnode /tmp/bin/omx.js hud --watch --preset=focused',
-        '%3\tnode\tnode /tmp/bin/omx.js hud --watch --preset=minimal',
-        `%4\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch --preset=focused`,
-        '%5\tnode\tnode /tmp/bin/omx.js hud --tmux --preset=focused',
-        `%6\tnode\t/bin/zsh -c 'exec '\\''node'\\'' '\\''/tmp/bin/omx.js'\\'' '\\''hud'\\'' '\\''--watch'\\'' '\\''--preset=focused'\\'''`,
+        '%2\tnode\tnode /tmp/bin/nomx.js hud --watch --preset=focused',
+        '%3\tnode\tnode /tmp/bin/nomx.js hud --watch --preset=minimal',
+        `%4\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch --preset=focused`,
+        '%5\tnode\tnode /tmp/bin/nomx.js hud --tmux --preset=focused',
+        `%6\tnode\t/bin/zsh -c 'exec '\\''node'\\'' '\\''/tmp/bin/nomx.js'\\'' '\\''hud'\\'' '\\''--watch'\\'' '\\''--preset=focused'\\'''`,
         '%7\tnode\tnode /tmp/bin/custom-hud.js hud --watch --preset=focused',
         '%8\tnode\tnode /tmp/omx-pr2664/custom-hud.js hud --watch --preset=focused',
-        '%9\tnode\tnode /tmp/bin/omx.js hud --tmux --watch --preset=focused',
+        '%9\tnode\tnode /tmp/bin/nomx.js hud --tmux --watch --preset=focused',
       ].join('\n'),
     );
 
@@ -490,8 +490,8 @@ describe('HUD pane ownership helpers', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        "%2\tnode\texec env OMX_SESSION_ID='sess-a' /node /omx.js hud --watch",
-        "%3\tnode\texec env OMX_SESSION_ID='sess-b' /node /omx.js hud --watch",
+        "%2\tnode\texec env OMX_SESSION_ID='sess-a' /node /nomx.js hud --watch",
+        "%3\tnode\texec env OMX_SESSION_ID='sess-b' /node /nomx.js hud --watch",
       ].join('\n'),
     );
 
@@ -502,10 +502,10 @@ describe('HUD pane ownership helpers', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        `%2\tnode\texec env OMX_SESSION_ID='omx-owner-abc' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
-        `%3\tnode\texec env OMX_SESSION_ID='codex-native-uuid' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
-        `%4\tnode\texec env OMX_SESSION_ID='other-session' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
-        `%5\tnode\texec env OMX_SESSION_ID='codex-native-uuid' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%5' /node /omx.js hud --watch`,
+        `%2\tnode\texec env OMX_SESSION_ID='omx-owner-abc' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
+        `%3\tnode\texec env OMX_SESSION_ID='codex-native-uuid' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
+        `%4\tnode\texec env OMX_SESSION_ID='other-session' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
+        `%5\tnode\texec env OMX_SESSION_ID='codex-native-uuid' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%5' /node /nomx.js hud --watch`,
       ].join('\n'),
     );
 
@@ -525,7 +525,7 @@ describe('HUD pane ownership helpers', () => {
       calls.push(args);
       return [
         '%1\tcodex\tcodex',
-        `%2\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
+        `%2\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
       ].join('\n');
     };
 
@@ -556,7 +556,7 @@ describe('HUD pane ownership helpers', () => {
       [
         '%1\tcodex\tcodex',
         '%3\tcodex\tcodex',
-        `%4\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%3' /node /omx.js hud --watch`,
+        `%4\tnode\texec env OMX_SESSION_ID='sess-a' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%3' /node /nomx.js hud --watch`,
       ].join('\n'),
     );
 
@@ -575,7 +575,7 @@ describe('HUD pane ownership helpers', () => {
   });
 
   it('tags reconciled HUD watch commands with the leader pane owner', () => {
-    const cmd = buildHudWatchCommand('/usr/bin/omx.js', undefined, 'sess-a', undefined, '%1');
+    const cmd = buildHudWatchCommand('/usr/bin/nomx.js', undefined, 'sess-a', undefined, '%1');
 
     assert.match(cmd, /OMX_SESSION_ID='sess-a'/);
     assert.match(cmd, /OMX_TMUX_HUD_OWNER='1'/);
@@ -583,7 +583,7 @@ describe('HUD pane ownership helpers', () => {
   });
 
   it('tags reconciled HUD watch commands as OMX-owned even without a session id', () => {
-    const cmd = buildHudWatchCommand('/usr/bin/omx.js', undefined, '', undefined, '%1');
+    const cmd = buildHudWatchCommand('/usr/bin/nomx.js', undefined, '', undefined, '%1');
 
     assert.doesNotMatch(cmd, /OMX_SESSION_ID=/);
     assert.match(cmd, /OMX_TMUX_HUD_OWNER='1'/);
@@ -599,7 +599,7 @@ describe('dead HUD pane reaper', () => {
         [
           '%2',
           'node',
-          "node /repo/dist/cli/omx.js team api send-message --input '{\"body\":\"ACK: hud preserve repro just ack\"}' --json",
+          "node /repo/dist/cli/nomx.js team api send-message --input '{\"body\":\"ACK: hud preserve repro just ack\"}' --json",
         ].join('\t'),
       ].join('\n'),
     );
@@ -618,7 +618,7 @@ describe('dead HUD pane reaper', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        `%2\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%9' /node /omx.js hud --watch`,
+        `%2\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%9' /node /nomx.js hud --watch`,
       ].join('\n'),
     );
     const killed: string[] = [];
@@ -638,7 +638,7 @@ describe('dead HUD pane reaper', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        `%2\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
+        `%2\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
       ].join('\n'),
     );
 
@@ -655,7 +655,7 @@ describe('dead HUD pane reaper', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        '%2\tnode\tnode /tmp/bin/omx.js hud --watch',
+        '%2\tnode\tnode /tmp/bin/nomx.js hud --watch',
       ].join('\n'),
     );
 
@@ -674,7 +674,7 @@ describe('dead HUD pane reaper', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex\t/repo',
-        `%2\tnode\texec env OMX_TMUX_HUD_OWNER='1' /tmp/bin/omx.js hud --watch\t${deletedPath}`,
+        `%2\tnode\texec env OMX_TMUX_HUD_OWNER='1' /tmp/bin/nomx.js hud --watch\t${deletedPath}`,
       ].join('\n'),
     );
     const killed: string[] = [];
@@ -696,7 +696,7 @@ describe('dead HUD pane reaper', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex\t/repo',
-        `%2\tnode\texec env OMX_SESSION_ID='doctor-smoke' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch\t${deletedPath}`,
+        `%2\tnode\texec env OMX_SESSION_ID='doctor-smoke' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch\t${deletedPath}`,
       ].join('\n'),
     );
     const killed: string[] = [];
@@ -719,7 +719,7 @@ describe('dead HUD pane reaper', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex\t/repo',
-        `%2\tnode\texec env OMX_SESSION_ID='omx-doctor-plugin-hook-smoke' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch\t${materializedDeletedPath}`,
+        `%2\tnode\texec env OMX_SESSION_ID='omx-doctor-plugin-hook-smoke' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch\t${materializedDeletedPath}`,
       ].join('\n'),
     );
     const killed: string[] = [];
@@ -745,7 +745,7 @@ describe('dead HUD pane reaper', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex\t/repo',
-        `%2\tnode\texec env OMX_SESSION_ID='sess-live' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch\t${deletedPath}`,
+        `%2\tnode\texec env OMX_SESSION_ID='sess-live' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch\t${deletedPath}`,
       ].join('\n'),
     );
 
@@ -764,7 +764,7 @@ describe('dead HUD pane reaper', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex\t/repo',
-        `%2\tnode\texec env OMX_SESSION_ID='sess-stale' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%9' /node /omx.js hud --watch\t${deletedPath}`,
+        `%2\tnode\texec env OMX_SESSION_ID='sess-stale' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%9' /node /nomx.js hud --watch\t${deletedPath}`,
       ].join('\n'),
     );
     const killed: string[] = [];
@@ -787,7 +787,7 @@ describe('dead HUD pane reaper', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex\t/repo',
-        `%2\tnode\texec env OMX_SESSION_ID='live' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch\t${liveDeletedSuffixPath}`,
+        `%2\tnode\texec env OMX_SESSION_ID='live' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch\t${liveDeletedSuffixPath}`,
       ].join('\n'),
     );
 
@@ -815,7 +815,7 @@ describe('dead HUD pane reaper', () => {
         [
           '%2',
           'node',
-          `exec env OMX_SESSION_ID='live' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
+          `exec env OMX_SESSION_ID='live' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
           liveDeletedSuffixPath,
         ].join(separator),
       ].join('\n'),
@@ -857,7 +857,7 @@ describe('dead HUD pane reaper', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        `%2\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%9' /node /omx.js sidecar --watch`,
+        `%2\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%9' /node /nomx.js sidecar --watch`,
       ].join('\n'),
     );
 
@@ -874,8 +874,8 @@ describe('dead HUD pane reaper', () => {
     const panes = parseTmuxPaneSnapshot(
       [
         '%1\tcodex\tcodex',
-        `%2\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /omx.js hud --watch`,
-        `%3\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%9' /node /omx.js hud --watch`,
+        `%2\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%1' /node /nomx.js hud --watch`,
+        `%3\tnode\texec env OMX_TMUX_HUD_OWNER='1' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='%9' /node /nomx.js hud --watch`,
       ].join('\n'),
     );
     const killed: string[] = [];

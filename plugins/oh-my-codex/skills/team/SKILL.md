@@ -5,14 +5,14 @@ description: N coordinated agents on shared task list using tmux-based orchestra
 
 # Team Skill
 
-`$team` is the tmux-based parallel execution mode for OMX. It starts real worker Codex and/or Claude CLI sessions in split panes and coordinates them through `.omx/state/team/...` files plus CLI team interop (`omx team api ...`) and state files.
+`$team` is the tmux-based parallel execution mode for OMX. It starts real worker Codex and/or Claude CLI sessions in split panes and coordinates them through `.omx/state/team/...` files plus CLI team interop (`nomx team api ...`) and state files.
 
-This skill is operationally sensitive. Treat it as an operator workflow, not a generic prompt pattern. In Codex App or plain outside-tmux sessions, do not present `$team` / `omx team` as directly available; launch OMX CLI from shell first, or stay on the nearest app-safe surface until the user explicitly wants the tmux runtime.
+This skill is operationally sensitive. Treat it as an operator workflow, not a generic prompt pattern. In Codex App or plain outside-tmux sessions, do not present `$team` / `nomx team` as directly available; launch OMX CLI from shell first, or stay on the nearest app-safe surface until the user explicitly wants the tmux runtime.
 
 ## Team vs Native Subagents
 
 - Use **Codex native subagents** for bounded, in-session parallelism where one leader thread can fan out a few independent subtasks and wait for them directly.
-- Use **`omx team`** when you need durable tmux workers, shared task state, mailbox/dispatch coordination, worktrees, explicit lifecycle control, or long-running parallel execution that must survive beyond one local reasoning burst.
+- Use **`nomx team`** when you need durable tmux workers, shared task state, mailbox/dispatch coordination, worktrees, explicit lifecycle control, or long-running parallel execution that must survive beyond one local reasoning burst.
 - Native subagents can complement team/ralph execution, but they do **not** replace the tmux team runtime's stateful coordination contract.
 
 ## What This Skill Must Do
@@ -23,39 +23,39 @@ Use the shared workflow guidance pattern: outcome-first framing, concise visible
 
 When user triggers `$team`, the agent must:
 
-1. Invoke OMX runtime directly with `omx team ...`
+1. Invoke OMX runtime directly with `nomx team ...`
 2. Avoid replacing the flow with in-process `spawn_agent` fanout
 3. Verify startup and surface concrete state/pane evidence
 4. If active team mode state is missing, initialize/sync it from canonical team runtime state before proceeding
 5. Keep team state alive until workers are terminal (unless explicit abort)
 6. Handle cleanup and stale-pane recovery when needed
 
-If `omx team` is unavailable, stop with a hard error.
+If `nomx team` is unavailable, stop with a hard error.
 
 ## Invocation Contract
 
 ```bash
-omx team [N:agent-type] "<task description>"
+nomx team [N:agent-type] "<task description>"
 ```
 
 Examples:
 
 ```bash
-omx team 3:executor "analyze feature X and report flaws"
-omx team "debug flaky integration tests"
-omx team "ship end-to-end fix with verification"
+nomx team 3:executor "analyze feature X and report flaws"
+nomx team "debug flaky integration tests"
+nomx team "ship end-to-end fix with verification"
 ```
 
 ### Team-first launch contract
 
-`omx team ...` is now the canonical launch path for coordinated execution.
+`nomx team ...` is now the canonical launch path for coordinated execution.
 Team mode should carry its own parallel delivery + verification lanes without
 requiring a separate linked Ralph launch up front.
 
-- **Canonical launch:** use plain `omx team ...` / `$team ...` for coordinated workers.
+- **Canonical launch:** use plain `nomx team ...` / `$team ...` for coordinated workers.
 - **Verification ownership:** keep one lane focused on tests, regression coverage, and evidence before shutdown.
-- **Escalation:** start a separate `omx ralph ...` / `$ralph ...` only when a later manual follow-up still needs a persistent single-owner fix/verification loop.
-- **Deprecation:** `omx team ralph ...` has been removed. Use plain `omx team ...` for team execution or run `omx ralph ...` separately when you explicitly want a later Ralph loop.
+- **Escalation:** start a separate `nomx ralph ...` / `$ralph ...` only when a later manual follow-up still needs a persistent single-owner fix/verification loop.
+- **Deprecation:** `nomx team ralph ...` has been removed. Use plain `nomx team ...` for team execution or run `nomx ralph ...` separately when you explicitly want a later Ralph loop.
 
 
 ### Team Big Five / ATEM coordination gate
@@ -77,7 +77,7 @@ ATEM fit: treat this as agile teamwork support for transition/action/interperson
 
 Use `$ultragoal` for durable leader-owned goal/ledger tracking and `$team` for parallel execution lanes. When Team is launched with an active `.omx/ultragoal/goals.json`, worker inboxes/status may include leader-owned Ultragoal context: `.omx/ultragoal/goals.json`, `.omx/ultragoal/ledger.jsonl`, the active goal id, Codex goal mode, and the `fresh_leader_get_goal_required` checkpoint policy.
 
-Workers provide task status and verification evidence only. They do not own Ultragoal goal state, create worker ledgers, mutate `.omx/ultragoal`, auto-launch Team from Ultragoal, or perform hidden Codex goal mutation. The leader uses terminal Team evidence plus a fresh `get_goal` snapshot to run `omx ultragoal checkpoint --goal-id <id> --status complete --evidence "<team evidence mentioning .omx/ultragoal and <id>>" --codex-goal-json <fresh-get_goal-json-or-path>`.
+Workers provide task status and verification evidence only. They do not own Ultragoal goal state, create worker ledgers, mutate `.omx/ultragoal`, auto-launch Team from Ultragoal, or perform hidden Codex goal mutation. The leader uses terminal Team evidence plus a fresh `get_goal` snapshot to run `nomx ultragoal checkpoint --goal-id <id> --status complete --evidence "<team evidence mentioning .omx/ultragoal and <id>>" --codex-goal-json <fresh-get_goal-json-or-path>`.
 
 ### Claude teammates (v0.6.0+)
 
@@ -87,13 +87,13 @@ To launch Claude teammates, use the team worker CLI env vars:
 
 ```bash
 # Force all teammates to Claude CLI
-OMX_TEAM_WORKER_CLI=claude omx team 2:executor "update docs and report"
+OMX_TEAM_WORKER_CLI=claude nomx team 2:executor "update docs and report"
 
 # Mixed team (worker 1 = Codex, worker 2 = Claude)
-OMX_TEAM_WORKER_CLI_MAP=codex,claude omx team 2:executor "split doc/code tasks"
+OMX_TEAM_WORKER_CLI_MAP=codex,claude nomx team 2:executor "split doc/code tasks"
 
 # Auto mode: Claude is selected when worker launch args/model contains 'claude'
-OMX_TEAM_WORKER_CLI=auto OMX_TEAM_WORKER_LAUNCH_ARGS="--model claude-..." omx team 2:executor "run mixed validation"
+OMX_TEAM_WORKER_CLI=auto OMX_TEAM_WORKER_LAUNCH_ARGS="--model claude-..." nomx team 2:executor "run mixed validation"
 ```
 
 ## Preconditions
@@ -103,7 +103,7 @@ Before running `$team`, confirm:
 1. `tmux` installed (`tmux -V`)
 2. Current leader session is inside tmux (`$TMUX` is set)
 3. `omx` command resolves to the intended install/build
-4. If running repo-local `node bin/omx.js ...`, run `npm run build` after `src` changes
+4. If running repo-local `node bin/nomx.js ...`, run `npm run build` after `src` changes
 5. Check HUD pane count in the leader window and avoid duplicate `hud --watch` panes before split
 
 Suggested preflight:
@@ -112,11 +112,11 @@ Suggested preflight:
 tmux list-panes -F '#{pane_id}\t#{pane_start_command}' | rg 'hud --watch' || true
 ```
 
-If duplicates exist, remove extras before `omx team` to prevent HUD ending up in worker stack.
+If duplicates exist, remove extras before `nomx team` to prevent HUD ending up in worker stack.
 
 ## Pre-context Intake Gate
 
-Before launching `omx team`, require a grounded context snapshot:
+Before launching `nomx team`, require a grounded context snapshot:
 
 1. Derive a task slug from the request.
 2. Reuse the latest relevant snapshot in `.omx/context/{slug}-*.md` when available.
@@ -132,7 +132,7 @@ Before launching `omx team`, require a grounded context snapshot:
 
 Do not start worker panes until this gate is satisfied; if forced to proceed quickly, state explicit scope/risk limitations in the launch report.
 
-For simple read-only brownfield lookups during intake, follow active session guidance: when `USE_OMX_EXPLORE_CMD` is enabled, prefer `omx explore` with narrow, concrete prompts; otherwise use the richer normal explore path and fall back normally if `omx explore` is unavailable.
+For simple read-only brownfield lookups during intake, follow active session guidance: when `USE_OMX_EXPLORE_CMD` is enabled, prefer `nomx explore` with narrow, concrete prompts; otherwise use the richer normal explore path and fall back normally if `nomx explore` is unavailable.
 
 ## Follow-up Staffing Contract
 
@@ -142,12 +142,12 @@ When `$team` is used as a follow-up mode from ralplan, carry forward the approve
 - state the recommended headcount and role counts
 - state the suggested reasoning level for each lane when available
 - explain why each lane exists (delivery, verification, specialist support)
-- include an explicit launch hint (`omx team N "<task>"` / `$team N "<task>"`) for the coordinated team run; mention `$ultragoal` as the default durable follow-up/ledger path; mention a later separate Ralph follow-up only when explicitly requested or genuinely needed as a fallback
+- include an explicit launch hint (`nomx team N "<task>"` / `$team N "<task>"`) for the coordinated team run; mention `$ultragoal` as the default durable follow-up/ledger path; mention a later separate Ralph follow-up only when explicitly requested or genuinely needed as a fallback
 - if the ideal role is unavailable, choose the closest role from the roster and say so
 
 ## Current Runtime Behavior (As Implemented)
 
-`omx team` currently performs:
+`nomx team` currently performs:
 
 1. Parse args (`N`, `agent-type`, task)
 2. Sanitize team name from task text
@@ -176,7 +176,7 @@ Important:
 
 - Leader remains in existing pane
 - Worker panes are independent full Codex/Claude CLI sessions
-- Workers may run in separate git worktrees (`omx team --worktree[=<name>]`) while sharing one team state root
+- Workers may run in separate git worktrees (`nomx team --worktree[=<name>]`) while sharing one team state root
 - Worker ACKs go to `mailbox/leader-fixed.json`
 - Notify hook updates worker heartbeat and sends lifecycle-driven leader nudges (for example resolved native worker Stop/all-idle or stale-leader evidence) during active team mode; deprecated worker stall/progress heuristics are not operator-facing guidance.
 - Submit routing uses this CLI resolution order per worker trigger:
@@ -220,12 +220,12 @@ Normalization requirements:
 Follow this exact lifecycle when running `$team`:
 
 1. Start team and verify startup evidence (team line, tmux target, panes, ACK mailbox)
-2. Monitor task and worker progress with runtime/state tools first (`omx team status <team>`, `omx team resume <team>`, mailbox/state files)
+2. Monitor task and worker progress with runtime/state tools first (`nomx team status <team>`, `nomx team resume <team>`, mailbox/state files)
 3. Wait for terminal task state before shutdown:
    - `pending=0`
    - `in_progress=0`
    - `failed=0` (or explicitly acknowledged failure path)
-4. Only then run `omx team shutdown <team>`
+4. Only then run `nomx team shutdown <team>`
 5. Verify shutdown evidence and state cleanup
 
 Do not run `shutdown` while workers are actively writing updates unless user explicitly requested abort/cancel.
@@ -238,12 +238,12 @@ While a team is **ON/running**, the leader must not go blind. Keep checking live
 Minimum acceptable loop:
 
 ```bash
-sleep 30 && omx team status <team-name>
+sleep 30 && nomx team status <team-name>
 ```
 
-Repeat that check while the team stays active, or use `omx team await <team-name> --timeout-ms 30000 --json` when event-driven waiting is a better fit.
+Repeat that check while the team stays active, or use `nomx team await <team-name> --timeout-ms 30000 --json` when event-driven waiting is a better fit.
 
-If the leader gets a stale, lifecycle, or all-idle nudge, immediately run `omx team status <team-name>` before taking any manual intervention. Deprecated worker stall/progress nudges should not be treated as an active runtime contract.
+If the leader gets a stale, lifecycle, or all-idle nudge, immediately run `nomx team status <team-name>` before taking any manual intervention. Deprecated worker stall/progress nudges should not be treated as an active runtime contract.
 
 ### Deprecated worker stall/progress knobs
 
@@ -255,9 +255,9 @@ To avoid brittle behavior, **message/task delivery must not be driven by ad-hoc 
 
 Required default path:
 
-1. Use `omx team ...` runtime lifecycle commands for orchestration.
-2. Use `omx team api ... --json` for mailbox/task mutations.
-3. Verify delivery via mailbox/state evidence (`mailbox/*.json`, task status, `omx team status`).
+1. Use `nomx team ...` runtime lifecycle commands for orchestration.
+2. Use `nomx team api ... --json` for mailbox/task mutations.
+3. Verify delivery via mailbox/state evidence (`mailbox/*.json`, task status, `nomx team status`).
 
 Strict rules:
 
@@ -269,9 +269,9 @@ Strict rules:
 ## Operational Commands
 
 ```bash
-omx team status <team-name>
-omx team resume <team-name>
-omx team shutdown <team-name>
+nomx team status <team-name>
+nomx team resume <team-name>
+nomx team shutdown <team-name>
 ```
 
 Semantics:
@@ -309,18 +309,18 @@ Semantics:
 
 ## Team Mutation Interop (CLI-first)
 
-Use `omx team api` for machine-readable mutation/reads instead of legacy `team_*` MCP tools.
+Use `nomx team api` for machine-readable mutation/reads instead of legacy `team_*` MCP tools.
 
 ```bash
-omx team api <operation> --input '{"team_name":"my-team",...}' --json
+nomx team api <operation> --input '{"team_name":"my-team",...}' --json
 ```
 
 Examples:
 
 ```bash
-omx team api send-message --input '{"team_name":"my-team","from_worker":"worker-1","to_worker":"leader-fixed","body":"ACK"}' --json
-omx team api claim-task --input '{"team_name":"my-team","task_id":"1","worker":"worker-1"}' --json
-omx team api transition-task-status --input '{"team_name":"my-team","task_id":"1","from":"in_progress","to":"completed","claim_token":"<token>"}' --json
+nomx team api send-message --input '{"team_name":"my-team","from_worker":"worker-1","to_worker":"leader-fixed","body":"ACK"}' --json
+nomx team api claim-task --input '{"team_name":"my-team","task_id":"1","worker":"worker-1"}' --json
+nomx team api transition-task-status --input '{"team_name":"my-team","task_id":"1","from":"in_progress","to":"completed","claim_token":"<token>"}' --json
 ```
 
 `--json` responses include stable metadata for automation:
@@ -340,8 +340,8 @@ Leader-to-worker:
 
 Worker-to-leader:
 
-- Send ACK to `leader-fixed` mailbox via `omx team api send-message --json`
-- Claim/transition/release task lifecycle via `omx team api <operation> --json`
+- Send ACK to `leader-fixed` mailbox via `nomx team api send-message --json`
+- Claim/transition/release task lifecycle via `nomx team api <operation> --json`
 
 Worker commit protocol (critical for incremental integration):
 
@@ -397,11 +397,11 @@ Operator note (important for Claude panes):
 
 ### Safe Manual Intervention (last resort)
 
-Use only after checking `omx team status <team>` and mailbox/state evidence:
+Use only after checking `nomx team status <team>` and mailbox/state evidence:
 
 1. Capture pane tail to confirm current worker state:
    - `tmux capture-pane -t %<worker-pane> -p -S -120`
-   - If a larger-tail read or bounded summary would help, prefer explicit opt-in inspection via `omx sparkshell --tmux-pane %<worker-pane> --tail-lines 400` before improvising extra tmux commands.
+   - If a larger-tail read or bounded summary would help, prefer explicit opt-in inspection via `nomx sparkshell --tmux-pane %<worker-pane> --tail-lines 400` before improvising extra tmux commands.
 2. If the pane is stuck in an interactive state, safely return to idle prompt first:
    - optional interrupt `C-c` or escape flow (CLI-specific) once, then re-check pane capture
 3. Send one concise trigger (single line) and wait for evidence:
@@ -409,7 +409,7 @@ Use only after checking `omx team status <team>` and mailbox/state evidence:
 4. Re-check:
    - pane output via `capture-pane`
    - mailbox updates (`mailbox/leader-fixed.json` or worker mailbox)
-   - `omx team status <team>`
+   - `nomx team status <team>`
 
 ### `worker_notify_failed:<worker>`
 
@@ -429,18 +429,18 @@ Checks:
 
 1. Worker pane capture shows inbox processing
 2. `.omx/state/team/<team>/mailbox/leader-fixed.json` exists
-3. Worker skill loaded and `omx team api send-message --json` called
+3. Worker skill loaded and `nomx team api send-message --json` called
 4. Task-id mismatch not blocking worker flow
 
-### Worker logs `omx team api ... ENOENT` (or legacy `team_send_message ENOENT` / `team_update_task ENOENT`)
+### Worker logs `nomx team api ... ENOENT` (or legacy `team_send_message ENOENT` / `team_update_task ENOENT`)
 
 Meaning:
 - Team state path no longer exists while worker is still running.
-- Typical cause: leader/manual flow ran `omx team shutdown <team>` (or removed `.omx/state/team/<team>`) before worker finished.
+- Typical cause: leader/manual flow ran `nomx team shutdown <team>` (or removed `.omx/state/team/<team>`) before worker finished.
 
 Checks:
 
-1. `omx team status <team>` and confirm whether tasks were still `in_progress` when shutdown occurred
+1. `nomx team status <team>` and confirm whether tasks were still `in_progress` when shutdown occurred
 2. Verify whether `.omx/state/team/<team>/` exists
 3. Inspect worker pane tail for post-shutdown writes
 4. Confirm no external cleanup (`rm -rf .omx/state/team/<team>`) happened during execution
@@ -475,13 +475,13 @@ tmux kill-pane -t %451
 rm -rf .omx/state/team/<team-name>
 
 # 4) Retry
-omx team 1:executor "fresh retry"
+nomx team 1:executor "fresh retry"
 ```
 
 Guidelines:
 
 - Do not kill leader pane
-- Do not kill HUD pane (`omx hud --watch`) unless intentionally restarting HUD
+- Do not kill HUD pane (`nomx hud --watch`) unless intentionally restarting HUD
 
 ## Required Reporting During Execution
 
@@ -494,15 +494,15 @@ When operating this skill, provide concrete progress evidence:
 
 Do not claim success without file/pane evidence.
 Do not claim clean completion if shutdown occurred with `in_progress>0`.
-Use `omx sparkshell --tmux-pane ...` as an explicit opt-in operator aid for pane inspection and summaries; keep raw `tmux capture-pane` evidence available for manual intervention and proof.
+Use `nomx sparkshell --tmux-pane ...` as an explicit opt-in operator aid for pane inspection and summaries; keep raw `tmux capture-pane` evidence available for manual intervention and proof.
 
 ## Programmatic Team Orchestration
 
-Use the `omx team ...` CLI as the supported team-launch surface. For automation, drive the same CLI flow from scripts or supervising agents rather than relying on a separate MCP runner.
+Use the `nomx team ...` CLI as the supported team-launch surface. For automation, drive the same CLI flow from scripts or supervising agents rather than relying on a separate MCP runner.
 
 ### Supported current surfaces
 
-- **`omx team ...` CLI** — Primary method for interactive or automated team orchestration. Use this when you want direct tmux-pane visibility or a scriptable launch path.
+- **`nomx team ...` CLI** — Primary method for interactive or automated team orchestration. Use this when you want direct tmux-pane visibility or a scriptable launch path.
 - **Team state files** — Inspect `.omx/state/team/<team>/` when you need status, task, or mailbox evidence after launch.
 
 ### Cleanup distinction
@@ -510,14 +510,14 @@ Use the `omx team ...` CLI as the supported team-launch surface. For automation,
 Two cleanup paths exist and must not be confused:
 
 - `team_cleanup` (**state-server**): Deletes team state **files** on disk (`.omx/state/team/<team>/`). Use after a team run is fully complete.
-- tmux/session cleanup: Use the documented `omx team` shutdown / cleanup flow when you need to stop worker panes or clean up an interrupted run.
+- tmux/session cleanup: Use the documented `nomx team` shutdown / cleanup flow when you need to stop worker panes or clean up an interrupted run.
 
 ### Automation example
 
 ```
-1. omx team 1:executor "fix bugs"
-2. omx team status <team-name>
-3. omx team shutdown <team-name>
+1. nomx team 1:executor "fix bugs"
+2. nomx team status <team-name>
+3. nomx team shutdown <team-name>
 4. Clean up the finished team state for <team-name>
 ```
 

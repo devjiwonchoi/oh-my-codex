@@ -1214,7 +1214,7 @@ if [[ "$cmd" == "display-message" ]]; then
     exit 0
   fi
   if [[ "$format" == "#{pane_start_command}" && "$target" == "%77" ]]; then
-    echo "node dist/cli/omx.js hud --watch"
+    echo "node dist/cli/nomx.js hud --watch"
     exit 0
   fi
   if [[ "$format" == "#S" && "$target" == "%77" ]]; then
@@ -1248,7 +1248,7 @@ if [[ "$cmd" == "list-panes" ]]; then
     esac
   done
   if [[ "$target" == "${managedSessionName}" ]]; then
-    printf "%%77\t1\tnode\tnode dist/cli/omx.js hud --watch\n%%99\t0\tcodex\tcodex\n"
+    printf "%%77\t1\tnode\tnode dist/cli/nomx.js hud --watch\n%%99\t0\tcodex\tcodex\n"
     exit 0
   fi
   exit 1

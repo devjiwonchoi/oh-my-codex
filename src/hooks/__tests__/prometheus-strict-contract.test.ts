@@ -124,7 +124,7 @@ describe('prometheus-strict clean-room contract', () => {
   it('routes interview questions through the OMX structured question surface with documented fallbacks', () => {
     const skill = readRepoFile(skillPath);
 
-    assert.match(skill, /omx question/, 'skill must name `omx question` as the structured question surface');
+    assert.match(skill, /nomx question/, 'skill must name `nomx question` as the structured question surface');
     assert.match(
       skill,
       /native structured input/i,
@@ -138,7 +138,7 @@ describe('prometheus-strict clean-room contract', () => {
     assert.match(
       skill,
       /attached[-\s]?tmux/i,
-      'skill must name the attached-tmux precondition for `omx question`',
+      'skill must name the attached-tmux precondition for `nomx question`',
     );
     assert.match(
       skill,
@@ -156,8 +156,8 @@ describe('prometheus-strict clean-room contract', () => {
       const content = readRepoFile(promptPath);
       assert.match(
         content,
-        /omx question/,
-        `${promptName} must reference the OMX structured question surface (omx question)`,
+        /nomx question/,
+        `${promptName} must reference the OMX structured question surface (nomx question)`,
       );
       assert.match(
         content,
@@ -262,7 +262,7 @@ describe('prometheus-strict clean-room contract', () => {
 
     assert.match(skill, /<Turn_Termination_Rules>[\s\S]+<\/Turn_Termination_Rules>/, 'skill must include turn termination block');
     assert.match(skill, /EXACTLY ONE of/i, 'termination must choose exactly one path');
-    assert.match(skill, /\(a\)[\s\S]{0,120}omx question[\s\S]{0,80}batch/i, 'option a must name omx question batch');
+    assert.match(skill, /\(a\)[\s\S]{0,120}nomx question[\s\S]{0,80}batch/i, 'option a must name nomx question batch');
     assert.match(skill, /\(b\)[\s\S]{0,120}explicit handoff/i, 'option b must name explicit handoff');
     assert.match(skill, /\(c\)[\s\S]{0,120}stop-blocker/i, 'option c must name stop-blocker');
     assert.doesNotMatch(skill, /answered_high_leverage_question_count\s*>=\s*3/i, 'count rule removed from skill');

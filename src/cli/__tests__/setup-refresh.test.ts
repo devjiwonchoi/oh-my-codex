@@ -63,7 +63,7 @@ async function runSetupWithCapturedLogs(
   }
 }
 
-describe("omx setup refresh summary and dry-run behavior", () => {
+describe("nomx setup refresh summary and dry-run behavior", () => {
   async function runSetupInTempDir(
     wd: string,
     options: Parameters<typeof setup>[0],
@@ -153,7 +153,7 @@ describe("omx setup refresh summary and dry-run behavior", () => {
         assert.equal(
           existsSync(skillPath),
           true,
-          `expected omx setup to install ${skillName}`,
+          `expected nomx setup to install ${skillName}`,
         );
         assert.match(await readFile(skillPath, "utf-8"), /^description: "\[OMX\] /m);
       }

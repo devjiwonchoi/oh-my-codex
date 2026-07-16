@@ -34,7 +34,7 @@ describe('state-server team_* MCP deprecation', () => {
     const body = JSON.parse(resp.content[0]?.text ?? '{}') as { code?: string; error?: string; hint?: string };
     assert.equal(body.code, 'deprecated_cli_only');
     assert.match(body.error ?? '', /hard-deprecated/i);
-    assert.match(body.hint ?? '', /omx team api send-message/);
+    assert.match(body.hint ?? '', /nomx team api send-message/);
     assert.match(body.hint ?? '', /--json/);
   });
 });

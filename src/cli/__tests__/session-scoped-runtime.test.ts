@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(testDir, '..', '..', '..');
-const omxBin = join(repoRoot, 'dist', 'cli', 'omx.js');
+const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
 
 function runOmx(cwd: string, ...args: string[]) {
   return spawnSync(process.execPath, [omxBin, ...args], {
@@ -159,7 +159,7 @@ describe('CLI session-scoped state parity', () => {
         active_skills: [{ skill: 'autopilot', phase: 'deep-interview', active: true, session_id: sessionId }],
       }, null, 2));
       await writeFile(join(runsRoot, 'registry.jsonl'), `${JSON.stringify({
-        launcher: 'omx --madmax',
+        launcher: 'nomx --madmax',
         created_at: '2026-06-10T12:17:51.000Z',
         cwd: runDir,
         source_cwd: wd,
@@ -215,7 +215,7 @@ describe('CLI session-scoped state parity', () => {
         current_phase: 'deep-interview',
       }, null, 2));
       await writeFile(join(runsRoot, 'registry.jsonl'), `${JSON.stringify({
-        launcher: 'omx --madmax',
+        launcher: 'nomx --madmax',
         created_at: '2026-06-10T12:17:51.000Z',
         cwd: runDir,
         source_cwd: wd,

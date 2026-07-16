@@ -281,7 +281,7 @@ function readConfiguredLauncher() {
   if (process.env.OMX_NATIVE_HOOK_COMMAND) {
     return { command: process.env.OMX_NATIVE_HOOK_COMMAND, argsPrefix: [] };
   }
-  return readPinnedLauncher() ?? { command: 'omx', argsPrefix: [] };
+  return readPinnedLauncher() ?? { command: 'nomx', argsPrefix: [] };
 }
 
 function buildSpawnOptions(command) {

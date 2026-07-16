@@ -197,7 +197,7 @@ describe("notify-hook non-OMX project guard", () => {
 		}
 	});
 
-	it("exits without creating .omx artifacts for unmanaged cwd", async () => {
+	it("exits without creating .nomx artifacts for unmanaged cwd", async () => {
 		const wd = await mkdtemp(join(tmpdir(), "omx-notify-unmanaged-"));
 		try {
 			const payload = JSON.stringify({
@@ -220,7 +220,7 @@ describe("notify-hook non-OMX project guard", () => {
 		}
 	});
 
-	it("ignores stale .omx state/log directories without an ownership marker", async () => {
+	it("ignores stale .nomx state/log directories without an ownership marker", async () => {
 		const wd = await mkdtemp(join(tmpdir(), "omx-notify-stale-state-"));
 		try {
 			await mkdir(join(wd, ".omx", "state"), { recursive: true });

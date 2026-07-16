@@ -50,9 +50,9 @@ describe("worker bootstrap", () => {
       "utf8",
     );
 
-    assert.match(workerSkill, /omx team api claim-task/);
-    assert.match(workerSkill, /omx team api transition-task-status/);
-    assert.match(workerSkill, /omx team api release-task-claim/);
+    assert.match(workerSkill, /nomx team api claim-task/);
+    assert.match(workerSkill, /nomx team api transition-task-status/);
+    assert.match(workerSkill, /nomx team api release-task-claim/);
     assert.match(
       workerSkill,
       /\$\{CODEX_HOME:-~\/\.codex\}\/skills\/worker\/SKILL\.md/,
@@ -104,9 +104,9 @@ describe("worker bootstrap", () => {
     assert.match(overlay, /<team_state_root>\/team\/my-team\/tasks/);
     assert.match(overlay, /tasks\/task-<id>\.json/);
     assert.match(overlay, /task_id: "<id>"/);
-    assert.match(overlay, /omx team api claim-task/);
-    assert.match(overlay, /omx team api transition-task-status/);
-    assert.match(overlay, /omx team api release-task-claim/);
+    assert.match(overlay, /nomx team api claim-task/);
+    assert.match(overlay, /nomx team api transition-task-status/);
+    assert.match(overlay, /nomx team api release-task-claim/);
     assert.doesNotMatch(
       overlay,
       /On completion: write \{"status": "completed"/,
@@ -308,9 +308,9 @@ describe("worker bootstrap", () => {
       inbox,
       /<team_state_root>\/team\/team-inbox\/tasks\/task-<id>\.json/,
     );
-    assert.match(inbox, /omx team api claim-task/);
-    assert.match(inbox, /omx team api transition-task-status/);
-    assert.match(inbox, /omx team api release-task-claim/);
+    assert.match(inbox, /nomx team api claim-task/);
+    assert.match(inbox, /nomx team api transition-task-status/);
+    assert.match(inbox, /nomx team api release-task-claim/);
     assert.match(
       inbox,
       /\$\{CODEX_HOME:-~\/\.codex\}\/skills\/worker\/SKILL\.md/,
@@ -357,7 +357,7 @@ describe("worker bootstrap", () => {
     assert.match(inbox, /\.omx\/ultragoal\/goals\.json/);
     assert.match(inbox, /\.omx\/ultragoal\/ledger\.jsonl/);
     assert.match(inbox, /G001-team-runtime-bridge/);
-    assert.match(inbox, /omx ultragoal checkpoint/);
+    assert.match(inbox, /nomx ultragoal checkpoint/);
     assert.match(inbox, /--codex-goal-json/);
     assert.match(inbox, /workers do not own Ultragoal goal state/);
     assert.doesNotMatch(inbox, /worker-owned ultragoal ledger/i);
@@ -927,9 +927,9 @@ describe("worker bootstrap", () => {
     assert.match(inbox, /Implement parser update/);
     assert.match(inbox, /team_state_root/);
     assert.match(inbox, /team\/team-followup\/tasks\/task-42\.json/);
-    assert.match(inbox, /omx team api claim-task/);
-    assert.match(inbox, /omx team api transition-task-status/);
-    assert.match(inbox, /omx team api release-task-claim/);
+    assert.match(inbox, /nomx team api claim-task/);
+    assert.match(inbox, /nomx team api transition-task-status/);
+    assert.match(inbox, /nomx team api release-task-claim/);
     assert.doesNotMatch(
       inbox,
       /Write `\{"status": "completed", "result": "brief summary"\}` when done/,
@@ -960,7 +960,7 @@ describe("worker bootstrap", () => {
     assert.match(inbox, /claim required before work/);
     assert.match(inbox, /Durable OMX source of truth/);
     assert.match(inbox, /logical Codex goal handoff only/);
-    assert.match(inbox, /omx team api transition-task-status/);
+    assert.match(inbox, /nomx team api transition-task-status/);
     assert.doesNotMatch(inbox, /<team_state_root>\/goals\/team/);
     assert.doesNotMatch(inbox, /leader-audit\.json/);
   });
@@ -1590,7 +1590,7 @@ describe("worker bootstrap", () => {
           "  - checkpoint_policy: fresh_leader_get_goal_required",
           "  - Team workers provide task/evidence updates only; workers do not own ultragoal goal state or create worker ultragoal ledgers.",
           "  - Leader checkpoint command shape:",
-          "    omx ultragoal checkpoint --goal-id G001-team-runtime-bridge --status complete --evidence \"<team evidence mentioning .omx/ultragoal and G001-team-runtime-bridge>\" --codex-goal-json <fresh-active-get_goal-json-or-path>",
+          "    nomx ultragoal checkpoint --goal-id G001-team-runtime-bridge --status complete --evidence \"<team evidence mentioning .omx/ultragoal and G001-team-runtime-bridge>\" --codex-goal-json <fresh-active-get_goal-json-or-path>",
         ].join("\n"),
       },
     );
@@ -1599,7 +1599,7 @@ describe("worker bootstrap", () => {
     assert.match(inbox, /\.omx\/ultragoal\/goals\.json/);
     assert.match(inbox, /\.omx\/ultragoal\/ledger\.jsonl/);
     assert.match(inbox, /G001-team-runtime-bridge/);
-    assert.match(inbox, /omx ultragoal checkpoint/);
+    assert.match(inbox, /nomx ultragoal checkpoint/);
     assert.match(inbox, /--codex-goal-json/);
     assert.match(inbox, /fresh_leader_get_goal_required/);
     assert.match(inbox, /workers provide task\/evidence updates only/i);
@@ -1626,14 +1626,14 @@ describe("worker bootstrap", () => {
           "  - active_goal_id: G001-team-runtime-bridge",
           "  - checkpoint_policy: fresh_leader_get_goal_required",
           "  - Leader checkpoint command shape:",
-          "    omx ultragoal checkpoint --goal-id G001-team-runtime-bridge --status complete --evidence \"<team evidence>\" --codex-goal-json <fresh-active-get_goal-json-or-path>",
+          "    nomx ultragoal checkpoint --goal-id G001-team-runtime-bridge --status complete --evidence \"<team evidence>\" --codex-goal-json <fresh-active-get_goal-json-or-path>",
         ].join("\n"),
       },
     );
 
     assert.match(inbox, /## Approved Handoff Context/);
     assert.match(inbox, /Leader-owned Ultragoal context/);
-    assert.match(inbox, /omx ultragoal checkpoint/);
+    assert.match(inbox, /nomx ultragoal checkpoint/);
     assert.match(inbox, /--codex-goal-json/);
     assert.match(inbox, /fresh_leader_get_goal_required/);
     assert.doesNotMatch(inbox, /workers? checkpoint Ultragoal/i);

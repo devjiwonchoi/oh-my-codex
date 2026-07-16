@@ -11,8 +11,6 @@ const SOURCE_CHECKOUT_SENTINELS = [
 const INSTALLED_PACKAGE_CLI_SMOKE_COMMANDS = [
   ["--help"],
   ["version"],
-  ["api", "--help"],
-  ["sparkshell", "--help"],
   ["notepad", "--help"],
   ["project-memory", "--help"],
   ["trace", "--help"],
@@ -59,7 +57,7 @@ function runInstalledPackageGate(): void {
   run(npmBin(), ["run", "verify:native-agents"]);
   run(npmBin(), ["run", "verify:plugin-bundle"]);
   for (const argv of INSTALLED_PACKAGE_CLI_SMOKE_COMMANDS) {
-    run(process.execPath, ["dist/cli/omx.js", ...argv]);
+    run(process.execPath, ["dist/cli/nomx.js", ...argv]);
   }
 }
 

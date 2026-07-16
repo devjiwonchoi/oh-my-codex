@@ -58,8 +58,8 @@ describe('readMatchedApprovedRalphExecutionHint', () => {
         [
           '# PRD',
           '',
-          'Launch via omx ralph "Execute alpha"',
-          'Launch via omx ralph "Execute beta"',
+          'Launch via nomx ralph "Execute alpha"',
+          'Launch via nomx ralph "Execute beta"',
         ].join('\n'),
       );
       await writeFile(join(cwd, '.omx', 'plans', 'test-spec-issue-909.md'), '# Test Spec\n');
@@ -67,7 +67,7 @@ describe('readMatchedApprovedRalphExecutionHint', () => {
       const hint = readMatchedApprovedRalphExecutionHint(cwd, 'Execute alpha');
       assert.ok(hint);
       assert.equal(hint?.task, 'Execute alpha');
-      assert.equal(hint?.command, 'omx ralph "Execute alpha"');
+      assert.equal(hint?.command, 'nomx ralph "Execute alpha"');
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
@@ -82,8 +82,8 @@ describe('readMatchedApprovedRalphExecutionHint', () => {
         [
           '# PRD',
           '',
-          'Launch via omx ralph "Execute alpha"',
-          'Launch via omx ralph "Execute beta"',
+          'Launch via nomx ralph "Execute alpha"',
+          'Launch via nomx ralph "Execute beta"',
         ].join('\n'),
       );
       await writeFile(join(cwd, '.omx', 'plans', 'test-spec-issue-909-bare.md'), '# Test Spec\n');
@@ -136,7 +136,7 @@ describe('filterRalphCodexArgs', () => {
   it('consumes --PRD case-insensitively', () => {
     assert.deepEqual(filterRalphCodexArgs(['--PRD', '--model', 'gpt-5']), ['--model', 'gpt-5']);
   });
-  it('preserves non-omx flags', () => {
+  it('preserves non-nomx flags', () => {
     assert.deepEqual(filterRalphCodexArgs(['--model', 'gpt-5', '--yolo', 'fix', 'it']), ['--model', 'gpt-5', '--yolo', 'fix', 'it']);
   });
 });
@@ -144,7 +144,7 @@ describe('filterRalphCodexArgs', () => {
 
 const approvedHint: ApprovedExecutionLaunchHint = {
   mode: 'ralph',
-  command: 'omx ralph "Execute approved issue 1072 plan"',
+  command: 'nomx ralph "Execute approved issue 1072 plan"',
   task: 'Execute approved issue 1072 plan',
   sourcePath: '.omx/plans/prd-issue-1072.md',
   testSpecPaths: ['.omx/plans/test-spec-issue-1072.md'],

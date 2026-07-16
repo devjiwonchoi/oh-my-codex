@@ -391,7 +391,7 @@ describe('launchQuestionRenderer', () => {
           assert.ok(error instanceof Error);
           assert.match(error.message, /visible renderer/i);
           assert.match(error.message, /attached tmux pane/i);
-          assert.match(error.message, /Run omx question from inside tmux/i);
+          assert.match(error.message, /Run nomx question from inside tmux/i);
           assert.doesNotMatch(error.message, /tmux is unavailable/i);
           return true;
         },
@@ -439,7 +439,7 @@ describe('launchQuestionRenderer', () => {
     assert.ok(splitCall.includes('%11'));
     assert.notEqual(splitCall[3], '12');
     assert.equal(splitCall[splitCall.length - 6], process.execPath);
-    assert.equal(splitCall[splitCall.length - 5]?.endsWith('/dist/cli/omx.js'), true);
+    assert.equal(splitCall[splitCall.length - 5]?.endsWith('/dist/cli/nomx.js'), true);
     assert.deepEqual(splitCall.slice(-4), [
       'question',
       '--ui',
@@ -964,7 +964,7 @@ describe('launchQuestionRenderer', () => {
     const splitCall = calls.find((call) => call[0] === 'split-window');
     assert.ok(splitCall);
     assert.equal(splitCall[splitCall.length - 6], process.execPath);
-    assert.equal(splitCall[splitCall.length - 5]?.endsWith('/dist/cli/omx.js'), true);
+    assert.equal(splitCall[splitCall.length - 5]?.endsWith('/dist/cli/nomx.js'), true);
     assert.deepEqual(splitCall.slice(-4), [
       'question',
       '--ui',
@@ -1120,7 +1120,7 @@ describe('launchQuestionRenderer', () => {
     assert.equal(splitCall.some((part) => /question --ui --state-path/.test(part)), false);
     assert.equal(splitCall.some((part) => /^'.*'$/.test(part)), false);
     assert.equal(splitCall[splitCall.length - 6], process.execPath);
-    assert.equal(splitCall[splitCall.length - 5]?.endsWith('/dist/cli/omx.js'), true);
+    assert.equal(splitCall[splitCall.length - 5]?.endsWith('/dist/cli/nomx.js'), true);
     assert.deepEqual(splitCall.slice(-4), [
       'question',
       '--ui',
@@ -1195,7 +1195,7 @@ describe('launchQuestionRenderer', () => {
     assert.equal(calls[0]?.[0], 'new-session');
     assert.ok(calls[0]?.includes('-d'));
     assert.equal(calls[0]?.[calls[0]!.length - 6], process.execPath);
-    assert.equal(calls[0]?.[calls[0]!.length - 5]?.endsWith('/dist/cli/omx.js'), true);
+    assert.equal(calls[0]?.[calls[0]!.length - 5]?.endsWith('/dist/cli/nomx.js'), true);
     assert.deepEqual(calls[0]?.slice(-4), [
       'question',
       '--ui',
@@ -1236,7 +1236,7 @@ describe('launchQuestionRenderer', () => {
   it('prefers the current launcher path over a stale ambient OMX_ENTRY_PATH when spawning the UI', () => {
     const calls: string[][] = [];
     const originalArgv1 = process.argv[1];
-    process.argv[1] = '/repo/dist/cli/omx.js';
+    process.argv[1] = '/repo/dist/cli/nomx.js';
     try {
       const result = launchQuestionRenderer(
         {
@@ -1247,7 +1247,7 @@ describe('launchQuestionRenderer', () => {
           env: {
             TMUX: '/tmp/tmux-demo',
             TMUX_PANE: '%11',
-            OMX_ENTRY_PATH: '/stale/global/dist/cli/omx.js',
+            OMX_ENTRY_PATH: '/stale/global/dist/cli/nomx.js',
           } as NodeJS.ProcessEnv,
         },
         {
@@ -1268,8 +1268,8 @@ describe('launchQuestionRenderer', () => {
       assert.deepEqual(calls[0], ['display-message', '-p', '-t', '%11', '#{session_attached}']);
       const splitCall = calls.find((call) => call[0] === 'split-window');
       assert.ok(splitCall);
-      assert.equal(splitCall.includes('/repo/dist/cli/omx.js'), true);
-      assert.equal(splitCall.includes('/stale/global/dist/cli/omx.js'), false);
+      assert.equal(splitCall.includes('/repo/dist/cli/nomx.js'), true);
+      assert.equal(splitCall.includes('/stale/global/dist/cli/nomx.js'), false);
     } finally {
       process.argv[1] = originalArgv1;
     }
@@ -1286,7 +1286,7 @@ describe('question answer injection', () => {
         selected_values: ['hello\nworld'],
         other_text: 'hello\nworld',
       }),
-      '[omx question answered] hello world',
+      '[nomx question answered] hello world',
     );
   });
 
@@ -1313,7 +1313,7 @@ describe('question answer injection', () => {
           },
         },
       ]),
-      '[omx question answered] first: a; second: b, custom value',
+      '[nomx question answered] first: a; second: b, custom value',
     );
   });
 
@@ -1338,7 +1338,7 @@ describe('question answer injection', () => {
     );
 
     assert.equal(ok, true);
-    assert.deepEqual(calls, buildSendPaneArgvs('%11', '[omx question answered] proceed', true));
+    assert.deepEqual(calls, buildSendPaneArgvs('%11', '[nomx question answered] proceed', true));
     assert.deepEqual(sleeps, [120, 100]);
     assert.equal(calls.some((argv) => argv.includes('Enter')), false);
   });
@@ -1378,7 +1378,7 @@ describe('question answer injection', () => {
     );
 
     assert.equal(ok, true);
-    assert.deepEqual(calls, buildSendPaneArgvs('%11', '[omx question answered] first: a; second: d', true));
+    assert.deepEqual(calls, buildSendPaneArgvs('%11', '[nomx question answered] first: a; second: d', true));
     assert.deepEqual(sleeps, [120, 100]);
   });
 });

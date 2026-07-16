@@ -32,7 +32,7 @@ Autopilot must not run a separate broad expansion/planning/execution/QA/validati
 1. **Phase `deep-interview`** — Socratic requirements clarification gate
    - Run or resume `$deep-interview` to clarify intent, scope, non-goals, constraints, and decision boundaries.
    - Deep-interview is a structured question chain, not a one-question gate; `max_rounds` is a cap, not a target.
-   - After a user answers an `omx question`, re-score ambiguity against the active profile threshold. Ask another question only when a readiness gate is still unresolved and the answer would materially change execution; otherwise crystallize the spec and hand off.
+   - After a user answers an `nomx question`, re-score ambiguity against the active profile threshold. Ask another question only when a readiness gate is still unresolved and the answer would materially change execution; otherwise crystallize the spec and hand off.
    - Required handoff artifact: a clarified spec or concise requirements summary suitable for `$ralplan`, including an explicit interview-complete rationale when leaving deep-interview.
 
 2. **Phase `ralplan`** — consensus planning gate
@@ -94,7 +94,7 @@ Before Phase `deep-interview` or `ralplan` starts or resumes:
 </Execution_Policy>
 
 <State_Management>
-Use the CLI-first state surface (`omx state ... --json`) for Autopilot lifecycle state. State must be session-aware when a session id exists. If the explicit MCP compatibility surface is already available, equivalent `omx_state` tool calls remain acceptable but are not required.
+Use the CLI-first state surface (`nomx state ... --json`) for Autopilot lifecycle state. State must be session-aware when a session id exists. If the explicit MCP compatibility surface is already available, equivalent `omx_state` tool calls remain acceptable but are not required.
 
 Inside active Autopilot, named child phases such as `$ralplan` are supervised phases, not peer workflow activations: keep `mode:"autopilot"` active and update `current_phase:"ralplan"` rather than starting standalone `mode:"ralplan"` over Autopilot.
 
@@ -132,8 +132,8 @@ Required fields:
 }
 ```
 
-- **On start**: `omx state write --input '{"mode":"autopilot","active":true,"current_phase":"deep-interview","iteration":1,"review_cycle":0,"state":{"phase_cycle":["deep-interview","ralplan","ultragoal","code-review","ultraqa"],"handoff_artifacts":{"context_snapshot_path":"<snapshot-path>","deep_interview":null,"ralplan":null,"ralplan_consensus_gate":{"required":true,"sequence":["architect-review","critic-review"],"planning_artifacts_are_not_consensus":true,"required_review_roles":["architect","critic"],"ralplan_architect_review":null,"ralplan_critic_review":null,"complete":false},"ultragoal":null,"code_review":null,"ultraqa":null},"review_verdict":null,"qa_verdict":null,"return_to_ralplan_reason":null}}' --json`
-- **On deep-interview -> ralplan**: only after a separate gate proves the interview chain is explicitly complete or the user explicitly authorized a skip. For completion, persist `deep_interview_gate:{"status":"complete","rationale":"<why requirements are complete>","handoff_summary":"<summary>"}` (or equivalent non-empty rationale/summary) plus the clarified spec/requirements under `handoff_artifacts.deep_interview`; if a final `omx question` was involved, keep its same-session answered record linked by `question_id`/`satisfied_at`. For skip, persist `deep_interview_gate:{"status":"skipped","skip_authorized_by_user":true,"skip_reason":"<user-authorized reason>","skipped_at":"<timestamp>","source":"user","session_id":"<session>"}`. Do not leave deep-interview merely because the first `omx question` was answered or cleared.
+- **On start**: `nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"deep-interview","iteration":1,"review_cycle":0,"state":{"phase_cycle":["deep-interview","ralplan","ultragoal","code-review","ultraqa"],"handoff_artifacts":{"context_snapshot_path":"<snapshot-path>","deep_interview":null,"ralplan":null,"ralplan_consensus_gate":{"required":true,"sequence":["architect-review","critic-review"],"planning_artifacts_are_not_consensus":true,"required_review_roles":["architect","critic"],"ralplan_architect_review":null,"ralplan_critic_review":null,"complete":false},"ultragoal":null,"code_review":null,"ultraqa":null},"review_verdict":null,"qa_verdict":null,"return_to_ralplan_reason":null}}' --json`
+- **On deep-interview -> ralplan**: only after a separate gate proves the interview chain is explicitly complete or the user explicitly authorized a skip. For completion, persist `deep_interview_gate:{"status":"complete","rationale":"<why requirements are complete>","handoff_summary":"<summary>"}` (or equivalent non-empty rationale/summary) plus the clarified spec/requirements under `handoff_artifacts.deep_interview`; if a final `nomx question` was involved, keep its same-session answered record linked by `question_id`/`satisfied_at`. For skip, persist `deep_interview_gate:{"status":"skipped","skip_authorized_by_user":true,"skip_reason":"<user-authorized reason>","skipped_at":"<timestamp>","source":"user","session_id":"<session>"}`. Do not leave deep-interview merely because the first `nomx question` was answered or cleared.
   - **Optional execution contract foundation**: when a downstream handoff explicitly sets `execution_contract_required:true`, persist a complete structured `execution_contract` under `handoff_artifacts.deep_interview` before leaving deep-interview. The canonical schema is `version:1`, `execution_stride:"task"|"deliverable"|"milestone"`, `source:"deep-interview"`, `selected_by:"user"|"default"`, `allow_task_shrink:<boolean>`, non-empty `completion_unit`, non-empty `stop_condition`, `acceptance_coverage_scope:"task"|"deliverable"|"milestone"`, and `shrink_policy:"allowed"|"ask_before_shrink"|"deny_unless_blocked"`.
   - Stride semantics are binding only when `execution_contract_required:true`: `task` means `allow_task_shrink:true`, `acceptance_coverage_scope:"task"`, `shrink_policy:"allowed"`; `deliverable` means `allow_task_shrink:false`, `acceptance_coverage_scope:"deliverable"`, `shrink_policy:"ask_before_shrink"`; `milestone` means `allow_task_shrink:false`, `acceptance_coverage_scope:"milestone"`, `shrink_policy:"deny_unless_blocked"`.
   - Preserve legacy behavior when `execution_contract_required` is absent or false. Do not infer stride from prose, broadness, phase names, snapshots, or task size; this foundation only validates an explicit structured contract and deliberately uses `milestone` rather than `phase`. New artifacts must write canonical snake_case keys under `handoff_artifacts.deep_interview`; the runtime may read legacy camelCase field/marker aliases and direct/nested `execution_contract` locations only as compatibility input.
@@ -145,7 +145,7 @@ Required fields:
 - **On clean review + passed/skipped QA**: set `active:false`, `current_phase:"complete"`, persist `review_verdict:{recommendation:"APPROVE", architectural_status:"CLEAR", clean:true}`, `qa_verdict:{clean:true, skipped:<boolean>, reason:<string|null>}`, and `completed_at` only when both gates have durable source evidence. Required evidence is either (a) actual `$code-review`/`$ultraqa` stage or native-subagent/thread/tool records, or (b) for QA only, an explicit persisted skip reason for a documented docs-only/trivially non-runtime condition. If that evidence is missing, keep the active phase at `code-review` or `ultraqa` and record a blocker instead of self-attesting a clean gate.
 - **On non-clean review requiring plan changes or failed QA**: increment `iteration` and `review_cycle`, set `current_phase:"ralplan"`, persist `review_verdict` or `qa_verdict`, persist the phase handoff, and set `return_to_ralplan_reason` to a concise findings-driven reason.
 - **Legacy Ralph state**: if a user explicitly selected the legacy Ralph execution lane, phase names and handoff keys may include `ralph`; preserve and resume them rather than rewriting history to Ultragoal.
-- **On cancellation**: run `omx cancel`; preserve progress for resume rather than deleting handoff artifacts.
+- **On cancellation**: run `nomx cancel`; preserve progress for resume rather than deleting handoff artifacts.
 </State_Management>
 
 <Continuation_And_Resume>
@@ -176,7 +176,7 @@ Pipeline state should use `current_phase` values that match the same phase names
 <Escalation_And_Stop_Conditions>
 - Stop and report a blocker when required credentials/authority are missing.
 - Stop and report when the same review or QA failure recurs across 3 review cycles with no meaningful new plan.
-- Stop when the user says "stop", "cancel", or "abort" and run `omx cancel`.
+- Stop when the user says "stop", "cancel", or "abort" and run `nomx cancel`.
 - Otherwise, continue the loop until `$code-review` is clean and `$ultraqa` has passed or been explicitly skipped with evidence.
 </Escalation_And_Stop_Conditions>
 

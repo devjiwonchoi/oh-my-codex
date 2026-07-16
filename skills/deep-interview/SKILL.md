@@ -1,7 +1,7 @@
 ---
 name: deep-interview
 description: Socratic deep interview with mathematical ambiguity gating before execution
-argument-hint: "[--quick|--standard|--deep] [--autoresearch] <idea or vague description>"
+argument-hint: "[--quick|--standard|--deep] <idea or vague description>"
 ---
 
 <Purpose>
@@ -45,7 +45,7 @@ If no flag is provided, use **Standard**.
 - Do not rotate to a new clarity dimension just for coverage when the current answer is still vague; stay on the same thread until one layer deeper, one assumption clearer, or one boundary tighter
 - Before crystallizing, complete at least one explicit pressure pass that revisits an earlier answer with a deeper, assumption-focused, or tradeoff-focused follow-up
 - Gather codebase facts via `explore` before asking user about internals
-- `omx explore` is deprecated. Use normal repository inspection tools/subagents for simple read-only brownfield fact gathering; use `omx sparkshell` only for explicit shell-native read-only evidence, and keep ambiguous or non-shell-only investigation on the richer normal path.
+- `nomx explore` is deprecated. Use normal repository inspection tools/subagents for simple read-only brownfield fact gathering; use `nomx sparkshell` only for explicit shell-native read-only evidence, and keep ambiguous or non-shell-only investigation on the richer normal path.
 - Always run a preflight context intake before the first interview question
 - For brownfield work, preflight must include doc/context grounding before user-facing questions: inspect applicable `AGENTS.md` files, README/getting-started docs, relevant `docs/` contracts/plans/ADRs, existing `.omx/context/` snapshots, and any project-local glossary/context files such as `CONTEXT.md` or `CONTEXT-MAP.md` when present.
 - Treat existing repo language as evidence, not authority: if the user uses a fuzzy, overloaded, or conflicting term, surface the specific doc/code wording and ask which meaning should govern before implementation.
@@ -60,25 +60,25 @@ If no flag is provided, use **Standard**.
 - For brownfield work, prefer evidence-backed confirmation questions such as "I found X in Y. Should this change follow that pattern?"
 - Route facts before judgment in the Ouroboros style: before presenting a user-facing interview round, classify whether the needed information is a discoverable fact, a fact needing confirmation, or a human decision. The interview is with the human for judgment, not for facts the agent can inspect.
 - When unresolved ambiguity depends on current external best practices, official/upstream guidance, standards, or version-aware behavior, use `$best-practice-research` as the bounded evidence wrapper before crystallizing requirements or handing off to planning/execution.
-- Use these transcript/spec labels only; never use them as `omx question` `source` values, and never replace the runtime `source: "deep-interview"` contract for user-facing deep-interview questions:
+- Use these transcript/spec labels only; never use them as `nomx question` `source` values, and never replace the runtime `source: "deep-interview"` contract for user-facing deep-interview questions:
   - `[from-code][auto-confirmed]` — exact, high-confidence codebase facts from manifests/configs or direct source evidence, with no prescription attached.
   - `[from-code]` — codebase findings that are useful but inferred, pattern-based, or low/medium confidence and therefore need a confirmation-style user-facing round before being treated as settled.
   - `[from-research]` — externally sourced facts such as API limits, compatibility, or public documentation; facts only, not decisions.
   - `[from-user]` — goals, preferences, business logic, scope, non-goals, acceptance criteria, tradeoffs, and any decision-bearing interpretation.
-- Treat `[from-code][auto-confirmed]` and other non-user fact discoveries as context/transcript updates, not interview rounds: do not call `omx question`, do not create a pending deep-interview question obligation, and do not increment the user-facing round number for facts the agent can safely establish.
+- Treat `[from-code][auto-confirmed]` and other non-user fact discoveries as context/transcript updates, not interview rounds: do not call `nomx question`, do not create a pending deep-interview question obligation, and do not increment the user-facing round number for facts the agent can safely establish.
 - Auto-confirm only descriptive facts. If a finding implies what the new feature should do, which pattern it should follow, which tradeoff to accept, or what should stay in/out of scope, route the entire decision-bearing question to the user as `[from-user]` even when code or research facts are available.
-- In attached-tmux Codex CLI, deep-interview uses `omx question` as the required OMX-owned structured questioning path for every interview round
-- When invoking `omx question` through attached-tmux Bash/tool paths, preserve the leader-pane return target by prefixing the command with `OMX_QUESTION_RETURN_PANE=$TMUX_PANE` (or a concrete `%pane` value)
-- If you launch `omx question` in a background terminal, immediately wait for that background terminal to finish and read its JSON answer before scoring ambiguity, asking another round, or handing off
-- Treat `answers[]` as the primary `omx question` success contract. For a single interview round, read `answers[0].answer`; use legacy top-level `answer` only as a compatibility fallback when needed.
-- If the current runtime is outside tmux and cannot render `omx question`, use the native structured question tool when available; otherwise ask exactly one concise plain-text question and wait for the answer
+- In attached-tmux Codex CLI, deep-interview uses `nomx question` as the required OMX-owned structured questioning path for every interview round
+- When invoking `nomx question` through attached-tmux Bash/tool paths, preserve the leader-pane return target by prefixing the command with `OMX_QUESTION_RETURN_PANE=$TMUX_PANE` (or a concrete `%pane` value)
+- If you launch `nomx question` in a background terminal, immediately wait for that background terminal to finish and read its JSON answer before scoring ambiguity, asking another round, or handing off
+- Treat `answers[]` as the primary `nomx question` success contract. For a single interview round, read `answers[0].answer`; use legacy top-level `answer` only as a compatibility fallback when needed.
+- If the current runtime is outside tmux and cannot render `nomx question`, use the native structured question tool when available; otherwise ask exactly one concise plain-text question and wait for the answer
 - Re-score ambiguity after each answer and show progress transparently
 - Once ambiguity is at or below the active profile threshold, stop ordinary questioning. Run the practical closure audit: crystallize/handoff when readiness gates pass; otherwise ask only the final closure question needed to satisfy a named gate.
 - Treat `max_rounds` as a stop cap, not evidence that more rounds are needed.
 - Do not hand off to execution while ambiguity remains above threshold unless user explicitly opts to proceed with warning
 - Do not crystallize or hand off while `Non-goals` or `Decision Boundaries` remain unresolved, even if the weighted ambiguity threshold is met
 - Treat early exit as a safety valve, not the default success path
-- Persist mode state for resume safety with CLI-first state commands (`omx state write/read --input '<json>' --json`); use `state_write` / `state_read` only when explicit MCP compatibility is enabled
+- Persist mode state for resume safety with CLI-first state commands (`nomx state write/read --input '<json>' --json`); use `state_write` / `state_read` only when explicit MCP compatibility is enabled
 </Execution_Policy>
 
 <Steps>
@@ -114,7 +114,7 @@ If no flag is provided, use **Standard**.
 2. Detect project context:
    - Run `explore` to classify **brownfield** (existing codebase target) vs **greenfield**.
    - For brownfield, collect relevant codebase context before questioning.
-3. Initialize state via `omx state write --input '{"mode":"deep-interview","active":true}' --json`:
+3. Initialize state via `nomx state write --input '{"mode":"deep-interview","active":true}' --json`:
 
 ```json
 {
@@ -190,7 +190,7 @@ Detailed dimensions:
 `Non-goals` and `Decision Boundaries` are mandatory readiness gates. Ask about them early and keep revisiting them until they are explicit.
 
 ### 2b) Ask the question
-Use the surface-appropriate structured questioning path for every interview round. In attached-tmux sessions, use OMX-owned structured questioning via `omx question` (this is the required structured-question equivalent and required `AskUserQuestion` equivalent for deep-interview). Outside tmux, use native structured input when available; otherwise ask exactly one concise plain-text question and wait for the answer. Present:
+Use the surface-appropriate structured questioning path for every interview round. In attached-tmux sessions, use OMX-owned structured questioning via `nomx question` (this is the required structured-question equivalent and required `AskUserQuestion` equivalent for deep-interview). Outside tmux, use native structured input when available; otherwise ask exactly one concise plain-text question and wait for the answer. Present:
 
 ```
 Round {n} | Target: {weakest_dimension} | Ambiguity: {score}%
@@ -198,8 +198,8 @@ Round {n} | Target: {weakest_dimension} | Ambiguity: {score}%
 {question}
 ```
 
-`omx question` payload guidance for interview rounds:
-- Deep-interview is Socratic: ask one focused round at a time. Do not use batch `questions[]` to combine multiple interview rounds, even though `omx question` supports batch forms for other workflows.
+`nomx question` payload guidance for interview rounds:
+- Deep-interview is Socratic: ask one focused round at a time. Do not use batch `questions[]` to combine multiple interview rounds, even though `nomx question` supports batch forms for other workflows.
 - Use canonical `type` values instead of authoring raw `multi_select` flags by hand. `type: "single-answerable"` is the default for one-path decisions; `type: "multi-answerable"` is the canonical shape for bounded multi-select rounds. The runtime will keep `multi_select` aligned with `type`.
 - Use `single-answerable` when exactly one answer should drive the next branch, the options are mutually exclusive, or selecting more than one answer would blur the decision boundary. Typical cases: handoff lane selection, choosing the primary failure mode, or confirming which of several competing interpretations is correct.
 - Use `multi-answerable` when multiple options may all be true at once and you need to capture a bounded set of coexisting constraints, non-goals, risks, or acceptance checks in one round. Typical cases: selecting all out-of-scope items, all success metrics that must hold, or all deployment constraints that apply together.
@@ -310,7 +310,7 @@ Readiness gate:
 Show weighted breakdown table, readiness-gate status (`Non-goals`, `Decision Boundaries`), and the next focus dimension.
 
 ### 2e) Persist state
-Append round result and updated scores via `omx state write --input '<json>' --json`; use `state_write` only when explicit MCP compatibility is enabled.
+Append round result and updated scores via `nomx state write --input '<json>' --json`; use `state_write` only when explicit MCP compatibility is enabled.
 
 ### 2f) Round controls
 - Do not offer early exit before the first explicit assumption probe and one persistent follow-up have happened
@@ -469,12 +469,12 @@ Recommend `$ultragoal` as the default durable goal-mode follow-up because it sup
 
 <Tool_Usage>
 - Use `explore` for codebase fact gathering
-- Use `omx question` as the OMX-native structured user-input tool for each interview round when an attached tmux renderer is available
-- From attached-tmux Bash/tool paths, call it as `OMX_QUESTION_RETURN_PANE=$TMUX_PANE omx question ...` unless an explicit `%pane` return target is already known
-- If the current runtime is outside tmux and cannot render `omx question`, use native structured input when available; otherwise ask exactly one concise plain-text question and wait for the answer
-- After `omx question` returns JSON, prefer `answers[0].answer` / `answers[]`; use legacy `answer` only as a fallback for older records
-- Use `omx state write/read --input '<json>' --json` for resumable mode state; `state_write` / `state_read` are explicit MCP compatibility fallbacks only
-- If the interview cannot ask a required `omx question` round, persist the blocker as terminal state with `active: false` and `current_phase: "blocked"`; do not write a terminal blocked phase with `active: true`
+- Use `nomx question` as the OMX-native structured user-input tool for each interview round when an attached tmux renderer is available
+- From attached-tmux Bash/tool paths, call it as `OMX_QUESTION_RETURN_PANE=$TMUX_PANE nomx question ...` unless an explicit `%pane` return target is already known
+- If the current runtime is outside tmux and cannot render `nomx question`, use native structured input when available; otherwise ask exactly one concise plain-text question and wait for the answer
+- After `nomx question` returns JSON, prefer `answers[0].answer` / `answers[]`; use legacy `answer` only as a fallback for older records
+- Use `nomx state write/read --input '<json>' --json` for resumable mode state; `state_write` / `state_read` are explicit MCP compatibility fallbacks only
+- If the interview cannot ask a required `nomx question` round, persist the blocker as terminal state with `active: false` and `current_phase: "blocked"`; do not write a terminal blocked phase with `active: true`
 - Read/write context snapshots under `.omx/context/`
 - Read applicable repo docs/rules/context during preflight; write durable docs, glossary, ADR, or memory updates only when the user explicitly opts in and the content is public-safe
 - Record whether the oversized-context summary gate is not needed, pending, or satisfied before any scoring or handoff step
@@ -535,7 +535,7 @@ enableChallengeModes = true
 
 ## Resume
 
-If interrupted, rerun `$deep-interview`. Resume from persisted mode state via `omx state read --input '{"mode":"deep-interview"}' --json`.
+If interrupted, rerun `$deep-interview`. Resume from persisted mode state via `nomx state read --input '{"mode":"deep-interview"}' --json`.
 
 ## Recommended 3-Stage Pipeline
 

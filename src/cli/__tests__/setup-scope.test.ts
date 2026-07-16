@@ -21,7 +21,7 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, "..", "..", "..");
-  const omxBin = join(repoRoot, "dist", "cli", "omx.js");
+  const omxBin = join(repoRoot, "dist", "cli", "nomx.js");
   const resolvedHome = envOverrides.HOME ?? process.env.HOME;
   const env: NodeJS.ProcessEnv = {
     ...process.env,
@@ -60,7 +60,7 @@ const MINIMAL_OMX_AGENTS_CONTRACT = [
   "",
 ].join("\n");
 
-describe("omx setup scope behavior", () => {
+describe("nomx setup scope behavior", () => {
   it("accepts --scope project form", async () => {
     const wd = await mkdtemp(join(tmpdir(), "omx-setup-scope-"));
     try {
@@ -609,7 +609,7 @@ describe("omx setup scope behavior", () => {
   });
 });
 
-describe("omx setup merge policy CLI persistence", () => {
+describe("nomx setup merge policy CLI persistence", () => {
   it("persists explicit true and false per project root without changing the default when absent", async () => {
     const wd = await mkdtemp(join(tmpdir(), "omx-setup-merge-policy-"));
     const otherRoot = await mkdtemp(join(tmpdir(), "omx-setup-merge-policy-other-"));

@@ -16,7 +16,7 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'omx.js');
+  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
   const result = spawnSync(process.execPath, [omxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
@@ -81,7 +81,7 @@ async function writePrdJson(
   await writeFile(join(cwd, '.omx', 'prd.json'), JSON.stringify(payload, null, 2));
 }
 
-describe('omx ralph --prd smoke gate', () => {
+describe('nomx ralph --prd smoke gate', () => {
   it('aborts before Codex launch when .omx/prd.json is missing', async () => {
     const cwd = await initRepo('omx-ralph-prd-smoke-');
     const home = join(cwd, 'home');

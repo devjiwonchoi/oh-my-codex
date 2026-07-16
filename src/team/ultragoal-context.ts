@@ -219,8 +219,8 @@ export function buildUltragoalCheckpointGuidance(
   context: UltragoalTeamContext,
 ): UltragoalCheckpointGuidance {
   const goalId = context.activeGoalId;
-  const intermediateStoryCommand = `omx ultragoal checkpoint --goal-id ${goalId} --status complete --evidence "<team evidence mentioning .omx/ultragoal and ${goalId}>" --codex-goal-json <fresh-active-get_goal-json-or-path>`;
-  const finalStoryCommand = `omx ultragoal checkpoint --goal-id ${goalId} --status complete --evidence "<team evidence mentioning .omx/ultragoal and ${goalId}>" --codex-goal-json <fresh-complete-get_goal-json-or-path> --quality-gate-json <quality-gate-json-or-path>`;
+  const intermediateStoryCommand = `nomx ultragoal checkpoint --goal-id ${goalId} --status complete --evidence "<team evidence mentioning .omx/ultragoal and ${goalId}>" --codex-goal-json <fresh-active-get_goal-json-or-path>`;
+  const finalStoryCommand = `nomx ultragoal checkpoint --goal-id ${goalId} --status complete --evidence "<team evidence mentioning .omx/ultragoal and ${goalId}>" --codex-goal-json <fresh-complete-get_goal-json-or-path> --quality-gate-json <quality-gate-json-or-path>`;
   return {
     goal_id: goalId,
     ...(context.activeGoalTitle ? { goal_title: context.activeGoalTitle } : {}),
@@ -240,8 +240,8 @@ export function buildUltragoalCheckpointGuidance(
     command_templates: {
       intermediate_story: intermediateStoryCommand,
       final_story: finalStoryCommand,
-      per_story: `omx ultragoal checkpoint --goal-id ${goalId} --status complete --evidence "<team evidence mentioning .omx/ultragoal and ${goalId}>" --codex-goal-json <fresh-matching-get_goal-json-or-path>`,
-      completed_wrong_legacy_goal_blocker: `omx ultragoal checkpoint --goal-id ${goalId} --status blocked --evidence "<completed legacy Codex goal blocks this ultragoal story>" --codex-goal-json <fresh-completed-wrong-get_goal-json-or-path>`,
+      per_story: `nomx ultragoal checkpoint --goal-id ${goalId} --status complete --evidence "<team evidence mentioning .omx/ultragoal and ${goalId}>" --codex-goal-json <fresh-matching-get_goal-json-or-path>`,
+      completed_wrong_legacy_goal_blocker: `nomx ultragoal checkpoint --goal-id ${goalId} --status blocked --evidence "<completed legacy Codex goal blocks this ultragoal story>" --codex-goal-json <fresh-completed-wrong-get_goal-json-or-path>`,
     },
   };
 }

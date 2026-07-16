@@ -49,7 +49,7 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, "..", "..", "..");
-  const omxBin = join(repoRoot, "dist", "cli", "omx.js");
+  const omxBin = join(repoRoot, "dist", "cli", "nomx.js");
   const resolvedHome = envOverrides.HOME ?? process.env.HOME;
   const result = spawnSync(process.execPath, [omxBin, ...argv], {
     cwd,
@@ -118,7 +118,7 @@ function cloneRegistration(entry: HookRegistration): HookRegistration {
   return structuredClone(entry) as HookRegistration;
 }
 
-describe("omx setup/uninstall shared ownership for native hooks", () => {
+describe("nomx setup/uninstall shared ownership for native hooks", () => {
   it("setup merges managed wrappers into an existing user-owned hooks.json", async () => {
     const wd = await mkdtemp(join(tmpdir(), "omx-setup-hooks-existing-user-file-"));
     try {
@@ -246,7 +246,7 @@ describe("omx setup/uninstall shared ownership for native hooks", () => {
       const staleManagedSessionStart = cloneRegistration(generatedSessionStart[0]!);
       if (staleManagedSessionStart.hooks?.[0]) {
         staleManagedSessionStart.hooks[0].command = 'node "/tmp/old/dist/scripts/codex-native-hook.js"';
-        staleManagedSessionStart.hooks[0].statusMessage = "stale omx wrapper";
+        staleManagedSessionStart.hooks[0].statusMessage = "stale nomx wrapper";
       }
 
       await writeHooksJson(hooksPath, {

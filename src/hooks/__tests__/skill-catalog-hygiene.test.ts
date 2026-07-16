@@ -20,9 +20,9 @@ describe('skill catalog hygiene', () => {
   it('keeps deprecated public compatibility shims non-routing', () => {
     const names = skillNames();
     const shims = [
-      { name: 'swarm', canonical: /\$team|omx team/i },
-      { name: 'ask-claude', canonical: /\$ask claude|omx ask claude/i },
-      { name: 'ask-gemini', canonical: /\$ask gemini|omx ask gemini/i },
+      { name: 'swarm', canonical: /\$team|nomx team/i },
+      { name: 'ask-claude', canonical: /\$ask claude|nomx ask claude/i },
+      { name: 'ask-gemini', canonical: /\$ask gemini|nomx ask gemini/i },
       { name: 'frontend-ui-ux', canonical: /\$design|\$visual-ralph/i },
       { name: 'review', canonical: /\$code-review|code review/i },
       { name: 'ralph-init', canonical: /\$ralph|PRD\/test-spec/i },
@@ -88,8 +88,8 @@ describe('skill catalog hygiene', () => {
       /If ToolSearch finds no MCP tools/i,
       /state_write MCP tool/i,
       /write subsequent updates via omx_state MCP/i,
-      /omx state clear --mode/i,
-      /omx state state_write/i,
+      /nomx state clear --mode/i,
+      /nomx state state_write/i,
       /state_(?:read|write)\(mode=/i,
       /wiki_(?:ingest|query|lint|add|list|read|delete|refresh)\([^)]*\)/,
     ];

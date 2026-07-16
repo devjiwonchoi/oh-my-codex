@@ -1,11 +1,9 @@
 // @ts-nocheck
 import { appendFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'fs/promises';
 import { appendFileSync, existsSync, mkdirSync } from 'fs';
-import { execFileSync } from 'child_process';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'node:url';
 import { safeString } from './utils.js';
-import { resolveBridgeStateDir, resolveRuntimeBinaryPath } from '../../runtime/bridge.js';
 import { appendTeamDeliveryLog } from '../../team/delivery-log.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -19,37 +17,6 @@ import {
   paneHasActiveTask,
   paneLooksReady,
 } from '../tmux-hook-engine.js';
-
-/**
- * Route dispatch state transitions through the Rust runtime binary.
- * Non-fatal: if the binary is missing or fails, the legacy JSON fallback lane
- * remains available when the caller is already operating outside the bridge-
- * owned path.
- * Disable entirely with OMX_RUNTIME_BRIDGE=0.
- */
-function runtimeExec(command, stateDir, team) {
-  if (process.env.OMX_RUNTIME_BRIDGE === '0') return;
-  try {
-    const binaryPath = resolveRuntimeBinaryPath();
-    execFileSync(binaryPath, ['exec', JSON.stringify(command), `--state-dir=${stateDir}`], {
-      timeout: 5000,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      windowsHide: true,
-    });
-  } catch (error) {
-    recordBridgeFallback({
-      stateDir,
-      team,
-      operation: 'runtimeExec',
-      fallbackTarget: 'js_state_mutation',
-      command: safeString(command?.command).trim() || 'unknown',
-      requestId: safeString(command?.request_id).trim() || undefined,
-      messageId: safeString(command?.message_id).trim() || undefined,
-      reason: bridgeErrorReason(error),
-    });
-    // non-fatal: JS path is the fallback
-  }
-}
 
 function bridgeErrorReason(error) {
   const err = error || {};
@@ -593,7 +560,6 @@ async function finalizeClaimedDispatchRequest({
         request.status = 'failed';
         request.failed_at = nowIso;
         request.last_reason = 'unconfirmed_after_max_retries';
-        runtimeExec({ command: 'MarkFailed', request_id: request.request_id, reason: 'unconfirmed_after_max_retries' }, stateDir, teamName);
         summary.processed += 1;
         summary.failed += 1;
         mutated = true;
@@ -630,9 +596,7 @@ async function finalizeClaimedDispatchRequest({
         request.status = 'notified';
         request.notified_at = nowIso;
         request.last_reason = result.reason;
-        runtimeExec({ command: 'MarkNotified', request_id: request.request_id, channel: 'tmux' }, stateDir, teamName);
         if (request.kind === 'mailbox' && request.message_id) {
-          runtimeExec({ command: 'MarkMailboxNotified', message_id: request.message_id }, stateDir, teamName);
           if (usingLegacyRequests) {
             await updateMailboxNotified(stateDir, teamName, request.to_worker, request.message_id).catch(() => {});
           }
@@ -663,7 +627,6 @@ async function finalizeClaimedDispatchRequest({
       request.status = 'failed';
       request.failed_at = nowIso;
       request.last_reason = result.reason;
-      runtimeExec({ command: 'MarkFailed', request_id: request.request_id, reason: result.reason }, stateDir, teamName);
       summary.processed += 1;
       summary.failed += 1;
       mutated = true;
@@ -866,7 +829,6 @@ async function injectDispatchRequest(request, config, cwd, stateDir) {
       }
       // Worker is actively processing (mirrors sync path tmux-session.ts:1292-1294)
       if (paneHasActiveTask(wideCap.stdout)) {
-        runtimeExec({ command: 'MarkDelivered', request_id: request.request_id }, stateDir, request.team_name);
         return {
           ok: true,
           reason: 'tmux_send_keys_confirmed_active_task',
@@ -887,7 +849,6 @@ async function injectDispatchRequest(request, config, cwd, stateDir) {
         continue;
       }
       if (!triggerInNarrow && !triggerNearTail) {
-        runtimeExec({ command: 'MarkDelivered', request_id: request.request_id }, stateDir, request.team_name);
         return {
           ok: true,
           reason: 'tmux_send_keys_confirmed',
@@ -971,7 +932,7 @@ function buildDispatchAttemptEvidence(result, fallback = {}) {
 
 export async function drainPendingTeamDispatch({
   cwd,
-  stateDir = resolveBridgeStateDir(cwd),
+  stateDir = join(cwd || process.cwd(), '.omx', 'state'),
   logsDir = join(cwd, '.omx', 'logs'),
   maxPerTick = 5,
   injector = injectDispatchRequest,

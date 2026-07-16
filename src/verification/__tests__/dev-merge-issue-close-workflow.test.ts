@@ -105,7 +105,7 @@ describe('dev merge issue close workflow', () => {
       /Closing automatically because PR #1550 was merged into `dev` and explicitly referenced this issue in the PR title or body\./,
     );
     assert.match(comment, /A hot-fix build is available now\./);
-    assert.match(comment, /`omx update --dev`/);
+    assert.match(comment, /`nomx update --dev`/);
     assert.match(comment, /let us know whether it resolves the issue/);
   });
 
@@ -116,7 +116,7 @@ describe('dev merge issue close workflow', () => {
       /Closed explicitly linked issues after this PR was merged into `dev`: #1540, #1541\./,
     );
     assert.match(comment, /A hot-fix build is available now\./);
-    assert.match(comment, /Issue creators can try it with `omx update --dev`/);
+    assert.match(comment, /Issue creators can try it with `nomx update --dev`/);
     assert.match(comment, /let us know whether it resolves the issue/);
   });
   it('posts the PR follow-up comment on the success path', async () => {

@@ -82,16 +82,16 @@ Sequential task execution wastes time when tasks are independent. Ultrawork keep
 
 ## State Management
 
-Use the CLI-first state surface (`omx state ... --json`) for ultrawork lifecycle state. If explicit MCP compatibility tools are already available, equivalent `omx_state` calls are optional compatibility, not the default.
+Use the CLI-first state surface (`nomx state ... --json`) for ultrawork lifecycle state. If explicit MCP compatibility tools are already available, equivalent `omx_state` calls are optional compatibility, not the default.
 
 - **On start**:
-  `omx state write --input '{"mode":"ultrawork","active":true,"reinforcement_count":1,"started_at":"<now>"}' --json`
+  `nomx state write --input '{"mode":"ultrawork","active":true,"reinforcement_count":1,"started_at":"<now>"}' --json`
 - **On each reinforcement/loop step**:
-  `omx state write --input '{"mode":"ultrawork","reinforcement_count":<current>}' --json`
+  `nomx state write --input '{"mode":"ultrawork","reinforcement_count":<current>}' --json`
 - **On completion**:
-  `omx state write --input '{"mode":"ultrawork","active":false}' --json`
+  `nomx state write --input '{"mode":"ultrawork","active":false}' --json`
 - **On cancellation/cleanup**:
-  run `omx cancel` (which clears the active Ultrawork state)
+  run `nomx cancel` (which clears the active Ultrawork state)
 
 <Examples>
 <Good>

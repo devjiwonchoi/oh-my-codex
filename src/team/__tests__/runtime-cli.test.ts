@@ -311,8 +311,8 @@ describe('runtime-cli helpers', () => {
         summary: 'PASS: complete without shutdown',
       }]);
       assert.match(result.notice, /preserving team state/i);
-      assert.match(result.notice, /omx team shutdown runtime-cli-preserve-complete/);
-      assert.match(result.notice, /omx team api read-stall-state/);
+      assert.match(result.notice, /nomx team shutdown runtime-cli-preserve-complete/);
+      assert.match(result.notice, /nomx team api read-stall-state/);
     } finally {
       if (typeof previousTeamStateRoot === 'string') process.env.OMX_TEAM_STATE_ROOT = previousTeamStateRoot;
       else delete process.env.OMX_TEAM_STATE_ROOT;
@@ -356,8 +356,8 @@ describe('runtime-cli helpers', () => {
         summary: 'FAIL: worker crashed',
       }]);
       assert.match(result.notice, /preserving team state/i);
-      assert.match(result.notice, /omx team api read-stall-state/);
-      assert.match(result.notice, /omx team shutdown runtime-cli-preserve-failed/);
+      assert.match(result.notice, /nomx team api read-stall-state/);
+      assert.match(result.notice, /nomx team shutdown runtime-cli-preserve-failed/);
     } finally {
       if (typeof previousTeamStateRoot === 'string') process.env.OMX_TEAM_STATE_ROOT = previousTeamStateRoot;
       else delete process.env.OMX_TEAM_STATE_ROOT;
@@ -393,7 +393,7 @@ describe('runtime-cli helpers', () => {
       assert.equal(result.exitCode, 1);
       assert.equal(result.output.status, 'failed');
       assert.match(result.notice, /phase=cancelled/);
-      assert.match(result.notice, /omx team shutdown runtime-cli-preserve-cancelled/);
+      assert.match(result.notice, /nomx team shutdown runtime-cli-preserve-cancelled/);
     } finally {
       if (typeof previousTeamStateRoot === 'string') process.env.OMX_TEAM_STATE_ROOT = previousTeamStateRoot;
       else delete process.env.OMX_TEAM_STATE_ROOT;

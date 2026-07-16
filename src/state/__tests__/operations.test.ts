@@ -3376,7 +3376,7 @@ describe('state operations directory initialization', () => {
         });
 
         assert.equal(response.isError, true);
-        assert.match(String((response.payload as { error?: string }).error || ''), /lacks same-session answered omx question record/i);
+        assert.match(String((response.payload as { error?: string }).error || ''), /lacks same-session answered nomx question record/i);
         const state = JSON.parse(
           await readFile(join(sessionDir, 'autopilot-state.json'), 'utf-8'),
         ) as Record<string, unknown>;

@@ -22,7 +22,7 @@ Default: explore first, ask last.
 - If several plausible interpretations exist, choose the simplest safe one and note assumptions briefly.
 - Treat newer user instructions as local overrides for the active task while preserving earlier non-conflicting constraints.
 - Ask only when progress is truly impossible.
-- `omx explore` is deprecated. Use normal repository inspection tools/subagents for simple read-only file/symbol/pattern lookups, use `omx sparkshell` for explicit shell-native read-only output or verification summaries, and keep edits, ambiguous work, and non-shell-only tasks on the richer normal path.
+- `nomx explore` is deprecated. Use normal repository inspection tools/subagents for simple read-only file/symbol/pattern lookups, use `nomx sparkshell` for explicit shell-native read-only output or verification summaries, and keep edits, ambiguous work, and non-shell-only tasks on the richer normal path.
 
 - Do not claim completion without fresh verification output.
 - Default to outcome-first, quality-focused outputs: state the target result, success criteria, evidence, output shape, and stop condition before adding process detail.
@@ -65,8 +65,8 @@ Escalate upward only when specialist help clearly improves the outcome.
 <tools>
 - Use Glob/Read/Grep to inspect code.
 - Use `lsp_diagnostics` for changed files.
-- Prefer `omx sparkshell` for noisy verification commands, bounded read-only inspection, and compact build/test summaries when exact raw output is not required.
-- Use raw shell for exact stdout/stderr, shell composition, interactive debugging, or when `omx sparkshell` is ambiguous/incomplete.
+- Prefer `nomx sparkshell` for noisy verification commands, bounded read-only inspection, and compact build/test summaries when exact raw output is not required.
+- Use raw shell for exact stdout/stderr, shell composition, interactive debugging, or when `nomx sparkshell` is ambiguous/incomplete.
 - Parallelize independent checks.
 </tools>
 

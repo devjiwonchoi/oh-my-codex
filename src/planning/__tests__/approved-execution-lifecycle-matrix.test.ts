@@ -51,8 +51,8 @@ async function writePrd(slug: string, withTestSpec: boolean): Promise<{ prdPath:
     [
       `# ${slug}`,
       '',
-      `Launch via omx team 2:executor "${teamTask}"`,
-      `Launch via omx ralph "${ralphTask}"`,
+      `Launch via nomx team 2:executor "${teamTask}"`,
+      `Launch via nomx ralph "${ralphTask}"`,
     ].join('\n'),
   );
   if (withTestSpec) {
@@ -94,7 +94,7 @@ describe('approved execution lifecycle baseline matrix', () => {
     assert.deepEqual(buildApprovedTeamExecutionBinding(teamOutcome.hint), {
       prd_path: fixture.prdPath,
       task: fixture.teamTask,
-      command: `omx team 2:executor "${fixture.teamTask}"`,
+      command: `nomx team 2:executor "${fixture.teamTask}"`,
     });
     assert.match(buildApprovedTeamHandoffSection(teamOutcome.hint) ?? '', /approved plan/i);
     assert.match(buildApprovedTeamHandoffSection(teamOutcome.hint) ?? '', /matching test specs|Test specs/);
@@ -117,7 +117,7 @@ describe('approved execution lifecycle baseline matrix', () => {
     assert.deepEqual(descriptor.approvedExecution, {
       prd_path: fixture.prdPath,
       task: fixture.teamTask,
-      command: `omx team 2:executor "${fixture.teamTask}"`,
+      command: `nomx team 2:executor "${fixture.teamTask}"`,
     });
   });
 
@@ -135,7 +135,7 @@ describe('approved execution lifecycle baseline matrix', () => {
         'Active ultragoal story: G001-team-runtime-bridge in .omx/ultragoal/goals.json.',
         'Team returns evidence for .omx/ultragoal/ledger.jsonl; the leader checkpoints with a fresh get_goal snapshot.',
         '',
-        `Launch via omx team 3:executor "${teamTask}"`,
+        `Launch via nomx team 3:executor "${teamTask}"`,
         'Use Ralph only for a later sequential single-owner verification/fix loop.',
       ].join('\n'),
     );
@@ -159,7 +159,7 @@ describe('approved execution lifecycle baseline matrix', () => {
     assert.match(section, /\.omx\/ultragoal\/ledger\.jsonl/);
     assert.match(section, /Team workers provide task\/evidence updates only/i);
     assert.match(section, /No checkpoint command is emitted from approved-plan hints/i);
-    assert.doesNotMatch(section, /omx ultragoal checkpoint --goal-id/i);
+    assert.doesNotMatch(section, /nomx ultragoal checkpoint --goal-id/i);
     assert.doesNotMatch(section, /auto[- ]launch.*team/i);
 
     const ralphOutcome = readApprovedExecutionLaunchHintOutcome(tempDir, 'ralph', {
@@ -178,8 +178,8 @@ describe('approved execution lifecycle baseline matrix', () => {
       [
         '# ambiguous team',
         '',
-        `Launch via omx team 2:executor "${sharedTask}"`,
-        `Launch via omx team 5:debugger "${sharedTask}"`,
+        `Launch via nomx team 2:executor "${sharedTask}"`,
+        `Launch via nomx team 5:debugger "${sharedTask}"`,
       ].join('\n'),
     );
     await writeFile(join(plansDir, 'test-spec-ambiguous-team.md'), '# ambiguous team test spec\n');

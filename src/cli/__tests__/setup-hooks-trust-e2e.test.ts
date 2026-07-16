@@ -62,7 +62,7 @@ function trustedProjectConfig(projectDir: string): string {
 
 function runRepoOmxResult(projectDir: string, argv: string[], env: NodeJS.ProcessEnv) {
   const testDir = dirname(fileURLToPath(import.meta.url));
-  const omxBin = join(testDir, '..', '..', '..', 'dist', 'cli', 'omx.js');
+  const omxBin = join(testDir, '..', '..', '..', 'dist', 'cli', 'nomx.js');
   return spawnSync(process.execPath, [omxBin, ...argv], {
     cwd: projectDir,
     env,
@@ -76,7 +76,7 @@ function runRepoOmx(projectDir: string, argv: string[], env: NodeJS.ProcessEnv):
   assert.equal(
     result.status,
     0,
-    `repo omx ${argv.join(' ')} failed\nstdout:\n${result.stdout || ''}\nstderr:\n${result.stderr || ''}`,
+    `repo nomx ${argv.join(' ')} failed\nstdout:\n${result.stdout || ''}\nstderr:\n${result.stderr || ''}`,
   );
 }
 

@@ -73,7 +73,7 @@ function parseArgs(argv: string[]): SmokeArguments {
   assert(/^[0-9a-f]{40}$/i.test(testedSha), '--tested-sha must be a 40-character SHA');
   assert(/^[0-9a-f]{64}$/i.test(tarballSha256), '--tarball-sha256 must be a SHA-256 digest');
   assert(existsSync(join(packageRoot, 'package.json')), 'installed package.json is missing');
-  assert(existsSync(join(packageRoot, 'dist', 'cli', 'omx.js')), 'installed CLI is missing');
+  assert(existsSync(join(packageRoot, 'dist', 'cli', 'nomx.js')), 'installed CLI is missing');
   return { packageRoot, testedSha, tarballSha256 };
 }
 
@@ -139,7 +139,7 @@ esac
 }
 
 function installedCliPath(packageRoot: string): string {
-  return join(packageRoot, 'dist', 'cli', 'omx.js');
+  return join(packageRoot, 'dist', 'cli', 'nomx.js');
 }
 
 function runInstalledCli(

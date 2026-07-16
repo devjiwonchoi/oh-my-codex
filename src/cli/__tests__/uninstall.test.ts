@@ -22,7 +22,7 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'omx.js');
+  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
   const resolvedHome = envOverrides.HOME ?? process.env.HOME;
   const result = spawnSync(process.execPath, [omxBin, ...argv], {
     cwd,
@@ -100,7 +100,7 @@ function buildOmxConfig(): string {
     '',
     '# ============================================================',
     '# oh-my-codex (OMX) Configuration',
-    '# Managed by omx setup - manual edits preserved on next setup',
+    '# Managed by nomx setup - manual edits preserved on next setup',
     '# ============================================================',
     '',
     '# OMX State Management MCP Server',
@@ -174,7 +174,7 @@ function buildConfigWithSeededModelContext(): string {
     '',
     '# ============================================================',
     '# oh-my-codex (OMX) Configuration',
-    '# Managed by omx setup - manual edits preserved on next setup',
+    '# Managed by nomx setup - manual edits preserved on next setup',
     '# ============================================================',
     '',
     '[mcp_servers.omx_state]',
@@ -208,7 +208,7 @@ function buildConfigWithEditedSeededModelContext(): string {
     '',
     '# ============================================================',
     '# oh-my-codex (OMX) Configuration',
-    '# Managed by omx setup - manual edits preserved on next setup',
+    '# Managed by nomx setup - manual edits preserved on next setup',
     '# ============================================================',
     '',
     '[mcp_servers.omx_state]',
@@ -252,7 +252,7 @@ function buildMixedConfig(): string {
     '',
     '# ============================================================',
     '# oh-my-codex (OMX) Configuration',
-    '# Managed by omx setup - manual edits preserved on next setup',
+    '# Managed by nomx setup - manual edits preserved on next setup',
     '# ============================================================',
     '',
     '[mcp_servers.omx_state]',
@@ -322,7 +322,7 @@ function buildAmbiguousMultiAgentConfig(
     '',
     '# ============================================================',
     '# oh-my-codex (OMX) Configuration',
-    '# Managed by omx setup - manual edits preserved on next setup',
+    '# Managed by nomx setup - manual edits preserved on next setup',
     '# ============================================================',
     '',
     '[mcp_servers.omx_state]',
@@ -336,7 +336,7 @@ function buildAmbiguousMultiAgentConfig(
   ].join('\n');
 }
 
-describe('omx uninstall', () => {
+describe('nomx uninstall', () => {
   it('removes OMX block from config.toml with --dry-run', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
     try {
@@ -423,7 +423,7 @@ describe('omx uninstall', () => {
           '',
           '# ============================================================',
           '# oh-my-codex (OMX) Configuration',
-          '# Managed by omx setup - manual edits preserved on next setup',
+          '# Managed by nomx setup - manual edits preserved on next setup',
           '# ============================================================',
           '[mcp_servers.omx_state]',
           'command = "node"',
@@ -684,7 +684,7 @@ describe('omx uninstall', () => {
             '',
             '# ============================================================',
             '# oh-my-codex (OMX) Configuration',
-            '# Managed by omx setup - manual edits preserved on next setup',
+            '# Managed by nomx setup - manual edits preserved on next setup',
             '# ============================================================',
             '',
             ...representation.render(key, trust.trusted_hash),
@@ -2460,7 +2460,7 @@ describe('omx uninstall', () => {
       assert.equal(res.status, 0, res.stderr || res.stdout);
       assert.match(
         res.stdout,
-        /Warning: 1 overlapping skill names remain between .*\.codex[\\/]+skills and .*\.agents[\\/]+skills; 1 differ in SKILL\.md content\. omx uninstall only removes the active canonical skill root; archive or remove ~\/\.agents\/skills if Codex still shows duplicates/,
+        /Warning: 1 overlapping skill names remain between .*\.codex[\\/]+skills and .*\.agents[\\/]+skills; 1 differ in SKILL\.md content\. nomx uninstall only removes the active canonical skill root; archive or remove ~\/\.agents\/skills if Codex still shows duplicates/,
       );
       assert.equal(existsSync(canonicalHelp), false, 'canonical OMX skill should be removed');
       assert.equal(existsSync(join(home, '.agents', 'skills')), true, 'legacy skill root should remain for manual cleanup');
@@ -2486,7 +2486,7 @@ describe('omx uninstall', () => {
       assert.equal(res.status, 0, res.stderr || res.stdout);
       assert.match(
         res.stdout,
-        /Warning: legacy ~\/\.agents\/skills still exists \(1 skills\)\. omx uninstall does not remove that historical root automatically; archive or remove ~\/\.agents\/skills if Codex still shows stale or duplicate skills/,
+        /Warning: legacy ~\/\.agents\/skills still exists \(1 skills\)\. nomx uninstall does not remove that historical root automatically; archive or remove ~\/\.agents\/skills if Codex still shows stale or duplicate skills/,
       );
       assert.equal(existsSync(canonicalHelp), false, 'canonical OMX skill should be removed');
       assert.equal(existsSync(join(home, '.agents', 'skills')), true, 'legacy skill root should remain for manual cleanup');
@@ -2508,7 +2508,7 @@ describe('omx uninstall', () => {
       if (shouldSkipForSpawnPermissions(res.error)) return;
       assert.equal(res.status, 0, res.stderr || res.stdout);
       assert.doesNotMatch(res.stdout, /legacy ~\/\.agents\/skills still exists/);
-      assert.doesNotMatch(res.stdout, /omx uninstall does not remove legacy ~\/\.agents\/skills/);
+      assert.doesNotMatch(res.stdout, /nomx uninstall does not remove legacy ~\/\.agents\/skills/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
@@ -2532,7 +2532,7 @@ describe('omx uninstall', () => {
       assert.equal(res.status, 0, res.stderr || res.stdout);
       assert.match(res.stdout, /Resolved scope: project/);
       assert.doesNotMatch(res.stdout, /legacy ~\/\.agents\/skills still exists/);
-      assert.doesNotMatch(res.stdout, /omx uninstall does not remove legacy ~\/\.agents\/skills/);
+      assert.doesNotMatch(res.stdout, /nomx uninstall does not remove legacy ~\/\.agents\/skills/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }

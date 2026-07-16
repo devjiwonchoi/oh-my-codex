@@ -76,7 +76,7 @@ describe('MCP state/team tools path traversal prevention', () => {
       assert.equal(resp.isError, true);
       const body = JSON.parse(resp.content[0]?.text ?? '{}') as { code?: string; hint?: string };
       assert.equal(body.code, 'deprecated_cli_only');
-      assert.match(body.hint ?? '', /omx team api read-config/);
+      assert.match(body.hint ?? '', /nomx team api read-config/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }

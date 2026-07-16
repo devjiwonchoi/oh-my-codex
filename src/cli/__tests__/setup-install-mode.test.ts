@@ -682,7 +682,7 @@ async function seedSameVersionPluginCacheWithStaleHooks(codexHomeDir: string): P
 	});
 	await writeFile(
 		join(cacheDir, "hooks", "omx-command.json"),
-		JSON.stringify({ command: process.execPath, argsPrefix: [join(packageRoot, "dist", "cli", "omx.js")] }, null, 2) + "\n",
+		JSON.stringify({ command: process.execPath, argsPrefix: [join(packageRoot, "dist", "cli", "nomx.js")] }, null, 2) + "\n",
 	);
 	const hooksPath = join(cacheDir, "hooks", "hooks.json");
 	const hooks = JSON.parse(await readFile(hooksPath, "utf-8")) as { hooks?: { PreToolUse?: Array<Record<string, unknown>> } };
@@ -702,7 +702,7 @@ async function seedSameVersionPluginCacheWithStaleLauncher(codexHomeDir: string)
 	});
 	await writeFile(
 		join(cacheDir, "hooks", "omx-command.json"),
-		JSON.stringify({ command: "/stale/node", argsPrefix: ["/stale/omx.js"] }, null, 2) + "\n",
+		JSON.stringify({ command: "/stale/node", argsPrefix: ["/stale/nomx.js"] }, null, 2) + "\n",
 	);
 	return cacheDir;
 }
@@ -724,7 +724,7 @@ async function packagedPluginCacheDir(codexHomeDir: string): Promise<string> {
 	);
 }
 
-describe("omx setup install mode behavior", () => {
+describe("nomx setup install mode behavior", () => {
 	it("summarizes and keeps persisted setup preferences when review chooses keep", async () => {
 		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
 		try {
@@ -1352,7 +1352,7 @@ describe("omx setup install mode behavior", () => {
 						await readFile(join(cacheDir, "hooks", "omx-command.json"), "utf-8"),
 					) as { command?: string; argsPrefix?: string[] };
 					assert.equal(launcher.command, process.execPath);
-					assert.deepEqual(launcher.argsPrefix, [join(packageRoot, "dist", "cli", "omx.js")]);
+					assert.deepEqual(launcher.argsPrefix, [join(packageRoot, "dist", "cli", "nomx.js")]);
 					assert.match(output, /Invalidated 1 stale Codex plugin discovery cache entry/);
 					assert.match(output, /Installed local Codex plugin cache/);
 				});
@@ -1910,7 +1910,7 @@ describe("omx setup install mode behavior", () => {
 						"utf-8",
 					);
 					assert.match(config, /developer_instructions\s*=/);
-					assert.match(config, /<omx version=\\"1\\">You have oh-my-codex installed through Codex plugin mode/);
+					assert.match(config, /<nomx version=\\"1\\">You have oh-my-codex installed through Codex plugin mode/);
 					assert.ok(config.includes("detail.</omx>"));
 					assert.match(
 						config,
@@ -2063,7 +2063,7 @@ describe("omx setup install mode behavior", () => {
 
 					assert.equal(promptCount, 0);
 					const config = await readFile(configPath, "utf-8");
-					assert.match(config, /<omx version=\\"1\\">You have oh-my-codex installed through Codex plugin mode/);
+					assert.match(config, /<nomx version=\\"1\\">You have oh-my-codex installed through Codex plugin mode/);
 					assert.equal(
 						(config.match(/^developer_instructions\s*=/gm) ?? []).length,
 						1,
@@ -2102,7 +2102,7 @@ describe("omx setup install mode behavior", () => {
 					const config = await readFile(configPath, "utf-8");
 					assert.match(
 						config,
-						/<omx version=\\"1\\">You have oh-my-codex installed through Codex plugin mode/,
+						/<nomx version=\\"1\\">You have oh-my-codex installed through Codex plugin mode/,
 					);
 					assert.match(
 						config,
@@ -2146,7 +2146,7 @@ describe("omx setup install mode behavior", () => {
 					const config = await readFile(configPath, "utf-8");
 					assert.match(
 						config,
-						/<omx version=\\"1\\">You have oh-my-codex installed through Codex plugin mode/,
+						/<nomx version=\\"1\\">You have oh-my-codex installed through Codex plugin mode/,
 					);
 					assert.doesNotMatch(
 						config,
@@ -2182,7 +2182,7 @@ describe("omx setup install mode behavior", () => {
 
 					const config = await readFile(configPath, "utf-8");
 					assert.match(config, /You have oh-my-codex installed\. AGENTS\.md/);
-					assert.doesNotMatch(config, /<omx version=/);
+					assert.doesNotMatch(config, /<nomx version=/);
 					assert.equal(
 						(config.match(/^developer_instructions\s*=/gm) ?? []).length,
 						1,
@@ -2220,7 +2220,7 @@ describe("omx setup install mode behavior", () => {
 					const config = await readFile(configPath, "utf-8");
 					assert.match(config, /You have oh-my-codex installed\. AGENTS\.md/);
 					assert.match(config, /Custom local rule: keep this line/);
-					assert.doesNotMatch(config, /<omx version=/);
+					assert.doesNotMatch(config, /<nomx version=/);
 					assert.equal(
 						(config.match(/^developer_instructions\s*=/gm) ?? []).length,
 						1,
@@ -2238,7 +2238,7 @@ describe("omx setup install mode behavior", () => {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					const configPath = join(codexHomeDir, "config.toml");
-					const edited = '<omx version="1">Custom instructions</omx>';
+					const edited = '<nomx version="1">Custom instructions</omx>';
 					await writeFile(
 						configPath,
 						`developer_instructions = ${JSON.stringify(edited)}\n`,
@@ -2275,7 +2275,7 @@ describe("omx setup install mode behavior", () => {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					const configPath = join(codexHomeDir, "config.toml");
-					const edited = '<omx version="2">Custom instructions</omx>';
+					const edited = '<nomx version="2">Custom instructions</omx>';
 					await writeFile(
 						configPath,
 						`developer_instructions = ${JSON.stringify(edited)}\n`,
@@ -2495,7 +2495,7 @@ describe("omx setup install mode behavior", () => {
 								"",
 								"# ============================================================",
 								"# oh-my-codex (OMX) Configuration",
-								"# Managed by omx setup - manual edits preserved on next setup",
+								"# Managed by nomx setup - manual edits preserved on next setup",
 								"# ============================================================",
 								"",
 								...representation.render(key, trust.trusted_hash),
@@ -2579,7 +2579,7 @@ describe("omx setup install mode behavior", () => {
 								"",
 								"# ============================================================",
 								"# oh-my-codex (OMX) Configuration",
-								"# Managed by omx setup - manual edits preserved on next setup",
+								"# Managed by nomx setup - manual edits preserved on next setup",
 								"# ============================================================",
 								"",
 								'[hooks.state."foreign-key"]',

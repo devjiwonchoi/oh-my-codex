@@ -18,7 +18,6 @@ import { executeStateOperation } from "../state/operations.js";
 
 const SUPPORTED_MODES = [
 	"autopilot",
-	"autoresearch",
 	"team",
 	"ralph",
 	"ultrawork",

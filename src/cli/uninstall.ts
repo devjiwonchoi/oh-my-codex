@@ -1,5 +1,5 @@
 /**
- * omx uninstall - Remove oh-my-codex configuration and installed artifacts
+ * nomx uninstall - Remove oh-my-codex configuration and installed artifacts
  */
 
 import { chmod, copyFile, lstat, open, readFile, readdir, rename, rm, writeFile } from "fs/promises";
@@ -1620,7 +1620,7 @@ async function detectLegacySkillRootWarning(
   if (overlap.overlappingSkillNames.length === 0) {
     return (
       `legacy ~/.agents/skills still exists (${overlap.legacySkillCount} skills). ` +
-      "omx uninstall does not remove that historical root automatically; " +
+      "nomx uninstall does not remove that historical root automatically; " +
       "archive or remove ~/.agents/skills if Codex still shows stale or duplicate skills"
     );
   }
@@ -1632,7 +1632,7 @@ async function detectLegacySkillRootWarning(
   return (
     `${overlap.overlappingSkillNames.length} overlapping skill names remain between ` +
     `${overlap.canonicalDir} and ${overlap.legacyDir}${mismatchMessage}. ` +
-    "omx uninstall only removes the active canonical skill root; " +
+    "nomx uninstall only removes the active canonical skill root; " +
     "archive or remove ~/.agents/skills if Codex still shows duplicates"
   );
 }
@@ -1938,7 +1938,7 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
 
   if (!dryRun) {
     console.log(
-      '\noh-my-codex has been uninstalled. Run "omx setup" to reinstall.',
+      '\noh-my-codex has been uninstalled. Run "nomx setup" to reinstall.',
     );
   } else {
     console.log("\nRun without --dry-run to apply changes.");

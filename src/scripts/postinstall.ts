@@ -89,7 +89,7 @@ export async function runPostinstall(
   });
 
   resolved.log(
-    `[omx] Installed oh-my-codex v${currentStampVersion}. OMX setup is explicit opt-in; run \`omx setup\` or \`omx update\` when you're ready.`,
+    `[omx] Installed oh-my-codex v${currentStampVersion}. OMX setup is explicit opt-in; run \`nomx setup\` or \`nomx update\` when you're ready.`,
   );
   return { status: "hinted", version: currentStampVersion };
 }

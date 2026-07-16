@@ -15,7 +15,7 @@ import {
 
 const CURRENT_SESSION_PROCESSES: ProcessEntry[] = [
   { pid: 700, ppid: 500, command: 'codex' },
-  { pid: 701, ppid: 700, command: 'node /repo/bin/omx.js cleanup --dry-run' },
+  { pid: 701, ppid: 700, command: 'node /repo/bin/nomx.js cleanup --dry-run' },
   {
     pid: 710,
     ppid: 700,
@@ -44,7 +44,7 @@ const CURRENT_SESSION_PROCESSES: ProcessEntry[] = [
   {
     pid: 830,
     ppid: 50,
-    command: 'node /repo/bin/omx.js autoresearch --topic launch',
+    command: 'node /repo/bin/nomx.js autoresearch --topic launch',
   },
   {
     pid: 831,
@@ -74,11 +74,11 @@ describe('findCleanupCandidates', () => {
     );
     assert.equal(extractOmxMcpEntrypoint('node /tmp/worktree/dist/mcp/team-server.js'), null);
     assert.equal(
-      extractOmxMcpEntrypoint('node /repo/dist/cli/omx.js mcp-serve state'),
+      extractOmxMcpEntrypoint('node /repo/dist/cli/nomx.js mcp-serve state'),
       'state-server.js',
     );
     assert.equal(
-      extractOmxMcpEntrypoint('omx mcp-serve code-intel'),
+      extractOmxMcpEntrypoint('nomx mcp-serve code-intel'),
       'code-intel-server.js',
     );
   });
@@ -138,7 +138,7 @@ describe('findCleanupCandidates', () => {
   it('selects older duplicate siblings under a reused current Codex parent', () => {
     const reusedParentProcesses: ProcessEntry[] = [
       { pid: 700, ppid: 500, command: 'codex app-server' },
-      { pid: 701, ppid: 700, command: 'node /repo/bin/omx.js cleanup --dry-run' },
+      { pid: 701, ppid: 700, command: 'node /repo/bin/nomx.js cleanup --dry-run' },
       {
         pid: 710,
         ppid: 700,
@@ -178,39 +178,39 @@ describe('findCleanupCandidates', () => {
   it('keeps live-session MCPs protected, including duplicate siblings', () => {
     const processes: ProcessEntry[] = [
       { pid: 700, ppid: 500, command: 'codex app-server' },
-      { pid: 701, ppid: 700, command: 'node /repo/bin/omx.js cleanup --dry-run' },
+      { pid: 701, ppid: 700, command: 'node /repo/bin/nomx.js cleanup --dry-run' },
       { pid: 710, ppid: 700, command: 'node /repo/dist/mcp/state-server.js' },
       { pid: 711, ppid: 700, command: 'node /repo/dist/mcp/state-server.js' },
       { pid: 720, ppid: 700, command: 'node /repo/dist/mcp/wiki-server.js' },
       { pid: 900, ppid: 800, command: 'codex --model gpt-5' },
       { pid: 901, ppid: 900, command: 'node /repo/dist/mcp/trace-server.js' },
-      { pid: 910, ppid: 900, command: 'node /repo/dist/cli/omx.js mcp-serve state' },
-      { pid: 911, ppid: 900, command: 'node /repo/dist/cli/omx.js mcp-serve state' },
+      { pid: 910, ppid: 900, command: 'node /repo/dist/cli/nomx.js mcp-serve state' },
+      { pid: 911, ppid: 900, command: 'node /repo/dist/cli/nomx.js mcp-serve state' },
     ];
 
     assert.deepEqual(findLaunchSafeCleanupCandidates(processes, 701), []);
   });
 
-  it('reaps plugin-launched omx mcp-serve orphans during launch-safe cleanup', () => {
+  it('reaps plugin-launched nomx mcp-serve orphans during launch-safe cleanup', () => {
     const processes: ProcessEntry[] = [
       { pid: 700, ppid: 500, command: 'codex app-server' },
-      { pid: 701, ppid: 700, command: 'node /repo/bin/omx.js cleanup --launch-safe' },
-      { pid: 820, ppid: 1, command: 'node /repo/dist/cli/omx.js mcp-serve state' },
-      { pid: 821, ppid: 42, command: 'omx mcp-serve code-intel' },
-      { pid: 830, ppid: 700, command: 'node /repo/dist/cli/omx.js mcp-serve memory' },
+      { pid: 701, ppid: 700, command: 'node /repo/bin/nomx.js cleanup --launch-safe' },
+      { pid: 820, ppid: 1, command: 'node /repo/dist/cli/nomx.js mcp-serve state' },
+      { pid: 821, ppid: 42, command: 'nomx mcp-serve code-intel' },
+      { pid: 830, ppid: 700, command: 'node /repo/dist/cli/nomx.js mcp-serve memory' },
     ];
 
     assert.deepEqual(findLaunchSafeCleanupCandidates(processes, 701), [
       {
         pid: 820,
         ppid: 1,
-        command: 'node /repo/dist/cli/omx.js mcp-serve state',
+        command: 'node /repo/dist/cli/nomx.js mcp-serve state',
         reason: 'ppid=1',
       },
       {
         pid: 821,
         ppid: 42,
-        command: 'omx mcp-serve code-intel',
+        command: 'nomx mcp-serve code-intel',
         reason: 'outside-current-session',
       },
     ]);
@@ -219,8 +219,8 @@ describe('findCleanupCandidates', () => {
   it('preserves same-parent first-party MCP siblings under live Codex and OMX ancestors during launch-safe cleanup', () => {
     const processes: ProcessEntry[] = [
       { pid: 100, ppid: 1, command: 'codex app-server' },
-      { pid: 110, ppid: 100, command: 'node /repo/bin/omx.js launch' },
-      { pid: 111, ppid: 110, command: 'node /repo/bin/omx.js cleanup --launch-safe' },
+      { pid: 110, ppid: 100, command: 'node /repo/bin/nomx.js launch' },
+      { pid: 111, ppid: 110, command: 'node /repo/bin/nomx.js cleanup --launch-safe' },
       { pid: 120, ppid: 100, command: 'node /repo/dist/mcp/state-server.js' },
       { pid: 121, ppid: 100, command: 'node /repo/dist/mcp/state-server.js' },
       { pid: 130, ppid: 110, command: 'node /repo/dist/mcp/memory-server.js' },
@@ -246,7 +246,7 @@ describe('findCleanupCandidates', () => {
 
   it('keeps detached MCP candidates whose ancestor chain is live but unrelated to Codex or OMX launchers', () => {
     const unrelatedAncestorProcesses: ProcessEntry[] = [
-      { pid: 701, ppid: 700, command: 'node /repo/bin/omx.js' },
+      { pid: 701, ppid: 700, command: 'node /repo/bin/nomx.js' },
       { pid: 840, ppid: 841, command: 'node /tmp/unrelated/dist/mcp/state-server.js' },
       { pid: 841, ppid: 842, command: 'node worker.js' },
       { pid: 842, ppid: 1, command: 'bash' },
@@ -265,7 +265,7 @@ describe('findCleanupCandidates', () => {
   it('always preserves ppid=1 orphan candidates even if pid 1 matches a protected ancestor predicate', () => {
     const reparentedProcesses: ProcessEntry[] = [
       { pid: 1, ppid: 0, command: 'codex' },
-      { pid: 701, ppid: 700, command: 'node /repo/bin/omx.js' },
+      { pid: 701, ppid: 700, command: 'node /repo/bin/nomx.js' },
       { pid: 840, ppid: 1, command: 'node /tmp/reparented/dist/mcp/state-server.js' },
     ];
 
@@ -356,7 +356,7 @@ describe('listOmxProcesses', () => {
     try {
       const parsed = listOmxProcesses(() => [
         JSON.stringify({ pid: 700, ppid: 500, command: 'codex' }),
-        JSON.stringify({ pid: 701, ppid: 700, command: 'node C:/repo/bin/omx.js cleanup --dry-run' }),
+        JSON.stringify({ pid: 701, ppid: 700, command: 'node C:/repo/bin/nomx.js cleanup --dry-run' }),
         JSON.stringify({ pid: 710, ppid: 700, command: 'node C:/repo/dist/mcp/state-server.js' }),
         JSON.stringify({ pid: 800, ppid: 1, command: 'node C:/tmp/oh-my-codex/dist/mcp/memory-server.js' }),
         JSON.stringify({ pid: 810, ppid: 42, command: 'node C:/tmp/worktree/dist/mcp/trace-server.js' }),

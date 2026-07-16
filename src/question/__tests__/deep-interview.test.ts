@@ -58,7 +58,7 @@ after(async () => {
 });
 
 describe('runDeepInterviewQuestion', { concurrency: false }, () => {
-  it('tracks a pending obligation before omx question returns and satisfies it afterward', { concurrency: false }, async () => {
+  it('tracks a pending obligation before nomx question returns and satisfies it afterward', { concurrency: false }, async () => {
     const cwd = await makeRepo();
     const statePath = join(cwd, '.omx', 'state', 'sessions', 'sess-di', 'deep-interview-state.json');
     let inFlightQuestionStatus = '';
@@ -109,7 +109,7 @@ describe('runDeepInterviewQuestion', { concurrency: false }, () => {
       },
       {
         cwd,
-        argv1: '/repo/dist/cli/omx.js',
+        argv1: '/repo/dist/cli/nomx.js',
         runner,
       },
     );
@@ -137,7 +137,7 @@ describe('runDeepInterviewQuestion', { concurrency: false }, () => {
     assert.equal(finalState.run_outcome, undefined);
   });
 
-  it('clears the pending obligation when omx question fails after being attempted', { concurrency: false }, async () => {
+  it('clears the pending obligation when nomx question fails after being attempted', { concurrency: false }, async () => {
     const cwd = await makeRepo();
     const statePath = join(cwd, '.omx', 'state', 'sessions', 'sess-di', 'deep-interview-state.json');
 
@@ -151,14 +151,14 @@ describe('runDeepInterviewQuestion', { concurrency: false }, () => {
         },
         {
           cwd,
-          argv1: '/repo/dist/cli/omx.js',
+          argv1: '/repo/dist/cli/nomx.js',
           runner: async () => ({
             code: 1,
             stdout: JSON.stringify({
               ok: false,
               error: {
                 code: 'team_blocked',
-                message: 'omx question is unavailable while this session owns active team mode.',
+                message: 'nomx question is unavailable while this session owns active team mode.',
               },
             }),
             stderr: '',
@@ -204,14 +204,14 @@ describe('runDeepInterviewQuestion', { concurrency: false }, () => {
         },
         {
           cwd,
-          argv1: '/repo/dist/cli/omx.js',
+          argv1: '/repo/dist/cli/nomx.js',
           runner: async () => ({
             code: 1,
             stdout: JSON.stringify({
               ok: false,
               error: {
                 code: 'question_runtime_failed',
-                message: 'omx question cannot open a visible renderer because this process is outside an attached tmux pane and has no explicit tmux return bridge.',
+                message: 'nomx question cannot open a visible renderer because this process is outside an attached tmux pane and has no explicit tmux return bridge.',
               },
             }),
             stderr: '',
@@ -434,7 +434,7 @@ describe('runDeepInterviewQuestion autopilot wait bridge', { concurrency: false 
           { session_id: 'sess-di', question: 'Clarify?', allow_other: true },
           {
             cwd,
-            argv1: '/repo/dist/cli/omx.js',
+            argv1: '/repo/dist/cli/nomx.js',
             runner: async () => {
               runnerCalled = true;
               return { code: 1, stdout: '', stderr: '' };
@@ -499,7 +499,7 @@ describe('runDeepInterviewQuestion autopilot wait bridge', { concurrency: false 
         { session_id: 'sess-di', question: 'Clarify?', allow_other: true },
         {
           cwd,
-          argv1: '/repo/dist/cli/omx.js',
+          argv1: '/repo/dist/cli/nomx.js',
           runner: async () => {
             runnerCalled = true;
             return { code: 1, stdout: '', stderr: '' };
@@ -518,7 +518,7 @@ describe('runDeepInterviewQuestion autopilot wait bridge', { concurrency: false 
     assert.equal(deepInterviewState.question_enforcement?.status, 'pending');
   });
 
-  it('persists readable autopilot waiting-for-user state while omx question is in flight and restores it after answer', { concurrency: false }, async () => {
+  it('persists readable autopilot waiting-for-user state while nomx question is in flight and restores it after answer', { concurrency: false }, async () => {
     const cwd = await makeRepo();
     const sessionDir = join(cwd, '.omx', 'state', 'sessions', 'sess-di');
     const autopilotPath = join(sessionDir, 'autopilot-state.json');
@@ -571,7 +571,7 @@ describe('runDeepInterviewQuestion autopilot wait bridge', { concurrency: false 
 
     await runDeepInterviewQuestion(
       { session_id: 'sess-di', question: 'Clarify?', allow_other: true },
-      { cwd, argv1: '/repo/dist/cli/omx.js', runner },
+      { cwd, argv1: '/repo/dist/cli/nomx.js', runner },
     );
 
     assert.equal(observedWait, true);

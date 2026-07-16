@@ -35,7 +35,6 @@ import {
   getStateDir,
 } from "../mcp/state-paths.js";
 import { generateCodebaseMap } from "./codebase-map.js";
-import { buildExploreRoutingGuidance } from "./explore-routing.js";
 import {
   SKILL_ACTIVE_STATE_FILE,
   listActiveSkills,
@@ -291,8 +290,8 @@ function getNativeSubagentRoutingInstructions(): string {
 function getCompactionInstructions(): string {
   return [
     "Before context compaction, preserve critical state:",
-    "1. Write progress checkpoint via `omx state write --input '<json>' --json`",
-    "2. Save key decisions via `omx notepad write-working --input '<json>' --json`",
+    "1. Write progress checkpoint via `nomx state write --input '<json>' --json`",
+    "2. Save key decisions via `nomx notepad write-working --input '<json>' --json`",
     "3. Before large Team work near compaction, reload `.omx/state/team/<team>/preflight-context.json`",
     "4. If context is >80% full, proactively checkpoint state",
   ].join("\n");
@@ -356,7 +355,6 @@ export async function generateOverlay(
     ralphActive,
     planningArtifacts,
     teamOverlay,
-    exploreRoutingGuidance,
   ] = await Promise.all([
     readActiveModes(cwd, sessionId),
     readNotepadPriority(cwd),
@@ -367,7 +365,6 @@ export async function generateOverlay(
     orchestrationMode === "team"
       ? readTeamOrchestratorOverlay()
       : Promise.resolve(""),
-    Promise.resolve(buildExploreRoutingGuidance()),
   ]);
 
   // Build sections with deterministic overflow behavior.
@@ -427,14 +424,6 @@ export async function generateOverlay(
     sections.push({
       key: "team_orchestrator",
       text: `**Orchestration Mode:** team\n${truncate(teamOverlay, 900)}`,
-      optional: true,
-    });
-  }
-
-  if (exploreRoutingGuidance) {
-    sections.push({
-      key: "explore_routing",
-      text: truncate(exploreRoutingGuidance, 600),
       optional: true,
     });
   }

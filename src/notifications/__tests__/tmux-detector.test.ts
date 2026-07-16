@@ -19,7 +19,7 @@ describe('analyzePaneContent', () => {
   });
 
   it('detects "omx" keyword', () => {
-    const result = analyzePaneContent('omx session started');
+    const result = analyzePaneContent('nomx session started');
     assert.equal(result.hasCodex, true);
   });
 

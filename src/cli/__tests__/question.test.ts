@@ -11,7 +11,7 @@ import { markQuestionAnswered, readQuestionRecord } from '../../question/state.j
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..', '..', '..');
-const omxBin = join(repoRoot, 'dist', 'cli', 'omx.js');
+const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
 const tempDirs: string[] = [];
 let originalProcessExitCode: string | number | null | undefined;
 
@@ -60,7 +60,7 @@ async function waitForQuestionRenderer(recordPath: string): Promise<Awaited<Retu
   return readQuestionRecord(recordPath);
 }
 
-describe('omx question CLI', () => {
+describe('nomx question CLI', () => {
   beforeEach(() => {
     originalProcessExitCode = process.exitCode;
     process.exitCode = undefined;
@@ -645,7 +645,7 @@ exit 0
     assert.equal(payload.error.code, 'question_runtime_failed');
     assert.match(payload.error.message, /visible renderer/i);
     assert.match(payload.error.message, /attached tmux pane/i);
-    assert.match(payload.error.message, /Run omx question from inside tmux/i);
+    assert.match(payload.error.message, /Run nomx question from inside tmux/i);
     assert.doesNotMatch(payload.error.message, /tmux is unavailable/i);
 
     const entries = await readdir(join(cwd, '.omx', 'state', 'sessions', 'sess-q', 'questions'));

@@ -89,23 +89,6 @@ describe("generateOverlay", () => {
     assert.doesNotMatch(defaultOverlay, /\*\*Orchestration Mode:\*\* team/);
   });
 
-  it("adds repository-lookup routing guidance without referencing the removed explore command", async () => {
-    const previous = process.env.USE_OMX_EXPLORE_CMD;
-    try {
-      delete process.env.USE_OMX_EXPLORE_CMD;
-      const overlay = await generateOverlay(tempDir, "explore-routing-default");
-      assert.match(overlay, /\*\*Repository Lookup Routing:\*\*/);
-      assert.match(overlay, /normal Codex repository inspection/i);
-      assert.match(overlay, /omx sparkshell -- <command>/);
-      assert.doesNotMatch(overlay, /omx explore/i);
-      assert.doesNotMatch(overlay, /USE_OMX_EXPLORE_CMD/);
-    } finally {
-      if (typeof previous === "string")
-        process.env.USE_OMX_EXPLORE_CMD = previous;
-      else delete process.env.USE_OMX_EXPLORE_CMD;
-    }
-  });
-
   it("generates overlay with active modes", async () => {
     const sessionId = "test-session-2";
     const sessionDir = join(tempDir, ".omx", "state", "sessions", sessionId);

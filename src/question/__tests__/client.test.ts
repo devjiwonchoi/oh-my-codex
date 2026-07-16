@@ -25,7 +25,7 @@ describe('runOmxQuestion', () => {
       },
       {
         cwd: '/repo',
-        argv1: '/repo/dist/cli/omx.js',
+        argv1: '/repo/dist/cli/nomx.js',
         runner: makeRunner({
           ok: true,
           question_id: 'q-1',
@@ -85,12 +85,12 @@ describe('runOmxQuestion', () => {
         },
         {
           cwd: '/repo',
-          argv1: '/repo/dist/cli/omx.js',
+          argv1: '/repo/dist/cli/nomx.js',
           runner: makeRunner({
             ok: false,
             error: {
               code: 'team_blocked',
-              message: 'omx question is unavailable while this session owns active team mode.',
+              message: 'nomx question is unavailable while this session owns active team mode.',
             },
           }, 1),
         },

@@ -43,7 +43,7 @@ When the caller needs cross-repo OSS evidence — production-grade reference imp
 - `gh search code <pattern> --language=<lang> --owner=<org>` and `gh search repos` for discovery; restrict to maintained, production-grade projects with documented release history.
 - `gh api repos/<org>/<repo>/contents/<path>?ref=<sha>` or a web fetch against `https://raw.githubusercontent.com/<org>/<repo>/<sha>/<path>` for pinned-SHA file content. Never cite a moving `HEAD` or `main` reference.
 - `gh api repos/<org>/<repo>/commits` and `gh api repos/<org>/<repo>/issues?q=...` for history and known-issue context around a pattern.
-- Context7 MCP (when registered in this runtime via `omx setup`) for resolved library IDs and version-pinned official docs; fall back gracefully to web fetch when the MCP server is not available.
+- Context7 MCP (when registered in this runtime via `nomx setup`) for resolved library IDs and version-pinned official docs; fall back gracefully to web fetch when the MCP server is not available.
 
 Citation format for OSS code evidence: `org/repo@sha:path/to/file:Lx-Ly` (full SHA preferred; cite the exact line range you read, not the whole file). Each OSS reference is supplemental to official docs evidence, never a replacement. Reject beginner tutorials, dated snippets, and unmaintained projects; label every reference with its last-release date or activity signal.
 </repo_research>

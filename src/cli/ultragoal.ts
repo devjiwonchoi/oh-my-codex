@@ -33,18 +33,18 @@ import {
   UltragoalError,
 } from '../ultragoal/artifacts.js';
 
-export const ULTRAGOAL_HELP = `omx ultragoal - Durable repo-native multi-goal workflow over Codex goal mode
+export const ULTRAGOAL_HELP = `nomx ultragoal - Durable repo-native multi-goal workflow over Codex goal mode
 
 Usage:
-  omx ultragoal create-goals [--brief <text> | --brief-file <path> | --from-stdin] [--goal <title::objective>] [--codex-goal-mode <aggregate|per-story>] [--force] [--json]
-  omx ultragoal complete-goals [--retry-failed] [--json]
-  omx ultragoal add-goal --title <title> --objective <text> [--evidence <text>] [--json]
-  omx ultragoal steer --kind <mutation-kind> --evidence <text> --rationale <text> [--target-goal-id <id> | --target-goal-ids <id1,id2,...>] [--title <title>] [--objective <text>] [--json]
-  omx ultragoal record-review-blockers --goal-id <id> --title <title> --objective <text> --evidence <review-findings> --codex-goal-json <active-json-or-path> [--json]
-  omx ultragoal steer --kind <add_subgoal|split_subgoal|reorder_pending|revise_pending_wording|annotate_ledger|mark_blocked_superseded> --evidence <text> --rationale <text> [--target-goal-id <id>] [--title <text>] [--objective <text>] [--after-json <json-or-path>] [--idempotency-key <key>] [--json]
-  omx ultragoal steer --directive-json <json-or-path> [--json]
-  omx ultragoal checkpoint --goal-id <id> --status <complete|failed|blocked> [--evidence <text>] [--codex-goal-json <json-or-path>] [--quality-gate-json <json-or-path>] [--json]
-  omx ultragoal status [--codex-goal-json <json-or-path>] [--json]
+  nomx ultragoal create-goals [--brief <text> | --brief-file <path> | --from-stdin] [--goal <title::objective>] [--codex-goal-mode <aggregate|per-story>] [--force] [--json]
+  nomx ultragoal complete-goals [--retry-failed] [--json]
+  nomx ultragoal add-goal --title <title> --objective <text> [--evidence <text>] [--json]
+  nomx ultragoal steer --kind <mutation-kind> --evidence <text> --rationale <text> [--target-goal-id <id> | --target-goal-ids <id1,id2,...>] [--title <title>] [--objective <text>] [--json]
+  nomx ultragoal record-review-blockers --goal-id <id> --title <title> --objective <text> --evidence <review-findings> --codex-goal-json <active-json-or-path> [--json]
+  nomx ultragoal steer --kind <add_subgoal|split_subgoal|reorder_pending|revise_pending_wording|annotate_ledger|mark_blocked_superseded> --evidence <text> --rationale <text> [--target-goal-id <id>] [--title <text>] [--objective <text>] [--after-json <json-or-path>] [--idempotency-key <key>] [--json]
+  nomx ultragoal steer --directive-json <json-or-path> [--json]
+  nomx ultragoal checkpoint --goal-id <id> --status <complete|failed|blocked> [--evidence <text>] [--codex-goal-json <json-or-path>] [--quality-gate-json <json-or-path>] [--json]
+  nomx ultragoal status [--codex-goal-json <json-or-path>] [--json]
 
 Aliases:
   create -> create-goals, complete|next|start-next -> complete-goals
@@ -268,7 +268,7 @@ async function parseSteeringProposal(args: readonly string[]): Promise<Ultragoal
   }
 
   const freeform = positionalText(args);
-  if (freeform) throw new UltragoalError('omx ultragoal steer rejects broad natural-language mutation requests; pass structured fields or --directive-json.');
+  if (freeform) throw new UltragoalError('nomx ultragoal steer rejects broad natural-language mutation requests; pass structured fields or --directive-json.');
 
   const after = await readJsonInput(readValue(args, '--after-json'), '--after-json');
   return normalizeSteeringProposal({

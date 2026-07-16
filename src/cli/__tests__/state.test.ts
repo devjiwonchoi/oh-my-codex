@@ -13,7 +13,7 @@ describe('stateCommand', () => {
       stdout: (line) => out.push(line),
       stderr: () => undefined,
     });
-    assert.match(out.join('\n'), /Usage: omx state/);
+    assert.match(out.join('\n'), /Usage: nomx state/);
   });
 
 
@@ -35,7 +35,7 @@ describe('stateCommand', () => {
         });
 
         assert.equal(executed, false, `${operation} ${helpForm} should not execute state operation`);
-        assert.match(out.join('\n'), /Usage: omx state/);
+        assert.match(out.join('\n'), /Usage: nomx state/);
         assert.doesNotMatch(out.join('\n'), /Unknown state argument/);
       }
     }

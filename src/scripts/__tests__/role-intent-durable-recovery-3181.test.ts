@@ -72,7 +72,7 @@ async function seedAuthenticatedLeader(cwd: string, sessionId: string, event: 'S
         thread_id: sessionId,
         tool_name: 'Bash',
         tool_use_id: 'tool-first',
-        tool_input: { command: 'omx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json' },
+        tool_input: { command: 'nomx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json' },
       },
       { cwd, sessionOwnerPid: process.pid },
     );

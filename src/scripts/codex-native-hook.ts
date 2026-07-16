@@ -4,7 +4,7 @@ import { appendFile, mkdir, readFile, readdir, stat, writeFile } from "fs/promis
 import { extname, isAbsolute, join, relative, resolve } from "path";
 import { pathToFileURL } from "url";
 import { readModeStateForActiveDecision, readModeStateForSession, updateModeState } from "../modes/base.js";
-import { redactAuthSecrets } from "../auth/redact.js";
+import { redactAuthSecrets } from "../utils/redact.js";
 import {
   SKILL_ACTIVE_STATE_FILE,
   extractSessionIdFromInitializedStatePath,
@@ -115,11 +115,6 @@ import { isTrackedWorkflowMode } from "../state/workflow-transition.js";
 import { dispatchHookEventRuntime } from "../hooks/extensibility/runtime.js";
 import { getNotificationConfig, getVerbosity } from "../notifications/config.js";
 import { reconcileHudForPromptSubmit } from "../hud/reconcile.js";
-import {
-  onPreCompact as buildWikiPreCompactContext,
-  onSessionStart as buildWikiSessionStartContext,
-} from "../wiki/lifecycle.js";
-import { readAutoresearchCompletionStatus, readAutoresearchModeStateForActiveDecision } from "../autoresearch/skill-validation.js";
 import { deriveAutopilotChildPhase, normalizeAutopilotPhase } from "../autopilot/fsm.js";
 import {
   CONDUCTOR_ORCHESTRATION_METADATA_PREFIXES,
@@ -911,7 +906,7 @@ function parseUserPromptUltragoalSteeringDirective(prompt: string): UltragoalSte
     }
   }
 
-  const label = trimmed.match(/(?:^|\n)\s*(?:OMX_ULTRAGOAL_STEER|omx\.ultragoal\.steer|omx ultragoal steer)\s*:\s*{/i);
+  const label = trimmed.match(/(?:^|\n)\s*(?:OMX_ULTRAGOAL_STEER|omx\.ultragoal\.steer|nomx ultragoal steer)\s*:\s*{/i);
   if (label?.index !== undefined) {
     const brace = trimmed.indexOf("{", label.index);
     const json = brace >= 0 ? extractBalancedJsonObject(trimmed, brace) : null;
@@ -1014,18 +1009,6 @@ function isNonTerminalPhase(value: unknown): boolean {
 function formatPhase(value: unknown, fallback = "active"): string {
   const phase = safeString(value).trim();
   return phase || fallback;
-}
-
-async function readActiveAutoresearchState(
-  cwd: string,
-  sessionId?: string,
-): Promise<Record<string, unknown> | null> {
-  const normalizedSessionId = sessionId?.trim() || undefined;
-  if (!normalizedSessionId) return null;
-  const state = await readAutoresearchModeStateForActiveDecision(cwd, normalizedSessionId);
-  if (state?.active !== true) return null;
-  if (!isNonTerminalPhase(state.current_phase ?? state.currentPhase ?? 'executing')) return null;
-  return state;
 }
 
 interface ActiveRalphStopState {
@@ -2153,11 +2136,6 @@ async function buildSessionStartContext(
     }
   }
 
-  const wikiContext = buildWikiSessionStartContext({ cwd });
-  if (wikiContext.additionalContext) {
-    sections.push(wikiContext.additionalContext);
-  }
-
   const subagentSummary = await readSubagentSessionSummary(cwd, sessionId).catch(() => null);
   if (subagentSummary && subagentSummary.activeSubagentThreadIds.length > 0) {
     sections.push(`[Subagents]\n- active subagent threads: ${subagentSummary.activeSubagentThreadIds.length}`);
@@ -2214,11 +2192,11 @@ function resolveExecutionEnvironment(
       launcher: executionSurface.launcher,
       transport: executionSurface.transport,
       surface: "attached tmux runtime - tmux",
-      tmuxWorkflowGuidance: "omx team, omx hud, and omx question are directly usable in this session",
+      tmuxWorkflowGuidance: "nomx team, nomx hud, and nomx question are directly usable in this session",
       questionGuidance: "visible temporary renderer available from the current pane; primary success JSON is answers[]",
-      teamRuntimeInstruction: "Use the durable OMX team runtime via `omx team ...` for coordinated execution; do not replace it with in-process fanout.",
-      teamHelpInstruction: "If you need runtime syntax, run `omx team --help` yourself.",
-      deepInterviewInstruction: "Deep-interview must ask each interview round via `omx question`; do not fall back to `request_user_input` or plain-text questioning. This session is already attached to tmux, so `omx question` can open its temporary renderer directly over the leader pane. After starting `omx question` in a background terminal, wait for that terminal to finish and read the JSON answer before continuing the interview. Prefer `answers[0].answer` / `answers[]`; use legacy `answer` only as fallback. Deep-interview remains one question per round, so do not batch multiple interview rounds into one `questions[]` form. Stop remains blocked while a deep-interview question obligation is pending.",
+      teamRuntimeInstruction: "Use the durable OMX team runtime via `nomx team ...` for coordinated execution; do not replace it with in-process fanout.",
+      teamHelpInstruction: "If you need runtime syntax, run `nomx team --help` yourself.",
+      deepInterviewInstruction: "Deep-interview must ask each interview round via `nomx question`; do not fall back to `request_user_input` or plain-text questioning. This session is already attached to tmux, so `nomx question` can open its temporary renderer directly over the leader pane. After starting `nomx question` in a background terminal, wait for that terminal to finish and read the JSON answer before continuing the interview. Prefer `answers[0].answer` / `answers[]`; use legacy `answer` only as fallback. Deep-interview remains one question per round, so do not batch multiple interview rounds into one `questions[]` form. Stop remains blocked while a deep-interview question obligation is pending.",
       leaderPaneHint,
     };
   }
@@ -2232,15 +2210,15 @@ function resolveExecutionEnvironment(
       surface: isNativeOutsideTmux
         ? "native-hook / Codex App outside tmux with tmux return bridge"
         : "direct CLI outside tmux with tmux return bridge",
-      tmuxWorkflowGuidance: "omx team and omx hud need an attached tmux OMX CLI shell from this surface; omx question can use the detected bridge",
+      tmuxWorkflowGuidance: "nomx team and nomx hud need an attached tmux OMX CLI shell from this surface; nomx question can use the detected bridge",
       questionGuidance: questionBridgeHint,
       teamRuntimeInstruction: isNativeOutsideTmux
-        ? "This session is native-hook / Codex App outside tmux; `omx team` is a CLI/tmux runtime surface, not directly available here. Launch OMX CLI from an attached tmux shell first; do not replace it with in-process fanout."
-        : "This session is direct CLI outside tmux with a tmux return bridge for `omx question`; prompt-side `$team` does not auto-start the durable tmux team runtime here. If you intentionally want the runtime, run `omx team ...` yourself from shell instead of replacing it with in-process fanout.",
+        ? "This session is native-hook / Codex App outside tmux; `nomx team` is a CLI/tmux runtime surface, not directly available here. Launch OMX CLI from an attached tmux shell first; do not replace it with in-process fanout."
+        : "This session is direct CLI outside tmux with a tmux return bridge for `nomx question`; prompt-side `$team` does not auto-start the durable tmux team runtime here. If you intentionally want the runtime, run `nomx team ...` yourself from shell instead of replacing it with in-process fanout.",
       teamHelpInstruction: isNativeOutsideTmux
-        ? "If you need runtime syntax, run `omx team --help` from an attached tmux OMX CLI shell."
-        : "If you need runtime syntax, run `omx team --help` yourself from shell.",
-      deepInterviewInstruction: `Deep-interview is active, but this session is not attached to tmux. Do not invoke \`omx question\`, \`omx hud\`, or \`omx team\` from this surface. Ask each interview round through the native structured question tool when available; otherwise ask exactly one concise plain-text question and wait for the answer. A tmux return bridge (${leaderPaneHint}) is recorded for explicit attached-tmux recovery only, not for default Codex App/native fallback.`,
+        ? "If you need runtime syntax, run `nomx team --help` from an attached tmux OMX CLI shell."
+        : "If you need runtime syntax, run `nomx team --help` yourself from shell.",
+      deepInterviewInstruction: `Deep-interview is active, but this session is not attached to tmux. Do not invoke \`nomx question\`, \`nomx hud\`, or \`nomx team\` from this surface. Ask each interview round through the native structured question tool when available; otherwise ask exactly one concise plain-text question and wait for the answer. A tmux return bridge (${leaderPaneHint}) is recorded for explicit attached-tmux recovery only, not for default Codex App/native fallback.`,
       leaderPaneHint,
     };
   }
@@ -2250,21 +2228,21 @@ function resolveExecutionEnvironment(
     ? "native-hook / Codex App outside tmux"
     : "direct CLI outside tmux";
   const teamRuntimeInstruction = isNativeOutsideTmux
-    ? "This session is native-hook / Codex App outside tmux; `omx team` is a CLI/tmux runtime surface, not directly available here. Launch OMX CLI from an attached tmux shell first; do not replace it with in-process fanout."
-    : "This session is direct CLI outside tmux; prompt-side `$team` does not auto-start the durable tmux team runtime here. If you intentionally want the runtime, run `omx team ...` yourself from shell instead of replacing it with in-process fanout.";
+    ? "This session is native-hook / Codex App outside tmux; `nomx team` is a CLI/tmux runtime surface, not directly available here. Launch OMX CLI from an attached tmux shell first; do not replace it with in-process fanout."
+    : "This session is direct CLI outside tmux; prompt-side `$team` does not auto-start the durable tmux team runtime here. If you intentionally want the runtime, run `nomx team ...` yourself from shell instead of replacing it with in-process fanout.";
   const teamHelpInstruction = isNativeOutsideTmux
-    ? "If you need runtime syntax, run `omx team --help` from an attached tmux OMX CLI shell rather than from Codex App/native outside-tmux context."
-    : "If you need runtime syntax, run `omx team --help` yourself from shell.";
+    ? "If you need runtime syntax, run `nomx team --help` from an attached tmux OMX CLI shell rather than from Codex App/native outside-tmux context."
+    : "If you need runtime syntax, run `nomx team --help` yourself from shell.";
   return {
     kind: isNativeOutsideTmux ? "native-outside-tmux" : "direct-cli-outside-tmux",
     launcher: executionSurface.launcher,
     transport: executionSurface.transport,
     surface,
-    tmuxWorkflowGuidance: "omx team, omx hud, and omx question need an attached tmux OMX CLI shell or preserved question bridge from this surface",
+    tmuxWorkflowGuidance: "nomx team, nomx hud, and nomx question need an attached tmux OMX CLI shell or preserved question bridge from this surface",
     questionGuidance: questionBridgeHint,
     teamRuntimeInstruction,
     teamHelpInstruction,
-    deepInterviewInstruction: "Deep-interview is active, but this session is not attached to tmux. Do not invoke `omx question`, `omx hud`, or `omx team` from this surface. Ask each interview round through the native structured question tool when available; otherwise ask exactly one concise plain-text question and wait for the answer. Stop gating still applies to the interview, but no tmux question obligation should be created outside tmux.",
+    deepInterviewInstruction: "Deep-interview is active, but this session is not attached to tmux. Do not invoke `nomx question`, `nomx hud`, or `nomx team` from this surface. Ask each interview round through the native structured question tool when available; otherwise ask exactly one concise plain-text question and wait for the answer. Stop gating still applies to the interview, but no tmux question obligation should be created outside tmux.",
     leaderPaneHint: "",
   };
 }
@@ -2282,8 +2260,8 @@ function buildExecutionEnvironmentSection(
   return [
     "[Execution environment]",
     `- surface: ${environment.surface}`,
-    `- omx runtime surfaces: ${environment.tmuxWorkflowGuidance}`,
-    `- omx question: ${environment.questionGuidance}`,
+    `- nomx runtime surfaces: ${environment.tmuxWorkflowGuidance}`,
+    `- nomx question: ${environment.questionGuidance}`,
   ].join("\n");
 }
 
@@ -2375,12 +2353,12 @@ function buildNativeOutsideTmuxTeamPromptBlockState(
     thread_id: threadId,
     turn_id: turnId,
     active_skills: [],
-    transition_error: "Codex App/native outside-tmux sessions cannot activate the tmux-only `team` workflow directly. Launch OMX CLI from an attached tmux shell first, then run `omx team ...` there.",
+    transition_error: "Codex App/native outside-tmux sessions cannot activate the tmux-only `team` workflow directly. Launch OMX CLI from an attached tmux shell first, then run `nomx team ...` there.",
   };
 }
 
 function buildSkillStateCliInstruction(mode: string, statePath: string): string {
-  return `skill: ${mode} activated and initial state initialized at ${statePath}; use CLI-first state updates via \`omx state write/read/clear --input '<json>' --json\`; use omx_state MCP only when explicit MCP compatibility is enabled.`;
+  return `skill: ${mode} activated and initial state initialized at ${statePath}; use CLI-first state updates via \`nomx state write/read/clear --input '<json>' --json\`; use omx_state MCP only when explicit MCP compatibility is enabled.`;
 }
 
 function buildAutopilotPromptActivationNote(
@@ -2411,9 +2389,9 @@ function buildAutopilotPromptActivationNote(
   return [
     `Autopilot protocol: the durable default chain is $deep-interview -> $ralplan -> $ultragoal${teamHandoff} -> $code-review -> $ultraqa (deep-interview -> ralplan -> ultragoal -> code-review -> ultraqa).`,
     "Start/resume at current_phase=deep-interview unless the task is clear and bounded; if deep-interview is intentionally skipped, persist and state an explicit deep_interview_gate.skip_reason before moving to ralplan.",
-    "Deep-interview is a structured question chain, not a one-question gate: after an omx question answer, re-score ambiguity against the active threshold, treat max_rounds as a cap, and crystallize once ambiguity is at or below threshold and readiness gates pass.",
+    "Deep-interview is a structured question chain, not a one-question gate: after an nomx question answer, re-score ambiguity against the active threshold, treat max_rounds as a cap, and crystallize once ambiguity is at or below threshold and readiness gates pass.",
     options.markedQuestionAnswer
-      ? "This turn is a marked omx question answer. Treat ordinary selected option/freeform answer text as interview input, then re-score. Do not close merely because the first question was answered; if ambiguity is at or below threshold and readiness gates pass, write interview_complete evidence and hand off. Ask another deep-interview follow-up only when a readiness gate remains unresolved and the answer would materially change execution."
+      ? "This turn is a marked nomx question answer. Treat ordinary selected option/freeform answer text as interview input, then re-score. Do not close merely because the first question was answered; if ambiguity is at or below threshold and readiness gates pass, write interview_complete evidence and hand off. Ask another deep-interview follow-up only when a readiness gate remains unresolved and the answer would materially change execution."
       : null,
     "Do not advance from deep-interview to ralplan merely because the first question was answered; persist explicit interview_complete evidence before setting current_phase=ralplan, and do advance when threshold plus readiness gates are satisfied.",
     "The ralplan phase is not complete until Planner output has been reviewed sequentially by Architect and then Critic; do not hand off to Ultragoal or implementation until the ralplan state/artifact records both ralplan_architect_review and ralplan_critic_review with approval or an explicit blocker.",
@@ -2462,7 +2440,7 @@ function buildAdditionalContextMessage(
     const autopilotPromptActivationNote = buildAutopilotPromptActivationNote(skillState, { markedQuestionAnswer, cwd, payload, sessionId: safeString(skillState?.session_id).trim() });
     return [
       markedQuestionAnswer
-        ? `OMX native UserPromptSubmit continued active workflow skill "${continuedSkill}"; workflow-like tokens inside the marked omx question answer are treated as answer text, not a new workflow activation.`
+        ? `OMX native UserPromptSubmit continued active workflow skill "${continuedSkill}"; workflow-like tokens inside the marked nomx question answer are treated as answer text, not a new workflow activation.`
         : `OMX native UserPromptSubmit continued active workflow skill "${continuedSkill}".`,
       promptPriorityMessage,
       skillState?.initialized_mode && skillState.initialized_state_path
@@ -2485,7 +2463,7 @@ function buildAdditionalContextMessage(
     : [];
   const teamDetected = activeSkills.includes("team");
   const ralphPromptActivationNote = skillState?.initialized_mode === "ralph"
-    ? "Prompt-side `$ralph` activation seeds Ralph workflow state only; it does not invoke `omx ralph`. Use `omx ralph --prd ...` only when you explicitly want the PRD-gated CLI startup path."
+    ? "Prompt-side `$ralph` activation seeds Ralph workflow state only; it does not invoke `nomx ralph`. Use `nomx ralph --prd ...` only when you explicitly want the PRD-gated CLI startup path."
     : null;
   const deepInterviewPromptActivationNote = skillState?.initialized_mode === "deep-interview"
     ? buildDeepInterviewQuestionBridgeInstruction(cwd, payload)
@@ -2495,7 +2473,7 @@ function buildAdditionalContextMessage(
     ? "Ultrawork protocol: ground the task before editing, define pass/fail acceptance criteria, keep shared-file work local, and use direct-tool plus background evidence lanes only for truly independent work. Direct ultrawork provides lightweight verification only; Ralph owns persistence and the full verified-completion promise."
     : null;
   const ultragoalPromptActivationNote = match.skill === "ultragoal"
-    ? "Ultragoal protocol: use `omx ultragoal create-goals` / `complete-goals` / `checkpoint` for `.omx/ultragoal` artifacts, then use Codex goal model tools only from the active agent handoff (`get_goal`, `create_goal`, `update_goal`) and never overwrite a different active Codex goal. Ultragoal does not call `/goal clear`; for multiple sequential ultragoal runs in one Codex session/thread, manually clear the completed Codex goal in the UI before creating the next aggregate goal."
+    ? "Ultragoal protocol: use `nomx ultragoal create-goals` / `complete-goals` / `checkpoint` for `.omx/ultragoal` artifacts, then use Codex goal model tools only from the active agent handoff (`get_goal`, `create_goal`, `update_goal`) and never overwrite a different active Codex goal. Ultragoal does not call `/goal clear`; for multiple sequential ultragoal runs in one Codex session/thread, manually clear the completed Codex goal in the UI before creating the next aggregate goal."
     : null;
   const autopilotPromptActivationNote = buildAutopilotPromptActivationNote(skillState, { cwd, payload, sessionId: safeString(skillState?.session_id).trim() });
   const combinedTransitionMessage = (() => {
@@ -3068,12 +3046,12 @@ async function findActiveGoalWorkflowReconciliationRequirement(cwd: string): Pro
     const goalId = safeString(activeUltragoal.id) || "<goal-id>";
     return {
       workflow: "ultragoal",
-      command: `omx ultragoal checkpoint --goal-id ${goalId} --status complete --codex-goal-json '<get_goal JSON or path>' --evidence '<evidence>'`,
+      command: `nomx ultragoal checkpoint --goal-id ${goalId} --status complete --codex-goal-json '<get_goal JSON or path>' --evidence '<evidence>'`,
       remediation: [
         `If get_goal returns a completed task-scoped objective for the same aggregate ultragoal plan, checkpoint ${goalId} with evidence naming ${goalId} plus .omx/ultragoal/goals.json or ledger.jsonl and pass final quality-gate JSON; OMX will reconcile the completed planned scope without mutating Codex goal state.`,
         `If get_goal instead returns a different completed legacy objective and complete checkpointing fails, do not repeat --status complete in this thread.`,
-        `Record the non-terminal blocker with: omx ultragoal checkpoint --goal-id ${goalId} --status blocked --codex-goal-json '<different completed get_goal JSON or path>' --evidence '<completed legacy Codex goal blocks create_goal in this thread>'.`,
-        `If get_goal itself is unavailable with a Codex DB/schema/context error such as "no such table: thread_goals", record an auditable safe-recovery blocker instead: omx ultragoal checkpoint --goal-id ${goalId} --status blocked --codex-goal-json '<unavailable get_goal error JSON or path>' --evidence '<get_goal unavailable due to Codex DB/schema/context error; safe recovery requires a working Codex goal context>'.`,
+        `Record the non-terminal blocker with: nomx ultragoal checkpoint --goal-id ${goalId} --status blocked --codex-goal-json '<different completed get_goal JSON or path>' --evidence '<completed legacy Codex goal blocks create_goal in this thread>'.`,
+        `If get_goal itself is unavailable with a Codex DB/schema/context error such as "no such table: thread_goals", record an auditable safe-recovery blocker instead: nomx ultragoal checkpoint --goal-id ${goalId} --status blocked --codex-goal-json '<unavailable get_goal error JSON or path>' --evidence '<get_goal unavailable due to Codex DB/schema/context error; safe recovery requires a working Codex goal context>'.`,
         "Then continue only from a Codex goal context with no active/completed conflicting goal in the same repo/worktree and create the intended goal there.",
       ].join(" "),
     };
@@ -3090,7 +3068,7 @@ async function findActiveGoalWorkflowReconciliationRequirement(cwd: string): Pro
     if (state?.workflow === "performance-goal" && status && status !== "complete") {
       return {
         workflow: "performance-goal",
-        command: `omx performance-goal complete --slug ${safeString(state.slug) || entry.name} --codex-goal-json '<get_goal JSON or path>' --evidence '<evidence>'`,
+        command: `nomx performance-goal complete --slug ${safeString(state.slug) || entry.name} --codex-goal-json '<get_goal JSON or path>' --evidence '<evidence>'`,
       };
     }
   }
@@ -3111,7 +3089,7 @@ async function findActiveGoalWorkflowReconciliationRequirement(cwd: string): Pro
     ) {
       return {
         workflow: "autoresearch-goal",
-        command: `omx autoresearch-goal complete --slug ${safeString(mission.slug) || entry.name} --codex-goal-json '<get_goal JSON or path>'`,
+        command: `nomx autoresearch-goal complete --slug ${safeString(mission.slug) || entry.name} --codex-goal-json '<get_goal JSON or path>'`,
         remediation: [
           "If that command fails with a Codex goal objective mismatch after a refreshed get_goal snapshot, do not repeat the same complete command blindly in this thread.",
           "Either retry with a correct refreshed snapshot or record an explicit blocked verdict for this autoresearch-goal and continue from the explicit blocker path.",
@@ -3730,7 +3708,6 @@ const DEEP_INTERVIEW_IMPLEMENTATION_TOOL_NAMES = PLANNING_MODE_IMPLEMENTATION_TO
 const RALPLAN_EXECUTION_HANDOFF_SKILLS = new Set([
   // Autopilot is intentionally excluded: it supervises planning phases such as
   // ralplan/replan and is not by itself an execution authorization.
-  "autoresearch",
   "ralph",
   "team",
   "ultragoal",
@@ -4088,7 +4065,7 @@ function resolveCommandRedirectTarget(target: string, assignments: Map<string, s
 
 // Masks redirect metacharacters (`<`/`>`) that appear INSIDE shell quotes so a
 // quoted regex/source value (e.g. `gh issue create --body '...>{1,2}...'` or
-// `omx state write --input '{"reason":"a>b"}'`) is not misread as a redirect
+// `nomx state write --input '{"reason":"a>b"}'`) is not misread as a redirect
 // write target. Escaped quotes at the top level (`\'`, `\"`) are literal
 // characters and must NOT open a span, and `$'...'` ANSI-C quoting processes
 // backslash escapes (so `\'` does not close it) — otherwise a genuine `>`
@@ -4981,7 +4958,7 @@ function describeImplementationToolBlock(
   return formatPlanningWriteBlockDetail(operationClass, blockedPath, RALPLAN_ALLOWED_WRITE_PREFIXES);
 }
 
-// `omx state` mutations normally route through the gate-enforcing `state_write`
+// `nomx state` mutations normally route through the gate-enforcing `state_write`
 // backend, so the hook defers to that gate rather than blocking the transport.
 // The backend does NOT gate generic standalone deep-interview/ralplan
 // *deactivation*, and it normalizes non-terminal tracked-workflow writes to
@@ -5186,11 +5163,11 @@ function isOmxCliEntryPath(token: string, runtimeWrapper: string | null): boolea
 
   const normalized = trimmed.replace(/\\/g, "/");
   const entryBasename = normalized.split("/").filter(Boolean).pop() ?? "";
-  if (entryBasename === "omx" || entryBasename === "omx.js") return true;
-  if (normalized.endsWith("/node_modules/.bin/omx") || normalized === "node_modules/.bin/omx") return true;
-  if (normalized.endsWith("/dist/cli/omx.js") || normalized === "dist/cli/omx.js") return true;
-  if (runtimeWrapper === "tsx" && (normalized.endsWith("/src/cli/omx.ts") || normalized === "src/cli/omx.ts")) return true;
-  if (runtimeWrapper === "tsx" && (normalized.endsWith("/dist/cli/omx.js") || normalized === "dist/cli/omx.js")) return true;
+  if (entryBasename === "nomx" || entryBasename === "nomx.js") return true;
+  if (normalized.endsWith("/node_modules/.bin/nomx") || normalized === "node_modules/.bin/nomx") return true;
+  if (normalized.endsWith("/dist/cli/nomx.js") || normalized === "dist/cli/nomx.js") return true;
+  if (runtimeWrapper === "tsx" && (normalized.endsWith("/src/cli/nomx.ts") || normalized === "src/cli/nomx.ts")) return true;
+  if (runtimeWrapper === "tsx" && (normalized.endsWith("/dist/cli/nomx.js") || normalized === "dist/cli/nomx.js")) return true;
   return false;
 }
 
@@ -5400,7 +5377,7 @@ function unwrapOmxStateTransportCommandOnce(command: string): string | null {
       const entryPath = words[entryIndex] ?? "";
       if (entryPath && isOmxCliEntryPath(entryPath, headBase)) {
         const remainder = sliceShellWordsTailPreservingQuoting(command, entryIndex + 1);
-        return remainder ? `omx ${remainder}` : "omx";
+        return remainder ? `nomx ${remainder}` : "nomx";
       }
     }
     return null;
@@ -5408,7 +5385,7 @@ function unwrapOmxStateTransportCommandOnce(command: string): string | null {
 
   if (isOmxCliEntryPath(head, null)) {
     const remainder = sliceShellWordsTailPreservingQuoting(command, index + 1);
-    return remainder ? `omx ${remainder}` : "omx";
+    return remainder ? `nomx ${remainder}` : "nomx";
   }
 
   return null;
@@ -5532,7 +5509,7 @@ function isOmxCliWrapperRuntime(word: string): boolean {
 
 function isOmxCliWrapperScript(word: string): boolean {
   const base = shellWordBaseName(word);
-  return base === "omx" || base === "omx.js";
+  return base === "nomx" || base === "nomx.js";
 }
 
 function runtimeOptionConsumesNextWord(option: string): boolean {
@@ -5587,7 +5564,7 @@ function readOmxStateCommandArgsFromWords(words: string[], operation: "write" | 
 }
 
 // Shell compound-command introducers can occupy command position after wrappers
-// such as `time`/`command`; skip them before matching the protected `omx state`
+// such as `time`/`command`; skip them before matching the protected `nomx state`
 // operation so wrapper-unwrapping keeps scanning the actual command body.
 function isShellCommandPositionPrefixWord(word: string): boolean {
   return word === "("
@@ -6352,7 +6329,7 @@ function isStructuredUltragoalSteeringShellCommand(command: string): boolean {
         commandStart = false;
         continue;
       }
-      if (commandName === "omx" && words[index + 1] === "ultragoal" && words[index + 2] === "steer") {
+      if (commandName === "nomx" && words[index + 1] === "ultragoal" && words[index + 2] === "steer") {
         sawStructuredSteer = true;
         commandStart = false;
         continue;
@@ -7101,7 +7078,7 @@ function isAllowedDeepInterviewTerminalStateWriteCommand(
   sessionId: string,
 ): boolean {
   const rawWords = tokenizeShellWords(normalizeShellLineContinuations(command).trim());
-  if (rawWords[0] !== "omx") return false;
+  if (rawWords[0] !== "nomx") return false;
   const canonicalCommand = canonicalizeOmxStateTransportCommand(command);
   if (hasUnquotedShellControlOrRedirection(command)) return false;
   if (hasUnsafeUnquotedHeredocExpansion(canonicalCommand)) return false;
@@ -9271,14 +9248,14 @@ async function buildDeepInterviewQuestionStopOutput(
   if (!obligationId) return null;
 
   const systemMessage =
-    `OMX deep-interview is still active (phase: ${phase}) and requires a structured question via omx question before stopping; read the returned answers[] JSON before continuing.`;
+    `OMX deep-interview is still active (phase: ${phase}) and requires a structured question via nomx question before stopping; read the returned answers[] JSON before continuing.`;
 
   return {
     obligationId,
     output: {
       decision: "block",
       reason:
-        `Deep interview is still active (phase: ${phase}) and has a pending structured question obligation; use \`omx question\` before stopping.`,
+        `Deep interview is still active (phase: ${phase}) and has a pending structured question obligation; use \`nomx question\` before stopping.`,
       stopReason: "deep_interview_question_required",
       systemMessage,
     },
@@ -9806,7 +9783,7 @@ async function buildStopHookOutput(
       `OMX Ralph completion audit is missing required evidence (${ralphCompletionAuditBlock.reason}; state: ${blockingPath}).`,
       "Continue verification and do not report complete yet.",
       "Record machine-readable completion evidence before stopping:",
-      '- either set "completion_audit" on the Ralph state object, for example: omx state write --input \'{"mode":"ralph","active":false,"current_phase":"complete","completion_audit":{"passed":true,"prompt_to_artifact_checklist":["..."],"verification_evidence":["..."]}}\' --json',
+      '- either set "completion_audit" on the Ralph state object, for example: nomx state write --input \'{"mode":"ralph","active":false,"current_phase":"complete","completion_audit":{"passed":true,"prompt_to_artifact_checklist":["..."],"verification_evidence":["..."]}}\' --json',
       "- or set completion_audit_path / completion_audit_evidence_path to a repo-relative JSON file with those same fields.",
       "Markdown artifacts and flat top-level checklist/evidence fields are not accepted by the Ralph Stop gate.",
     ].join(" ");
@@ -9829,28 +9806,6 @@ async function buildStopHookOutput(
     ? null
     : await readActiveRalphState(cwd, stateDir, sessionId || canonicalSessionId, ralphOwnerContext);
   if (!ralphState) {
-    const autoresearchState = await readActiveAutoresearchState(cwd, canonicalSessionId);
-    if (autoresearchState) {
-      const completion = await readAutoresearchCompletionStatus(cwd, canonicalSessionId!.trim());
-      if (!completion.complete) {
-        const currentPhase = safeString(autoresearchState.current_phase ?? autoresearchState.currentPhase).trim() || 'executing';
-        const systemMessage = `OMX autoresearch is still active (phase: ${currentPhase}); continue until validator evidence is complete before stopping.`;
-        return await maybeReturnRepeatableStopOutput(
-          payload,
-          stateDir,
-          buildRepeatableStopSignature(payload, 'autoresearch-stop', `${currentPhase}|${completion.reason}`, canonicalSessionId),
-          {
-            decision: 'block',
-            reason: systemMessage,
-            stopReason: `autoresearch_${currentPhase}`,
-            systemMessage,
-          },
-          canonicalSessionId,
-          { allowRepeatDuringStopHook: true },
-        );
-      }
-    }
-
     const teamWorkerDecision = await resolveTeamWorkerStopDecision(cwd);
     if (teamWorkerDecision.kind === "blocked") {
       return await returnPersistentStopBlock(
@@ -10524,7 +10479,6 @@ export async function dispatchCodexNativeHook(
     // Codex native PreCompact currently accepts only the common continuation fields.
     // Keep the OMX lifecycle dispatch above, but do not emit `hookSpecificOutput`
     // unless Codex defines a supported PreCompact output contract.
-    buildWikiPreCompactContext({ cwd });
   } else if ((hookEventName === "SessionStart" && !skipCanonicalSessionStartContext) || hookEventName === "UserPromptSubmit") {
     const additionalContext = hookEventName === "SessionStart"
       ? await buildSessionStartContext(cwd, canonicalSessionId || nativeSessionId, {
@@ -10553,7 +10507,7 @@ export async function dispatchCodexNativeHook(
     }
   } else if (hookEventName === "PreToolUse") {
     // #3181 Phase-1 (PreToolUse): this hook fires before the shell tool call that runs
-    // the first in-turn `omx ralplan role-intent write`. On a fresh App/outside-tmux
+    // the first in-turn `nomx ralplan role-intent write`. On a fresh App/outside-tmux
     // turn where SessionStart did not establish the pointer, reconcile the canonical
     // pointer and attest the leader here so the first command can bootstrap. Strictly
     // gated to a fresh (absent-pointer) LEADER turn: no canonical session yet, a present

@@ -13,7 +13,7 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error?: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'omx.js');
+  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
   const r = spawnSync(process.execPath, [omxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
@@ -26,7 +26,7 @@ function shouldSkipForSpawnPermissions(err?: string): boolean {
   return typeof err === 'string' && /(EPERM|EACCES)/i.test(err);
 }
 
-describe('omx doctor invalid config detection', () => {
+describe('nomx doctor invalid config detection', () => {
   it('fails when config.toml contains duplicate [tui] tables', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-doctor-invalid-config-'));
     try {
@@ -113,7 +113,7 @@ theme = "base16-ocean-light"
         res.stdout,
         /\[XX\] Native hooks: hooks\.json failed strict load validation \(invalid_document\): Codex does not accept unknown root field state; inspect the file manually because doctor will not modify it/,
       );
-      assert.doesNotMatch(res.stdout, /Run "omx setup" to fix installation issues/);
+      assert.doesNotMatch(res.stdout, /Run "nomx setup" to fix installation issues/);
       assert.doesNotMatch(res.stdout, /Native hooks:.*--force/);
     } finally {
       await rm(wd, { recursive: true, force: true });

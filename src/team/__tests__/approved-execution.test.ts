@@ -42,7 +42,7 @@ function buildReadyApprovedTeamHint(
       truncated: false,
     },
     mode: 'team',
-    command: 'omx team 1:executor "Execute approved issue 1314 plan"',
+    command: 'nomx team 1:executor "Execute approved issue 1314 plan"',
     task: 'Execute approved issue 1314 plan',
     workerCount: 1,
     agentType: 'executor',
@@ -78,7 +78,7 @@ describe('approved execution binding', () => {
     assert.match(section, /\.omx\/ultragoal\/goals\.json/);
     assert.match(section, /\.omx\/ultragoal\/ledger\.jsonl/);
     assert.match(section, /G001-team-runtime-bridge/);
-    assert.match(section, /omx ultragoal checkpoint/);
+    assert.match(section, /nomx ultragoal checkpoint/);
     assert.match(section, /--codex-goal-json/);
     assert.match(section, /workers do not own Ultragoal goal state/);
     assert.match(section, /fresh_leader_get_goal_required/);
@@ -99,14 +99,14 @@ describe('approved execution binding', () => {
         await writePersistedApprovedTeamExecutionBinding('alpha-team', cwd, {
           prd_path: '  /tmp/prd-alpha.md  ',
           task: '  Execute approved alpha plan  ',
-          command: '  omx team 1:executor "Execute approved alpha plan"  ',
+          command: '  nomx team 1:executor "Execute approved alpha plan"  ',
         }, stateRoot);
 
         const binding = await readPersistedApprovedTeamExecutionBinding('alpha-team', cwd, stateRoot);
         assert.deepEqual(binding, {
           prd_path: '/tmp/prd-alpha.md',
           task: 'Execute approved alpha plan',
-          command: 'omx team 1:executor "Execute approved alpha plan"',
+          command: 'nomx team 1:executor "Execute approved alpha plan"',
         });
         assert.deepEqual(
           Object.keys(
@@ -139,13 +139,13 @@ describe('approved execution binding', () => {
         const prdPath = join(plansDir, 'prd-issue-1314.md');
         await writeFile(
           prdPath,
-          '# Approved plan\n\nLaunch via omx team 1:executor "Execute approved issue 1314 plan"\n',
+          '# Approved plan\n\nLaunch via nomx team 1:executor "Execute approved issue 1314 plan"\n',
         );
         await writeFile(join(plansDir, 'test-spec-issue-1314.md'), '# Test spec\n');
         await writePersistedApprovedTeamExecutionBinding('bound-team', cwd, {
           prd_path: prdPath,
           task: 'Execute approved issue 1314 plan',
-          command: 'omx team 1:executor "Execute approved issue 1314 plan"',
+          command: 'nomx team 1:executor "Execute approved issue 1314 plan"',
         }, stateRoot);
 
         const state = await resolvePersistedApprovedTeamExecutionContinuityState(
@@ -180,8 +180,8 @@ describe('approved execution binding', () => {
           [
             '# Approved plan',
             '',
-            `Launch via omx team 2:executor "${approvedTask}"`,
-            `Launch via omx team 5:debugger "${approvedTask}"`,
+            `Launch via nomx team 2:executor "${approvedTask}"`,
+            `Launch via nomx team 5:debugger "${approvedTask}"`,
           ].join('\n'),
         );
         await writeFile(join(plansDir, 'test-spec-issue-1316.md'), '# Test spec\n');
@@ -212,7 +212,7 @@ describe('approved execution binding', () => {
       const cwd = await mkdtemp(join(tmpdir(), 'omx-approved-execution-command-'));
       const stateRoot = join(cwd, '.omx', 'state');
       const approvedTask = 'Execute approved issue 1317 plan';
-      const exactCommand = `omx team 2:executor "${approvedTask}"`;
+      const exactCommand = `nomx team 2:executor "${approvedTask}"`;
       try {
         const plansDir = join(cwd, '.omx', 'plans');
         await mkdir(plansDir, { recursive: true });
@@ -223,7 +223,7 @@ describe('approved execution binding', () => {
             '# Approved plan',
             '',
             `Launch via ${exactCommand}`,
-            `Launch via omx team 5:debugger "${approvedTask}"`,
+            `Launch via nomx team 5:debugger "${approvedTask}"`,
           ].join('\n'),
         );
         await writeFile(join(plansDir, 'test-spec-issue-1317.md'), '# Test spec\n');
@@ -256,7 +256,7 @@ describe('approved execution binding', () => {
       const cwd = await mkdtemp(join(tmpdir(), 'omx-approved-execution-wrapped-command-'));
       const stateRoot = join(cwd, '.omx', 'state');
       const approvedTask = 'Execute approved issue 1317 wrapped plan';
-      const exactCommand = `omx team 2:executor "${approvedTask}"`;
+      const exactCommand = `nomx team 2:executor "${approvedTask}"`;
       try {
         const plansDir = join(cwd, '.omx', 'plans');
         await mkdir(plansDir, { recursive: true });
@@ -266,10 +266,10 @@ describe('approved execution binding', () => {
           [
             '# Approved plan',
             '',
-            'Launch via omx team',
+            'Launch via nomx team',
             '2:executor',
             JSON.stringify(approvedTask),
-            `Launch via omx team 5:debugger "${approvedTask}"`,
+            `Launch via nomx team 5:debugger "${approvedTask}"`,
           ].join('\n'),
         );
         await writeFile(join(plansDir, 'test-spec-issue-1317-wrapped.md'), '# Test spec\n');
@@ -307,12 +307,12 @@ describe('approved execution binding', () => {
         const prdPath = join(plansDir, 'prd-issue-1318.md');
         await writeFile(
           prdPath,
-          '# Approved plan\n\nLaunch via omx team 1:executor "Execute approved issue 1318 plan"\n',
+          '# Approved plan\n\nLaunch via nomx team 1:executor "Execute approved issue 1318 plan"\n',
         );
         await writePersistedApprovedTeamExecutionBinding('bound-team', cwd, {
           prd_path: prdPath,
           task: 'Execute approved issue 1318 plan',
-          command: 'omx team 1:executor "Execute approved issue 1318 plan"',
+          command: 'nomx team 1:executor "Execute approved issue 1318 plan"',
         }, stateRoot);
 
         const state = await resolvePersistedApprovedTeamExecutionContinuityState(

@@ -59,11 +59,11 @@ type HintSelection =
 
 const STEMS = ['alpha', 'beta', 'gamma', 'zeta'] as const;
 const RALPH_SHARED_TASK = 'Execute shared Ralph lineage matrix handoff';
-const RALPH_COMMAND = `omx ralph ${JSON.stringify(RALPH_SHARED_TASK)}`;
+const RALPH_COMMAND = `nomx ralph ${JSON.stringify(RALPH_SHARED_TASK)}`;
 const RALPH_DUPLICATE_COMMAND = `$ralph ${JSON.stringify(RALPH_SHARED_TASK)}`;
 const TEAM_SHARED_TASK = 'Execute shared Team lineage matrix handoff';
 const TEAM_COMMANDS = {
-  A: `omx team 3:executor ${JSON.stringify(TEAM_SHARED_TASK)}`,
+  A: `nomx team 3:executor ${JSON.stringify(TEAM_SHARED_TASK)}`,
   ADuplicate: `$team 3:executor ${JSON.stringify(TEAM_SHARED_TASK)}`,
   B: `$team ralph 5:debugger ${JSON.stringify(TEAM_SHARED_TASK)}`,
 } as const;

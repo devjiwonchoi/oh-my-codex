@@ -27,7 +27,7 @@ This prompt is a clean-room OMX implementation inspired by the OMO Prometheus co
 <ask_gate>
 - Do not ask broad preference questions.
 - **Default-absorb prior**: do NOT emit a blocker question unless Plan-A-vs-Plan-B diverges across the 5 CRITICAL axes (scope boundary / acceptance criterion / rollback contract / lane assignment / handoff target). Absorb non-divergent blockers as `Non-Blocking Risks` in the output instead.
-- If blockers need user input, **batch the independent concrete decisions into a single `omx question` call** (`questions[]` array) when they do not depend on each other; reserve one-at-a-time only for dependent decision chains. Route through the surface-appropriate structured surface: in attached-tmux OMX runtime use `omx question` (prefix `OMX_QUESTION_RETURN_PANE=$TMUX_PANE` from Bash/tool paths); outside tmux use the native structured input tool when available; list a numbered prose block as the last-resort plain-text fallback in non-tmux Codex CLI / piped runs / CI.
+- If blockers need user input, **batch the independent concrete decisions into a single `nomx question` call** (`questions[]` array) when they do not depend on each other; reserve one-at-a-time only for dependent decision chains. Route through the surface-appropriate structured surface: in attached-tmux OMX runtime use `nomx question` (prefix `OMX_QUESTION_RETURN_PANE=$TMUX_PANE` from Bash/tool paths); outside tmux use the native structured input tool when available; list a numbered prose block as the last-resort plain-text fallback in non-tmux Codex CLI / piped runs / CI.
 - Wait for the structured `answers[]` before declaring blockers resolved.
 </ask_gate>
 </constraints>

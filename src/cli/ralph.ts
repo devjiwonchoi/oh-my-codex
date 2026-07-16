@@ -14,12 +14,12 @@ import {
   LEADER_CONDUCTOR_REUSE_AND_LEDGER_GUIDANCE,
 } from '../leader/contract.js';
 
-export const RALPH_HELP = `omx ralph - Launch Codex with ralph persistence mode active
+export const RALPH_HELP = `nomx ralph - Launch Codex with ralph persistence mode active
 
 Usage:
-  omx ralph [task text...]
-  omx ralph --prd "<task text>"
-  omx ralph [ralph-options] [codex-args...] [task text...]
+  nomx ralph [task text...]
+  nomx ralph --prd "<task text>"
+  nomx ralph [ralph-options] [codex-args...] [task text...]
 
 Options:
   --help, -h           Show this help message
@@ -34,10 +34,10 @@ PRD mode:
   does not imply \`--prd\` or the PRD.json startup gate.
 
 Common patterns:
-  omx ralph "Fix flaky notify-hook tests"
-  omx ralph --prd "Ship release checklist automation"
-  omx ralph --model gpt-5 "Refactor state hydration"
-  omx ralph -- --task-with-leading-dash
+  nomx ralph "Fix flaky notify-hook tests"
+  nomx ralph --prd "Ship release checklist automation"
+  nomx ralph --model gpt-5 "Refactor state hydration"
+  nomx ralph -- --task-with-leading-dash
 `;
 
 const VALUE_TAKING_FLAGS = new Set(['--model', '--provider', '--config', '-c', '-i', '--images-dir']);
@@ -116,7 +116,7 @@ export function assertRequiredRalphPrdJson(cwd: string, args: readonly string[])
 
   const requiredPath = join(cwd, REQUIRED_RALPH_PRD_JSON_PATH);
   if (!existsSync(requiredPath)) {
-    throw new Error(`[ralph] Missing required PRD.json at ${REQUIRED_RALPH_PRD_JSON_PATH}. Create the file before running \`omx ralph --prd ...\`.`);
+    throw new Error(`[ralph] Missing required PRD.json at ${REQUIRED_RALPH_PRD_JSON_PATH}. Create the file before running \`nomx ralph --prd ...\`.`);
   }
 
   readAndValidateRequiredRalphPrdJson(cwd);

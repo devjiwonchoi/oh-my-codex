@@ -903,7 +903,7 @@ async function main() {
     }
   }
 
-  // 4. Write HUD state summary for `omx hud` (lead session only)
+  // 4. Write HUD state summary for `nomx hud` (lead session only)
   if (!isTeamWorker && canWriteLeaderScopedState) {
     try {
       const scope = leaderWriteDecision?.scope;

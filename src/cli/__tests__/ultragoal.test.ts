@@ -121,7 +121,7 @@ describe('cli/ultragoal', () => {
       try {
         const help = await capture(() => ultragoalCommand(['help']));
         assert.equal(help.exitCode, undefined);
-        assert.match(help.stdout.join('\n'), /omx ultragoal/);
+        assert.match(help.stdout.join('\n'), /nomx ultragoal/);
 
         const status = await capture(() => ultragoalCommand(['status']));
         assert.equal(status.exitCode, undefined);
@@ -164,7 +164,7 @@ describe('cli/ultragoal', () => {
       assert.match(output, /Codex goal = the whole ultragoal run/);
       assert.match(output, /does not call \/goal clear/);
       assert.match(output, /After a completed aggregate run/);
-      assert.match(output, /omx ultragoal checkpoint --goal-id G001-first-milestone --status complete/);
+      assert.match(output, /nomx ultragoal checkpoint --goal-id G001-first-milestone --status complete/);
 
       const goals = JSON.parse(await readFile(join(cwd, '.omx/ultragoal/goals.json'), 'utf-8')) as { activeGoalId?: string; codexGoalMode?: string; codexObjective?: string };
       assert.equal(goals.activeGoalId, 'G001-first-milestone');

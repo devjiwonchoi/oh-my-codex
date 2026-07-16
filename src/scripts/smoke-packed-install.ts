@@ -37,8 +37,8 @@ export {
 export const PACKED_INSTALL_SMOKE_CORE_COMMANDS = [
   ['--help'],
   ['version'],
-  ['api', '--help'],
-  ['sparkshell', '--help'],
+  ['doctor'],
+  ['list'],
 ] as const;
 
 export const MANAGED_CODEX_HOOK_EVENTS = [
@@ -1205,7 +1205,7 @@ function usage(): string {
   return [
     'Usage: node scripts/smoke-packed-install.mjs',
     '',
-    'Creates an npm tarball, installs it into an isolated prefix, and smoke tests the installed omx CLI.',
+    'Creates an npm tarball, installs it into an isolated prefix, and smoke tests the installed nomx CLI.',
     'Release smoke validates installed CLI boot, native-hook dispatch, and the isolated setup/rerun/uninstall lifecycle; Codex trust checks run when the pinned CLI is present.',
   ].join('\n');
 }
@@ -2064,7 +2064,7 @@ async function main(): Promise<void> {
 
     run('npm', ['install', '-g', tarballPath, '--prefix', prefixDir], { cwd: repoRoot });
 
-    const omxPath = join(prefixDir, process.platform === 'win32' ? '' : 'bin', npmBinName('omx'));
+    const omxPath = join(prefixDir, process.platform === 'win32' ? '' : 'bin', npmBinName('nomx'));
     for (const argv of PACKED_INSTALL_SMOKE_CORE_COMMANDS) {
       run(omxPath, argv, { cwd: repoRoot });
     }

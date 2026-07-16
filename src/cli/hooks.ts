@@ -9,13 +9,13 @@ import type { HookPluginDescriptor } from '../hooks/extensibility/types.js';
 
 const HELP = `
 Usage:
-  omx hooks init       Create .omx/hooks/sample-plugin.mjs scaffold
-  omx hooks status     Show plugin directory + discovered plugins
-  omx hooks validate   Validate plugin exports/signatures
-  omx hooks test       Dispatch synthetic turn-complete event to plugins
+  nomx hooks init       Create .omx/hooks/sample-plugin.mjs scaffold
+  nomx hooks status     Show plugin directory + discovered plugins
+  nomx hooks validate   Validate plugin exports/signatures
+  nomx hooks test       Dispatch synthetic turn-complete event to plugins
 
 Notes:
-  - This command is additive. Existing \`omx tmux-hook\` behavior is unchanged.
+  - This command is additive. Existing \`nomx tmux-hook\` behavior is unchanged.
   - Plugins are enabled by default. Disable with OMX_HOOK_PLUGINS=0.
 `;
 
@@ -124,7 +124,7 @@ async function validateHooks(): Promise<void> {
   const cwd = process.cwd();
   const plugins = await discoverHookPlugins(cwd);
   if (plugins.length === 0) {
-    console.log('No plugins found. Run: omx hooks init');
+    console.log('No plugins found. Run: nomx hooks init');
     return;
   }
 

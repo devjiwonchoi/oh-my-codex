@@ -1,5 +1,5 @@
 /**
- * omx setup - Automated installation of oh-my-codex
+ * nomx setup - Automated installation of oh-my-codex
  * Installs skills, prompts, MCP servers config, and AGENTS.md
  */
 
@@ -264,7 +264,7 @@ const PROJECT_GITIGNORE_ENTRIES = [
 	"!.codex/prompts/**",
 ] as const;
 const LEGACY_PROJECT_GITIGNORE_ENTRIES = [".codex/"] as const;
-const SETUP_ONLY_INSTALLABLE_SKILLS = new Set(["wiki"]);
+const SETUP_ONLY_INSTALLABLE_SKILLS = new Set<string>();
 const DEFAULT_SETUP_MCP_MODE: SetupMcpMode = "none";
 const SKIP_NATIVE_AGENT_REFRESH_ENV = "OMX_SKIP_NATIVE_AGENT_REFRESH";
 const HARD_DEPRECATED_SKILL_NAMES = new Set(["web-clone"]);
@@ -353,7 +353,7 @@ function applyTeamModeToAgentsTemplate(content: string, teamMode: SetupTeamMode)
 			if (normalized.includes("reserve `worker`")) return false;
 			if (normalized.includes("worker` is a team-runtime")) return false;
 			if (normalized.includes("team-plan")) return false;
-			if (normalized.includes("omx team")) return false;
+			if (normalized.includes("nomx team")) return false;
 			return true;
 		})
 		.join("\n")
@@ -4398,10 +4398,10 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 	if (isTeamModeEnabled) {
 		const teamToolsCheck = await verifyTeamCliApiInterop(pkgRoot);
 		if (teamToolsCheck.ok) {
-			console.log("  omx team api command detected (CLI-first interop ready)");
+			console.log("  nomx team api command detected (CLI-first interop ready)");
 		} else {
 			console.log(`  WARNING: ${teamToolsCheck.message}`);
-			console.log("  Run `npm run build` and then re-run `omx setup`.");
+			console.log("  Run `npm run build` and then re-run `nomx setup`.");
 		}
 	} else {
 		console.log("  Skipped because Team mode is disabled for this setup.");
@@ -4459,7 +4459,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 					) {
 						summary.agentsMd.skipped += 1;
 						console.log(
-							"  WARNING: Active omx session detected (pid " +
+							"  WARNING: Active nomx session detected (pid " +
 								activeSession?.pid +
 								").",
 						);
@@ -4507,7 +4507,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 				) {
 					summary.agentsMd.skipped += 1;
 					console.log(
-						"  WARNING: Active omx session detected (pid " +
+						"  WARNING: Active nomx session detected (pid " +
 							activeSession?.pid +
 							").",
 					);
@@ -4601,7 +4601,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 						`  WARNING: Existing AGENTS.md at ${agentsMdDst} lacks OMX contract markers; it may have been overwritten by another tool.`,
 					);
 					console.log(
-						`  Repair safely with "omx setup ${scopeFlag} --merge-agents" to preserve local guidance, or "omx setup ${scopeFlag} --force" to replace it after backup.`,
+						`  Repair safely with "nomx setup ${scopeFlag} --merge-agents" to preserve local guidance, or "nomx setup ${scopeFlag} --force" to replace it after backup.`,
 					);
 				}
 				if (effectiveMergeAgents) {
@@ -4638,7 +4638,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 			) {
 				summary.agentsMd.skipped += 1;
 				console.log(
-					"  WARNING: Active omx session detected (pid " +
+					"  WARNING: Active nomx session detected (pid " +
 						activeSession?.pid +
 						").",
 				);
@@ -4798,7 +4798,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		{ dryRun, verbose },
 	);
 
-	console.log('Setup complete! Run "omx doctor" to verify installation.');
+	console.log('Setup complete! Run "nomx doctor" to verify installation.');
 	console.log("\nNext steps:");
 	console.log("  1. Start Codex CLI in your project directory");
 	if (isPluginInstallMode) {
@@ -4826,9 +4826,6 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 			"  5. Native agent role TOML files written to .codex/agents/; use explicit agent_type when spawning OMX roles",
 		);
 	}
-	console.log(
-		'  6. "omx explore" and "omx sparkshell" can hydrate native release binaries on first use; source installs still allow repo-local fallbacks and OMX_EXPLORE_BIN / OMX_SPARKSHELL_BIN overrides',
-	);
 	if (isGitHubCliConfigured()) {
 		console.log("\nSupport the project: gh repo star Yeachan-Heo/oh-my-codex");
 	}

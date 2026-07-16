@@ -1237,7 +1237,7 @@ describe('runImmediateUpdate failure diagnostics', () => {
       assert.equal(refreshCalls, 0);
       assert.match(logs.join('\n'), /Update failed while running npm install -g oh-my-codex@latest/);
       assert.match(logs.join('\n'), /npm stderr: EPERM: file is locked/);
-      assert.match(logs.join('\n'), /npm install -g oh-my-codex@latest && omx setup/);
+      assert.match(logs.join('\n'), /npm install -g oh-my-codex@latest && nomx setup/);
     } finally {
       console.log = originalLog;
       await rm(cwd, { recursive: true, force: true });
@@ -1318,7 +1318,7 @@ describe('runDeferredGlobalUpdate', () => {
 
       assert.equal(result.ok, true);
       assert.equal(calls.length, 1);
-      assert.match(calls[0].args[1], /'omx' 'setup' '--scope' 'user' '--plugin' '--mcp' 'none' '--disable-team'/);
+      assert.match(calls[0].args[1], /'nomx' 'setup' '--scope' 'user' '--plugin' '--mcp' 'none' '--disable-team'/);
       assert.equal((calls[0].options as { env?: NodeJS.ProcessEnv } | undefined)?.env?.OMX_SKIP_NATIVE_AGENT_REFRESH, '1');
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -1359,7 +1359,7 @@ describe('runDeferredGlobalUpdate', () => {
 
       assert.equal(result.ok, true);
       assert.equal(calls.length, 1);
-      assert.match(calls[0].args[1], /'omx' 'setup' '--scope' 'user' '--plugin' '--mcp' 'none' '--disable-team'/);
+      assert.match(calls[0].args[1], /'nomx' 'setup' '--scope' 'user' '--plugin' '--mcp' 'none' '--disable-team'/);
       assert.doesNotMatch(calls[0].args[1], /compat/);
       assert.doesNotMatch(calls[0].args[1], /legacy/);
     } finally {
@@ -1371,12 +1371,12 @@ describe('runDeferredGlobalUpdate', () => {
     const args = ['setup', '--scope', 'user project', '--mcp', "none'; echo pwned #", '--flag', ''];
 
     assert.equal(
-      formatDeferredSetupCommand('linux', 'omx tool', args),
-      "'omx tool' 'setup' '--scope' 'user project' '--mcp' 'none'\\''; echo pwned #' '--flag' ''",
+      formatDeferredSetupCommand('linux', 'nomx tool', args),
+      "'nomx tool' 'setup' '--scope' 'user project' '--mcp' 'none'\\''; echo pwned #' '--flag' ''",
     );
     assert.equal(
-      formatDeferredSetupCommand('win32', 'omx tool', args),
-      "& 'omx tool' 'setup' '--scope' 'user project' '--mcp' 'none''; echo pwned #' '--flag' ''",
+      formatDeferredSetupCommand('win32', 'nomx tool', args),
+      "& 'nomx tool' 'setup' '--scope' 'user project' '--mcp' 'none''; echo pwned #' '--flag' ''",
     );
   });
 });
@@ -1406,7 +1406,7 @@ describe('post-update setup refresh handoff', () => {
   it('falls back to the current published CLI layout when package metadata is unavailable', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'omx-update-bin-fallback-'));
     const globalRoot = join(cwd, 'global-root');
-    const cliEntry = join(globalRoot, PACKAGE_NAME, 'dist', 'cli', 'omx.js');
+    const cliEntry = join(globalRoot, PACKAGE_NAME, 'dist', 'cli', 'nomx.js');
 
     try {
       await mkdir(dirname(cliEntry), { recursive: true });
@@ -1431,7 +1431,7 @@ describe('post-update setup refresh handoff', () => {
   it('does not impose a timeout on the interactive setup refresh handoff', () => {
     let receivedTimeout: unknown = Symbol('unset');
     const result = spawnInstalledSetupRefresh(
-      '/tmp/omx.js',
+      '/tmp/nomx.js',
       '/tmp/project',
       ((_command, _args, options) => {
         receivedTimeout = options?.timeout;
@@ -1455,7 +1455,7 @@ describe('post-update setup refresh handoff', () => {
       );
 
       const result = spawnInstalledSetupRefresh(
-        '/tmp/omx.js',
+        '/tmp/nomx.js',
         cwd,
         ((command, args) => {
           received.push({ command, args: args as string[] });
@@ -1466,7 +1466,7 @@ describe('post-update setup refresh handoff', () => {
       assert.equal(result.ok, true);
       assert.equal(received[0]?.command, process.execPath);
       assert.deepEqual(received[0]?.args, [
-        '/tmp/omx.js',
+        '/tmp/nomx.js',
         'setup',
         '--scope',
         'user',

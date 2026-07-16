@@ -34,11 +34,11 @@ function parseQuestionWaitTimeoutMs(env: NodeJS.ProcessEnv = process.env): numbe
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_QUESTION_WAIT_TIMEOUT_MS;
 }
 
-export const QUESTION_HELP = `omx question - OMX-owned blocking user question entrypoint
+export const QUESTION_HELP = `nomx question - OMX-owned blocking user question entrypoint
 
 Usage:
-  omx question --input '<json>' [--json]
-  omx question --ui --state-path <absolute-or-relative-record-path>
+  nomx question --input '<json>' [--json]
+  nomx question --ui --state-path <absolute-or-relative-record-path>
 
 Options:
   --help, -h           Show this help message
@@ -289,7 +289,7 @@ export async function questionCommand(args: string[]): Promise<void> {
     return;
   }
 
-  if (!parsed.input) throw new Error('omx question requires --input in normal mode');
+  if (!parsed.input) throw new Error('nomx question requires --input in normal mode');
 
   let rawInput: unknown;
   try {

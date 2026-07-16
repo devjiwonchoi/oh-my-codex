@@ -107,7 +107,6 @@ function isNextAutopilotPhase(
 
 export const SUPPORTED_STATE_READ_MODES = [
   'autopilot',
-  'autoresearch',
   'team',
   'ralph',
   'ultrawork',

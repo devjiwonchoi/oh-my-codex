@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const NOTICE_NAME = 'Legacy OMX context defaults';
 const NOTICE_COPY =
-  'config.toml contains unchanged OMX-seeded context defaults; rerun "omx setup" to migrate them. Doctor did not rewrite config.';
+  'config.toml contains unchanged OMX-seeded context defaults; rerun "nomx setup" to migrate them. Doctor did not rewrite config.';
 const SEEDED_PAIR = [
   '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)',
   'model_context_window = 250000',
@@ -24,7 +24,7 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error?: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'omx.js');
+  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
   const result = spawnSync(process.execPath, [omxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
@@ -67,7 +67,7 @@ async function withConfig(
   }
 }
 
-describe('omx doctor seeded context defaults diagnostic', () => {
+describe('nomx doctor seeded context defaults diagnostic', () => {
   it('emits one read-only migration notice only for the unchanged exact OMX-owned pair', async () => {
     await withConfig(`${SEEDED_PAIR}\n`, async ({ wd, home, codexDir, configPath }) => {
       const before = await readFile(configPath, 'utf-8');

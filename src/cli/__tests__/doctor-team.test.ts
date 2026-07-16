@@ -13,7 +13,7 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error?: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'omx.js');
+  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
   const r = spawnSync(process.execPath, [omxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
@@ -35,7 +35,7 @@ async function createFakeTmuxBin(wd: string, script: string): Promise<string> {
   return fakeBin;
 }
 
-describe('omx doctor --team', () => {
+describe('nomx doctor --team', () => {
   it('exits non-zero and prints resume_blocker when team state references missing tmux session', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-doctor-team-'));
     try {

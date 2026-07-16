@@ -763,7 +763,6 @@ export function buildPlanningGateLogEvent(
 
 export const TRACKED_WORKFLOW_MODES = [
   'autopilot',
-  'autoresearch',
   'team',
   'ultragoal',
   'ralph',
@@ -783,7 +782,6 @@ const ALLOWED_OVERLAP_PAIRS = new Set([
 
 const AUTO_COMPLETE_TRANSITIONS = new Set([
   'deep-interview->autopilot',
-  'deep-interview->autoresearch',
   'deep-interview->ralph',
   'deep-interview->team',
   'deep-interview->ultragoal',
@@ -792,7 +790,6 @@ const AUTO_COMPLETE_TRANSITIONS = new Set([
   'ralplan->ultragoal',
   'ralplan->ralph',
   'ralplan->autopilot',
-  'ralplan->autoresearch',
   'ultragoal->ultraqa',
 ]);
 
@@ -807,7 +804,6 @@ const PLANNING_LIKE_MODES = new Set<TrackedWorkflowMode>([
 
 const EXECUTION_LIKE_MODES = new Set<TrackedWorkflowMode>([
   'autopilot',
-  'autoresearch',
   'team',
   'ultragoal',
   'ralph',
@@ -968,14 +964,14 @@ export function buildWorkflowTransitionError(
       `Cannot ${action} ${requestedMode}: ${activeModesMessage}.`,
       'Execution-to-planning rollback auto-complete is not allowed.',
       'First clear current state first and retry if this action is intended.',
-      `Clear incompatible workflow state yourself via \`omx state clear --input '{"mode":"<mode>"}' --json\`; if explicit MCP compatibility is enabled, \`omx_state.*\` tools are also acceptable.`,
+      `Clear incompatible workflow state yourself via \`nomx state clear --input '{"mode":"<mode>"}' --json\`; if explicit MCP compatibility is enabled, \`omx_state.*\` tools are also acceptable.`,
     ].join(' ');
   }
   return [
     `Cannot ${action} ${requestedMode}: ${activeModesMessage}.`,
     `Unsupported workflow overlap: ${overlap}.`,
     'Current state is unchanged.',
-    `Clear incompatible workflow state yourself via \`omx state clear --input '{"mode":"<mode>"}' --json\`; if explicit MCP compatibility is enabled, \`omx_state.*\` tools are also acceptable.`,
+    `Clear incompatible workflow state yourself via \`nomx state clear --input '{"mode":"<mode>"}' --json\`; if explicit MCP compatibility is enabled, \`omx_state.*\` tools are also acceptable.`,
   ].join(' ');
 }
 
@@ -1007,7 +1003,7 @@ export async function readActiveWorkflowModes(
         break;
       } catch {
         throw new Error(
-          `Cannot read ${mode} workflow state at ${candidatePath}. Repair or clear that workflow state yourself via \`omx state clear --input '{"mode":"${mode}"}' --json\`; if explicit MCP compatibility is enabled, \`omx_state.*\` tools are also acceptable.`,
+          `Cannot read ${mode} workflow state at ${candidatePath}. Repair or clear that workflow state yourself via \`nomx state clear --input '{"mode":"${mode}"}' --json\`; if explicit MCP compatibility is enabled, \`omx_state.*\` tools are also acceptable.`,
         );
       }
     }

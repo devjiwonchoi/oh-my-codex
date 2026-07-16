@@ -180,15 +180,15 @@ export function resolveLeaderStalenessThresholdMs() {
 }
 
 function buildStatusCheckReminder(teamName) {
-  return `Next: check messages; keep orchestrating; if done, gracefully shut down: omx team shutdown ${teamName}.`;
+  return `Next: check messages; keep orchestrating; if done, gracefully shut down: nomx team shutdown ${teamName}.`;
 }
 
 function buildMailboxCheckReminder(teamName) {
-  return `Next: read messages; keep orchestrating; if done, gracefully shut down: omx team shutdown ${teamName}.`;
+  return `Next: read messages; keep orchestrating; if done, gracefully shut down: nomx team shutdown ${teamName}.`;
 }
 
 function buildWorkerStartEvidenceReminder(teamName, workerName) {
-  return `Next: check ${workerName} msg/output, confirm task in omx team status ${teamName}, then reassign/nudge.`;
+  return `Next: check ${workerName} msg/output, confirm task in nomx team status ${teamName}, then reassign/nudge.`;
 }
 
 function buildLeaderActionGuidance(teamName, {
@@ -208,10 +208,10 @@ function buildLeaderActionGuidance(teamName, {
       : 'Next: launch a new team for the next task set.';
   }
   if (leaderActionState === 'done_waiting_on_leader') {
-    return `Next: decide whether to reconcile/merge results or gracefully shut down: omx team shutdown ${teamName}.`;
+    return `Next: decide whether to reconcile/merge results or gracefully shut down: nomx team shutdown ${teamName}.`;
   }
   if (leaderActionState === 'stuck_waiting_on_leader') {
-    return `Next: omx team status ${teamName}; read worker messages; unblock/reassign or shutdown.`;
+    return `Next: nomx team status ${teamName}; read worker messages; unblock/reassign or shutdown.`;
   }
   return buildStatusCheckReminder(teamName);
 }

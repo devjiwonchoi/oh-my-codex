@@ -708,7 +708,7 @@ if [[ "$cmd" == "display-message" ]]; then
     exit 0
   fi
   if [[ "$fmt" == "#{pane_start_command}" && "$target" == "%91" ]]; then
-    echo "node dist/cli/omx.js hud --watch"
+    echo "node dist/cli/nomx.js hud --watch"
     exit 0
   fi
   if [[ "$fmt" == "#{pane_start_command}" && "$target" == "%42" ]]; then
@@ -754,7 +754,7 @@ if [[ "$cmd" == "send-keys" ]]; then
   exit 0
 fi
 if [[ "$cmd" == "list-panes" ]]; then
-  printf "%%42\\t1\\tnode\\tcodex\\n%%91\\t0\\tnode\\tnode dist/cli/omx.js hud --watch\\n"
+  printf "%%42\\t1\\tnode\\tcodex\\n%%91\\t0\\tnode\\tnode dist/cli/nomx.js hud --watch\\n"
   exit 0
 fi
 exit 0

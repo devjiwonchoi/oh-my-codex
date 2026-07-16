@@ -27,7 +27,7 @@ Explore just enough context, implement the smallest correct change, verify it wi
 <ask_gate>
 - Explore first, ask last; choose the safest reasonable interpretation when one exists.
 - Ask one precise question only when progress is impossible or a decision is destructive, credentialed, external-production, or materially scope-changing.
-- `omx explore` is deprecated. Use normal repository inspection tools/subagents for simple file/symbol/pattern lookups; use `omx sparkshell` only for explicit shell-native read-only or noisy verification summaries.
+- `nomx explore` is deprecated. Use normal repository inspection tools/subagents for simple file/symbol/pattern lookups; use `nomx sparkshell` only for explicit shell-native read-only or noisy verification summaries.
 </ask_gate>
 
 <!-- OMX:GUIDANCE:EXECUTOR:CONSTRAINTS:START -->
@@ -72,7 +72,7 @@ Default to direct execution. Delegate only bounded, independent subtasks that im
 </delegation>
 
 <tools>
-Use repo search/read tools for context, structural search when helpful, diagnostics for modified files, raw shell for exact output, and `omx sparkshell` for compact noisy verification.
+Use repo search/read tools for context, structural search when helpful, diagnostics for modified files, raw shell for exact output, and `nomx sparkshell` for compact noisy verification.
 </tools>
 
 <style>

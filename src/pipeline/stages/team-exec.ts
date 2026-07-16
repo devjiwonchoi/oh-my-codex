@@ -300,7 +300,7 @@ function buildTeamRuntimeCliLaunchInput(descriptor: TeamExecDescriptor): TeamRun
 /**
  * Create a team-exec pipeline stage.
  *
- * This stage delegates to the existing `omx team` infrastructure, which
+ * This stage delegates to the existing `nomx team` infrastructure, which
  * starts real Codex CLI workers in tmux panes. When RALPLAN names a
  * concrete approved PRD handoff, team-exec reuses that exact task text;
  * otherwise it stays on the generic request-task path.
@@ -385,7 +385,7 @@ export interface TeamExecDescriptor {
 }
 
 /**
- * Build the `omx team` CLI instruction from a descriptor.
+ * Build the `nomx team` CLI instruction from a descriptor.
  */
 export function buildTeamInstruction(
   descriptor: TeamExecDescriptor,

@@ -85,7 +85,7 @@ exit 1
 
         await assert.rejects(
           () => startMode('autopilot', 'test', 1, wd),
-          /repair or clear that workflow state yourself via `omx state clear --input '\{"mode":"ralph"\}' --json`/i,
+          /repair or clear that workflow state yourself via `nomx state clear --input '\{"mode":"ralph"\}' --json`/i,
         );
       } finally {
         await rm(wd, { recursive: true, force: true });

@@ -1,6 +1,6 @@
 /**
  * Idempotency tests for config.toml generator (issue #384)
- * Verifies that repeated `omx setup` runs do not duplicate OMX sections.
+ * Verifies that repeated `nomx setup` runs do not duplicate OMX sections.
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -521,7 +521,7 @@ describe("config generator idempotency (#384)", () => {
         "",
         "# ============================================================",
         "# oh-my-codex (OMX) Configuration",
-        "# Managed by omx setup",
+        "# Managed by nomx setup",
         "# ============================================================",
         "",
         "[mcp_servers.omx_state]",
@@ -1079,7 +1079,7 @@ describe("config generator idempotency (#384)", () => {
     const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
-      // Simulate a broken config left by an older omx setup: an orphaned
+      // Simulate a broken config left by an older nomx setup: an orphaned
       // [tui] outside the OMX block AND another [tui] inside the block.
       const broken = [
         '[mcp_servers.figma]',
@@ -1094,7 +1094,7 @@ describe("config generator idempotency (#384)", () => {
         '',
         '# ============================================================',
         '# oh-my-codex (OMX) Configuration',
-        '# Managed by omx setup - manual edits preserved on next setup',
+        '# Managed by nomx setup - manual edits preserved on next setup',
         '# ============================================================',
         '',
         '[mcp_servers.omx_state]',
@@ -1253,7 +1253,7 @@ describe("config generator idempotency (#384)", () => {
         "",
         '# ============================================================',
         '# oh-my-codex (OMX) Configuration',
-        '# Managed by omx setup - manual edits preserved on next setup',
+        '# Managed by nomx setup - manual edits preserved on next setup',
         '# ============================================================',
         "",
         '[mcp_servers.omx_team_run]',

@@ -227,7 +227,7 @@ set -eu
 cmd="$1"
 shift || true
 if [[ "$cmd" == "list-panes" ]]; then
-  printf "%%2	1	node /pkg/dist/cli/omx.js hud --watch
+  printf "%%2	1	node /pkg/dist/cli/nomx.js hud --watch
 %%42	0	codex --model gpt-5
 "
   exit 0
@@ -296,7 +296,7 @@ exit 1
   });
 
   describe('omx', () => {
-    it('exposes only the explicit read-only omx readers', async () => {
+    it('exposes only the explicit read-only nomx readers', async () => {
       const cwd = await mkdtemp(join(tmpdir(), 'omx-sdk-'));
       try {
         const sdk = createHookPluginSdk({ cwd, pluginName: 'test', event: makeEvent() });
@@ -358,7 +358,7 @@ exit 1
       }
     });
 
-    it('reads hud, notifyFallback, and updateCheck state from root-scoped omx files', async () => {
+    it('reads hud, notifyFallback, and updateCheck state from root-scoped nomx files', async () => {
       const cwd = await mkdtemp(join(tmpdir(), 'omx-sdk-'));
       try {
         await writeOmxStateFile(cwd, 'hud-state.json', {
@@ -424,7 +424,7 @@ exit 1
       }
     });
 
-    it('returns null for missing omx reader files', async () => {
+    it('returns null for missing nomx reader files', async () => {
       const cwd = await mkdtemp(join(tmpdir(), 'omx-sdk-'));
       try {
         const sdk = createHookPluginSdk({ cwd, pluginName: 'test', event: makeEvent() });

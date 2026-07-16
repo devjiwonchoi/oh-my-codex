@@ -1151,7 +1151,7 @@ describe('state-server directory initialization', () => {
 
       assert.equal(invalidTeamWrite.isError, true);
       const body = JSON.parse(invalidTeamWrite.content[0]?.text || '{}') as { error?: string };
-      assert.match(body.error || '', /omx state/i);
+      assert.match(body.error || '', /nomx state/i);
       assert.match(body.error || '', /omx_state\.\*/i);
 
       const canonical = JSON.parse(

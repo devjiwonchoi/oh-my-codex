@@ -127,7 +127,7 @@ describe('runHudAuthorityTick', () => {
     const packageRoot = await mkdtemp(join(tmpdir(), 'omx-hud-package-root-no-dist-'));
     const cwd = await mkdtemp(join(tmpdir(), 'omx-hud-authority-entry-fallback-'));
     const cliRoot = await mkdtemp(join(tmpdir(), 'omx-cli-root-'));
-    const entryPath = join(cliRoot, 'dist', 'cli', 'omx.js');
+    const entryPath = join(cliRoot, 'dist', 'cli', 'nomx.js');
     const watcherPath = join(cliRoot, 'dist', 'scripts', 'notify-fallback-watcher.js');
     const hookPath = join(cliRoot, 'dist', 'scripts', 'notify-hook.js');
     try {

@@ -90,7 +90,7 @@ describe('checkSparkRouting', () => {
     const result = checkSparkRouting(makePaths(workDir));
     assert.equal(result.status, 'warn');
     assert.match(result.message, /explore\.toml is missing/);
-    assert.match(result.message, /omx setup --force/);
+    assert.match(result.message, /nomx setup --force/);
   });
 
   it('warns when the installed model diverges from the resolved Spark model', () => {

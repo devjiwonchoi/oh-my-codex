@@ -116,12 +116,12 @@ export function buildHermesServerTools() {
     },
     {
       name: "hermes_list_artifacts",
-      description: "List known safe result artifact files under .omx plans/specs/goals/context/reports.",
+      description: "List known safe result artifact files under .nomx plans/specs/goals/context/reports.",
       inputSchema: { type: "object", properties: { workingDirectory, limit: { type: "number" } } },
     },
     {
       name: "hermes_read_artifact",
-      description: "Read one safe .omx result artifact by relative path with byte truncation.",
+      description: "Read one safe .nomx result artifact by relative path with byte truncation.",
       inputSchema: {
         type: "object",
         properties: { workingDirectory, path: { type: "string" }, max_bytes: { type: "number" } },

@@ -67,8 +67,8 @@ Durable OMX source of truth:
 
 Source-of-truth rules:
 - Existing team task files and claim lifecycle remain authoritative; this worker goal must reference task IDs ${instruction.taskIds.join(", ")} instead of creating a duplicate task list.
-- Claim each task with \`omx team api claim-task\` before editing; use the task file claim/status as the current assignment record.
-- Record completion evidence through \`omx team api transition-task-status\`; leader audit owns aggregate team completion.
+- Claim each task with \`nomx team api claim-task\` before editing; use the task file claim/status as the current assignment record.
+- Record completion evidence through \`nomx team api transition-task-status\`; leader audit owns aggregate team completion.
 
 Assigned task/claim references:
 ${taskLines}

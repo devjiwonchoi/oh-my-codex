@@ -18,7 +18,6 @@ import {
   markMessageDelivered as markMessageDeliveredImpl,
   markMessageNotified as markMessageNotifiedImpl,
   listMailboxMessages as listMailboxMessagesImpl,
-  normalizeBridgeMailboxMessage,
 } from './state/mailbox.js';
 import {
   enqueueDispatchRequest as enqueueDispatchRequestImpl,
@@ -27,7 +26,6 @@ import {
   transitionDispatchRequest as transitionDispatchRequestImpl,
   markDispatchRequestNotified as markDispatchRequestNotifiedImpl,
   markDispatchRequestDelivered as markDispatchRequestDeliveredImpl,
-  normalizeBridgeDispatchRecord,
   normalizeDispatchRequest as normalizeDispatchRequestImpl,
 } from './state/dispatch.js';
 import {
@@ -51,7 +49,6 @@ import {
   withTaskClaimLock as withTaskClaimLockImpl,
   withMailboxLock as withMailboxLockImpl,
 } from './state/locks.js';
-import { getDefaultBridge, isBridgeEnabled, resolveBridgeStateDir, type DispatchRecord } from '../runtime/bridge.js';
 import {
   type TeamDispatchRequestStatus,
   TEAM_NAME_SAFE_PATTERN,
@@ -1488,36 +1485,7 @@ export async function appendTeamEvent(teamName: string, event: Omit<TeamEvent, '
 }
 
 async function readMailbox(teamName: string, workerName: string, cwd: string): Promise<TeamMailbox> {
-  const legacyMailbox = await readLegacyMailbox(teamName, workerName, cwd);
-
-  if (isBridgeEnabled()) {
-    try {
-      const bridge = getDefaultBridge(resolveBridgeStateDir(cwd));
-      const compat = bridge.readCompatFile<{ records?: unknown[] }>('mailbox.json');
-      if (compat) {
-        const legacyById = new Map(
-          legacyMailbox.messages
-            .filter((message) => typeof message.message_id === 'string' && message.message_id !== '')
-            .map((message) => [message.message_id, message]),
-        );
-        const bridgeMessages = bridge.readMailboxRecords()
-          .filter((record) => record.to_worker === workerName)
-          .map((record) => {
-            const normalized = normalizeBridgeMailboxMessage(record);
-            if (!normalized.body) {
-              const legacyMessage = legacyById.get(normalized.message_id);
-              if (legacyMessage?.body) return { ...normalized, body: legacyMessage.body };
-            }
-            return normalized;
-          });
-        return { worker: workerName, messages: bridgeMessages };
-      }
-    } catch {
-      // fall through to legacy file fallback
-    }
-  }
-
-  return legacyMailbox;
+  return readLegacyMailbox(teamName, workerName, cwd);
 }
 
 async function readLegacyMailbox(teamName: string, workerName: string, cwd: string): Promise<TeamMailbox> {
@@ -1541,21 +1509,6 @@ async function writeMailbox(teamName: string, mailbox: TeamMailbox, cwd: string)
 }
 
 async function readDispatchRequests(teamName: string, cwd: string): Promise<TeamDispatchRequest[]> {
-  if (isBridgeEnabled()) {
-    try {
-      const bridge = getDefaultBridge(resolveBridgeStateDir(cwd));
-      const compat = bridge.readCompatFile<{ records?: unknown[] }>('dispatch.json');
-      if (compat) {
-        const nowIso = new Date().toISOString();
-        return bridge.readDispatchRecords()
-          .map((record) => normalizeBridgeDispatchRecord(teamName, record, nowIso))
-          .filter((record): record is TeamDispatchRequest => record !== null);
-      }
-    } catch {
-      // fall through to legacy file fallback
-    }
-  }
-
   const path = dispatchRequestsPath(teamName, cwd);
   try {
     if (!existsSync(path)) return [];
@@ -1573,51 +1526,6 @@ async function readDispatchRequests(teamName: string, cwd: string): Promise<Team
 
 async function writeDispatchRequests(teamName: string, requests: TeamDispatchRequest[], cwd: string): Promise<void> {
   await writeAtomic(dispatchRequestsPath(teamName, cwd), JSON.stringify(requests, null, 2));
-  await writeBridgeDispatchCompat(teamName, requests, cwd);
-}
-
-function serializeDispatchRequestToBridgeRecord(request: TeamDispatchRequest): DispatchRecord {
-  return {
-    request_id: request.request_id,
-    target: request.to_worker,
-    status: request.status,
-    created_at: request.created_at,
-    notified_at: request.notified_at ?? null,
-    delivered_at: request.delivered_at ?? null,
-    failed_at: request.failed_at ?? null,
-    reason: request.last_reason ?? null,
-    metadata: {
-      kind: request.kind,
-      team_name: request.team_name,
-      worker_index: request.worker_index,
-      pane_id: request.pane_id,
-      trigger_message: request.trigger_message,
-      intent: request.intent,
-      message_id: request.message_id,
-      inbox_correlation_key: request.inbox_correlation_key,
-      transport_preference: request.transport_preference,
-      fallback_allowed: request.fallback_allowed,
-      attempt_count: request.attempt_count,
-    },
-  };
-}
-
-async function writeBridgeDispatchCompat(teamName: string, requests: TeamDispatchRequest[], cwd: string): Promise<void> {
-  if (!isBridgeEnabled()) return;
-  const stateDir = resolveBridgeStateDir(cwd);
-  const path = join(stateDir, 'dispatch.json');
-  const existing = getDefaultBridge(stateDir).readCompatFile<{ records?: DispatchRecord[] }>('dispatch.json');
-  const otherRecords = Array.isArray(existing?.records)
-    ? existing.records.filter((record) => {
-      const metadata = record?.metadata && typeof record.metadata === 'object'
-        ? record.metadata as Record<string, unknown>
-        : {};
-      const metadataTeam = typeof metadata.team_name === 'string' ? metadata.team_name.trim() : '';
-      return metadataTeam !== teamName;
-    })
-    : [];
-  const records = [...otherRecords, ...requests.map(serializeDispatchRequestToBridgeRecord)];
-  await writeAtomic(path, JSON.stringify({ records }, null, 2));
 }
 
 

@@ -4,19 +4,19 @@ import type { TeamSnapshot } from './runtime.js';
 import type { TeamTask, WorkerInfo, WorkerStatus } from './state.js';
 
 type TeamWorkerCli = Exclude<WorkerInfo['worker_cli'], undefined>;
-const DEFAULT_SPARKSHELL_TAIL_LINES = 400;
+const DEFAULT_INSPECT_TAIL_LINES = 400;
 
 export async function readTeamPaneStatus(
   config: Awaited<ReturnType<typeof readTeamConfig>>,
   cwd: string = process.cwd(),
   snapshot?: Pick<TeamSnapshot, 'teamName' | 'deadWorkers' | 'nonReportingWorkers' | 'workers' | 'tasks'>,
-  tailLines: number = DEFAULT_SPARKSHELL_TAIL_LINES,
+  tailLines: number = DEFAULT_INSPECT_TAIL_LINES,
 ): Promise<{
   leader_pane_id: string | null;
   hud_pane_id: string | null;
   worker_panes: Record<string, string>;
-  sparkshell_hint: string | null;
-  sparkshell_commands: Record<string, string>;
+  inspect_hint: string | null;
+  inspect_commands: Record<string, string>;
   recommended_inspect_targets: string[];
   recommended_inspect_reasons: Record<string, string>;
   recommended_inspect_clis: Record<string, TeamWorkerCli | null>;
@@ -159,8 +159,8 @@ export async function readTeamPaneStatus(
       leader_pane_id: null,
       hud_pane_id: null,
       worker_panes: {},
-      sparkshell_hint: null,
-      sparkshell_commands: {},
+      inspect_hint: null,
+      inspect_commands: {},
       recommended_inspect_targets: [],
       recommended_inspect_reasons: {},
       recommended_inspect_clis: {},
@@ -245,13 +245,13 @@ export async function readTeamPaneStatus(
       .filter((entry): entry is [string, string] => entry !== null),
   );
 
-  const sparkshellCommands = Object.fromEntries(
+  const inspectCommands = Object.fromEntries(
     [
-      leaderPaneId ? ['leader', `omx sparkshell --tmux-pane ${leaderPaneId} --tail-lines ${tailLines}`] : null,
-      hudPaneId ? ['hud', `omx sparkshell --tmux-pane ${hudPaneId} --tail-lines ${tailLines}`] : null,
+      leaderPaneId ? ['leader', `tmux capture-pane -p -t ${leaderPaneId} -S -${tailLines}`] : null,
+      hudPaneId ? ['hud', `tmux capture-pane -p -t ${hudPaneId} -S -${tailLines}`] : null,
       ...Object.entries(workerPanes).map(([workerName, paneId]) => [
         workerName,
-        `omx sparkshell --tmux-pane ${paneId} --tail-lines ${tailLines}`,
+        `tmux capture-pane -p -t ${paneId} -S -${tailLines}`,
       ] as const),
     ].filter((entry): entry is [string, string] => entry !== null),
   );
@@ -665,10 +665,10 @@ export async function readTeamPaneStatus(
     }),
   );
   const recommendedInspectCommand = recommendedInspectTargets.length > 0
-    ? sparkshellCommands[recommendedInspectTargets[0]!] ?? null
+    ? inspectCommands[recommendedInspectTargets[0]!] ?? null
     : null;
   const recommendedInspectCommands = recommendedInspectTargets
-    .map((target) => sparkshellCommands[target])
+    .map((target) => inspectCommands[target])
     .filter((command): command is string => typeof command === 'string' && command.length > 0);
   const recommendedInspectSummary = recommendedInspectTargets.length > 0
     ? [
@@ -692,7 +692,7 @@ export async function readTeamPaneStatus(
     : null;
   const recommendedInspectItems = recommendedInspectTargets
     .map((target) => {
-      const command = sparkshellCommands[target];
+      const command = inspectCommands[target];
       const paneId = recommendedInspectPanes[target];
       if (!command || !paneId) return null;
       return {
@@ -770,10 +770,10 @@ export async function readTeamPaneStatus(
     leader_pane_id: leaderPaneId,
     hud_pane_id: hudPaneId,
     worker_panes: workerPanes,
-    sparkshell_hint: Object.keys(workerPanes).length > 0
-      ? 'omx sparkshell --tmux-pane <pane-id> --tail-lines 400'
+    inspect_hint: Object.keys(workerPanes).length > 0
+      ? 'tmux capture-pane -p -t <pane-id> -S -400'
       : null,
-    sparkshell_commands: sparkshellCommands,
+    inspect_commands: inspectCommands,
     recommended_inspect_targets: recommendedInspectTargets,
     recommended_inspect_reasons: recommendedInspectReasons,
     recommended_inspect_clis: recommendedInspectClis,

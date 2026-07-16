@@ -183,7 +183,7 @@ describe('generateCodebaseMap', () => {
     }
   });
 
-  it('caches empty tracked-source results without exposing .omx paths', async () => {
+  it('caches empty tracked-source results without exposing .nomx paths', async () => {
     const emptyDir = await mkdtemp(join(tmpdir(), 'omx-codebase-empty-cache-'));
     try {
       execSync('git init', { cwd: emptyDir, stdio: 'ignore' });

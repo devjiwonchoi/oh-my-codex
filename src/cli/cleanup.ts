@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { resolveOmxFirstPartyMcpEntrypointForPluginTarget } from '../config/omx-first-party-mcp.js';
 
 const HELP = [
-  'Usage: omx cleanup [--dry-run]',
+  'Usage: nomx cleanup [--dry-run]',
   '',
   'Kill orphaned OMX MCP server processes and remove stale OMX /tmp directories left behind by previous Codex App sessions.',
   '',
@@ -17,7 +17,7 @@ const HELP = [
 const PROCESS_EXIT_POLL_MS = 100;
 const SIGTERM_GRACE_MS = 5_000;
 const STALE_TMP_MAX_AGE_MS = 60 * 60 * 1000;
-const OMX_MCP_ENTRYPOINT_PATTERN = /(?:^|[\\/])dist[\\/]mcp[\\/]((?:state|memory|code-intel|trace|wiki)-server\.(?:[cm]?js|ts))\b/i;
+const OMX_MCP_ENTRYPOINT_PATTERN = /(?:^|[\\/])dist[\\/]mcp[\\/]((?:state|memory|code-intel|trace)-server\.(?:[cm]?js|ts))\b/i;
 const OMX_MCP_SERVE_TARGET_PATTERN = /(?:^|\s)mcp-serve\s+([^\s]+)/i;
 const CODEX_PROCESS_PATTERN = /(?:^|[\\/\s])codex(?:\.js)?(?:\s|$)|@openai[\\/]codex/i;
 const OMX_LAUNCH_PROCESS_PATTERN = /(?:^|[\\/\s])omx(?:\.js)?(?:\s|$)|(?:^|[\\/])(?:bin|dist[\\/]cli)[\\/]omx\.js(?:\s|$)|oh-my-codex[\\/]dist[\\/]cli[\\/]omx\.js/i;

@@ -187,13 +187,13 @@ describe('resolveTeamApiOperation', () => {
 describe('buildLegacyTeamDeprecationHint', () => {
   it('produces CLI hint with resolved operation name', () => {
     const hint = buildLegacyTeamDeprecationHint('team_send_message', { team_name: 'alpha' });
-    assert.match(hint, /omx team api send-message/);
+    assert.match(hint, /nomx team api send-message/);
     assert.match(hint, /"team_name":"alpha"/);
   });
 
   it('falls back to generic hint for unresolvable legacy name', () => {
     const hint = buildLegacyTeamDeprecationHint('team_nonexistent', { foo: 'bar' });
-    assert.match(hint, /omx team api <operation>/);
+    assert.match(hint, /nomx team api <operation>/);
   });
 
   it('uses empty JSON when no args provided', () => {

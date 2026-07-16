@@ -2,22 +2,22 @@ import { readFile } from 'node:fs/promises';
 
 import { executeStateOperation, type StateOperationName } from '../state/operations.js';
 
-const STATE_HELP = `Usage: omx state <read|write|clear|list-active|get-status> [--input <json> | --input-file <path>] [--mode <mode>] [--json]
+const STATE_HELP = `Usage: nomx state <read|write|clear|list-active|get-status> [--input <json> | --input-file <path>] [--mode <mode>] [--json]
 
 Examples:
-  omx state read --input '{"mode":"ralph"}' --json
-  omx state read --mode ralph --json
-  omx state write --input '{"mode":"ralph","active":true,"current_phase":"executing"}' --json
-  omx state clear --mode ralph --json
-  omx state clear --input-file ./payload.json --json
-  omx state list-active --json
-  omx state get-status --mode ralph --json
+  nomx state read --input '{"mode":"ralph"}' --json
+  nomx state read --mode ralph --json
+  nomx state write --input '{"mode":"ralph","active":true,"current_phase":"executing"}' --json
+  nomx state clear --mode ralph --json
+  nomx state clear --input-file ./payload.json --json
+  nomx state list-active --json
+  nomx state get-status --mode ralph --json
 
 Windows note: native shells may strip the quotes from --input JSON. Use --mode for simple mode recovery or --input-file to pass JSON from a file.`;
 
 const WINDOWS_QUOTE_HINT =
-  '\nHint: on Windows native shells the quotes around --input JSON can be stripped before omx sees them. ' +
-  'Use --mode <mode> for simple recovery (e.g. `omx state read --mode ralph --json`) ' +
+  '\nHint: on Windows native shells the quotes around --input JSON can be stripped before nomx sees them. ' +
+  'Use --mode <mode> for simple recovery (e.g. `nomx state read --mode ralph --json`) ' +
   'or --input-file <path> to read JSON from a file instead.';
 
 const STATE_OPERATION_MAP: Record<string, StateOperationName> = {

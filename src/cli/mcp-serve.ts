@@ -17,9 +17,9 @@ interface McpServeCommandOptions {
 }
 
 const MCP_SERVE_USAGE = [
-  `Usage: omx ${OMX_PLUGIN_MCP_SERVE_SUBCOMMAND} <target>`,
+  `Usage: nomx ${OMX_PLUGIN_MCP_SERVE_SUBCOMMAND} <target>`,
   "",
-  "Launch an OMX stdio MCP server target via the installed omx CLI.",
+  "Launch an OMX stdio MCP server target via the installed nomx CLI.",
   "Intended for plugin-scoped MCP metadata and other runtime launchers.",
   "",
   `Supported targets: ${OMX_FIRST_PARTY_MCP_PLUGIN_TARGETS.join(", ")}`,
@@ -30,7 +30,6 @@ const MCP_SERVE_LOADERS: McpServeLoaderMap = {
   "memory-server.js": async () => await import("../mcp/memory-server.js"),
   "code-intel-server.js": async () => await import("../mcp/code-intel-server.js"),
   "trace-server.js": async () => await import("../mcp/trace-server.js"),
-  "wiki-server.js": async () => await import("../mcp/wiki-server.js"),
   "hermes-server.js": async () => await import("../mcp/hermes-server.js"),
 };
 
@@ -49,9 +48,6 @@ const MCP_SERVE_TARGET_ALIASES: Record<string, McpServeEntrypoint> = {
   trace: "trace-server.js",
   "trace-server": "trace-server.js",
   "trace-server.js": "trace-server.js",
-  wiki: "wiki-server.js",
-  "wiki-server": "wiki-server.js",
-  "wiki-server.js": "wiki-server.js",
   hermes: "hermes-server.js",
   "hermes-server": "hermes-server.js",
   "hermes-server.js": "hermes-server.js",

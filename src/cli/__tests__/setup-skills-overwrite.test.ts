@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { setup } from '../setup.js';
 
-describe('omx setup skills overwrite behavior', () => {
+describe('nomx setup skills overwrite behavior', () => {
   it('installs wiki during setup even though it is omitted from the current manifest', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-setup-skills-'));
     const previousCwd = process.cwd();

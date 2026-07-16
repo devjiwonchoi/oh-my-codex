@@ -341,36 +341,4 @@ describe("mcpParityCommand", () => {
     }
   });
 
-  it("supports wiki parity via CLI", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-mcp-parity-wiki-"));
-    const logs = captureLogs();
-
-    try {
-      await mcpParityCommand("wiki", [
-        "wiki_add",
-        "--input",
-        JSON.stringify({
-          title: "Runtime Notes",
-          content: "SessionStart uses native hooks.",
-          tags: ["runtime", "hooks"],
-          category: "architecture",
-          workingDirectory: cwd,
-        }),
-        "--json",
-      ]);
-      const addResult = JSON.parse(logs.pop() || "{}") as { totalAffected?: number };
-      assert.equal(addResult.totalAffected, 1);
-
-      await mcpParityCommand("wiki", [
-        "wiki_query",
-        "--input",
-        JSON.stringify({ query: "sessionstart", workingDirectory: cwd }),
-        "--json",
-      ]);
-      const queryResult = JSON.parse(logs.pop() || "[]") as Array<{ page?: { filename?: string } }>;
-      assert.equal(queryResult[0]?.page?.filename, "runtime-notes.md");
-    } finally {
-      await rm(cwd, { recursive: true, force: true });
-    }
-  });
 });

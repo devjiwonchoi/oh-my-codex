@@ -98,7 +98,7 @@ describe('config generator', () => {
   });
 
   it('handles paths with spaces in notify array', async () => {
-    const base = await mkdtemp(join(tmpdir(), 'omx config gen space-'));
+    const base = await mkdtemp(join(tmpdir(), 'nomx config gen space-'));
     const wd = join(base, 'pkg root');
     try {
       await mkdir(wd, { recursive: true });

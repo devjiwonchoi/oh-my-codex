@@ -1,7 +1,7 @@
 import { join } from "path";
 import type { UnifiedMcpRegistryServer } from "./mcp-registry.js";
 
-export const OMX_PLUGIN_MCP_COMMAND = "omx";
+export const OMX_PLUGIN_MCP_COMMAND = "nomx";
 export const OMX_PLUGIN_MCP_SERVE_SUBCOMMAND = "mcp-serve";
 
 type OmxFirstPartyMcpSpec = {
@@ -39,13 +39,6 @@ const OMX_FIRST_PARTY_MCP_SPECS: readonly OmxFirstPartyMcpSpec[] = [
     title: "# OMX Trace MCP Server (agent flow timeline & statistics)",
     entrypoint: "trace-server.js",
     pluginTarget: "trace",
-    startupTimeoutSec: 5,
-  },
-  {
-    name: "omx_wiki",
-    title: "# OMX Wiki MCP Server (persistent project knowledge base)",
-    entrypoint: "wiki-server.js",
-    pluginTarget: "wiki",
     startupTimeoutSec: 5,
   },
   {

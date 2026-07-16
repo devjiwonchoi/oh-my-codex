@@ -124,10 +124,10 @@ describe("deep-interview Ouroboros contract", () => {
 		assert.match(deepInterviewSkill, /\[from-research\]/i);
 		assert.match(deepInterviewSkill, /\[from-user\]/i);
 		assert.match(deepInterviewSkill, /transcript\/spec labels only/i);
-		assert.match(deepInterviewSkill, /never use them as `omx question` `source` values/i);
+		assert.match(deepInterviewSkill, /never use them as `nomx question` `source` values/i);
 		assert.match(deepInterviewSkill, /runtime `source: "deep-interview"` contract/i);
 		assert.match(deepInterviewSkill, /not interview rounds/i);
-		assert.match(deepInterviewSkill, /do not call `omx question`/i);
+		assert.match(deepInterviewSkill, /do not call `nomx question`/i);
 		assert.match(deepInterviewSkill, /do not create a pending deep-interview question obligation/i);
 		assert.match(deepInterviewSkill, /Auto-confirm only descriptive facts/i);
 		assert.match(deepInterviewSkill, /decision-bearing question to the user as `\[from-user\]`/i);
@@ -270,15 +270,15 @@ describe("deep-interview Ouroboros contract", () => {
 		assert.match(pluginDeepInterviewSkill, /Optional execution contract foundation/i);
 	});
 
-	it("documents surface-aware omx question handling and fallback boundaries", () => {
-		assert.match(deepInterviewSkill, /omx question/i);
+	it("documents surface-aware nomx question handling and fallback boundaries", () => {
+		assert.match(deepInterviewSkill, /nomx question/i);
 		assert.match(
 			deepInterviewSkill,
 			/required structured-question equivalent/i,
 		);
 		assert.match(
 			deepInterviewSkill,
-			/attached-tmux Codex CLI, deep-interview uses `omx question`/i,
+			/attached-tmux Codex CLI, deep-interview uses `nomx question`/i,
 		);
 		assert.match(
 			deepInterviewSkill,
@@ -286,7 +286,7 @@ describe("deep-interview Ouroboros contract", () => {
 		);
 		assert.match(
 			deepInterviewSkill,
-			/outside tmux and cannot render `omx question`, use (the )?native structured (question tool|input) when available/i,
+			/outside tmux and cannot render `nomx question`, use (the )?native structured (question tool|input) when available/i,
 		);
 		assert.match(
 			deepInterviewSkill,
@@ -302,7 +302,7 @@ describe("deep-interview Ouroboros contract", () => {
 		);
 	});
 
-	it("teaches canonical single-choice vs multi-answerable omx question payloads", () => {
+	it("teaches canonical single-choice vs multi-answerable nomx question payloads", () => {
 		assert.match(
 			deepInterviewSkill,
 			/Use canonical `type` values instead of authoring raw `multi_select` flags by hand/i,
@@ -349,7 +349,7 @@ describe("deep-interview Ouroboros contract", () => {
 		assert.match(deepInterviewSkill, /"value": "no-api-contract-changes"/i);
 	});
 
-	it("locks canonical omx question answer shapes for single and multi rounds", () => {
+	it("locks canonical nomx question answer shapes for single and multi rounds", () => {
 		assert.match(deepInterviewSkill, /Canonical answer-shape reminders:/i);
 		assert.match(deepInterviewSkill, /"kind": "option"/i);
 		assert.match(deepInterviewSkill, /"value": "ralplan"/i);
@@ -495,10 +495,10 @@ describe("cross-skill and AGENTS coherence for deep-interview", () => {
 	});
 
 	it("makes template AGENTS explicit about surface-aware deep-interview questioning", () => {
-		assert.match(templateAgents, /deep-interview is active in attached-tmux OMX CLI\/runtime.*`omx question`/i);
-		assert.match(templateAgents, /after launching `omx question` in a background terminal, wait for that terminal to finish and read the JSON answer before continuing/i);
+		assert.match(templateAgents, /deep-interview is active in attached-tmux OMX CLI\/runtime.*`nomx question`/i);
+		assert.match(templateAgents, /after launching `nomx question` in a background terminal, wait for that terminal to finish and read the JSON answer before continuing/i);
 		assert.match(templateAgents, /OMX_QUESTION_RETURN_PANE=\$TMUX_PANE/i);
-		assert.match(templateAgents, /Outside tmux or native surfaces that cannot render `omx question` should use the native structured question path when available/i);
+		assert.match(templateAgents, /Outside tmux or native surfaces that cannot render `nomx question` should use the native structured question path when available/i);
 		assert.match(templateAgents, /ask exactly one concise plain-text question and wait for the answer/i);
 	});
 });

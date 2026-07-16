@@ -501,12 +501,12 @@ describe("OMX launcher path resolution", () => {
     const laterCwd = await mkdtemp(join(tmpdir(), "omx-launcher-later-"));
     try {
       const launcherDir = join(startupCwd, "dist", "cli");
-      const launcherPath = join(launcherDir, "omx.js");
+      const launcherPath = join(launcherDir, "nomx.js");
       await mkdir(launcherDir, { recursive: true });
       await writeFile(launcherPath, "#!/usr/bin/env node\n", "utf-8");
 
       const resolved = resolveOmxEntryPath({
-        argv1: "dist/cli/omx.js",
+        argv1: "dist/cli/nomx.js",
         cwd: laterCwd,
         env: {
           ...process.env,
@@ -529,7 +529,7 @@ describe("OMX launcher path resolution", () => {
     const linkedStartupCwd = join(linkParent, "project-link");
     try {
       const launcherDir = join(realStartupCwd, "dist", "cli");
-      const launcherPath = join(launcherDir, "omx.js");
+      const launcherPath = join(launcherDir, "nomx.js");
       await mkdir(launcherDir, { recursive: true });
       await writeFile(launcherPath, "#!/usr/bin/env node\n", "utf-8");
       await symlink(
@@ -539,7 +539,7 @@ describe("OMX launcher path resolution", () => {
       );
 
       const resolved = resolveOmxEntryPath({
-        argv1: "dist/cli/omx.js",
+        argv1: "dist/cli/nomx.js",
         cwd: laterCwd,
         env: {
           ...process.env,
@@ -548,7 +548,7 @@ describe("OMX launcher path resolution", () => {
       });
 
       assert.equal(resolved, await realpath(launcherPath));
-      assert.notEqual(resolved, join(linkedStartupCwd, "dist", "cli", "omx.js"));
+      assert.notEqual(resolved, join(linkedStartupCwd, "dist", "cli", "nomx.js"));
     } finally {
       await rm(realRoot, { recursive: true, force: true });
       await rm(linkParent, { recursive: true, force: true });
@@ -560,14 +560,14 @@ describe("OMX launcher path resolution", () => {
     const startupCwd = await mkdtemp(join(tmpdir(), "omx-launcher-record-"));
     try {
       const launcherDir = join(startupCwd, "dist", "cli");
-      const launcherPath = join(launcherDir, "omx.js");
+      const launcherPath = join(launcherDir, "nomx.js");
       await mkdir(launcherDir, { recursive: true });
       await writeFile(launcherPath, "#!/usr/bin/env node\n", "utf-8");
 
       delete process.env[OMX_ENTRY_PATH_ENV];
       delete process.env[OMX_STARTUP_CWD_ENV];
       rememberOmxLaunchContext({
-        argv1: "dist/cli/omx.js",
+        argv1: "dist/cli/nomx.js",
         cwd: startupCwd,
         env: process.env,
       });
@@ -583,12 +583,12 @@ describe("OMX launcher path resolution", () => {
     const startupCwd = await mkdtemp(join(tmpdir(), "omx-launcher-explicit-start-"));
     try {
       const launcherDir = join(startupCwd, "dist", "cli");
-      const launcherPath = join(launcherDir, "omx.js");
+      const launcherPath = join(launcherDir, "nomx.js");
       await mkdir(launcherDir, { recursive: true });
       await writeFile(launcherPath, "#!/usr/bin/env node\n", "utf-8");
 
       const resolved = resolveOmxEntryPath({
-        argv1: "dist/cli/omx.js",
+        argv1: "dist/cli/nomx.js",
         cwd: startupCwd,
         env: {
           ...process.env,
@@ -608,7 +608,7 @@ describe("OMX launcher path resolution", () => {
     const laterCwd = await mkdtemp(join(tmpdir(), "omx-launcher-env-later-"));
     try {
       const launcherDir = join(startupCwd, "dist", "cli");
-      const launcherPath = join(launcherDir, "omx.js");
+      const launcherPath = join(launcherDir, "nomx.js");
       await mkdir(launcherDir, { recursive: true });
       await writeFile(launcherPath, "#!/usr/bin/env node\n", "utf-8");
 
@@ -616,7 +616,7 @@ describe("OMX launcher path resolution", () => {
         cwd: laterCwd,
         env: {
           ...process.env,
-          [OMX_ENTRY_PATH_ENV]: "dist/cli/omx.js",
+          [OMX_ENTRY_PATH_ENV]: "dist/cli/nomx.js",
           [OMX_STARTUP_CWD_ENV]: startupCwd,
         },
       });
@@ -631,17 +631,17 @@ describe("OMX launcher path resolution", () => {
   it("replaces stale ambient OMX_ENTRY_PATH when recording an explicit launcher argv1", async () => {
     const startupCwd = await mkdtemp(join(tmpdir(), "omx-launcher-explicit-record-"));
     const env: NodeJS.ProcessEnv = {
-      [OMX_ENTRY_PATH_ENV]: "/opt/homebrew/lib/node_modules/oh-my-codex/dist/cli/omx.js",
+      [OMX_ENTRY_PATH_ENV]: "/opt/homebrew/lib/node_modules/oh-my-codex/dist/cli/nomx.js",
       [OMX_STARTUP_CWD_ENV]: startupCwd,
     };
     try {
       const launcherDir = join(startupCwd, "dist", "cli");
-      const launcherPath = join(launcherDir, "omx.js");
+      const launcherPath = join(launcherDir, "nomx.js");
       await mkdir(launcherDir, { recursive: true });
       await writeFile(launcherPath, "#!/usr/bin/env node\n", "utf-8");
 
       rememberOmxLaunchContext({
-        argv1: "dist/cli/omx.js",
+        argv1: "dist/cli/nomx.js",
         cwd: startupCwd,
         env,
       });
@@ -658,7 +658,7 @@ describe("OMX launcher path resolution", () => {
     const originalArgv1 = process.argv[1];
     try {
       const launcherDir = join(startupCwd, "dist", "cli");
-      const launcherPath = join(launcherDir, "omx.js");
+      const launcherPath = join(launcherDir, "nomx.js");
       await mkdir(launcherDir, { recursive: true });
       await writeFile(launcherPath, "#!/usr/bin/env node\n", "utf-8");
 
@@ -686,7 +686,7 @@ describe("OMX launcher path resolution", () => {
       const hookDir = join(startupCwd, "dist", "scripts");
       const hookPath = join(hookDir, "codex-native-hook.js");
       const cliDir = join(packageRootDir, "dist", "cli");
-      const cliPath = join(cliDir, "omx.js");
+      const cliPath = join(cliDir, "nomx.js");
       await mkdir(hookDir, { recursive: true });
       await mkdir(cliDir, { recursive: true });
       await writeFile(hookPath, "#!/usr/bin/env node\n", "utf-8");
@@ -713,12 +713,12 @@ describe("OMX launcher path resolution", () => {
     const startupCwd = await mkdtemp(join(tmpdir(), "omx-launcher-cli-direct-start-"));
     try {
       const cliDir = join(startupCwd, "dist", "cli");
-      const cliPath = join(cliDir, "omx.js");
+      const cliPath = join(cliDir, "nomx.js");
       await mkdir(cliDir, { recursive: true });
       await writeFile(cliPath, "#!/usr/bin/env node\n", "utf-8");
 
       const resolved = resolveOmxCliEntryPath({
-        argv1: "dist/cli/omx.js",
+        argv1: "dist/cli/nomx.js",
         cwd: startupCwd,
         env: {
           ...process.env,
@@ -738,7 +738,7 @@ describe("OMX launcher path resolution", () => {
     try {
       const hostPath = join(startupCwd, "codex-host");
       const cliDir = join(packageRootDir, "dist", "cli");
-      const cliPath = join(cliDir, "omx.js");
+      const cliPath = join(cliDir, "nomx.js");
       await writeFile(hostPath, "#!/usr/bin/env node\n", "utf-8");
       await mkdir(cliDir, { recursive: true });
       await writeFile(cliPath, "#!/usr/bin/env node\n", "utf-8");

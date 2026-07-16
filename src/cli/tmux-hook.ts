@@ -59,10 +59,10 @@ const DEFAULT_CONFIG: TmuxHookConfig = {
 
 const HELP = `
 Usage:
-  omx tmux-hook init       Create .omx/tmux-hook.json
-  omx tmux-hook status     Show config + runtime state summary
-  omx tmux-hook validate   Validate config and tmux target reachability
-  omx tmux-hook test       Run a synthetic notify-hook turn (end-to-end)
+  nomx tmux-hook init       Create .omx/tmux-hook.json
+  nomx tmux-hook status     Show config + runtime state summary
+  nomx tmux-hook validate   Validate config and tmux target reachability
+  nomx tmux-hook test       Run a synthetic notify-hook turn (end-to-end)
 `;
 
 export async function tmuxHookCommand(args: string[]): Promise<void> {
@@ -176,7 +176,7 @@ function parseConfig(raw: unknown): TmuxHookConfig {
 async function readValidatedConfig(cwd = process.cwd()): Promise<TmuxHookConfig> {
   const configPath = tmuxHookConfigPath(cwd);
   if (!existsSync(configPath)) {
-    throw new Error('tmux-hook config missing. Run: omx tmux-hook init');
+    throw new Error('tmux-hook config missing. Run: nomx tmux-hook init');
   }
   const content = await readFile(configPath, 'utf-8');
   return parseConfig(JSON.parse(content));
@@ -461,7 +461,7 @@ async function testTmuxHook(args: string[]): Promise<void> {
     cwd,
     'thread-id': threadId,
     'turn-id': turnId,
-    'input-messages': ['omx tmux-hook test'],
+    'input-messages': ['nomx tmux-hook test'],
     'last-assistant-message': message,
   };
 

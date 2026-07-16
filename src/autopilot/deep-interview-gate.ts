@@ -474,7 +474,7 @@ export async function canAdvanceAutopilotDeepInterviewToRalplan(
   if (!await allSatisfiedQuestionsHaveAnsweredRecords(input, enforcements)) {
     return {
       allowed: false,
-      reason: 'satisfied deep-interview question obligation lacks same-session answered omx question record',
+      reason: 'satisfied deep-interview question obligation lacks same-session answered nomx question record',
     };
   }
 

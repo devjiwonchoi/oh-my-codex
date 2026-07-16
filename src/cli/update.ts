@@ -2,7 +2,7 @@
  * Update orchestration for oh-my-codex.
  *
  * The launch-time checker is intentionally passive, non-fatal, and throttled.
- * The explicit `omx update` command uses the same executor but bypasses the
+ * The explicit `nomx update` command uses the same executor but bypasses the
  * launch-time cadence so a user request always checks npm immediately.
  */
 
@@ -470,7 +470,7 @@ export function runDeferredGlobalUpdate(
   // The detached process runs after this CLI exits, so the refresh should replay
   // the setup mode that was active when the user accepted/scheduled the update.
   const setupArgs = resolveSetupRefreshArgs(cwd);
-  const setupCommand = formatDeferredSetupCommand(platform, 'omx', setupArgs);
+  const setupCommand = formatDeferredSetupCommand(platform, 'nomx', setupArgs);
 
   try {
     mkdirSync(dirname(logPath), { recursive: true });
@@ -541,7 +541,7 @@ function formatDeferredUpdateFailure(stderr: string, logPath?: string): string {
     '[omx] Failed to schedule the deferred update.',
     stderr.trim() ? `[omx] scheduler error: ${stderr.trim()}` : undefined,
     logPath ? `[omx] Intended log: ${logPath}` : undefined,
-    '[omx] You can retry manually with: npm install -g oh-my-codex@latest && omx setup',
+    '[omx] You can retry manually with: npm install -g oh-my-codex@latest && nomx setup',
   ].filter((line): line is string => typeof line === 'string').join('\n');
 }
 
@@ -556,14 +556,14 @@ function summarizeUpdateFailure(
       `[omx] Update failed while building and installing the dev channel from ${DEV_REPOSITORY_URL}#${DEV_REPOSITORY_BRANCH}.`,
       details ? `[omx] update stderr: ${details}` : undefined,
       logPath ? `[omx] Full log: ${logPath}` : undefined,
-      '[omx] You can retry manually with: omx update --dev',
+      '[omx] You can retry manually with: nomx update --dev',
     ].filter((line): line is string => typeof line === 'string').join('\n');
   }
   return [
     `[omx] Update failed while running npm install -g ${installSource}.`,
     details ? `[omx] npm stderr: ${details}` : undefined,
     logPath ? `[omx] Full log: ${logPath}` : undefined,
-    `[omx] You can retry manually with: npm install -g ${installSource} && omx setup`,
+    `[omx] You can retry manually with: npm install -g ${installSource} && nomx setup`,
   ].filter((line): line is string => typeof line === 'string').join('\n');
 }
 
@@ -768,7 +768,7 @@ async function getInstalledRevisionAfterUpdate(): Promise<string | null> {
 export async function resolveInstalledCliEntry(globalInstallRoot: string): Promise<string | null> {
   const packageRoot = join(globalInstallRoot, PACKAGE_NAME);
   const packageJsonPath = join(packageRoot, 'package.json');
-  let cliRelativePath = join('dist', 'cli', 'omx.js');
+  let cliRelativePath = join('dist', 'cli', 'nomx.js');
 
   try {
     const content = await readFile(packageJsonPath, 'utf-8');
@@ -778,7 +778,7 @@ export async function resolveInstalledCliEntry(globalInstallRoot: string): Promi
     } else if (
       pkg.bin &&
       typeof pkg.bin === 'object' &&
-      typeof pkg.bin.omx === 'string' &&
+      typeof pkg.bin.nomx === 'string' &&
       pkg.bin.omx.trim() !== ''
     ) {
       cliRelativePath = pkg.bin.omx;
@@ -893,7 +893,7 @@ async function executeUpdate(
         const setupRefreshResult = await dependencies.runSetupRefresh(cwd);
         if (!setupRefreshResult.ok) {
           console.log(
-            `[omx] Update installed, but the setup refresh failed. Run \`omx setup\` with the new install. (${setupRefreshResult.stderr})`,
+            `[omx] Update installed, but the setup refresh failed. Run \`nomx setup\` with the new install. (${setupRefreshResult.stderr})`,
           );
           return { status: 'failed', currentVersion: current, latestVersion: latest };
         }
@@ -950,7 +950,7 @@ async function executeUpdate(
   const setupRefreshResult = await dependencies.runSetupRefresh(cwd);
   if (!setupRefreshResult.ok) {
     console.log(
-      `[omx] Update installed, but the setup refresh failed. Run \`omx setup\` with the new install. (${setupRefreshResult.stderr})`,
+      `[omx] Update installed, but the setup refresh failed. Run \`nomx setup\` with the new install. (${setupRefreshResult.stderr})`,
     );
     return { status: 'failed', currentVersion: current, latestVersion: latest };
   }

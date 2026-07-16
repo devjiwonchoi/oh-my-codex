@@ -43,7 +43,7 @@ describe("runPostinstall", () => {
       });
 
       assert.equal(result.status, "hinted");
-      assert.match(logs.join("\n"), /OMX setup is explicit opt-in; run `omx setup` or `omx update` when you're ready/);
+      assert.match(logs.join("\n"), /OMX setup is explicit opt-in; run `nomx setup` or `nomx update` when you're ready/);
 
       const stamp = JSON.parse(await readFile(stampPath, "utf-8")) as {
         installed_version: string;
@@ -75,7 +75,7 @@ describe("runPostinstall", () => {
       });
 
       assert.equal(result.status, "hinted");
-      assert.match(logs.join("\n"), /run `omx setup` or `omx update` when you're ready/i);
+      assert.match(logs.join("\n"), /run `nomx setup` or `nomx update` when you're ready/i);
 
       const stamp = JSON.parse(await readFile(stampPath, "utf-8")) as {
         installed_version: string;

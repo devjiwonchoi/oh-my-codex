@@ -35,7 +35,7 @@ describe('skill frontmatter validation', () => {
   });
 });
 
-describe('omx setup skill validation', () => {
+describe('nomx setup skill validation', () => {
   it('fails before installing a malformed shipped-style SKILL.md', async () => {
     const root = await mkdtemp(join(tmpdir(), 'omx-setup-skill-validation-'));
     const srcDir = join(root, 'src-skills');

@@ -14,7 +14,7 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'omx.js');
+  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
   const result = spawnSync(process.execPath, [omxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
@@ -31,7 +31,7 @@ function runOmx(
   };
 }
 
-describe('omx resume', () => {
+describe('nomx resume', () => {
   it('exposes project-local Codex history artifacts to codex resume', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-resume-project-history-'));
     try {
@@ -662,7 +662,7 @@ fi | sort
     }
   });
 
-  it('passes resume --help through to codex instead of printing top-level omx help', async () => {
+  it('passes resume --help through to codex instead of printing top-level nomx help', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-resume-cli-'));
     try {
       const home = join(wd, 'home');

@@ -51,7 +51,7 @@ echo "Latest npm: $LATEST"
 - If no cache entry exists: INFO - plugin marketplace artifact not cached; this may be normal when OMX was installed only through npm/setup
 - Compare each printed `PLUGIN_VERSION` with `LATEST`; if it differs and is not `local`: WARN - outdated plugin cache
 - If one marketplace has multiple version directories: WARN - stale cache for that marketplace/plugin pair
-- Remember: plugin install/discovery is not a replacement for `npm install -g oh-my-codex` plus `omx setup`; the packaged plugin carries plugin-scoped companion metadata for optional MCP compatibility servers and apps, with first-party MCP disabled by default, while native/runtime hooks and the rest of OMX runtime wiring stay setup-owned
+- Remember: plugin install/discovery is not a replacement for `npm install -g oh-my-codex` plus `nomx setup`; the packaged plugin carries plugin-scoped companion metadata for optional MCP compatibility servers and apps, with first-party MCP disabled by default, while native/runtime hooks and the rest of OMX runtime wiring stay setup-owned
 
 ### Step 2: Check Hook Configuration (config.toml + legacy settings.json)
 

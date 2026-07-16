@@ -16,9 +16,9 @@ interface CompatRunResult {
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(testDir, '..', '..', '..');
-const defaultTarget = join(repoRoot, 'dist', 'cli', 'omx.js');
+const defaultTarget = join(repoRoot, 'dist', 'cli', 'nomx.js');
 const fixturesRoot = join(repoRoot, 'src', 'compat', 'fixtures', 'doctor');
-const SAFE_DOCTOR_RECOVERY = 'Review warnings above. Follow the check-specific recovery guidance; for AGENTS.md preservation prefer "omx setup --merge-agents".';
+const SAFE_DOCTOR_RECOVERY = 'Review warnings above. Follow the check-specific recovery guidance; for AGENTS.md preservation prefer "nomx setup --merge-agents".';
 const SAFE_DOCTOR_FAILURE = 'Review failed checks above. Follow the check-specific recovery guidance; inspect invalid or ambiguous hook documents manually because doctor will not modify them.';
 
 function readFixture(name: string): string {
@@ -84,7 +84,7 @@ function normalizeInstallDoctorOutput(text: string, home: string, cwd: string): 
       if (line.startsWith('Results: ')) {
         return 'Results: <RESULTS>';
       }
-      if (line.startsWith('Run "omx setup')) {
+      if (line.startsWith('Run "nomx setup')) {
         return 'Run <SETUP_FOLLOWUP>';
       }
       if (line === SAFE_DOCTOR_RECOVERY || line === SAFE_DOCTOR_FAILURE) {

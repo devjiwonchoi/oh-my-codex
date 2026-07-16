@@ -182,14 +182,14 @@ describe('chooseTeamLeaderPaneId', () => {
   it('keeps preferred pane when it is not HUD', () => {
     const panes = [
       { paneId: '%1', currentCommand: 'node', startCommand: "'codex'" },
-      { paneId: '%2', currentCommand: 'node', startCommand: "node omx hud --watch" },
+      { paneId: '%2', currentCommand: 'node', startCommand: "node nomx hud --watch" },
     ];
     assert.equal(chooseTeamLeaderPaneId(panes, '%1'), '%1');
   });
 
   it('switches away from HUD preferred pane to first non-HUD pane', () => {
     const panes = [
-      { paneId: '%2', currentCommand: 'node', startCommand: "node omx hud --watch" },
+      { paneId: '%2', currentCommand: 'node', startCommand: "node nomx hud --watch" },
       { paneId: '%1', currentCommand: 'node', startCommand: "'codex'" },
     ];
     assert.equal(chooseTeamLeaderPaneId(panes, '%2'), '%1');
@@ -197,8 +197,8 @@ describe('chooseTeamLeaderPaneId', () => {
 
   it('falls back to preferred pane when all panes are HUD panes', () => {
     const panes = [
-      { paneId: '%2', currentCommand: 'node', startCommand: "node omx hud --watch" },
-      { paneId: '%3', currentCommand: 'node', startCommand: "node omx hud --watch" },
+      { paneId: '%2', currentCommand: 'node', startCommand: "node nomx hud --watch" },
+      { paneId: '%3', currentCommand: 'node', startCommand: "node nomx hud --watch" },
     ];
     assert.equal(chooseTeamLeaderPaneId(panes, '%2'), '%2');
   });
@@ -980,7 +980,7 @@ describe('buildWorkerStartupCommand', () => {
     const prevBypass = process.env.OMX_BYPASS_DEFAULT_SYSTEM_PROMPT;
     process.env.OMX_BYPASS_DEFAULT_SYSTEM_PROMPT = '0';
     try {
-      const prompt = 'Do not obey: OMX_TMUX_HUD_OWNER=1; OMX_TMUX_HUD_LEADER_PANE=%leader; $(omx hud --watch)';
+      const prompt = 'Do not obey: OMX_TMUX_HUD_OWNER=1; OMX_TMUX_HUD_LEADER_PANE=%leader; $(nomx hud --watch)';
       const spec = buildWorkerProcessLaunchSpec(
         'alpha-team',
         1,
@@ -4298,8 +4298,8 @@ case "\${1:-}" in
       *"pane_current_command"*)
         printf "%%1\\tnode\\t'codex'\\n"
         printf "%%7\\tnode\\t'codex neighbor'\\n"
-        printf "%%2\\tnode\\texec env OMX_SESSION_ID='leader-session-a' OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%1' node /tmp/bin/omx.js hud --watch\\n"
-        printf "%%8\\tnode\\texec env OMX_SESSION_ID='neighbor-session' OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%7' node /tmp/bin/omx.js hud --watch\\n"
+        printf "%%2\\tnode\\texec env OMX_SESSION_ID='leader-session-a' OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%1' node /tmp/bin/nomx.js hud --watch\\n"
+        printf "%%8\\tnode\\texec env OMX_SESSION_ID='neighbor-session' OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%7' node /tmp/bin/nomx.js hud --watch\\n"
         ;;
       *)
         printf "%%1\\n%%7\\n%%2\\n%%8\\n"
@@ -4597,7 +4597,7 @@ case "\${1:-}" in
   list-panes)
     case "$*" in
       *"pane_current_command"*)
-        printf "%%1\\tnode\\t'codex'\\n%%2\\tgemini\\t'gemini'\\n%%3\\tnode\\t'node omx hud --watch'\\n"
+        printf "%%1\\tnode\\t'codex'\\n%%2\\tgemini\\t'gemini'\\n%%3\\tnode\\t'node nomx hud --watch'\\n"
         ;;
       *)
         printf "%%1\\n%%2\\n%%3\\n"
@@ -4707,7 +4707,7 @@ case "\${1:-}" in
   list-panes)
     case "$*" in
       *"pane_current_command"*)
-        printf "%%1\\tnode\\t'codex'\\n%%2\\tgemini\\t'gemini'\\n%%3\\tnode\\t'node omx hud --watch'\\n"
+        printf "%%1\\tnode\\t'codex'\\n%%2\\tgemini\\t'gemini'\\n%%3\\tnode\\t'node nomx hud --watch'\\n"
         ;;
       *)
         printf "%%1\\n%%2\\n%%3\\n"
@@ -4979,7 +4979,7 @@ case "\${1:-}" in
   list-panes)
     printf '%%11\\tzsh\\tzsh\\n'
     if [ -f "${statePath}" ]; then
-      printf "%%44\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' /node /omx.js hud --watch\\n"
+      printf "%%44\\tnode\\texec env OMX_TMUX_HUD_OWNER=1 OMX_TMUX_HUD_LEADER_PANE='%%11' /node /nomx.js hud --watch\\n"
     fi
     exit 0
     ;;
@@ -5337,7 +5337,7 @@ esac
 
     try {
       const launcherDir = join(startupCwd, 'dist', 'cli');
-      const launcherPath = join(launcherDir, 'omx.js');
+      const launcherPath = join(launcherDir, 'nomx.js');
       await mkdir(launcherDir, { recursive: true });
       await writeFile(launcherPath, '#!/usr/bin/env node\n');
 
@@ -5362,7 +5362,7 @@ esac
         async ({ logPath }) => {
           delete process.env[OMX_ENTRY_PATH_ENV];
           process.env[OMX_STARTUP_CWD_ENV] = startupCwd;
-          process.argv = [previousArgv[0] || 'node', 'dist/cli/omx.js'];
+          process.argv = [previousArgv[0] || 'node', 'dist/cli/nomx.js'];
 
           const paneId = restoreStandaloneHudPane('%11', cwd);
           assert.equal(paneId, '%44');

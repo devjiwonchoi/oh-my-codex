@@ -6,7 +6,7 @@
  * - 35+ workflow skills as SKILL.md files
  * - AGENTS.md orchestration brain
  * - MCP servers for state management, project memory, and notepad
- * - CLI tool (omx) for setup, diagnostics, and management
+ * - CLI tool (nomx) for setup, diagnostics, and management
  * - Notification hooks for workflow tracking
  */
 
@@ -17,12 +17,3 @@ export { mergeConfig } from './config/generator.js';
 export { AGENT_DEFINITIONS, type AgentDefinition } from './agents/definitions.js';
 export { generateAgentToml, installNativeAgentConfigs } from './agents/native-config.js';
 export { hudCommand } from './hud/index.js';
-export {
-  buildDirectSessionArgs,
-  findDangerousLaunchArgs,
-  launchDirectSession,
-  launchRequiresDangerousApproval,
-  redactOmxLogLine,
-  resolveVscodeLaunchEnv,
-  runOmxCatalogCommand,
-} from './vscode/index.js';

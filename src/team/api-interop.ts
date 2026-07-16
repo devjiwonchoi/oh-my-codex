@@ -546,9 +546,9 @@ export function buildLegacyTeamDeprecationHint(legacyName: string, originalArgs?
   const operation = resolveTeamApiOperation(legacyName);
   const payload = JSON.stringify(originalArgs ?? {});
   if (!operation) {
-    return `Use CLI interop: omx team api <operation> --input '${payload}' --json`;
+    return `Use CLI interop: nomx team api <operation> --input '${payload}' --json`;
   }
-  return `Use CLI interop: omx team api ${operation} --input '${payload}' --json`;
+  return `Use CLI interop: nomx team api ${operation} --input '${payload}' --json`;
 }
 
 function validateCommonFields(args: Record<string, unknown>, options: { skipTeamName?: boolean } = {}): void {

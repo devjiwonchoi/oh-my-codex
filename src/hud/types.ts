@@ -146,8 +146,6 @@ export interface HudRenderContext {
   hudNotify: HudNotifyState | null;
   session: SessionStateForHud | null;
   staleAutopilot?: AutopilotStateForHud | null;
-  /** Rust-authored runtime snapshot (present when bridge is enabled and snapshot.json exists). */
-  runtimeSnapshot?: import('../runtime/bridge.js').RuntimeSnapshot | null;
 }
 
 /** HUD preset names */
@@ -200,7 +198,7 @@ export const DEFAULT_HUD_CONFIG: ResolvedHudConfig = {
   },
 };
 
-/** CLI flags for omx hud */
+/** CLI flags for nomx hud */
 export interface HudFlags {
   watch: boolean;
   json: boolean;

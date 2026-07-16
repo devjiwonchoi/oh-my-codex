@@ -9,10 +9,10 @@ import {
   parseRoleIntentCorrelationToken,
 } from '../leader/contract.js';
 
-export const RALPLAN_HELP = `omx ralplan - RALPLAN consensus support commands
+export const RALPLAN_HELP = `nomx ralplan - RALPLAN consensus support commands
 
 Usage:
-  omx ralplan role-intent write --role <role> --parent-thread <id> [--session <id>] [--ttl-ms <n>] [--json]
+  nomx ralplan role-intent write --role <role> --parent-thread <id> [--session <id>] [--ttl-ms <n>] [--json]
 
 role-intent write records the validated role required by the next adapted native spawn.
 `;

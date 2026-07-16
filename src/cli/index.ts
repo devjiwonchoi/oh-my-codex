@@ -24,13 +24,10 @@ import { version } from "./version.js";
 import { tmuxHookCommand } from "./tmux-hook.js";
 import { hooksCommand } from "./hooks.js";
 import { hudCommand } from "../hud/index.js";
-import { sidecarCommand } from "../sidecar/index.js";
 import { teamCommand } from "./team.js";
 import { ralphCommand } from "./ralph.js";
 import { ralplanCommand } from "./ralplan.js";
 import { ultragoalCommand } from "./ultragoal.js";
-import { performanceGoalCommand } from "./performance-goal.js";
-import { askCommand } from "./ask.js";
 import { questionCommand } from "./question.js";
 import { stateCommand } from "./state.js";
 import {
@@ -40,22 +37,11 @@ import {
   type CleanupDependencies,
   type CleanupResult,
 } from "./cleanup.js";
-import { exploreCommand } from "./explore.js";
-import { sparkshellCommand } from "./sparkshell.js";
-import { apiCommand } from "./api.js";
 import { agentsInitCommand } from "./agents-init.js";
 import { agentsCommand } from "./agents.js";
-import { sessionCommand } from "./session-search.js";
-import { urlCommand } from "./url.js";
-import { autoresearchCommand } from "./autoresearch.js";
-import { autoresearchGoalCommand } from "./autoresearch-goal.js";
 import { mcpParityCommand } from "./mcp-parity.js";
 import { mcpServeCommand } from "./mcp-serve.js";
-import { adaptCommand } from "./adapt.js";
 import { listCommand } from "./list.js";
-import { authCommand } from "./auth.js";
-import { missionCommand } from "./mission.js";
-import { runAuthHotswap } from "../auth/hotswap.js";
 import {
   MADMAX_FLAG,
   CODEX_BYPASS_FLAG,
@@ -207,8 +193,6 @@ import {
   type ParseNotifyTempContractResult,
 } from "../notifications/temp-contract.js";
 import { execInjectCommand } from "../exec/followup.js";
-import { imagegenCommand } from "../imagegen/continuation.js";
-import { capabilitiesCommand } from "./capabilities.js";
 
 export function resolveNotifyFallbackWatcherScript(pkgRoot = getPackageRoot()): string {
   return resolveDistScript(pkgRoot, "notify-fallback-watcher.js");
@@ -227,79 +211,55 @@ function resolveDistScript(pkgRoot: string, scriptName: string): string {
 }
 
 export const HELP = `
-oh-my-codex (omx) - Multi-agent orchestration for Codex CLI
+oh-my-codex (nomx) - Multi-agent orchestration for Codex CLI
 
 Usage:
-  omx           Launch Codex CLI (detached tmux by default on supported interactive terminals)
-  omx exec      Run codex exec non-interactively with OMX AGENTS/overlay injection
-  omx exec inject <session-id> --prompt <text>
+  nomx           Launch Codex CLI (detached tmux by default on supported interactive terminals)
+  nomx exec      Run codex exec non-interactively with OMX AGENTS/overlay injection
+  nomx exec inject <session-id> --prompt <text>
                 Queue audited follow-up instructions for a running non-interactive exec job
-  omx mission <file>
-                Run a prompt/checklist file sequentially through omx exec with durable summary
-  omx imagegen continuation <session-id> --artifact <name>
-                Queue a Stop-hook continuation for built-in image generation turns
-  omx setup     Install skills, prompts, CLI-first config, and scope-specific AGENTS.md
+  nomx setup     Install skills, prompts, CLI-first config, and scope-specific AGENTS.md
                 (user scope prompts for legacy vs plugin skill delivery when needed)
-  omx update    Install the stable channel now, then refresh setup
-  omx update --stable
+  nomx update    Install the stable channel now, then refresh setup
+  nomx update --stable
                 Install/rollback to npm stable (oh-my-codex@latest), then refresh setup
-  omx update --dev
+  nomx update --dev
                 Install the upstream dev branch, then refresh setup
-  omx uninstall Remove OMX configuration and clean up installed artifacts
-  omx doctor    Check installation health
-  omx list      List packaged OMX skills and native agent prompts (--json)
-  omx cleanup   Kill orphaned OMX MCP server processes and remove stale OMX /tmp directories
-  omx doctor --team  Check team/swarm runtime health diagnostics
-  omx ask       Ask local provider CLI (claude|gemini) and write artifact output
-  omx auth      Manage Codex OAuth auth slots (add|list|use)
-  omx question  OMX-owned blocking question UI entrypoint for agent-invoked user questions
-  omx adapt     Scaffold OMX-owned adapter foundations for persistent external targets
-  omx resume    Resume Codex sessions (supports --project and --codex-home <path>)
-  omx explore   DEPRECATED compatibility command; use normal repo inspection or omx sparkshell
-  omx api       Run native omx-api localhost gateway commands (serve|status|stop|generate)
-  omx session   Search and summarize local session history (--codex-home <path> escape hatch)
-  omx url       Passive URL reader (read <url> --json)
-  omx capabilities
-                Lock/check deterministic configured tool, skill, agent, and observation surfaces
-  omx agents-init [path]
+  nomx uninstall Remove OMX configuration and clean up installed artifacts
+  nomx doctor    Check installation health
+  nomx list      List packaged OMX skills and native agent prompts (--json)
+  nomx cleanup   Kill orphaned OMX MCP server processes and remove stale OMX /tmp directories
+  nomx doctor --team  Check team/swarm runtime health diagnostics
+  nomx question  OMX-owned blocking question UI entrypoint for agent-invoked user questions
+  nomx resume    Resume Codex sessions (supports --project and --codex-home <path>)
+  nomx agents-init [path]
                 Bootstrap lightweight AGENTS.md files for a repo/subtree
-  omx agents    Manage Codex native agent TOML files
-  omx deepinit [path]
+  nomx agents    Manage Codex native agent TOML files
+  nomx deepinit [path]
                 Alias for agents-init (lightweight AGENTS bootstrap only)
-  omx team      Spawn parallel worker panes in tmux and bootstrap inbox/task state
-  omx ralph     Launch Codex with ralph persistence mode active
-  omx ralplan   Record validated role intents for adapted native subagent spawns
-  omx ultragoal Create, resume, and checkpoint durable multi-goal plans over Codex goal mode
-  omx performance-goal
-                Create, hand off, and gate evaluator-backed performance goals
-  omx autoresearch-goal
-                Create, hand off, and gate professor-critic research goals
-  omx autoresearch [DEPRECATED] Use $autoresearch; direct CLI launch removed
-  omx version   Show version information
-  omx tmux-hook Manage tmux prompt injection workaround (init|status|validate|test)
-  omx hooks     Manage hook plugins (init|status|validate|test)
-  omx hud       Show HUD statusline (--watch, --json, --preset=NAME)
-  omx sidecar   Show read-only team/multi-agent visualization (--watch, --json, --tmux)
-  omx state     Read/write/list OMX mode state via CLI parity surface
-  omx notepad   JSON CLI surface for OMX notepad operations
-  omx project-memory
+  nomx team      Spawn parallel worker panes in tmux and bootstrap inbox/task state
+  nomx ralph     Launch Codex with ralph persistence mode active
+  nomx ralplan   Record validated role intents for adapted native subagent spawns
+  nomx ultragoal Create, resume, and checkpoint durable multi-goal plans over Codex goal mode
+  nomx version   Show version information
+  nomx tmux-hook Manage tmux prompt injection workaround (init|status|validate|test)
+  nomx hooks     Manage hook plugins (init|status|validate|test)
+  nomx hud       Show HUD statusline (--watch, --json, --preset=NAME)
+  nomx state     Read/write/list OMX mode state via CLI parity surface
+  nomx notepad   JSON CLI surface for OMX notepad operations
+  nomx project-memory
                 JSON CLI surface for OMX project-memory operations
-  omx trace     JSON CLI surface for OMX trace operations
-  omx code-intel
+  nomx trace     JSON CLI surface for OMX trace operations
+  nomx code-intel
                 JSON CLI surface for OMX code-intel operations
-  omx wiki      JSON CLI surface for OMX wiki operations
-  omx mcp-serve Launch an OMX stdio MCP server target (plugin/runtime use)
-  omx sparkshell <command> [args...]
-  omx sparkshell --tmux-pane <pane-id> [--tail-lines <100-1000>]
-                Run native sparkshell sidecar for direct command execution or explicit tmux-pane summarization
-                (also used as an adaptive backend for qualifying read-only explore tasks)
-  omx help      Show this help message
-  omx status    Show active modes and state
-  omx cancel    Cancel active execution modes
-  omx reasoning Show or set model reasoning effort (low|medium|high|xhigh)
+  nomx mcp-serve Launch an OMX stdio MCP server target (plugin/runtime use)
+  nomx help      Show this help message
+  nomx status    Show active modes and state
+  nomx cancel    Cancel active execution modes
+  nomx reasoning Show or set model reasoning effort (low|medium|high|xhigh)
 
 Options:
-  --yolo        Launch Codex in yolo mode (shorthand for: omx launch --yolo)
+  --yolo        Launch Codex in yolo mode (shorthand for: nomx launch --yolo)
   --high        Launch Codex with high reasoning effort
                 (shorthand for: -c model_reasoning_effort="high")
   --xhigh       Launch Codex with xhigh reasoning effort
@@ -311,14 +271,11 @@ Options:
   --madmax-spark  spark model for workers + bypass approvals for leader and workers
                 (shorthand for: --spark --madmax)
   --notify-temp  Enable temporary notification routing for this run/session only
-  --hotswap     Run a direct Codex session that rotates auth slots on 429/quota and resumes
   --direct       Launch the interactive leader directly without OMX tmux/HUD management
   --tmux         Launch the interactive leader session in detached tmux
   --discord      Select Discord provider for temporary notification mode
   --slack        Select Slack provider for temporary notification mode
   --telegram     Select Telegram provider for temporary notification mode
-  --custom <name>
-                Select custom/OpenClaw gateway name for temporary notification mode
   -w, --worktree[=<name>]
                 Launch Codex in a git worktree (detached when no name is given)
   --force       Force reinstall (overwrite existing files)
@@ -329,8 +286,8 @@ Options:
   --clear-merge-agents-policy
                 Clear the persisted AGENTS merge policy for this project root
   --dry-run     Show what would be done without doing it
-  --plugin      Use Codex plugin delivery for omx setup and remove legacy OMX-managed user/project components
-  --legacy      Use legacy setup delivery for omx setup, overriding persisted plugin mode
+  --plugin      Use Codex plugin delivery for nomx setup and remove legacy OMX-managed user/project components
+  --legacy      Use legacy setup delivery for nomx setup, overriding persisted plugin mode
   --install-mode <legacy|plugin>
                 Explicit setup install mode (canonical form; --legacy/--plugin are aliases)
   --mcp <none|compat>
@@ -343,9 +300,9 @@ Options:
   --team-mode <enabled|disabled>
                 Explicit Team setup mode
   --keep-config Skip config.toml cleanup during uninstall
-  --purge       Remove .omx/ cache directory during uninstall
+  --purge       Remove .nomx/ cache directory during uninstall
   --verbose     Show detailed output
-  --scope       Setup scope for "omx setup" only:
+  --scope       Setup scope for "nomx setup" only:
                 user | project
 
 Launch policy:
@@ -376,7 +333,7 @@ const OMX_AUTORESEARCH_APPEND_INSTRUCTIONS_FILE_ENV =
 const REASONING_MODES = CANONICAL_REASONING_EFFORTS;
 type ReasoningMode = (typeof REASONING_MODES)[number];
 const REASONING_MODE_SET = new Set<string>(REASONING_MODES);
-const REASONING_USAGE = "Usage: omx reasoning <low|medium|high|xhigh>";
+const REASONING_USAGE = "Usage: nomx reasoning <low|medium|high|xhigh>";
 const AMBIGUOUS_REASONING_MESSAGE = 'Codex/OMX canonical highest reasoning effort is "xhigh"; "max" and "ultra" are not accepted aliases.';
 
 const ALLOWED_SHELLS = new Set([
@@ -408,9 +365,6 @@ const TMUX_EXTENDED_KEYS_LOCK_STALE_MS = 30_000;
 type CliCommand =
   | "launch"
   | "exec"
-  | "mission"
-  | "capabilities"
-  | "imagegen"
   | "setup"
   | "update"
   | "list"
@@ -420,28 +374,18 @@ type CliCommand =
   | "uninstall"
   | "doctor"
   | "cleanup"
-  | "auth"
-  | "ask"
   | "question"
-  | "adapt"
-  | "explore"
-  | "api"
-  | "sparkshell"
   | "team"
-  | "session"
-  | "url"
   | "resume"
   | "version"
   | "tmux-hook"
   | "hooks"
   | "hud"
-  | "sidecar"
   | "state"
   | "notepad"
   | "project-memory"
   | "trace"
   | "code-intel"
-  | "wiki"
   | "mcp-serve"
   | "status"
   | "cancel"
@@ -451,41 +395,25 @@ type CliCommand =
   | string;
 
 const NESTED_HELP_COMMANDS = new Set<CliCommand>([
-  "ask",
   "question",
   "cleanup",
-  "auth",
-  "adapt",
-  "explore",
-  "autoresearch",
-  "autoresearch-goal",
   "agents",
   "agents-init",
   "deepinit",
   "exec",
-  "capabilities",
-  "mission",
-  "imagegen",
   "hooks",
   "list",
   "hud",
-  "sidecar",
   "state",
   "notepad",
   "project-memory",
   "trace",
   "code-intel",
-  "wiki",
   "mcp-serve",
   "ralph",
   "ralplan",
   "ultragoal",
-  "performance-goal",
   "resume",
-  "session",
-  "url",
-  "api",
-  "sparkshell",
   "team",
   "tmux-hook",
 ]);
@@ -754,12 +682,12 @@ export function resolveUpdateChannelArg(args: string[]): UpdateChannel {
       continue;
     }
     throw new Error(
-      `Unknown omx update option: ${arg}. Expected no flags, --stable, or --dev.`,
+      `Unknown nomx update option: ${arg}. Expected no flags, --stable, or --dev.`,
     );
   }
 
   if (sawStable && sawDev) {
-    throw new Error('omx update --dev and --stable are mutually exclusive.');
+    throw new Error('nomx update --dev and --stable are mutually exclusive.');
   }
 
   return channel;
@@ -1929,7 +1857,7 @@ function runCodexBlocking(
 export function omxRuntimeCommandShimFileName(
   platform: NodeJS.Platform = process.platform,
 ): string {
-  return platform === "win32" ? "omx.cmd" : "omx";
+  return platform === "win32" ? "nomx.cmd" : "nomx";
 }
 
 export function omxRuntimeCommandShimPath(
@@ -2389,7 +2317,7 @@ export function buildMadmaxDetachedLaunchContextKey(
   runIdentity = "",
 ): string {
   // The boxed run root is part of the lock identity for auto-isolated madmax
-  // launches. That lets independent `omx --madmax --high` sessions share the
+  // launches. That lets independent `nomx --madmax --high` sessions share the
   // same source cwd/argv without contending on one active-detached lock, while
   // callers that intentionally reuse the same boxed context keep one key.
   const payload = JSON.stringify({
@@ -2662,7 +2590,7 @@ export function createMadmaxIsolatedRoot(
   const detachedLaunchContext = buildMadmaxDetachedLaunchContextKey(sourceCwd, argv, runDir);
 
   const metadata = {
-    launcher: "omx --madmax",
+    launcher: "nomx --madmax",
     created_at: new Date().toISOString(),
     cwd: runDir,
     source_cwd: sourceCwd,
@@ -2693,9 +2621,6 @@ export async function main(args: string[]): Promise<void> {
   const knownCommands = new Set([
     "launch",
     "exec",
-    "mission",
-    "imagegen",
-    "capabilities",
     "setup",
     "update",
     "list",
@@ -2705,26 +2630,16 @@ export async function main(args: string[]): Promise<void> {
     "uninstall",
     "doctor",
     "cleanup",
-    "auth",
-    "ask",
     "question",
-    "autoresearch",
-  "autoresearch-goal",
-    "explore",
-    "api",
-    "sparkshell",
     "team",
     "ralph",
     "ralplan",
     "ultragoal",
-    "performance-goal",
-    "session",
     "resume",
     "version",
     "tmux-hook",
     "hooks",
     "hud",
-    "sidecar",
     "state",
     "mcp-serve",
     "status",
@@ -2754,11 +2669,7 @@ export async function main(args: string[]): Promise<void> {
   try {
     switch (command) {
       case "launch":
-        if (launchArgs.includes("--hotswap")) {
-          await launchWithAuthHotswap(launchArgs);
-        } else {
-          await launchWithHud(launchArgs);
-        }
+        await launchWithHud(launchArgs);
         break;
       case "resume":
         await launchWithHud(["resume", ...launchArgs]);
@@ -2805,35 +2716,11 @@ export async function main(args: string[]): Promise<void> {
         await doctor(options);
         break;
       }
-      case "ask":
-        await askCommand(args.slice(1));
-        break;
       case "question":
         await questionCommand(args.slice(1));
         break;
-      case "adapt":
-        await adaptCommand(args.slice(1));
-        break;
       case "cleanup":
         await cleanupCommand(args.slice(1));
-        break;
-      case "auth":
-        await authCommand(args.slice(1));
-        break;
-      case "autoresearch":
-        await autoresearchCommand(args.slice(1));
-        break;
-      case "autoresearch-goal":
-        await autoresearchGoalCommand(args.slice(1));
-        break;
-      case "explore":
-        await exploreCommand(args.slice(1));
-        break;
-      case "api":
-        await apiCommand(args.slice(1));
-        break;
-      case "capabilities":
-        await capabilitiesCommand(args.slice(1));
         break;
       case "exec":
         if (launchArgs[0] === "inject") {
@@ -2842,32 +2729,8 @@ export async function main(args: string[]): Promise<void> {
           await execWithOverlay(launchArgs);
         }
         break;
-      case "mission":
-        await missionCommand(args.slice(1), {
-          runTask: async (prompt, codexArgs) => {
-            const priorExitCode = process.exitCode;
-            process.exitCode = undefined;
-            await execWithOverlay([...codexArgs, prompt]);
-            const exitCode = typeof process.exitCode === "number" ? process.exitCode : 0;
-            process.exitCode = priorExitCode;
-            return exitCode;
-          },
-        });
-        break;
-      case "imagegen":
-        await imagegenCommand(args.slice(1));
-        break;
-      case "sparkshell":
-        await sparkshellCommand(args.slice(1));
-        break;
       case "team":
         await teamCommand(args.slice(1), options);
-        break;
-      case "session":
-        await sessionCommand(args.slice(1));
-        break;
-      case "url":
-        await urlCommand(args.slice(1));
         break;
       case "ralph":
         await ralphCommand(args.slice(1));
@@ -2878,17 +2741,11 @@ export async function main(args: string[]): Promise<void> {
       case "ultragoal":
         await ultragoalCommand(args.slice(1));
         break;
-      case "performance-goal":
-        await performanceGoalCommand(args.slice(1));
-        break;
       case "version":
         version();
         break;
       case "hud":
         await hudCommand(args.slice(1));
-        break;
-      case "sidecar":
-        await sidecarCommand(args.slice(1));
         break;
       case "state":
         await stateCommand(args.slice(1));
@@ -2904,9 +2761,6 @@ export async function main(args: string[]): Promise<void> {
         break;
       case "code-intel":
         await mcpParityCommand("code-intel", args.slice(1));
-        break;
-      case "wiki":
-        await mcpParityCommand("wiki", args.slice(1));
         break;
       case "mcp-serve":
         await mcpServeCommand(args.slice(1));
@@ -2994,7 +2848,7 @@ async function showStatus(): Promise<void> {
   try {
     let refs = await listModeStateFilesWithScopePreference(cwd);
     // Reconcile with hook-visible run-dir state when the worktree-scoped state
-    // list reports no active workflow mode (parity with `omx cancel`). This
+    // list reports no active workflow mode (parity with `nomx cancel`). This
     // surfaces detached/madmax sessions whose state lives under the run dir.
     const hasActiveWorkflowMode = async (candidate: ModeStateFileRef[]): Promise<boolean> => {
       for (const ref of candidate) {
@@ -3113,83 +2967,6 @@ async function reasoningCommand(args: string[]): Promise<void> {
   console.log(`Set ${REASONING_KEY}="${mode}" in ${configPath}`);
 }
 
-export async function launchWithAuthHotswap(args: string[]): Promise<void> {
-  const launchCwd = process.cwd();
-  const parsedWorktree = parseWorktreeMode(args);
-  let cwd = launchCwd;
-  let worktreeDirty = false;
-  let ensuredLaunchWorktree: ReturnType<typeof ensureWorktree> | undefined;
-
-  if (parsedWorktree.mode.enabled) {
-    const planned = planWorktreeTarget({
-      cwd: launchCwd,
-      scope: "launch",
-      mode: parsedWorktree.mode,
-    });
-    const ensured = ensureWorktree(planned, { allowDirtyReuse: true });
-    ensuredLaunchWorktree = ensured;
-    if (ensured.enabled) {
-      cwd = ensured.worktreePath;
-      worktreeDirty = Boolean(ensured.dirty);
-      if (ensured.dirty) {
-        process.stderr.write(
-          `[omx] Caution: worktree at ${cwd} has uncommitted changes.\n` +
-          `  The hotswap session will launch as-is.\n`,
-        );
-      }
-      const depBootstrap = ensureReusableNodeModules(cwd);
-      if (depBootstrap.strategy === "symlink") {
-        console.log(`[omx] Reusing node_modules from ${depBootstrap.sourceNodeModulesPath}`);
-      } else if (depBootstrap.strategy === "missing" && depBootstrap.warning) {
-        console.warn(`[omx] ${depBootstrap.warning}`);
-      }
-    }
-  }
-  clearInheritedMadmaxRootForDisposableWorktreeLaunch(parsedWorktree.remainingArgs);
-  applyDisposableWorktreeOmxRootForLaunch(ensuredLaunchWorktree);
-  applyWorktreeToolContextForLaunch(cwd, ensuredLaunchWorktree);
-
-  try {
-    await maybeCheckAndPromptUpdate(cwd);
-  } catch (err) {
-    logCliOperationFailure(err);
-  }
-  try {
-    await maybePromptGithubStar();
-  } catch (err) {
-    logCliOperationFailure(err);
-  }
-  try {
-    const configPath = resolveCodexConfigPathForLaunch(launchCwd, process.env);
-    const repaired = await repairConfigIfNeeded(
-      configPath,
-      getPackageRoot(),
-      await resolveLaunchConfigRepairOptions(launchCwd, configPath),
-    );
-    if (repaired) console.log("[omx] Repaired managed config.toml compatibility issue.");
-  } catch {
-    // Non-fatal: repair failure must not block launch
-  }
-
-  const status = await runAuthHotswap({
-    cwd,
-    argv: parsedWorktree.remainingArgs,
-    lifecycle: {
-      prepareCodexHomeForLaunch,
-      preLaunch: (launchPath, sessionId, notifyTempContract, codexHomeOverride, enableAuthority) =>
-        preLaunch(launchPath, sessionId, notifyTempContract as NotifyTempContract, codexHomeOverride, enableAuthority, worktreeDirty),
-      postLaunch,
-      cleanupRuntimeCodexHome,
-      normalizeCodexLaunchArgs,
-      injectModelInstructionsBypassArgs,
-      sessionModelInstructionsPath,
-      resolveOmxRootForLaunch,
-      resolveNotifyTempContract,
-    },
-  });
-  process.exitCode = status;
-}
-
 export async function launchWithHud(args: string[]): Promise<void> {
   if (isNativeWindows()) {
     const { result } = spawnPlatformCommandSync("tmux", ["-V"], {
@@ -3295,7 +3072,7 @@ export async function launchWithHud(args: string[]): Promise<void> {
   }
 
   // ── Phase 0.5: config repair ────────────────────────────────────────────
-  // After an omx version upgrade the OLD setup code (still in memory) may
+  // After an nomx version upgrade the OLD setup code (still in memory) may
   // have written a config.toml with duplicate [tui] sections.  Codex CLI's
   // TOML parser rejects duplicates, so we repair before spawning the CLI.
   try {
@@ -5979,15 +5756,6 @@ export async function postLaunch(
     console.error(
       `[omx] postLaunch: session archive failed: ${err instanceof Error ? err.message : err}`,
     );
-  }
-
-  // 2.5. Best-effort wiki session capture
-  try {
-    const { onSessionEnd } = await import("../wiki/lifecycle.js");
-    onSessionEnd({ cwd, session_id: sessionId });
-  } catch (err) {
-    logCliOperationFailure(err);
-    // Non-fatal: wiki capture must never block session cleanup
   }
 
   // 3. Cancel any still-active modes

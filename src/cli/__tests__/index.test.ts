@@ -289,7 +289,7 @@ describe("madmax state isolation", () => {
       assert.equal(metadata.cwd, runDir);
       assert.deepEqual(metadata.argv, ["--madmax"]);
       const registry = await readFile(join(runs, "registry.jsonl"), "utf-8");
-      assert.match(registry, /"launcher":"omx --madmax"/);
+      assert.match(registry, /"launcher":"nomx --madmax"/);
     } finally {
       await rm(wd, { recursive: true, force: true });
       await rm(runs, { recursive: true, force: true });
@@ -858,7 +858,7 @@ describe("cleanupLaunchOrphanedMcpProcesses", () => {
   it("reaps only detached OMX MCP processes without a live Codex ancestor", async () => {
     const processes: ProcessEntry[] = [
       { pid: 700, ppid: 500, command: "codex" },
-      { pid: 701, ppid: 700, command: "node /repo/bin/omx.js" },
+      { pid: 701, ppid: 700, command: "node /repo/bin/nomx.js" },
       {
         pid: 710,
         ppid: 700,
@@ -887,7 +887,7 @@ describe("cleanupLaunchOrphanedMcpProcesses", () => {
       {
         pid: 830,
         ppid: 50,
-        command: "node /repo/bin/omx.js autoresearch --topic launch",
+        command: "node /repo/bin/nomx.js autoresearch --topic launch",
       },
       {
         pid: 831,
@@ -1794,22 +1794,16 @@ describe("resolveTeamWorkerLaunchArgsEnv (spark)", () => {
 describe("commandOwnsLocalHelp", () => {
   it("returns true for nested commands that render their own help output", () => {
     for (const command of [
-      "adapt",
       "agents-init",
-      "api",
-      "ask",
       "question",
       "autoresearch",
       "deepinit",
-      "explore",
       "hooks",
       "hud",
       "notepad",
       "project-memory",
       "ralph",
       "resume",
-      "session",
-      "sparkshell",
       "trace",
       "code-intel",
       "team",
@@ -1835,33 +1829,6 @@ describe("commandOwnsLocalHelp", () => {
 });
 
 describe("resolveCliInvocation", () => {
-  it("resolves api to api command", () => {
-    assert.deepEqual(
-      resolveCliInvocation(["api", "status"]),
-      {
-        command: "api",
-        launchArgs: [],
-      },
-    );
-  });
-
-  it("resolves explore to explore command", () => {
-    assert.deepEqual(
-      resolveCliInvocation(["explore", "--prompt", "find", "auth"]),
-      {
-        command: "explore",
-        launchArgs: [],
-      },
-    );
-  });
-
-  it("resolves ask to ask command", () => {
-    assert.deepEqual(resolveCliInvocation(["ask", "claude", "hello"]), {
-      command: "ask",
-      launchArgs: [],
-    });
-  });
-
   it("resolves question to question command", () => {
     assert.deepEqual(resolveCliInvocation(["question", "--input", "{}"]), {
       command: "question",
@@ -1930,7 +1897,7 @@ describe("resolveCliInvocation", () => {
     );
     assert.throws(
       () => resolveUpdateChannelArg(["--beta"]),
-      /Unknown omx update option: --beta/,
+      /Unknown nomx update option: --beta/,
     );
   });
 
@@ -1984,9 +1951,9 @@ describe("resolveCliInvocation", () => {
   });
 
   it("advertises the explicit update command in top-level help", () => {
-    assert.match(HELP, /omx update\s+Install the stable channel now, then refresh setup/);
-    assert.match(HELP, /omx update --stable\s+Install\/rollback to npm stable \(oh-my-codex@latest\), then refresh setup/);
-    assert.match(HELP, /omx update --dev\s+Install the upstream dev branch, then refresh setup/);
+    assert.match(HELP, /nomx update\s+Install the stable channel now, then refresh setup/);
+    assert.match(HELP, /nomx update --stable\s+Install\/rollback to npm stable \(oh-my-codex@latest\), then refresh setup/);
+    assert.match(HELP, /nomx update --dev\s+Install the upstream dev branch, then refresh setup/);
   });
 
   it("advertises concise launch policy controls in top-level help", () => {
@@ -1999,7 +1966,7 @@ describe("resolveCliInvocation", () => {
     assert.match(HELP, /Unset or empty OMX_LAUNCH_POLICY returns to auto\/default behavior/);
     assert.match(HELP, /Config files are intentionally not used/);
     assert.doesNotMatch(HELP, /OMX_LAUNCH_POLICY=direct\|tmux\|detached-tmux\|auto/);
-    assert.doesNotMatch(HELP, /OMX_LAUNCH_POLICY=direct omx --tmux --yolo/);
+    assert.doesNotMatch(HELP, /OMX_LAUNCH_POLICY=direct nomx --tmux --yolo/);
   });
 });
 
@@ -3016,7 +2983,7 @@ describe("pointer launch aborts", () => {
       await chmod(join(binDir, "tmux"), 0o755);
 
       const { spawnSync } = await import("node:child_process");
-      const result = spawnSync(process.execPath, [join(repoRoot, "dist", "cli", "omx.js"), "launch", "--direct"], {
+      const result = spawnSync(process.execPath, [join(repoRoot, "dist", "cli", "nomx.js"), "launch", "--direct"], {
         cwd: wd,
         encoding: "utf-8",
         env: {
@@ -3072,7 +3039,7 @@ describe("pointer launch aborts", () => {
       await chmod(join(binDir, "tmux"), 0o755);
 
       const { spawnSync } = await import("node:child_process");
-      const result = spawnSync(process.execPath, [join(repoRoot, "dist", "cli", "omx.js"), "exec", "echo", "blocked"], {
+      const result = spawnSync(process.execPath, [join(repoRoot, "dist", "cli", "nomx.js"), "exec", "echo", "blocked"], {
         cwd: wd,
         encoding: "utf-8",
         env: {
@@ -3329,8 +3296,8 @@ describe("tmux HUD pane helpers", () => {
     const panes = parseTmuxPaneSnapshot(
       [
         "%1\tzsh\tzsh",
-        "%2\tnode\tnode /tmp/bin/omx.js hud --watch",
-        "%3\tnode\tnode /tmp/bin/omx.js hud --watch",
+        "%2\tnode\tnode /tmp/bin/nomx.js hud --watch",
+        "%3\tnode\tnode /tmp/bin/nomx.js hud --watch",
         "%4\tcodex\tcodex --model gpt-5",
       ].join("\n"),
     );
@@ -3367,7 +3334,7 @@ describe("tmux HUD pane helpers", () => {
       calls.push(args);
       return [
         "%leader\tcodex\tcodex",
-        "%hud\tnode\tnode /tmp/bin/omx.js hud --watch",
+        "%hud\tnode\tnode /tmp/bin/nomx.js hud --watch",
       ].join("\n");
     });
 
@@ -3397,7 +3364,7 @@ describe("tmux HUD pane helpers", () => {
     const calls: string[][] = [];
     const paneId = createSharedHudWatchPane(
       "/repo",
-      "node /repo/dist/cli/omx.js hud --watch",
+      "node /repo/dist/cli/nomx.js hud --watch",
       { heightLines: 3, targetPaneId: "%leader" },
       (args) => {
         calls.push(args);
@@ -3419,7 +3386,7 @@ describe("tmux HUD pane helpers", () => {
       "-P",
       "-F",
       "#{pane_id}",
-      "node /repo/dist/cli/omx.js hud --watch",
+      "node /repo/dist/cli/nomx.js hud --watch",
     ]);
   });
 });
@@ -3430,7 +3397,7 @@ describe("detached tmux new-session sequencing", () => {
       "omx-demo",
       "/tmp/project",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       "--model gpt-5",
       "/tmp/codex-home",
       '{"active":true}',
@@ -3460,7 +3427,7 @@ describe("detached tmux new-session sequencing", () => {
       "omx-demo",
       "/tmp/project",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
       undefined,
       '{"active":true,"canonicalSelectors":["discord"]}',
@@ -3481,7 +3448,7 @@ describe("detached tmux new-session sequencing", () => {
       "omx-demo",
       "/tmp/project",
       "'env' 'OMX_SESSION_ID=sess-detached-managed' 'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
       undefined,
       null,
@@ -3512,7 +3479,7 @@ describe("detached tmux new-session sequencing", () => {
       "omx-demo",
       "/tmp/project",
       "'env' 'OMX_SESSION_ID=sess-detached-managed' 'codex' '--model' 'gpt-5.6-terra'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       "--dangerously-bypass-approvals-and-sandbox --model gpt-5.6-terra",
       "/tmp/project/.codex",
       null,
@@ -3540,7 +3507,7 @@ describe("detached tmux new-session sequencing", () => {
       "omx-demo",
       "/tmp/project",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
       "/tmp/project/.codex",
       null,
@@ -3561,7 +3528,7 @@ describe("detached tmux new-session sequencing", () => {
       "omx-demo",
       "/tmp/project",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
       "/tmp/project/.omx/runtime/codex-home/session-1",
       null,
@@ -3587,7 +3554,7 @@ describe("detached tmux new-session sequencing", () => {
       "omx-demo",
       "/tmp/project",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
       undefined,
       null,
@@ -3611,7 +3578,7 @@ describe("detached tmux new-session sequencing", () => {
       "omx-demo",
       "/tmp/boxed-runtime",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
       undefined,
       null,
@@ -3648,7 +3615,7 @@ describe("detached tmux new-session sequencing", () => {
       "omx-demo",
       "/tmp/project",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
       undefined,
       null,
@@ -3670,7 +3637,7 @@ describe("detached tmux new-session sequencing", () => {
       "omx-demo",
       "/tmp/project",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
       undefined,
       null,
@@ -3693,7 +3660,7 @@ describe("detached tmux new-session sequencing", () => {
       "omx-demo",
       "/tmp/project",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
       undefined,
       null,
@@ -3716,7 +3683,7 @@ describe("detached tmux new-session sequencing", () => {
       "omx-demo",
       "/tmp/project",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
       undefined,
       null,
@@ -3797,12 +3764,12 @@ describe("detached tmux new-session sequencing", () => {
     assert.equal(result.stdout, `${shellSensitiveValue}\n<>\n`);
   });
 
-  it("creates a repo-local omx command shim for launched Codex sessions", async () => {
+  it("creates a repo-local nomx command shim for launched Codex sessions", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "omx-runtime-command-shim-"));
     try {
       const shimDir = ensureOmxRuntimeCommandShim(
         cwd,
-        "/repo/dist/cli/omx.js",
+        "/repo/dist/cli/nomx.js",
         "/usr/local/bin/node",
       );
       const shimPath = omxRuntimeCommandShimPath(cwd);
@@ -3811,7 +3778,7 @@ describe("detached tmux new-session sequencing", () => {
       assert.equal(existsSync(shimPath), true);
       assert.equal(await readFile(shimPath, "utf-8"), [
         "#!/bin/sh",
-        `exec '/usr/local/bin/node' '/repo/dist/cli/omx.js' "$@"`,
+        `exec '/usr/local/bin/node' '/repo/dist/cli/nomx.js' "$@"`,
         "",
       ].join("\n"));
       assert.equal((await stat(shimPath)).mode & 0o700, 0o700);
@@ -3820,29 +3787,29 @@ describe("detached tmux new-session sequencing", () => {
     }
   });
 
-  it("prepends the repo-local omx shim before global PATH entries", async () => {
+  it("prepends the repo-local nomx shim before global PATH entries", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "omx-runtime-command-shim-env-"));
     try {
       const env = prependOmxRuntimeCommandShimToEnv(
         cwd,
         {
           PATH: "/opt/homebrew/bin:/usr/bin",
-          OMX_ENTRY_PATH: "/opt/homebrew/lib/node_modules/oh-my-codex/dist/cli/omx.js",
+          OMX_ENTRY_PATH: "/opt/homebrew/lib/node_modules/oh-my-codex/dist/cli/nomx.js",
         },
-        "/repo/dist/cli/omx.js",
+        "/repo/dist/cli/nomx.js",
         "/usr/local/bin/node",
       );
       const shimDir = dirname(omxRuntimeCommandShimPath(cwd));
 
       assert.equal(env.PATH, `${shimDir}${delimiter}/opt/homebrew/bin:/usr/bin`);
-      assert.equal(env.OMX_ENTRY_PATH, "/repo/dist/cli/omx.js");
+      assert.equal(env.OMX_ENTRY_PATH, "/repo/dist/cli/nomx.js");
       assert.equal(env.OMX_STARTUP_CWD, cwd);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
-  it("executes the repo-local omx shim before a stale global omx with misleading success output", async () => {
+  it("executes the repo-local nomx shim before a stale global nomx with misleading success output", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "omx-runtime-command-shim-exec-"));
     try {
       const fakeGlobalBin = join(cwd, "fake-global-bin");
@@ -3851,16 +3818,16 @@ describe("detached tmux new-session sequencing", () => {
       await mkdir(fakeLocalBin);
       const globalMarker = join(cwd, "GLOBAL_CALLED");
       const localMarker = join(cwd, "LOCAL_CALLED");
-      const fakeGlobalOmx = join(fakeGlobalBin, "omx");
+      const fakeGlobalNomx = join(fakeGlobalBin, "nomx");
       const fakeNode = join(fakeLocalBin, "node runner");
-      const localOmxEntry = join(fakeLocalBin, "omx entry's $() ;.js");
+      const localOmxEntry = join(fakeLocalBin, "nomx entry's $() ;.js");
 
-      await writeFile(fakeGlobalOmx, `#!/bin/sh
+      await writeFile(fakeGlobalNomx, `#!/bin/sh
 printf 'global-called\\n' > "${globalMarker}"
 printf '{"success":true,"source":"global"}\\n'
 exit 0
 `);
-      await chmod(fakeGlobalOmx, 0o755);
+      await chmod(fakeGlobalNomx, 0o755);
       await writeFile(fakeNode, `#!/bin/sh
 printf '%s\\n' "$@" > "${localMarker}"
 printf '{"success":true,"source":"local"}\\n'
@@ -3875,7 +3842,7 @@ exit 0
         fakeNode,
       );
       const { execFileSync } = await import("node:child_process");
-      const output = execFileSync("omx", ["team", "status", "hud-check"], {
+      const output = execFileSync("nomx", ["team", "status", "hud-check"], {
         cwd,
         env,
         encoding: "utf-8",
@@ -3902,11 +3869,11 @@ exit 0
       await writeFile(shimPath, "#!/bin/sh\necho stale-global\n");
       await chmod(shimPath, 0o600);
 
-      ensureOmxRuntimeCommandShim(cwd, "/repo/dist/cli/omx.js", "/usr/local/bin/node");
+      ensureOmxRuntimeCommandShim(cwd, "/repo/dist/cli/nomx.js", "/usr/local/bin/node");
 
       assert.equal(await readFile(shimPath, "utf-8"), [
         "#!/bin/sh",
-        `exec '/usr/local/bin/node' '/repo/dist/cli/omx.js' "$@"`,
+        `exec '/usr/local/bin/node' '/repo/dist/cli/nomx.js' "$@"`,
         "",
       ].join("\n"));
       assert.equal((await stat(shimPath)).mode & 0o777, 0o700);
@@ -3925,11 +3892,11 @@ exit 0
       await writeFile(externalTarget, "do not overwrite\n");
       await symlink(externalTarget, shimPath);
 
-      ensureOmxRuntimeCommandShim(cwd, "/repo/dist/cli/omx.js", "/usr/local/bin/node");
+      ensureOmxRuntimeCommandShim(cwd, "/repo/dist/cli/nomx.js", "/usr/local/bin/node");
 
       assert.equal(await readFile(externalTarget, "utf-8"), "do not overwrite\n");
       assert.equal((await lstat(shimPath)).isSymbolicLink(), false);
-      assert.match(await readFile(shimPath, "utf-8"), /\/repo\/dist\/cli\/omx\.js/);
+      assert.match(await readFile(shimPath, "utf-8"), /\/repo\/dist\/cli\/nomx\.js/);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
@@ -3943,7 +3910,7 @@ exit 0
       await writeFile(dirname(shimPath), "not a directory\n");
 
       assert.throws(
-        () => ensureOmxRuntimeCommandShim(cwd, "/repo/dist/cli/omx.js", "/usr/local/bin/node"),
+        () => ensureOmxRuntimeCommandShim(cwd, "/repo/dist/cli/nomx.js", "/usr/local/bin/node"),
         /not a directory/,
       );
     } finally {
@@ -3963,7 +3930,7 @@ exit 0
       const shimPath = omxRuntimeCommandShimPath(cwd, "win32");
 
       assert.equal(shimDir, dirname(shimPath));
-      assert.equal(shimPath.endsWith("omx.cmd"), true);
+      assert.equal(shimPath.endsWith("nomx.cmd"), true);
       assert.equal(existsSync(shimPath), true);
       assert.equal(await readFile(shimPath, "utf-8"), [
         "@echo off",
@@ -4042,7 +4009,7 @@ exit 0
       "omx-demo",
       "/tmp/project",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
       undefined,
       null,
@@ -4177,7 +4144,7 @@ exit 0
       "sess-a",
       "%leader",
       "/tmp/tmux.sock,123,7",
-      "/repo/dist/cli/omx.js",
+      "/repo/dist/cli/nomx.js",
       "/repo",
     );
 
@@ -4187,7 +4154,7 @@ exit 0
     assert.equal(env.OMX_SESSION_ID, "sess-a");
     assert.equal(env.OMX_TMUX_HUD_OWNER, "1");
     assert.equal(env.OMX_ROOT, "/repo");
-    assert.equal(env.OMX_ENTRY_PATH, "/repo/dist/cli/omx.js");
+    assert.equal(env.OMX_ENTRY_PATH, "/repo/dist/cli/nomx.js");
   });
 
   it("registerDetachedHudLayoutReconcileHook reads TMUX from the detached leader pane before registering", () => {
@@ -4205,7 +4172,7 @@ exit 0
       detachedLeaderPaneId: "%leader",
       cwd: "/repo",
       sessionId: "sess-a",
-      omxBin: "/repo/dist/cli/omx.js",
+      omxBin: "/repo/dist/cli/nomx.js",
       omxRootOverride: "/repo",
       baseEnv: { PATH: "/bin" },
       readTmuxEnvValue: (targetPaneId) => {
@@ -4232,7 +4199,7 @@ exit 0
         OMX_SESSION_ID: "sess-a",
         OMX_TMUX_HUD_OWNER: "1",
         OMX_ROOT: "/repo",
-        OMX_ENTRY_PATH: "/repo/dist/cli/omx.js",
+        OMX_ENTRY_PATH: "/repo/dist/cli/nomx.js",
       },
     }]);
     assert.equal(registerDetachedHudLayoutReconcileHook({
@@ -4240,7 +4207,7 @@ exit 0
       detachedLeaderPaneId: "%leader",
       cwd: "/repo",
       sessionId: "sess-a",
-      omxBin: "/repo/dist/cli/omx.js",
+      omxBin: "/repo/dist/cli/nomx.js",
       readTmuxEnvValue: () => undefined,
       register: () => {
         throw new Error("should not register without TMUX");
@@ -4250,7 +4217,7 @@ exit 0
 
   it("buildDetachedSessionBootstrapSteps starts native Windows detached sessions with powershell", () => {
     const hudCmd = buildWindowsPromptCommand("node", [
-      "omx.js",
+      "nomx.js",
       "hud",
       "--watch",
     ]);
@@ -4287,7 +4254,7 @@ exit 0
       "omx-demo",
       "/tmp/project",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
     );
     const leaderCmd = steps[0]?.args.at(-1);
@@ -4317,7 +4284,7 @@ exit 0
       "omx-demo",
       "/tmp/project",
       "'codex' '--model' 'gpt-5'",
-      "'node' '/tmp/omx.js' 'hud' '--watch'",
+      "'node' '/tmp/nomx.js' 'hud' '--watch'",
       null,
       "/tmp/codex-home",
       null,
@@ -4387,7 +4354,7 @@ exit 0
         "omx-demo",
         cwd,
         buildTmuxPaneCommand("codex", [], "/bin/sh"),
-        "'node' '/tmp/omx.js' 'hud' '--watch'",
+        "'node' '/tmp/nomx.js' 'hud' '--watch'",
         null,
       );
       const leaderCmd = steps[0]?.args.at(-1);
@@ -4461,7 +4428,7 @@ exit 0
           ["--dangerously-bypass-approvals-and-sandbox"],
           "/bin/sh",
         ),
-        "'node' '/tmp/omx.js' 'hud' '--watch'",
+        "'node' '/tmp/nomx.js' 'hud' '--watch'",
         null,
       );
       const leaderCmd = steps[0]?.args.at(-1);
@@ -4541,7 +4508,7 @@ exit 0
           ["--dangerously-bypass-approvals-and-sandbox"],
           "/bin/sh",
         ),
-        "'node' '/tmp/omx.js' 'hud' '--watch'",
+        "'node' '/tmp/nomx.js' 'hud' '--watch'",
         null,
       );
       const leaderCmd = steps[0]?.args.at(-1);
@@ -4612,7 +4579,7 @@ exit 0
         "omx-demo",
         cwd,
         buildTmuxPaneCommand("codex", ["--bad-startup-flag"], "/bin/sh"),
-        "'node' '/tmp/omx.js' 'hud' '--watch'",
+        "'node' '/tmp/nomx.js' 'hud' '--watch'",
         null,
       );
       const leaderCmd = steps[0]?.args.at(-1);
@@ -4682,7 +4649,7 @@ exit 0
         "omx-demo",
         cwd,
         buildTmuxPaneCommand("codex", [], "/bin/sh"),
-        "'node' '/tmp/omx.js' 'hud' '--watch'",
+        "'node' '/tmp/nomx.js' 'hud' '--watch'",
         null,
       );
       const leaderCmd = steps[0]?.args.at(-1);
@@ -4748,7 +4715,7 @@ exit 0
         "omx-demo",
         cwd,
         buildTmuxPaneCommand("codex", [], "/bin/sh"),
-        "'node' '/tmp/omx.js' 'hud' '--watch'",
+        "'node' '/tmp/nomx.js' 'hud' '--watch'",
         null,
       );
       const leaderCmd = steps[0]?.args.at(-1);

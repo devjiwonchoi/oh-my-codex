@@ -426,7 +426,7 @@ function normalizeLaunchHintCommandFromMatch(
       return null;
     }
     const roleToken = groups.role?.trim();
-    const prefix = /^\$team\b/i.test(rawCommand) ? '$team' : 'omx team';
+    const prefix = /^\$team\b/i.test(rawCommand) ? '$team' : 'nomx team';
     const countWithRole = roleToken ? `${countToken}:${roleToken}` : countToken;
     const parts = [prefix];
     if (groups.ralph?.trim()) {
@@ -436,7 +436,7 @@ function normalizeLaunchHintCommandFromMatch(
     return parts.join(' ');
   }
 
-  const prefix = /^\$ralph\b/i.test(rawCommand) ? '$ralph' : 'omx ralph';
+  const prefix = /^\$ralph\b/i.test(rawCommand) ? '$ralph' : 'nomx ralph';
   return `${prefix} ${taskToken}`;
 }
 

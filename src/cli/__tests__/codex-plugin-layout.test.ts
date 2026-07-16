@@ -59,7 +59,7 @@ const pluginAppsPath = join(pluginRoot, '.app.json');
 const pluginHooksPath = join(pluginRoot, 'hooks', 'hooks.json');
 const pluginHookLauncherPath = join(pluginRoot, 'hooks', 'codex-native-hook.mjs');
 const marketplacePath = join(root, '.agents', 'plugins', 'marketplace.json');
-const omxBin = join(root, 'dist', 'cli', 'omx.js');
+const omxBin = join(root, 'dist', 'cli', 'nomx.js');
 
 type PluginMcpManifest = {
   mcpServers?: Record<string, {
@@ -102,14 +102,14 @@ async function writeOmxShim(binDir: string): Promise<void> {
 
   if (process.platform === 'win32') {
     await writeFile(
-      join(binDir, 'omx.cmd'),
+      join(binDir, 'nomx.cmd'),
       `@echo off\r\n"${process.execPath}" "${omxBin}" %*\r\n`,
       'utf-8',
     );
     return;
   }
 
-  const shimPath = join(binDir, 'omx');
+  const shimPath = join(binDir, 'nomx');
   await writeFile(
     shimPath,
     `#!/bin/sh\nexec "${process.execPath}" "${omxBin}" "$@"\n`,
@@ -453,11 +453,11 @@ describe('official Codex plugin layout', () => {
     assert.deepEqual(mcpManifest, expectedPluginMcpManifest);
 
     for (const [serverName, server] of Object.entries(mcpManifest.mcpServers ?? {})) {
-      assert.equal(server.command, OMX_PLUGIN_MCP_COMMAND, `${serverName} should run via omx`);
+      assert.equal(server.command, OMX_PLUGIN_MCP_COMMAND, `${serverName} should run via nomx`);
       assert.notEqual(server.command, 'node', `${serverName} should not depend on a bare node command`);
       assert.equal(server.enabled, false, `${serverName} should be disabled by default`);
       assert.equal(server.args?.length, 2, `${serverName} should have serve subcommand + public target args`);
-      assert.equal(server.args?.[0], OMX_PLUGIN_MCP_SERVE_SUBCOMMAND, `${serverName} should launch through omx mcp-serve`);
+      assert.equal(server.args?.[0], OMX_PLUGIN_MCP_SERVE_SUBCOMMAND, `${serverName} should launch through nomx mcp-serve`);
       const target = server.args?.[1];
       assert.ok(target, `${serverName} should declare a public target`);
       assert.equal(target?.includes('..'), false, `${serverName} should not depend on path traversal outside the plugin root`);
@@ -555,7 +555,7 @@ describe('official Codex plugin layout', () => {
     });
   });
 
-  it('no-ops plugin hooks for nested plain Codex sessions that inherit omx launch env', async () => {
+  it('no-ops plugin hooks for nested plain Codex sessions that inherit nomx launch env', async () => {
     await withPluginCacheCopy(async (cachePluginRoot, cacheRoot) => {
       const calledPath = join(cacheRoot, 'called.txt');
       const commandPath = join(cacheRoot, process.platform === 'win32' ? 'record-inherited-called.cmd' : 'record-inherited-called.sh');
@@ -1303,7 +1303,7 @@ process.stdin.on('end', () => {
     }
   });
 
-  it('launches plugin MCP public targets from a cache-style plugin root via the installed omx CLI', async () => {
+  it('launches plugin MCP public targets from a cache-style plugin root via the installed nomx CLI', async () => {
     for (const target of OMX_FIRST_PARTY_MCP_PLUGIN_TARGETS) {
       await assertPluginCacheLaunchable(target);
     }
@@ -1396,7 +1396,7 @@ process.stdin.on('end', () => {
     const combinedDocs = await Promise.all(docsToCheck.map((docPath) => readFile(join(root, docPath), 'utf-8')));
     const combined = combinedDocs.join('\n');
     assert.match(combined, /plugins\/cache\/\$MARKETPLACE_NAME\/oh-my-codex\/\$VERSION\//);
-    assert.match(combined, /not a replacement for `npm install -g oh-my-codex` plus `omx setup`/);
+    assert.match(combined, /not a replacement for `npm install -g oh-my-codex` plus `nomx setup`/);
     assert.match(combined, /legacy setup installs native agents, while plugin setup archives stale legacy native-agent files/);
     assert.match(combined, /plugin-scoped companion metadata for optional MCP compatibility servers and apps/i);
     assert.match(combined, /native\/runtime hooks and the rest of OMX runtime wiring stay setup-owned/i);

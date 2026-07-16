@@ -225,7 +225,7 @@ function buildOmxParityFallbackCommand(payload: CodexHookPayload, toolName: stri
   const target = resolveOmxParityTarget(toolName);
   if (!target) return null;
   const input = safeObject(payload.tool_input) ?? {};
-  return `omx ${target.command} ${target.tool} --input ${shellSingleQuote(JSON.stringify(input))} --json`;
+  return `nomx ${target.command} ${target.tool} --input ${shellSingleQuote(JSON.stringify(input))} --json`;
 }
 
 const LORE_TRAILER_PREFIXES = [
@@ -1162,7 +1162,7 @@ function commandInvokesOmxQuestion(command: string): boolean {
 
     const rawToken = tokens[index]?.value || "";
     const token = rawToken.replace(/\\/g, "/").split("/").pop() || "";
-    if ((token === "omx" || token === "omx.js") && tokens[index + 1]?.value === "question") return true;
+    if ((token === "nomx" || token === "nomx.js") && tokens[index + 1]?.value === "question") return true;
     if (
       (token === "node" || token === "node.exe")
       && /(?:^|\/)omx\.js$/.test(tokens[index + 1]?.value || "")
@@ -1208,7 +1208,7 @@ function commandInvokesOmxTeam(command: string): boolean {
   for (let index = 0; index < tokens.length; index += 1) {
     const rawToken = tokens[index] || '';
     const token = rawToken.replace(/\\/g, '/').split('/').pop() || '';
-    if ((token === 'omx' || token === 'omx.js') && tokens[index + 1] === 'team') return true;
+    if ((token === 'nomx' || token === 'nomx.js') && tokens[index + 1] === 'team') return true;
     if ((token === 'node' || token === 'node.exe') && /(?:^|\/)omx\.js$/.test(tokens[index + 1] || '') && tokens[index + 2] === 'team') return true;
   }
   return /\bomx\s+team\b/i.test(command) || /\bomx\.js['"]?\s+team\b/i.test(command);
@@ -1219,7 +1219,7 @@ function commandInvokesOmxHud(command: string): boolean {
   for (let index = 0; index < tokens.length; index += 1) {
     const rawToken = tokens[index] || '';
     const token = rawToken.replace(/\\/g, '/').split('/').pop() || '';
-    if ((token === 'omx' || token === 'omx.js') && tokens[index + 1] === 'hud') return true;
+    if ((token === 'nomx' || token === 'nomx.js') && tokens[index + 1] === 'hud') return true;
     if ((token === 'node' || token === 'node.exe') && /(?:^|\/)omx\.js$/.test(tokens[index + 1] || '') && tokens[index + 2] === 'hud') return true;
   }
   return /\bomx\s+hud\b/i.test(command) || /\bomx\.js['"]?\s+hud\b/i.test(command);
@@ -1233,8 +1233,8 @@ function buildNativeOmxHudPreToolUseEnforcementOutput(
 
   return {
     decision: "block",
-    reason: "omx hud cannot be launched directly from Codex App/native outside-tmux Bash sessions.",
-    systemMessage: "omx hud is blocked from Bash in Codex App/native outside-tmux sessions; use SessionStart/HUD context instead, or launch OMX CLI from an attached tmux shell first for the tmux HUD runtime.",
+    reason: "nomx hud cannot be launched directly from Codex App/native outside-tmux Bash sessions.",
+    systemMessage: "nomx hud is blocked from Bash in Codex App/native outside-tmux sessions; use SessionStart/HUD context instead, or launch OMX CLI from an attached tmux shell first for the tmux HUD runtime.",
   };
 }
 
@@ -1246,8 +1246,8 @@ function buildNativeOmxTeamPreToolUseEnforcementOutput(
 
   return {
     decision: "block",
-    reason: "omx team cannot be launched directly from Codex App/native outside-tmux Bash sessions.",
-    systemMessage: `omx team is blocked from Bash in Codex App/native outside-tmux sessions; launch OMX CLI from an attached tmux shell first. Original command: ${command}`,
+    reason: "nomx team cannot be launched directly from Codex App/native outside-tmux Bash sessions.",
+    systemMessage: `nomx team is blocked from Bash in Codex App/native outside-tmux sessions; launch OMX CLI from an attached tmux shell first. Original command: ${command}`,
   };
 }
 
@@ -1260,8 +1260,8 @@ function buildOmxQuestionPreToolUseEnforcementOutput(
   if (isNativeOutsideTmuxSurface(payload)) {
     return {
       decision: "block",
-      reason: "omx question cannot be launched directly from Codex App/native outside-tmux Bash sessions.",
-      systemMessage: `omx question is blocked from Codex App/native outside-tmux Bash because no attached tmux pane is available. Use the native structured question tool when available, or ask exactly one concise plain-text question. Original command: ${command}`,
+      reason: "nomx question cannot be launched directly from Codex App/native outside-tmux Bash sessions.",
+      systemMessage: `nomx question is blocked from Codex App/native outside-tmux Bash because no attached tmux pane is available. Use the native structured question tool when available, or ask exactly one concise plain-text question. Original command: ${command}`,
     };
   }
 
@@ -1269,8 +1269,8 @@ function buildOmxQuestionPreToolUseEnforcementOutput(
 
   return {
     decision: "block",
-    reason: "omx question Bash invocations must preserve the leader pane return target.",
-    systemMessage: `omx question is blocked from Bash until the command preserves the leader pane with \`OMX_QUESTION_RETURN_PANE=$TMUX_PANE\` or an explicit \`%pane\` value. Original command: ${command}`,
+    reason: "nomx question Bash invocations must preserve the leader pane return target.",
+    systemMessage: `nomx question is blocked from Bash until the command preserves the leader pane with \`OMX_QUESTION_RETURN_PANE=$TMUX_PANE\` or an explicit \`%pane\` value. Original command: ${command}`,
   };
 }
 
@@ -1405,7 +1405,7 @@ export function buildNativePostToolUseOutput(
       hookSpecificOutput: {
         hookEventName: "PostToolUse",
         additionalContext:
-          `Clear MCP transport-death signal detected. Preserve current team/runtime state. ${fallbackText} OMX MCP servers are plain Node stdio processes, so they still shut down when stdin/transport closes. If this happened during team runtime, inspect first with \`omx team status <team>\` or \`omx team api read-stall-state --input '{"team_name":"<team>"}' --json\`, and only force cleanup after capturing needed state. For root-cause debugging, rerun with \`OMX_MCP_TRANSPORT_DEBUG=1\` to log why the stdio transport closed.`,
+          `Clear MCP transport-death signal detected. Preserve current team/runtime state. ${fallbackText} OMX MCP servers are plain Node stdio processes, so they still shut down when stdin/transport closes. If this happened during team runtime, inspect first with \`nomx team status <team>\` or \`nomx team api read-stall-state --input '{"team_name":"<team>"}' --json\`, and only force cleanup after capturing needed state. For root-cause debugging, rerun with \`OMX_MCP_TRANSPORT_DEBUG=1\` to log why the stdio transport closed.`,
       },
     };
   }

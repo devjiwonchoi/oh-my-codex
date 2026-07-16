@@ -336,7 +336,7 @@ async function assertTeamStartupIsNonDestructive(
   const renderedPhase = currentPhase ?? 'team-exec';
   throw new Error(
     `team_name_conflict: active team state already exists for "${teamName}" (phase: ${renderedPhase}, tmux: ${tmuxSession}). `
-    + `Use "omx team status ${teamName}", "omx team resume ${teamName}", or "omx team shutdown ${teamName}" instead of launching a duplicate team.`,
+    + `Use "nomx team status ${teamName}", "nomx team resume ${teamName}", or "nomx team shutdown ${teamName}" instead of launching a duplicate team.`,
   );
 }
 
@@ -644,11 +644,12 @@ function getWorktreeDiffText(worktreePath: string): string {
   return '';
 }
 
-function summarizeWorktreeDiffWithSparkShell(worktreePath: string): string | null {
-  const shellCommand = `git diff --cached --stat --patch || git diff --stat --patch || git diff HEAD --stat --patch`;
-  const result = runCommand('omx', ['sparkshell', 'sh', '-lc', shellCommand], worktreePath);
-  if (!result.ok || !result.stdout) return null;
-  return result.stdout;
+function summarizeWorktreeDiff(worktreePath: string): string | null {
+  const result = runGitCommand(worktreePath, ['diff', '--cached', '--stat'], worktreePath);
+  if (result.ok && result.stdout) return result.stdout;
+  const unstaged = runGitCommand(worktreePath, ['diff', '--stat'], worktreePath);
+  if (unstaged.ok && unstaged.stdout) return unstaged.stdout;
+  return null;
 }
 
 function resolveWorkerHead(worktreePath: string): string | null {
@@ -1202,7 +1203,7 @@ function renderWorktreeMergeReport(report: WorkerShutdownMergeReport): string {
     `- leader_head_after: ${report.leaderHeadAfter ?? 'none'}`,
     '',
     '## Summary',
-    report.summaryText ?? 'sparkshell summary unavailable; using raw diff fallback.',
+    report.summaryText ?? 'No diff summary available; see the raw diff below.',
     '',
     '## Diff',
     report.diffText || '(no diff output)',
@@ -1270,7 +1271,7 @@ async function prepareShutdownMergeReport(
   const sourceRefResult = runGitCommand(repoRoot, ['rev-parse', 'HEAD'], worktreePath);
   const sourceRef = sourceRefResult.ok && sourceRefResult.stdout ? sourceRefResult.stdout : null;
   const diffText = getWorktreeDiffText(worktreePath);
-  const summaryText = summarizeWorktreeDiffWithSparkShell(worktreePath);
+  const summaryText = summarizeWorktreeDiff(worktreePath);
   const reportPath = join(worktreePath, '.omx', 'diff.md');
   const leaderHeadBefore = resolveLeaderHead(repoRoot, leaderCwd);
 
@@ -1520,7 +1521,7 @@ async function writeTeamPreflightContextPacket(params: {
     resume_instructions: [
       `After compaction, reload ${packetPath}`,
       'Verify the active Ultragoal goal still matches this packet before checkpointing.',
-      'Resume Team monitoring with omx team status before dispatching follow-up work.',
+      'Resume Team monitoring with nomx team status before dispatching follow-up work.',
     ],
   };
   await mkdir(dirname(packetPath), { recursive: true });
@@ -3822,7 +3823,7 @@ export async function shutdownTeam(teamName: string, cwd: string, options: Shutd
     if (!gate.allowed) {
       if (requiresIssueConfirmation) {
         throw new Error(
-          `shutdown_confirm_issues_required:failed=${gate.failed}:rerun=omx team shutdown ${sanitized} --confirm-issues`,
+          `shutdown_confirm_issues_required:failed=${gate.failed}:rerun=nomx team shutdown ${sanitized} --confirm-issues`,
         );
       }
       throw new Error(

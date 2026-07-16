@@ -202,23 +202,23 @@ Output progress each cycle:
 
 ## State Tracking
 
-Use the CLI-first state surface (`omx state ... --json`) for UltraQA lifecycle state. If explicit MCP compatibility tools are already available, equivalent `omx_state` calls are optional compatibility, not the default.
+Use the CLI-first state surface (`nomx state ... --json`) for UltraQA lifecycle state. If explicit MCP compatibility tools are already available, equivalent `omx_state` calls are optional compatibility, not the default.
 
 - **On start**:
-  `omx state write --input '{"mode":"ultraqa","active":true,"current_phase":"planning","iteration":1,"started_at":"<now>","scenario_matrix":[]}' --json`
+  `nomx state write --input '{"mode":"ultraqa","active":true,"current_phase":"planning","iteration":1,"started_at":"<now>","scenario_matrix":[]}' --json`
 - **On each cycle**:
-  `omx state write --input '{"mode":"ultraqa","current_phase":"qa","iteration":<cycle>,"scenario_matrix":"<updated matrix path or summary>"}' --json`
+  `nomx state write --input '{"mode":"ultraqa","current_phase":"qa","iteration":<cycle>,"scenario_matrix":"<updated matrix path or summary>"}' --json`
 - **On adversarial e2e transition**:
-  `omx state write --input '{"mode":"ultraqa","current_phase":"adversarial-e2e"}' --json`
+  `nomx state write --input '{"mode":"ultraqa","current_phase":"adversarial-e2e"}' --json`
 - **On diagnose/fix transitions**:
-  `omx state write --input '{"mode":"ultraqa","current_phase":"diagnose"}' --json`
-  `omx state write --input '{"mode":"ultraqa","current_phase":"fix"}' --json`
+  `nomx state write --input '{"mode":"ultraqa","current_phase":"diagnose"}' --json`
+  `nomx state write --input '{"mode":"ultraqa","current_phase":"fix"}' --json`
 - **On cleanup transition**:
-  `omx state write --input '{"mode":"ultraqa","current_phase":"cleanup"}' --json`
+  `nomx state write --input '{"mode":"ultraqa","current_phase":"cleanup"}' --json`
 - **On completion**:
-  `omx state write --input '{"mode":"ultraqa","active":false,"current_phase":"complete","completed_at":"<now>"}' --json`
+  `nomx state write --input '{"mode":"ultraqa","active":false,"current_phase":"complete","completed_at":"<now>"}' --json`
 - **For resume detection**:
-  `omx state read --input '{"mode":"ultraqa"}' --json`
+  `nomx state read --input '{"mode":"ultraqa"}' --json`
 
 ## Scenario Examples
 
@@ -252,9 +252,9 @@ User can cancel with `/cancel`, which clears UltraQA state. Cancellation itself 
 
 ## STATE CLEANUP ON COMPLETION
 
-When goal is met OR max cycles reached OR exiting early, run `omx cancel` or call:
+When goal is met OR max cycles reached OR exiting early, run `nomx cancel` or call:
 
-`omx state clear --input '{"mode":"ultraqa"}' --json`
+`nomx state clear --input '{"mode":"ultraqa"}' --json`
 
 Use CLI state cleanup rather than deleting files directly. Also remove temporary e2e harnesses, fixtures, and logs unless they are intentional artifacts listed in the report.
 

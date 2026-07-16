@@ -142,7 +142,7 @@ describe("user-customized status_line inside the OMX marker block", () => {
       const userEditedConfig = [
         "# ============================================================",
         "# oh-my-codex (OMX) Configuration",
-        "# Managed by omx setup - manual edits preserved on next setup",
+        "# Managed by nomx setup - manual edits preserved on next setup",
         "# ============================================================",
         "",
         "[mcp_servers.omx_state]",
@@ -184,7 +184,7 @@ describe("user-customized status_line inside the OMX marker block", () => {
       const legacyConfig = [
         "# ============================================================",
         "# oh-my-codex (OMX) Configuration",
-        "# Managed by omx setup - manual edits preserved on next setup",
+        "# Managed by nomx setup - manual edits preserved on next setup",
         "# ============================================================",
         "",
         "[mcp_servers.omx_state]",

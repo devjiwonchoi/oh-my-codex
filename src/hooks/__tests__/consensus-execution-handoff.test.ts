@@ -142,7 +142,7 @@ describe('Consensus mode execution handoff (plan/SKILL.md)', () => {
     assert.match(consensusSection, /available-agent-types roster/i);
     assert.match(consensusSection, /staffing guidance|role allocation/i);
     assert.match(consensusSection, /reasoning levels? by lane|suggested reasoning/i);
-    assert.match(consensusSection, /omx team|launch hint/i);
+    assert.match(consensusSection, /nomx team|launch hint/i);
     assert.match(consensusSection, /team verification path/i);
   });
 
@@ -309,7 +309,7 @@ describe('RALPLAN-DR in ralplan/SKILL.md', () => {
     assert.match(ralplanSkill, /available-agent-types roster/i);
     assert.match(ralplanSkill, /staffing guidance|role\/staffing allocation/i);
     assert.match(ralplanSkill, /reasoning levels? by lane|reasoning-by-lane/i);
-    assert.match(ralplanSkill, /omx team|launch hints?/i);
+    assert.match(ralplanSkill, /nomx team|launch hints?/i);
     assert.match(ralplanSkill, /team verification/i);
     assert.match(ralplanSkill, /\$ultragoal[\s\S]*general goal-oriented follow-up/i);
     assert.match(ralplanSkill, /\$autoresearch-goal[\s\S]*research-project follow-up/i);

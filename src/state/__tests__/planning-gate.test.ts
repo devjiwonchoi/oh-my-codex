@@ -42,7 +42,7 @@ mkdir -p src
 printf pwned > src/pwned.ts
 SCRIPT
 sh .omx/context/run.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -164,7 +164,7 @@ cat > .omx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 cd .omx/context && timeout 5 sh run.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -184,7 +184,7 @@ cat > .omx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 ${executionForm}
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
       assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true, executionForm);
     }
@@ -203,7 +203,7 @@ cat > .omx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 ${executionForm}
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
       assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true, executionForm);
     }
@@ -215,7 +215,7 @@ cat > .omx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 bash -lc 'sh .omx/context/run.sh'
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -224,7 +224,7 @@ omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralp
     const command = `mkdir -p .omx/context
 printf 'echo pwned\n' | tee .omx/context/notes.md .omx/context/run.sh
 sh .omx/context/run.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -235,7 +235,7 @@ cat > .omx/context/run.py <<'PY'
 print('pwned')
 PY
 python3 .omx/context/run.py
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -246,7 +246,7 @@ cat > .omx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 bash -o posix .omx/context/run.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -257,7 +257,7 @@ cat > .omx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 env -C.omx/context sh run.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -268,7 +268,7 @@ cat > .omx/context/run.sh <<'SCRIPT'
 printf '%s\n' pwned > src/pwned.ts
 SCRIPT
 env -C .omx/context sh run.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -279,7 +279,7 @@ cat > .omx/context/run.sh <<'SCRIPT'
 printf '%s\n' pwned > src/pwned.ts
 SCRIPT
 env --chdir=.omx/context sh run.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -296,7 +296,7 @@ cat > .omx/context/run.sh <<'SCRIPT'
 printf '%s\n' pwned > src/pwned.ts
 SCRIPT
 ${executionLine}
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
 
       assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true, executionLine);
     }
@@ -306,7 +306,7 @@ omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralp
     const command = `mkdir -p .omx/specs
 printf 'export PWNED=1\n' > .omx/specs/env.sh
 env --chdir=.omx/specs sh -c '. env.sh'
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -315,7 +315,7 @@ omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralp
     const command = `mkdir -p .omx/specs
 printf 'export PWNED=1\n' > .omx/specs/env.sh
 source .omx/specs/env.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -334,7 +334,7 @@ omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralp
 cat > .omx/context/notes.md <<'EOF'
 # Handoff notes
 EOF
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), false);
   });
@@ -393,7 +393,7 @@ mkdir -p src
 printf pwned > src/pwned.ts
 SCRIPT
 sh .omx/context/run.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
     const decision = evaluatePreToolUseGate(
       { tool_name: 'Bash', tool_input: command },
       gateState,
@@ -492,35 +492,35 @@ cat > .omx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 cd .omx/context && timeout 5 sh run.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
       `mkdir -p .omx/context
 cat > .omx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 bash -lc 'sh .omx/context/run.sh'
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
       `mkdir -p .omx/context
 printf 'echo pwned\n' | tee .omx/context/notes.md .omx/context/run.sh
 sh .omx/context/run.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
       `mkdir -p .omx/context
 cat > .omx/context/run.py <<'PY'
 print('pwned')
 PY
 python3 .omx/context/run.py
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
       `mkdir -p .omx/context
 cat > .omx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 bash -o posix .omx/context/run.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
       `mkdir -p .omx/context
 cat > .omx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 env -C.omx/context sh run.sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
     ];
 
     for (const command of probes) {
@@ -551,7 +551,7 @@ cat > .omx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 ${executionForm}
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
       const decision = evaluatePreToolUseGate(
         { tool_name: 'Bash', tool_input: command },
         gateState,
@@ -577,7 +577,7 @@ cat > .omx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 ${executionForm}
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
       const decision = evaluatePreToolUseGate(
         { tool_name: 'Bash', tool_input: command },
         gateState,

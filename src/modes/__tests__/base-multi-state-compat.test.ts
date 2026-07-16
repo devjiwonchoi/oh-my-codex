@@ -37,7 +37,7 @@ describe('modes/base multi-state compatibility', () => {
 
       await assert.rejects(
         () => startMode('team', 'attempt invalid overlap', 5, wd),
-        /omx state.*omx_state\.\*/i,
+        /nomx state.*omx_state\.\*/i,
       );
 
       const autopilotState = JSON.parse(

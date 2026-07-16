@@ -30,7 +30,7 @@ interface ParsedMcpCliArgs {
 }
 
 type DescriptorLoader = () => Promise<McpCliDescriptor>;
-type McpParityCommandName = "state" | "notepad" | "project-memory" | "trace" | "code-intel" | "wiki";
+type McpParityCommandName = "state" | "notepad" | "project-memory" | "trace" | "code-intel";
 
 export type McpParityExecutionResult =
   | { ok: true; help: string }
@@ -57,7 +57,7 @@ function buildDescriptorHelp(descriptor: McpCliDescriptor): string {
     .join("\n");
 
   return [
-    `Usage: omx ${descriptor.commandName} <tool-name> [--input <json>] [--json]`,
+    `Usage: nomx ${descriptor.commandName} <tool-name> [--input <json>] [--json]`,
     "",
     descriptor.title,
     "",
@@ -65,7 +65,7 @@ function buildDescriptorHelp(descriptor: McpCliDescriptor): string {
     toolLines,
     "",
     "Examples:",
-    `  omx ${descriptor.commandName} ${descriptor.tools[0]?.name ?? "<tool>"} --input '{}' --json`,
+    `  nomx ${descriptor.commandName} ${descriptor.tools[0]?.name ?? "<tool>"} --input '{}' --json`,
   ].join("\n");
 }
 
@@ -265,29 +265,6 @@ async function loadCodeIntelDescriptor(): Promise<McpCliDescriptor> {
   };
 }
 
-async function loadWikiDescriptor(): Promise<McpCliDescriptor> {
-  const { buildWikiServerTools, handleWikiToolCall } = await importWithAutoStartDisabled(
-    "OMX_WIKI_SERVER_DISABLE_AUTO_START",
-    async () => await import("../mcp/wiki-server.js"),
-  );
-  return {
-    commandName: "wiki",
-    title: "JSON CLI surface for OMX wiki operations.",
-    tools: buildWikiServerTools().map(({ name, description }) => ({ name, description })),
-    aliases: {
-      ingest: "wiki_ingest",
-      query: "wiki_query",
-      lint: "wiki_lint",
-      add: "wiki_add",
-      list: "wiki_list",
-      read: "wiki_read",
-      delete: "wiki_delete",
-      refresh: "wiki_refresh",
-    },
-    handle: handleWikiToolCall,
-  };
-}
-
 export async function mcpParityCommand(
   commandName: McpParityCommandName,
   args: string[],
@@ -318,9 +295,6 @@ export async function mcpParityCommand(
     case "code-intel":
       await runDescriptorCommand(args, loadCodeIntelDescriptor);
       return;
-    case "wiki":
-      await runDescriptorCommand(args, loadWikiDescriptor);
-      return;
   }
 }
 
@@ -349,7 +323,5 @@ export async function executeMcpParityCommand(
       return await executeDescriptorCommand(args, loadTraceDescriptor);
     case "code-intel":
       return await executeDescriptorCommand(args, loadCodeIntelDescriptor);
-    case "wiki":
-      return await executeDescriptorCommand(args, loadWikiDescriptor);
   }
 }

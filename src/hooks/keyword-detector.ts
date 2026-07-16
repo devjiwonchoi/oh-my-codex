@@ -171,7 +171,7 @@ export const DEEP_INTERVIEW_STATE_FILE = 'deep-interview-state.json';
 export const DEEP_INTERVIEW_BLOCKED_APPROVAL_INPUTS = ['yes', 'y', 'proceed', 'continue', 'ok', 'sure', 'go ahead', 'next i should'] as const;
 export const DEEP_INTERVIEW_INPUT_LOCK_MESSAGE = 'Deep interview is active; auto-approval shortcuts are blocked until the interview finishes.';
 
-type StatefulSkillMode = 'deep-interview' | 'autopilot' | 'ralph' | 'ralplan' | 'ultragoal' | 'ultrawork' | 'ultraqa' | 'team' | 'autoresearch';
+type StatefulSkillMode = 'deep-interview' | 'autopilot' | 'ralph' | 'ralplan' | 'ultragoal' | 'ultrawork' | 'ultraqa' | 'team';
 
 interface StatefulSkillSeedConfig {
   mode: StatefulSkillMode;
@@ -187,7 +187,6 @@ const PLANNING_LIKE_WORKFLOW_SKILLS = new Set<TrackedWorkflowMode>([
 
 const EXECUTION_LIKE_WORKFLOW_SKILLS = new Set<TrackedWorkflowMode>([
   'autopilot',
-  'autoresearch',
   'ralph',
   'team',
   'ultragoal',
@@ -198,7 +197,6 @@ const EXECUTION_LIKE_WORKFLOW_SKILLS = new Set<TrackedWorkflowMode>([
 const STATEFUL_SKILL_SEED_CONFIG: Record<StatefulSkillMode, StatefulSkillSeedConfig> = {
   'deep-interview': { mode: 'deep-interview', initialPhase: 'intent-first' },
   autopilot: { mode: 'autopilot', initialPhase: 'deep-interview', includeIteration: true },
-  autoresearch: { mode: 'autoresearch', initialPhase: 'executing' },
   ralph: { mode: 'ralph', initialPhase: 'starting', includeIteration: true },
   ralplan: { mode: 'ralplan', initialPhase: 'planning' },
   team: { mode: 'team', initialPhase: 'starting', scope: 'root' },
@@ -352,7 +350,7 @@ async function ensureSafeAutopilotContextDir(sourceCwd: string): Promise<string>
   const omxDir = join(sourceCwd, '.omx');
   await mkdir(omxDir, { recursive: true });
   if ((await lstat(omxDir)).isSymbolicLink()) {
-    throw new Error('Unsafe Autopilot context directory: .omx is a symbolic link');
+    throw new Error('Unsafe Autopilot context directory: .nomx is a symbolic link');
   }
 
   const contextDir = join(omxDir, 'context');
@@ -865,9 +863,9 @@ const KEYWORD_MAP: Array<{ keyword: string; pattern: RegExp; skill: string; prio
   priority: entry.priority,
 }));
 
-const KEYWORDS_REQUIRING_INTENT = new Set(['ralph', 'team', 'stop', 'abort', 'parallel', 'autoresearch', 'ultragoal', 'autopilot']);
+const KEYWORDS_REQUIRING_INTENT = new Set(['ralph', 'team', 'stop', 'abort', 'parallel', 'ultragoal', 'autopilot']);
 
-type IntentKeyword = 'ralph' | 'team' | 'stop' | 'abort' | 'parallel' | 'autoresearch' | 'ultragoal' | 'autopilot';
+type IntentKeyword = 'ralph' | 'team' | 'stop' | 'abort' | 'parallel' | 'ultragoal' | 'autopilot';
 
 const DEEP_INTERVIEW_ACTIVATION_PATTERNS: RegExp[] = [
   /(?:^|[^\w])\$(?:deep-interview)\b/i,
@@ -930,12 +928,6 @@ const KEYWORD_INTENT_PATTERNS: Record<IntentKeyword, RegExp[]> = {
     /\bparallel\s+(?:mode|execution|workers?|agents?|tasks?)\b/i,
     /\brun\s+(?:tasks?|agents?|workers?)\s+in\s+parallel\b/i,
   ],
-  autoresearch: [
-    /(?:^|[^\w])\$(?:autoresearch)\b/i,
-    /\/autoresearch\b/i,
-    /\b(?:use|run|start|enable|launch|invoke|activate)\s+(?:the\s+)?autoresearch\b/i,
-    /\bautoresearch\s+(?:mode|workflow|skill|loop)\b/i,
-  ],
   ultragoal: [
     /(?:^|[^\w])\$(?:ultragoal)\b/i,
     /^\s*\/ultragoal\b/i,
@@ -987,7 +979,7 @@ const EXPLICIT_DOCUMENTATION_SUFFIX_AT = new RegExp(EXPLICIT_DOCUMENTATION_SUFFI
 const IMPLICIT_WORKFLOW_NOUN = '(?:modes?|workflows?|skills?|loops?)';
 const POSTPOSED_NEGATIVE_PREDICATE = /\s+(?:(?:is|are|was|were|should|must|can|could|may|will|would)\s+(?:(?:also|still)\s+)?(?:not|never)\b|(?:isn't|aren't|wasn't|weren't|cannot|can't|shouldn't|mustn't|won't|wouldn't|couldn't)\b|(?:is|are|was|were)\s+(?:(?:also|still)\s+)?(?:inert|prohibited|forbidden|disabled|disallowed|unsupported)\b|(?:should|must|can|could|may|will|would)\s+(?:(?:also|still)\s+)?(?:not\s+)?be\s+(?:inert|avoided|prohibited|forbidden|disabled|disallowed|unsupported)\b|(?:is|are|was|were)\s+(?:(?:also|still)\s+)?to\s+be\s+(?:inert|avoided|prohibited|forbidden|disabled|disallowed|unsupported)\b)/iu;
 const PROMPTS_TOKEN_PATTERN = /\/[Pp][Rr][Oo][Mm][Pp][Tt][Ss]:[\w.-]+/gu;
-const COORDINATED_WORKFLOW_SUBJECT = '(?:(?:the|a|an)\\s+)?(?:autopilot|deep(?:[- ]+)interview|ralph|ralplan|ultrawork|ulw|ultragoal|ultraqa|autoresearch|coordinated\\s+team|team|consensus\\s+plan|code\\s+review|wiki|prometheus(?:-strict)?)';
+const COORDINATED_WORKFLOW_SUBJECT = '(?:(?:the|a|an)\\s+)?(?:autopilot|deep(?:[- ]+)interview|ralph|ralplan|ultrawork|ulw|ultragoal|ultraqa|coordinated\\s+team|team|consensus\\s+plan|code\\s+review|wiki|prometheus(?:-strict)?)';
 const COORDINATED_SUBJECT_JOINER = '(?:and|or|nor|as\\s+well\\s+as|along\\s+with|together\\s+with|&)';
 const EXPLICIT_POSTPOSED_SUBJECT = '\\$(?:oh-my-codex:)?[A-Za-z][A-Za-z0-9_-]*';
 const COORDINATED_POSTPOSED_SEPARATOR_SOURCE = `\\s*(?:(?:[,，،、]|/)\\s*(?:${COORDINATED_SUBJECT_JOINER}\\s+)?|${COORDINATED_SUBJECT_JOINER}\\s+)`;
@@ -3337,7 +3329,7 @@ function detectImplicitKeywords(
 }
 
 function hasOmxQuestionAnsweredPrefix(text: string): boolean {
-  return /^\s*\[omx question answered\]/i.test(text);
+  return /^\s*\[nomx question answered\]/i.test(text);
 }
 
 function hasIntentContextForKeyword(text: string, keyword: string): boolean {
@@ -3721,7 +3713,6 @@ function resolveContinuationKeywordMatch(
 }
 
 function initialWorkflowPhaseForMode(mode: TrackedWorkflowMode): SkillActivePhase {
-  if (mode === 'autoresearch') return 'executing';
   if (mode === 'autopilot') return 'deep-interview';
   return 'planning';
 }

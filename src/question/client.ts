@@ -99,7 +99,7 @@ export async function defaultOmxQuestionProcessRunner(
 function parseQuestionStdout(stdout: string, stderr: string, exitCode: number | null): OmxQuestionPayload {
   const trimmed = stdout.trim();
   if (!trimmed) {
-    throw new OmxQuestionError('question_no_stdout', 'omx question did not emit a JSON response on stdout.', {
+    throw new OmxQuestionError('question_no_stdout', 'nomx question did not emit a JSON response on stdout.', {
       stdout,
       stderr,
       exitCode,
@@ -111,7 +111,7 @@ function parseQuestionStdout(stdout: string, stderr: string, exitCode: number | 
   } catch (error) {
     throw new OmxQuestionError(
       'question_invalid_stdout',
-      `omx question emitted invalid JSON on stdout: ${(error as Error).message}`,
+      `nomx question emitted invalid JSON on stdout: ${(error as Error).message}`,
       { stdout, stderr, exitCode },
     );
   }
@@ -125,7 +125,7 @@ export async function runOmxQuestion(
   const env = options.env ?? process.env;
   const omxBin = resolveOmxCliEntryPath({ argv1: options.argv1, cwd, env });
   if (!omxBin) {
-    throw new OmxQuestionError('question_cli_not_found', 'Could not resolve the omx CLI entrypoint for blocking question execution.');
+    throw new OmxQuestionError('question_cli_not_found', 'Could not resolve the nomx CLI entrypoint for blocking question execution.');
   }
 
   const runner = options.runner ?? defaultOmxQuestionProcessRunner;
@@ -148,7 +148,7 @@ export async function runOmxQuestion(
   if (result.code !== 0) {
     throw new OmxQuestionError(
       'question_nonzero_exit',
-      `omx question returned an answer but exited with code ${result.code}.`,
+      `nomx question returned an answer but exited with code ${result.code}.`,
       { stdout: result.stdout, stderr: result.stderr, exitCode: result.code },
     );
   }

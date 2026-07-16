@@ -51,7 +51,7 @@ Complex tasks often fail silently: partial implementations get declared "done", 
      - unknowns/open questions
      - likely codebase touchpoints
    - If an existing relevant snapshot is available, reuse it and record the path in Ralph state.
-   - If request ambiguity is high, gather brownfield facts first. `omx explore` is deprecated; use normal repository inspection tools/subagents for simple read-only repository lookups and `omx sparkshell` only for explicit shell-native read-only evidence. Then run `$deep-interview --quick <task>` to close critical gaps.
+   - If request ambiguity is high, gather brownfield facts first. `nomx explore` is deprecated; use normal repository inspection tools/subagents for simple read-only repository lookups and `nomx sparkshell` only for explicit shell-native read-only evidence. Then run `$deep-interview --quick <task>` to close critical gaps.
    - Do not begin Ralph execution work (delegation, implementation, or verification loops) until snapshot grounding exists. If forced to proceed quickly, note explicit risk tradeoffs.
 1. **Review progress**: Check TODO list and any prior iteration state
 2. **Continue from where you left off**: Pick up incomplete tasks
@@ -78,7 +78,7 @@ Complex tasks often fail silently: partial implementations get declared "done", 
    - Standard changes: `task(agent_type="architect", reasoning_effort="medium", prompt="...")`
    - >20 files or security/architectural changes: `task(agent_type="architect", reasoning_effort="xhigh", prompt="...")`
    - Ralph floor: always run an explicit `architect` native subagent, even for small changes
-   - On a `role_routing_unavailable` surface, before each App Architect spawn, run `omx ralplan role-intent write --role architect --parent-thread <leader-thread-id> --json`; read `spawn_task_name` from its receipt (`omx_role_intent_<correlation_token>`), the App-compatible `task_name` value (lowercase letters, digits, and underscores only), then spawn the App Architect with `task_name` set to that exact unmodified value, **not** `agent_nickname`. The recorded validated intent and correlation token are the authoritative role carrier, never a prompt label.
+   - On a `role_routing_unavailable` surface, before each App Architect spawn, run `nomx ralplan role-intent write --role architect --parent-thread <leader-thread-id> --json`; read `spawn_task_name` from its receipt (`omx_role_intent_<correlation_token>`), the App-compatible `task_name` value (lowercase letters, digits, and underscores only), then spawn the App Architect with `task_name` set to that exact unmodified value, **not** `agent_nickname`. The recorded validated intent and correlation token are the authoritative role carrier, never a prompt label.
 7.5 **Regression Re-verification**:
    - Re-run all required tests/build/lint after final fixes and read the output to confirm they still pass.
    - Do not proceed to completion until the final verification is green.
@@ -90,10 +90,10 @@ Complex tasks often fail silently: partial implementations get declared "done", 
 - Use `ask_codex` with `agent_role: "architect"` for verification cross-checks when changes are security-sensitive, architectural, or involve complex multi-system integration
 - Skip Codex consultation for simple feature additions, well-tested changes, or time-critical verification
 - If MCP compatibility tools are unavailable, proceed with CLI/agent verification alone -- never block on external tools
-- Use `omx state write/read --input '<json>' --json` for ralph mode state persistence between iterations
+- Use `nomx state write/read --input '<json>' --json` for ralph mode state persistence between iterations
 - Use Codex goal tools when present: `get_goal` to discover or re-check the active objective, `create_goal` only when the user/system explicitly requested a new goal and no active goal exists, and `update_goal` only after the audited objective is fully achieved.
 - Persist context snapshot path in Ralph mode state so later phases and agents share the same grounding context
-- Prefer CLI state commands. If an explicit MCP compatibility `omx_state` call reports that its stdio transport is unavailable/closed, do **not** retry the same MCP call. Retry once through the supported CLI parity surface with the same payload, preserving `workingDirectory` and `session_id`: `omx state write --input '<json>' --json`, `omx state read --input '<json>' --json`, or `omx state clear --input '<json>' --json`. If the CLI path also fails, continue with `.omx/context` / `.omx/plans` file-backed artifacts and report the state persistence blocker.
+- Prefer CLI state commands. If an explicit MCP compatibility `omx_state` call reports that its stdio transport is unavailable/closed, do **not** retry the same MCP call. Retry once through the supported CLI parity surface with the same payload, preserving `workingDirectory` and `session_id`: `nomx state write --input '<json>' --json`, `nomx state read --input '<json>' --json`, or `nomx state clear --input '<json>' --json`. If the CLI path also fails, continue with `.omx/context` / `.omx/plans` file-backed artifacts and report the state persistence blocker.
 </Tool_Usage>
 
 ## Goal Mode Integration
@@ -113,25 +113,25 @@ Codex goal mode is the thread-level completion contract for long-running Ralph w
 
 ## State Management
 
-Use the CLI-first state surface for Ralph lifecycle state (`omx state write/read/clear --input '<json>' --json`). Explicit MCP compatibility tools (`state_write`, `state_read`, `state_clear`) remain acceptable only when already enabled.
+Use the CLI-first state surface for Ralph lifecycle state (`nomx state write/read/clear --input '<json>' --json`). Explicit MCP compatibility tools (`state_write`, `state_read`, `state_clear`) remain acceptable only when already enabled.
 
 - **On start**:
-  `omx state write --input '{"mode":"ralph","active":true,"iteration":1,"max_iterations":10,"current_phase":"executing","started_at":"<now>","state":{"context_snapshot_path":"<snapshot-path>"}}' --json`
+  `nomx state write --input '{"mode":"ralph","active":true,"iteration":1,"max_iterations":10,"current_phase":"executing","started_at":"<now>","state":{"context_snapshot_path":"<snapshot-path>"}}' --json`
 - **On each iteration**:
-  `omx state write --input '{"mode":"ralph","iteration":<current>,"current_phase":"executing"}' --json`
+  `nomx state write --input '{"mode":"ralph","iteration":<current>,"current_phase":"executing"}' --json`
 - **On verification/fix transition**:
-  `omx state write --input '{"mode":"ralph","current_phase":"verifying"}' --json` or `omx state write --input '{"mode":"ralph","current_phase":"fixing"}' --json`
+  `nomx state write --input '{"mode":"ralph","current_phase":"verifying"}' --json` or `nomx state write --input '{"mode":"ralph","current_phase":"fixing"}' --json`
 - **On completion** (only after the completion audit passes with real evidence):
-  `omx state write --input '{"mode":"ralph","active":false,"current_phase":"complete","completed_at":"<now>","completion_audit":{"passed":true,"prompt_to_artifact_checklist":["<requirement mapped to artifact/evidence>"],"verification_evidence":["<fresh test/build/lint command and result>"]}}' --json`
+  `nomx state write --input '{"mode":"ralph","active":false,"current_phase":"complete","completed_at":"<now>","completion_audit":{"passed":true,"prompt_to_artifact_checklist":["<requirement mapped to artifact/evidence>"],"verification_evidence":["<fresh test/build/lint command and result>"]}}' --json`
 - **Before the final answer**:
   1. Run fresh verification and read the output.
   2. Build `prompt_to_artifact_checklist` entries that map every user requirement, workflow gate, named file, command, PR/delivery requirement, and stop condition to a concrete artifact or evidence item.
   3. Build `verification_evidence` entries with concrete commands, exit status, files inspected, PR URLs, or other machine-checkable evidence.
   4. Write the Ralph completion state with a top-level `completion_audit` field on the Ralph state object. Do not write bare top-level `prompt_to_artifact_checklist` or `verification_evidence` fields by themselves; the Stop gate will reject them.
-  5. Read the state back with `omx state read --input '{"mode":"ralph"}' --json` and verify `completion_audit.passed === true`, a non-empty checklist, and non-empty verification evidence before producing the final answer.
+  5. Read the state back with `nomx state read --input '{"mode":"ralph"}' --json` and verify `completion_audit.passed === true`, a non-empty checklist, and non-empty verification evidence before producing the final answer.
   6. If Codex goal mode is active, call `update_goal({status:"complete"})` only after this Ralph audit read-back succeeds.
 - **On cancellation/cleanup**:
-  run `omx cancel` (which clears the active Ralph state)
+  run `nomx cancel` (which clears the active Ralph state)
 
 
 ## Scenario Examples
@@ -199,7 +199,7 @@ Why bad: These are independent tasks that should run in parallel, not sequential
 - [ ] Architect verification passed: on a routing-capable surface via explicit `task(agent_type="architect", reasoning_effort="medium"...)` minimum; on a `role_routing_unavailable` surface via a validated OMX-adapted Architect role-pass (pre-recorded role intent + `omx_adapted` provenance in the subagent ledger)
 - [ ] Codex goal-mode completion audit passed, and `update_goal({status: "complete"})` was called when an active goal exists
 - [ ] Final regression tests pass
-- [ ] `omx cancel` run for clean state cleanup
+- [ ] `nomx cancel` run for clean state cleanup
 </Final_Checklist>
 
 <Advanced>
@@ -210,9 +210,9 @@ When the user provides the `--prd` flag, initialize a Product Requirements Docum
 ### Detecting PRD Mode
 Check if `{{PROMPT}}` contains `--prd` or `--PRD`.
 
-Prompt-side `$ralph` workflow activation is lighter-weight than `omx ralph --prd ...`.
+Prompt-side `$ralph` workflow activation is lighter-weight than `nomx ralph --prd ...`.
 It seeds Ralph workflow state and guidance, but it does not implicitly launch the
-CLI entrypoint or apply the PRD startup gate. Treat `omx ralph --prd ...` as the
+CLI entrypoint or apply the PRD startup gate. Treat `nomx ralph --prd ...` as the
 explicit PRD-gated path.
 
 ### Visual Reference Flags (Optional)

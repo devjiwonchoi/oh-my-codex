@@ -996,7 +996,7 @@ describe('Team Exec Stage', () => {
         '',
         buildContextPackOutcome(canonicalContextPackRelativePath('zeta')),
         '',
-        'Launch via omx team 5:debugger "Execute zeta handoff"',
+        'Launch via nomx team 5:debugger "Execute zeta handoff"',
       ].join('\n'),
     );
     await writeFile(approvedTestSpecPath, '# Zeta test spec\n');
@@ -1026,7 +1026,7 @@ describe('Team Exec Stage', () => {
       assert.deepEqual(descriptor.approvedExecution, {
         prd_path: approvedPrdPath,
         task: 'Execute zeta handoff',
-        command: 'omx team 5:debugger "Execute zeta handoff"',
+        command: 'nomx team 5:debugger "Execute zeta handoff"',
       });
       assert.match(instruction, /Execute zeta handoff/);
       assert.doesNotMatch(instruction, /plan-content/);
@@ -1054,7 +1054,7 @@ describe('Team Exec Stage', () => {
         '',
         buildContextPackOutcome(canonicalContextPackRelativePath('zeta')),
         '',
-        'Launch via omx team 5:debugger "Execute zeta handoff"',
+        'Launch via nomx team 5:debugger "Execute zeta handoff"',
       ].join('\n'),
     );
     await writeFile(approvedTestSpecPath, '# Zeta test spec\n');
@@ -1084,7 +1084,7 @@ describe('Team Exec Stage', () => {
       assert.deepEqual(descriptor.approvedExecution, {
         prd_path: approvedPrdPath,
         task: 'Execute zeta handoff',
-        command: 'omx team 5:debugger "Execute zeta handoff"',
+        command: 'nomx team 5:debugger "Execute zeta handoff"',
       });
       assert.deepEqual(runtimeCliInput.approvedExecution, descriptor.approvedExecution);
     } finally {
@@ -1104,7 +1104,7 @@ describe('Team Exec Stage', () => {
         '',
         buildContextPackOutcome(canonicalContextPackRelativePath('zeta')),
         '',
-        'Launch via omx team 5:debugger "Execute zeta handoff"',
+        'Launch via nomx team 5:debugger "Execute zeta handoff"',
       ].join('\n'),
     );
     await writeFile(approvedTestSpecPath, '# Zeta test spec\n');
@@ -1139,7 +1139,7 @@ describe('Team Exec Stage', () => {
       assert.deepEqual(descriptor.approvedExecution, {
         prd_path: approvedPrdPath,
         task: 'Execute zeta handoff',
-        command: 'omx team 5:debugger "Execute zeta handoff"',
+        command: 'nomx team 5:debugger "Execute zeta handoff"',
       });
       assert.doesNotMatch(instruction, new RegExp(escapeRegExp(incompleteDraftPath)));
       assert.deepEqual(runtimeCliInput.approvedExecution, descriptor.approvedExecution);
@@ -1154,7 +1154,7 @@ describe('Team Exec Stage', () => {
     const approvedPrdPath = join(plansDir, 'prd-plan-only.md');
     await writeFile(
       approvedPrdPath,
-      '# Plan-only plan\n\nLaunch via omx team 5:debugger "Execute plan-only team handoff"\n',
+      '# Plan-only plan\n\nLaunch via nomx team 5:debugger "Execute plan-only team handoff"\n',
     );
     await writeFile(join(plansDir, 'test-spec-plan-only.md'), '# Plan-only test spec\n');
     await writeFile(join(plansDir, 'repo-context-plan-only.md'), 'Baseline repo summary may reach workers.\n');
@@ -1182,7 +1182,7 @@ describe('Team Exec Stage', () => {
       assert.deepEqual(descriptor.approvedExecution, {
         prd_path: approvedPrdPath,
         task: 'Execute plan-only team handoff',
-        command: 'omx team 5:debugger "Execute plan-only team handoff"',
+        command: 'nomx team 5:debugger "Execute plan-only team handoff"',
       });
       assert.equal(runtimeCliInput.task, 'Execute plan-only team handoff');
       assert.deepEqual(runtimeCliInput.approvedExecution, descriptor.approvedExecution);
@@ -1200,7 +1200,7 @@ describe('Team Exec Stage', () => {
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-issue-missing-baseline.md'),
-      '# Missing-baseline plan\n\nLaunch via omx team 5:debugger "Execute missing-baseline team handoff"\n',
+      '# Missing-baseline plan\n\nLaunch via nomx team 5:debugger "Execute missing-baseline team handoff"\n',
     );
 
     const previousCwd = process.cwd();
@@ -1240,7 +1240,7 @@ describe('Team Exec Stage', () => {
         '',
         '- pack: created `.omx/context/context-20260507T120000Z-other.json`',
         '',
-        'Launch via omx team 5:debugger "Execute nonready team handoff"',
+        'Launch via nomx team 5:debugger "Execute nonready team handoff"',
       ].join('\n'),
     );
     await writeFile(join(plansDir, 'test-spec-issue-nonready.md'), '# Nonready test spec\n');
@@ -1265,7 +1265,7 @@ describe('Team Exec Stage', () => {
       assert.deepEqual(descriptor.approvedExecution, {
         prd_path: join(plansDir, 'prd-issue-nonready.md'),
         task: 'Execute nonready team handoff',
-        command: 'omx team 5:debugger "Execute nonready team handoff"',
+        command: 'nomx team 5:debugger "Execute nonready team handoff"',
       });
     } finally {
       process.chdir(previousCwd);
@@ -1277,7 +1277,7 @@ describe('Team Exec Stage', () => {
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-zeta.md'),
-      '# Zeta plan\n\nLaunch via omx team 5:debugger "Execute zeta handoff"\n',
+      '# Zeta plan\n\nLaunch via nomx team 5:debugger "Execute zeta handoff"\n',
     );
     await writeFile(join(plansDir, 'test-spec-zeta.md'), '# Zeta test spec\n');
 
@@ -1311,7 +1311,7 @@ describe('Team Exec Stage', () => {
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-zeta.md'),
-      '# Zeta plan\n\nLaunch via omx team 5:debugger "Execute zeta handoff"\n',
+      '# Zeta plan\n\nLaunch via nomx team 5:debugger "Execute zeta handoff"\n',
     );
     await writeFile(join(plansDir, 'test-spec-zeta.md'), '# Zeta test spec\n');
 
@@ -1404,7 +1404,7 @@ describe('Team Exec Stage', () => {
     const expectedTask = String.raw`Use C:\tmp and keep \n literal plus "quotes"`;
     await writeFile(
       join(plansDir, 'prd-zeta.md'),
-      `# Zeta plan\n\nLaunch via omx team 2:executor ${encodeApprovedExecutionTask(expectedTask, 'double')}\n`,
+      `# Zeta plan\n\nLaunch via nomx team 2:executor ${encodeApprovedExecutionTask(expectedTask, 'double')}\n`,
     );
     await writeFile(join(plansDir, 'test-spec-zeta.md'), '# Zeta test spec\n');
 
@@ -1432,12 +1432,12 @@ describe('Team Exec Stage', () => {
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-issue-9.md'),
-      '# Issue 9 plan\n\nLaunch via omx team 2:executor "Execute issue 9 handoff"\n',
+      '# Issue 9 plan\n\nLaunch via nomx team 2:executor "Execute issue 9 handoff"\n',
     );
     await writeFile(join(plansDir, 'test-spec-issue-9.md'), '# Issue 9 test spec\n');
     await writeFile(
       join(plansDir, 'prd-issue-10.md'),
-      '# Issue 10 plan\n\nLaunch via omx team 3:debugger "Execute issue 10 handoff"\n',
+      '# Issue 10 plan\n\nLaunch via nomx team 3:debugger "Execute issue 10 handoff"\n',
     );
     await writeFile(join(plansDir, 'test-spec-issue-10.md'), '# Issue 10 test spec\n');
 
@@ -1468,12 +1468,12 @@ describe('Team Exec Stage', () => {
     const stalePrdPath = join(plansDir, 'prd-alpha.md');
     await writeFile(
       stalePrdPath,
-      '# Alpha plan\n\nLaunch via omx team 2:executor "Execute alpha handoff"\n',
+      '# Alpha plan\n\nLaunch via nomx team 2:executor "Execute alpha handoff"\n',
     );
     await writeFile(join(plansDir, 'test-spec-alpha.md'), '# Alpha test spec\n');
     await writeFile(
       join(plansDir, 'prd-zeta.md'),
-      '# Zeta plan\n\nLaunch via omx team 5:debugger "Execute zeta handoff"\n',
+      '# Zeta plan\n\nLaunch via nomx team 5:debugger "Execute zeta handoff"\n',
     );
     await writeFile(join(plansDir, 'test-spec-zeta.md'), '# Zeta test spec\n');
 
@@ -1531,7 +1531,7 @@ describe('Team Exec Stage', () => {
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-zeta.md'),
-      '# Zeta plan\n\nLaunch via omx team 5:debugger "Execute zeta handoff"\n',
+      '# Zeta plan\n\nLaunch via nomx team 5:debugger "Execute zeta handoff"\n',
     );
     await writeFile(join(plansDir, 'test-spec-zeta.md'), '# Zeta test spec\n');
 
@@ -1592,8 +1592,8 @@ describe('Team Exec Stage', () => {
       [
         '# PRD',
         '',
-        'Launch via omx team 2:executor "Execute first handoff"',
-        'Launch via omx team 2:executor "Execute second handoff"',
+        'Launch via nomx team 2:executor "Execute first handoff"',
+        'Launch via nomx team 2:executor "Execute second handoff"',
       ].join('\n'),
     );
     await writeFile(join(plansDir, 'test-spec-ambiguous-team-hint.md'), '# Test spec\n');
@@ -1731,7 +1731,7 @@ describe('Team Exec Stage', () => {
       await mkdir(plansDir, { recursive: true });
       await writeFile(
         join(plansDir, 'prd-demo.md'),
-        '# Demo\n\nLaunch via omx team 2:executor "Execute approved demo plan"\n',
+        '# Demo\n\nLaunch via nomx team 2:executor "Execute approved demo plan"\n',
       );
       await writeFile(join(plansDir, 'test-spec-demo.md'), '# Demo Test Spec\n');
       await writeFile(join(plansDir, 'team-dag-demo.json'), JSON.stringify({
@@ -1865,7 +1865,7 @@ describe('Ralph Verify Stage', () => {
       });
 
       assert.match(instruction, /max_iterations=15/);
-      assert.match(instruction, /^omx ralph /);
+      assert.match(instruction, /^nomx ralph /);
       assert.match(instruction, /verify feature/);
       assert.match(instruction, /staffing=/);
       assert.match(instruction, /verify=/);
@@ -1883,7 +1883,7 @@ describe('Ralph Verify Stage', () => {
         executionArtifacts: {},
       });
 
-      assert.match(instruction, /^omx ralph /);
+      assert.match(instruction, /^nomx ralph /);
       assert.match(instruction, /staffing=/);
     });
   });

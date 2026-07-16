@@ -18,13 +18,8 @@ import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import {
-	withPackagedExploreHarnessHidden,
-	withPackagedExploreHarnessLock,
-} from "./packaged-explore-harness-lock.js";
-import {
 	buildPostCompactSmokeSpawnInvocation,
 	checkExternalCodexProcessGuards,
-	checkExploreHarness,
 	checkLegacyMultiAgentCompatibility,
 	checkNativeHookDistSmoke,
 	checkNativePostCompactHookRuntime,
@@ -53,7 +48,7 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error?: string } {
 	const testDir = dirname(fileURLToPath(import.meta.url));
 	const repoRoot = join(testDir, "..", "..", "..");
-	const omxBin = join(repoRoot, "dist", "cli", "omx.js");
+	const omxBin = join(repoRoot, "dist", "cli", "nomx.js");
 	const mergedEnv = { ...process.env, ...envOverrides };
 	if (
 		typeof envOverrides.HOME === "string" &&
@@ -124,7 +119,7 @@ async function installPluginCacheFixture(codexDir: string): Promise<string> {
 		`${JSON.stringify(
 			{
 				command: process.execPath,
-				argsPrefix: [join(root, "dist", "cli", "omx.js")],
+				argsPrefix: [join(root, "dist", "cli", "nomx.js")],
 			},
 			null,
 			2,
@@ -174,7 +169,7 @@ function buildHooksJsonWithPostCompactCommand(
 	}, null, 2)}\n`;
 }
 
-describe("omx doctor onboarding warning copy", () => {
+describe("nomx doctor onboarding warning copy", () => {
 	it("warns about external LaunchAgents that kill Codex app-server MCP children", async () => {
 		const wd = await mkdtemp(join(tmpdir(), "omx-doctor-external-guard-"));
 		try {
@@ -288,35 +283,6 @@ describe("omx doctor onboarding warning copy", () => {
 		assert.equal(check, null);
 	});
 
-	it("does not warn about the Windows explore harness when deprecated explore routing is disabled by default", () => {
-		const check = checkExploreHarness("win32", {} as NodeJS.ProcessEnv);
-
-		assert.equal(check.name, "Explore Harness");
-		assert.equal(check.status, "pass");
-		assert.match(check.message, /omx explore is hard-deprecated/i);
-		assert.match(check.message, /explore routing is disabled by default/i);
-		assert.match(check.message, /omx sparkshell/i);
-		assert.doesNotMatch(check.message, /not ready on Windows/i);
-	});
-
-	it("still warns about the Windows built-in explore harness when deprecated routing is explicitly enabled", () => {
-		const check = checkExploreHarness("win32", { USE_OMX_EXPLORE_CMD: "1" } as NodeJS.ProcessEnv);
-
-		assert.equal(check.name, "Explore Harness");
-		assert.equal(check.status, "warn");
-		assert.match(check.message, /not ready on Windows/i);
-		assert.match(check.message, /OMX_EXPLORE_BIN/);
-		assert.match(check.message, /omx sparkshell/i);
-	});
-
-	it("preserves warnings for explicit custom explore harness overrides", () => {
-		const check = checkExploreHarness("win32", { OMX_EXPLORE_BIN: "missing-custom-harness.exe" } as NodeJS.ProcessEnv);
-
-		assert.equal(check.name, "Explore Harness");
-		assert.equal(check.status, "warn");
-		assert.match(check.message, /OMX_EXPLORE_BIN is set but path was not found/);
-	});
-
 	it("treats user-managed MCP servers as preserved under CLI-first defaults", async () => {
 		const wd = await mkdtemp(join(tmpdir(), "omx-doctor-copy-"));
 		try {
@@ -339,7 +305,7 @@ command = "node"
 			assert.equal(res.status, 0, res.stderr || res.stdout);
 			assert.match(
 				res.stdout,
-				/Config: config\.toml exists but no OMX entries yet \(expected before first setup; run "omx setup --force" once\)/,
+				/Config: config\.toml exists but no OMX entries yet \(expected before first setup; run "nomx setup --force" once\)/,
 			);
 			assert.match(
 				res.stdout,
@@ -366,8 +332,8 @@ command = "node"
 			assert.equal(res.status, 0, res.stderr || res.stdout);
 			assert.match(res.stdout, /\[!!\] AGENTS\.md: OMX AGENTS contract markers missing/);
 			assert.match(res.stdout, /may have been overwritten by another tool/);
-			assert.match(res.stdout, /omx setup --scope user --merge-agents/);
-			assert.match(res.stdout, /omx setup --scope user --force/);
+			assert.match(res.stdout, /nomx setup --scope user --merge-agents/);
+			assert.match(res.stdout, /nomx setup --scope user --force/);
 		} finally {
 			await rm(wd, { recursive: true, force: true });
 		}
@@ -414,7 +380,7 @@ command = "node"
 			);
 			assert.match(
 				res.stdout,
-				/Run "omx setup --scope user --force" and accept AGENTS\.md defaults/,
+				/Run "nomx setup --scope user --force" and accept AGENTS\.md defaults/,
 			);
 			assert.doesNotMatch(
 				res.stdout,
@@ -450,7 +416,7 @@ command = "node"
 			if (shouldSkipForSpawnPermissions(res.error)) return;
 			assert.equal(res.status, 0, res.stderr || res.stdout);
 			assert.match(res.stdout, /\[!!\] AGENTS\.md: OMX AGENTS contract markers missing/);
-			assert.match(res.stdout, /omx setup --scope user --merge-agents/);
+			assert.match(res.stdout, /nomx setup --scope user --merge-agents/);
 			assert.doesNotMatch(res.stdout, /optional plugin-mode AGENTS\.md defaults found/);
 		} finally {
 			await rm(wd, { recursive: true, force: true });
@@ -637,13 +603,13 @@ command = "node"
 			assert.match(
 				res.stdout,
 				new RegExp(
-					`Skills: plugin marketplace oh-my-codex-local is registered, but installed Codex plugin cache manifest version 0\\.0\\.0-stale does not match packaged version ${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}; run "omx setup --plugin --force" so /skills can discover OMX plugin skills`,
+					`Skills: plugin marketplace oh-my-codex-local is registered, but installed Codex plugin cache manifest version 0\\.0\\.0-stale does not match packaged version ${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}; run "nomx setup --plugin --force" so /skills can discover OMX plugin skills`,
 				),
 			);
 			assert.match(
 				res.stdout,
 				new RegExp(
-					`Plugin versions: expected cache directory .*${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} is not materialized with packaged plugin manifest version ${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}; run "omx setup --plugin --force" to refresh the plugin cache`,
+					`Plugin versions: expected cache directory .*${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} is not materialized with packaged plugin manifest version ${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}; run "nomx setup --plugin --force" to refresh the plugin cache`,
 				),
 			);
 		} finally {
@@ -681,11 +647,11 @@ command = "node"
 			assert.equal(res.status, 0, res.stderr || res.stdout);
 			assert.match(
 				res.stdout,
-				/Skills: plugin marketplace oh-my-codex-local is registered, but no installed Codex plugin cache was found; run "omx setup --plugin --force" so \/skills can discover OMX plugin skills/,
+				/Skills: plugin marketplace oh-my-codex-local is registered, but no installed Codex plugin cache was found; run "nomx setup --plugin --force" so \/skills can discover OMX plugin skills/,
 			);
 			assert.match(
 				res.stdout,
-				/Plugin versions: expected cache directory .* is not materialized with packaged plugin manifest version .*; run "omx setup --plugin --force" to refresh the plugin cache/,
+				/Plugin versions: expected cache directory .* is not materialized with packaged plugin manifest version .*; run "nomx setup --plugin --force" to refresh the plugin cache/,
 			);
 		} finally {
 			await rm(wd, { recursive: true, force: true });
@@ -771,7 +737,7 @@ command = "node"
 			assert.match(res.stdout, /Resolved setup install mode: plugin/);
 			assert.match(
 				res.stdout,
-				/Skills: plugin mode selected, but Codex marketplace oh-my-codex-local is not registered; run "omx setup --plugin --force"/,
+				/Skills: plugin mode selected, but Codex marketplace oh-my-codex-local is not registered; run "nomx setup --plugin --force"/,
 			);
 			assert.doesNotMatch(res.stdout, /Skills: skills directory not found/);
 			assert.doesNotMatch(res.stdout, /MCP Servers: no MCP servers configured/);
@@ -804,167 +770,16 @@ enabled = true
 			assert.equal(res.status, 0, res.stderr || res.stdout);
 			assert.match(
 				res.stdout,
-				/Config: retired \[mcp_servers\.omx_team_run\] table still present; run "omx setup --force" to repair the config/,
+				/Config: retired \[mcp_servers\.omx_team_run\] table still present; run "nomx setup --force" to repair the config/,
 			);
 			assert.match(
 				res.stdout,
-				/MCP Servers: 1 servers configured, but retired \[mcp_servers\.omx_team_run\] is not supported; run "omx setup --force" to repair the config/,
+				/MCP Servers: 1 servers configured, but retired \[mcp_servers\.omx_team_run\] is not supported; run "nomx setup --force" to repair the config/,
 			);
 			assert.doesNotMatch(res.stdout, /Config: config\.toml has OMX entries/);
 			assert.doesNotMatch(
 				res.stdout,
 				/MCP Servers: 1 user-managed MCP server\(s\) preserved; first-party OMX MCP omitted by default/,
-			);
-		} finally {
-			await rm(wd, { recursive: true, force: true });
-		}
-	});
-
-	it("warns when explore harness sources are packaged but cargo is unavailable", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-doctor-explore-copy-"));
-		try {
-			await withPackagedExploreHarnessHidden(async () => {
-				const home = join(wd, "home");
-				const codexDir = join(home, ".codex");
-				const fakeBin = join(wd, "bin");
-				await mkdir(codexDir, { recursive: true });
-				await mkdir(fakeBin, { recursive: true });
-				await writeFile(
-					join(fakeBin, "codex"),
-					'#!/bin/sh\necho "codex test"\n',
-				);
-				spawnSync("chmod", ["+x", join(fakeBin, "codex")], {
-					encoding: "utf-8",
-				});
-
-				const res = runOmx(wd, ["doctor"], {
-					HOME: home,
-					CODEX_HOME: join(home, ".codex"),
-					PATH: fakeBin,
-					OMX_EXPLORE_BIN: "",
-					USE_OMX_EXPLORE_CMD: "1",
-				});
-				if (shouldSkipForSpawnPermissions(res.error)) return;
-				assert.equal(res.status, 0, res.stderr || res.stdout);
-				assert.match(
-					res.stdout,
-					/Explore Harness: (Rust harness sources are packaged, but no compatible packaged prebuilt or cargo was found \(install Rust or set OMX_EXPLORE_BIN for omx explore\)|not ready \(no packaged binary, OMX_EXPLORE_BIN, or cargo toolchain\))/,
-				);
-			});
-		} finally {
-			await rm(wd, { recursive: true, force: true });
-		}
-	});
-
-	it("passes explore harness check when a packaged native binary is present even without cargo", async () => {
-		await withPackagedExploreHarnessLock(async () => {
-			const wd = await mkdtemp(join(tmpdir(), "omx-doctor-explore-binary-"));
-			try {
-				const home = join(wd, "home");
-				const codexDir = join(home, ".codex");
-				const fakeBin = join(wd, "bin");
-				const packageBinDir = join(process.cwd(), "bin");
-				const packagedBinary = join(
-					packageBinDir,
-					process.platform === "win32"
-						? "omx-explore-harness.exe"
-						: "omx-explore-harness",
-				);
-				const packagedMeta = join(
-					packageBinDir,
-					"omx-explore-harness.meta.json",
-				);
-				const hadExistingBinary = existsSync(packagedBinary);
-				const hadExistingMeta = existsSync(packagedMeta);
-
-				await mkdir(codexDir, { recursive: true });
-				await mkdir(fakeBin, { recursive: true });
-				await writeFile(
-					join(fakeBin, "codex"),
-					'#!/bin/sh\necho "codex test"\n',
-				);
-				spawnSync("chmod", ["+x", join(fakeBin, "codex")], {
-					encoding: "utf-8",
-				});
-				const fsPromises = await import("node:fs/promises");
-				const originalBinary = hadExistingBinary
-					? await fsPromises.readFile(packagedBinary)
-					: null;
-				const originalMeta = hadExistingMeta
-					? await fsPromises.readFile(packagedMeta, "utf-8")
-					: null;
-				await mkdir(packageBinDir, { recursive: true });
-				await writeFile(packagedBinary, '#!/bin/sh\necho "stub harness"\n');
-				await writeFile(
-					packagedMeta,
-					JSON.stringify({
-						binaryName:
-							process.platform === "win32"
-								? "omx-explore-harness.exe"
-								: "omx-explore-harness",
-						platform: process.platform,
-						arch: process.arch,
-					}),
-				);
-				spawnSync("chmod", ["+x", packagedBinary], { encoding: "utf-8" });
-
-				try {
-					const res = runOmx(wd, ["doctor"], {
-						HOME: home,
-						CODEX_HOME: join(home, ".codex"),
-						PATH: fakeBin,
-						OMX_EXPLORE_BIN: "",
-						USE_OMX_EXPLORE_CMD: "1",
-					});
-					if (shouldSkipForSpawnPermissions(res.error)) return;
-					assert.equal(res.status, 0, res.stderr || res.stdout);
-					assert.match(
-						res.stdout,
-						/Explore Harness: ready \(packaged native binary:/,
-					);
-				} finally {
-					if (originalBinary) {
-						await writeFile(packagedBinary, originalBinary);
-						spawnSync("chmod", ["+x", packagedBinary], { encoding: "utf-8" });
-					} else {
-						await rm(packagedBinary, { force: true });
-					}
-					if (originalMeta !== null) {
-						await writeFile(packagedMeta, originalMeta);
-					} else {
-						await rm(packagedMeta, { force: true });
-					}
-				}
-			} finally {
-				await rm(wd, { recursive: true, force: true });
-			}
-		});
-	});
-
-	it("passes when deprecated explore routing is explicitly disabled by environment/config", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-doctor-explore-routing-"));
-		try {
-			const home = join(wd, "home");
-			const codexDir = join(home, ".codex");
-			await mkdir(codexDir, { recursive: true });
-			await writeFile(
-				join(codexDir, "config.toml"),
-				`
-[shell_environment_policy.set]
-USE_OMX_EXPLORE_CMD = "off"
-`.trimStart(),
-			);
-
-			const res = runOmx(wd, ["doctor"], {
-				HOME: home,
-				CODEX_HOME: join(home, ".codex"),
-				USE_OMX_EXPLORE_CMD: "off",
-			});
-			if (shouldSkipForSpawnPermissions(res.error)) return;
-			assert.equal(res.status, 0, res.stderr || res.stdout);
-			assert.match(
-				res.stdout,
-				/Explore routing: deprecated compatibility routing disabled by environment override \(recommended\)/,
 			);
 		} finally {
 			await rm(wd, { recursive: true, force: true });
@@ -1208,7 +1023,7 @@ OMX_LORE_COMMIT_GUARD = "truee"
 			);
 			assert.match(
 				res.stdout,
-				/Native hooks: expected setup-owned hooks\.json is missing at .*\.codex[\\/]+hooks\.json even though config\.toml has OMX entries; run "omx setup" to restore native hook coverage/,
+				/Native hooks: expected setup-owned hooks\.json is missing at .*\.codex[\\/]+hooks\.json even though config\.toml has OMX entries; run "nomx setup" to restore native hook coverage/,
 			);
 			assert.match(res.stdout, /Prompts: prompts directory not found/);
 		} finally {
@@ -1277,7 +1092,7 @@ OMX_LORE_COMMIT_GUARD = "truee"
 			);
 			assert.doesNotMatch(
 				res.stdout,
-				/run "omx setup --force" to restore native hook coverage/,
+				/run "nomx setup --force" to restore native hook coverage/,
 			);
 			assert.doesNotMatch(res.stdout, /Prompts: prompts directory not found/);
 			assert.doesNotMatch(res.stdout, /Skills: skills directory not found/);
@@ -1536,7 +1351,7 @@ OMX_LORE_COMMIT_GUARD = "truee"
 				/Skills: plugin marketplace oh-my-codex-local registered; OMX skills are supplied by/,
 			);
 			assert.doesNotMatch(res.stdout, /hooks\.json not found even though config\.toml has OMX entries/);
-			assert.doesNotMatch(res.stdout, /run "omx setup --force" to restore native hook coverage/);
+			assert.doesNotMatch(res.stdout, /run "nomx setup --force" to restore native hook coverage/);
 		} finally {
 			await rm(wd, { recursive: true, force: true });
 		}
@@ -1555,7 +1370,7 @@ OMX_LORE_COMMIT_GUARD = "truee"
 				`${JSON.stringify(
 					{
 						command: process.execPath,
-						argsPrefix: ["/tmp/stale-omx-worktree/dist/cli/omx.js"],
+						argsPrefix: ["/tmp/stale-omx-worktree/dist/cli/nomx.js"],
 					},
 					null,
 					2,
@@ -1590,7 +1405,7 @@ OMX_LORE_COMMIT_GUARD = "truee"
 			assert.match(
 				res.stdout,
 				new RegExp(
-					`\\[!!\\] Native hooks: plugin-scoped hooks are enabled, but cached plugin hook files or pinned hook launcher in ${cacheDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} do not match the packaged plugin; setup-owned hooks\\.json is intentionally absent at .*\\.codex[\\/]+hooks\\.json; run "omx setup --plugin" to refresh the plugin cache`,
+					`\\[!!\\] Native hooks: plugin-scoped hooks are enabled, but cached plugin hook files or pinned hook launcher in ${cacheDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} do not match the packaged plugin; setup-owned hooks\\.json is intentionally absent at .*\\.codex[\\/]+hooks\\.json; run "nomx setup --plugin" to refresh the plugin cache`,
 				),
 			);
 			assert.doesNotMatch(res.stdout, /plugin cache native hook coverage smoke passed/);
@@ -1662,7 +1477,7 @@ OMX_LORE_COMMIT_GUARD = "truee"
 				),
 			);
 			assert.doesNotMatch(res.stdout, /hooks\.json is missing OMX-managed coverage/);
-			assert.doesNotMatch(res.stdout, /run "omx setup --force" to restore native hooks/);
+			assert.doesNotMatch(res.stdout, /run "nomx setup --force" to restore native hooks/);
 		} finally {
 			await rm(wd, { recursive: true, force: true });
 		}
@@ -1704,7 +1519,7 @@ OMX_LORE_COMMIT_GUARD = "truee"
 			assert.equal(res.status, 0, res.stderr || res.stdout);
 			assert.match(
 				res.stdout,
-				/Native hooks: hooks\.json is missing OMX-managed coverage for PreToolUse, PostToolUse, UserPromptSubmit, PreCompact, PostCompact, Stop; run "omx setup" to restore native hooks/,
+				/Native hooks: hooks\.json is missing OMX-managed coverage for PreToolUse, PostToolUse, UserPromptSubmit, PreCompact, PostCompact, Stop; run "nomx setup" to restore native hooks/,
 			);
 		} finally {
 			await rm(wd, { recursive: true, force: true });
@@ -1783,7 +1598,7 @@ command = "node"
 			assert.equal(res.status, 0, res.stderr || res.stdout);
 			assert.match(
 				res.stdout,
-				/Native hooks: expected setup-owned hooks\.json is missing at .*\.codex[\/]+hooks\.json even though config\.toml has OMX entries; run "omx setup" to restore native hook coverage/,
+				/Native hooks: expected setup-owned hooks\.json is missing at .*\.codex[\/]+hooks\.json even though config\.toml has OMX entries; run "nomx setup" to restore native hook coverage/,
 			);
 		} finally {
 			await rm(wd, { recursive: true, force: true });
@@ -1925,7 +1740,7 @@ command = "node"
 			assert.equal(check.status, "fail");
 			assert.match(check.message, /referenced Windows native hook shim is missing at/);
 			assert.match(check.message, /manually reinstall the matching oh-my-codex version/);
-			assert.doesNotMatch(check.message, /omx setup|--force/);
+			assert.doesNotMatch(check.message, /nomx setup|--force/);
 			assert.equal(existsSync(shimPath), false);
 			assert.equal(await readFile(hooksPath, "utf-8"), original);
 		} finally {
@@ -1952,7 +1767,7 @@ command = "node"
 			assert.equal(check.status, "fail");
 			assert.match(check.message, /not an exact current or complete historical generated shim/);
 			assert.match(check.message, /modified, truncated, have extra content, or use ambiguous encoding/);
-			assert.doesNotMatch(check.message, /omx setup|--force/);
+			assert.doesNotMatch(check.message, /nomx setup|--force/);
 			assert.equal(await readFile(hooksPath, "utf-8"), original);
 			assert.equal(await readFile(shimPath, "utf-8"), tamperedShim);
 		} finally {
@@ -2063,7 +1878,7 @@ command = "node"
 				}),
 				hardLink: false,
 				symlinkTarget: null,
-				expected: /complete historical generated shim.*run "omx setup" to migrate/,
+				expected: /complete historical generated shim.*run "nomx setup" to migrate/,
 			},
 			{
 				name: "hard-linked",
@@ -2316,7 +2131,7 @@ command = "node"
 			assert.equal(res.status, 0, res.stderr || res.stdout);
 			assert.match(
 				res.stdout,
-				/\[!!\] Native hooks: hooks\.json contains 1 exact historical OMX hook trust-state entry that requires migration; run "omx setup" to migrate it after reviewing the configuration/,
+				/\[!!\] Native hooks: hooks\.json contains 1 exact historical OMX hook trust-state entry that requires migration; run "nomx setup" to migrate it after reviewing the configuration/,
 			);
 			assert.doesNotMatch(res.stdout, /Native hooks: hooks\.json includes OMX-managed coverage/);
 			assert.doesNotMatch(res.stdout, /Native hooks:.*--force/);
@@ -2488,7 +2303,7 @@ command = "node"
 			assert.match(check.message, /minimal UserPromptSubmit smoke/);
 			assert.match(check.message, /reinstall the matching oh-my-codex version/);
 			assert.doesNotMatch(check.message, /--force/);
-			assert.match(check.message, /run "omx setup"/);
+			assert.match(check.message, /run "nomx setup"/);
 		} finally {
 			await rm(wd, { recursive: true, force: true });
 		}
@@ -2551,7 +2366,7 @@ command = "node"
 			assert.match(userCheck.message, /agents\.max_depth \(retained-legacy; exact-legacy-value\)/);
 			assert.match(userCheck.message, /historical ownership cannot be proven/);
 			assert.match(userCheck.message, /remove only keys you confirm OMX authored/);
-			assert.match(userCheck.message, /omx setup --scope user/);
+			assert.match(userCheck.message, /nomx setup --scope user/);
 			assert.match(userCheck.message, /Setup does not auto-delete them/);
 
 			const projectPath = join(wd, "project.toml");
@@ -2601,7 +2416,7 @@ command = "node"
 			assert.match(res.stdout, /agents\.max_depth \(custom; custom-value\)/);
 			assert.match(res.stdout, /historical ownership cannot be proven/);
 			assert.match(res.stdout, /remove only keys you confirm OMX authored/);
-			assert.match(res.stdout, /omx setup --scope project/);
+			assert.match(res.stdout, /nomx setup --scope project/);
 			assert.match(res.stdout, /Setup does not auto-delete them/);
 			assert.match(res.stdout, /Results: \d+ passed, [1-9]\d* warnings, \d+ failed/);
 			assert.doesNotMatch(res.stdout, /All checks passed!/);

@@ -88,7 +88,7 @@ async function readCurrentLinuxStartTicks(): Promise<number | undefined> {
   }
 }
 
-describe('omx setup AGENTS refresh behavior', () => {
+describe('nomx setup AGENTS refresh behavior', () => {
   it('creates user-scope AGENTS.md and leaves project AGENTS.md untouched', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-setup-agents-'));
     const restoreTty = setMockTty(true);
@@ -344,7 +344,7 @@ describe('omx setup AGENTS refresh behavior', () => {
 
       assert.match(output, /Skipped AGENTS\.md overwrite/);
       assert.match(output, /WARNING: Existing AGENTS\.md .* lacks OMX contract markers/);
-      assert.match(output, /omx setup --scope project --merge-agents/);
+      assert.match(output, /nomx setup --scope project --merge-agents/);
       assert.doesNotMatch(output, /Refreshed AGENTS\.md model capability table/);
       assert.equal(await readFile(join(wd, 'AGENTS.md'), 'utf-8'), existing);
       assert.equal(existsSync(join(wd, '.omx', 'backups', 'setup')), false);
@@ -842,7 +842,7 @@ describe('omx setup AGENTS refresh behavior', () => {
         mergeAgents: true,
       });
 
-      assert.match(output, /WARNING: Active omx session detected/);
+      assert.match(output, /WARNING: Active nomx session detected/);
       assert.match(output, /Skipping AGENTS\.md overwrite to avoid corrupting runtime overlay\./);
       assert.match(output, /agents_md: updated=0, unchanged=0, backed_up=0, skipped=1, removed=0/);
       assert.equal(await readFile(join(wd, 'AGENTS.md'), 'utf-8'), existing);
@@ -928,7 +928,7 @@ describe('omx setup AGENTS refresh behavior', () => {
         mergeAgents: true,
       });
 
-      assert.match(output, /WARNING: Active omx session detected/);
+      assert.match(output, /WARNING: Active nomx session detected/);
       assert.match(output, /Skipping AGENTS\.md overwrite to avoid corrupting runtime overlay\./);
       assert.match(output, /Stop the active session first, then re-run setup\./);
       assert.match(output, /agents_md: updated=0, unchanged=0, backed_up=0, skipped=1, removed=0/);
@@ -972,7 +972,7 @@ describe('omx setup AGENTS refresh behavior', () => {
         pluginDeveloperInstructionsPrompt: async () => false,
       });
 
-      assert.match(output, /WARNING: Active omx session detected/);
+      assert.match(output, /WARNING: Active nomx session detected/);
       assert.match(output, /Skipping AGENTS\.md overwrite to avoid corrupting runtime overlay\./);
       assert.match(output, /Stop the active session first, then re-run setup\./);
       assert.match(output, /agents_md: updated=0, unchanged=0, backed_up=0, skipped=1, removed=0/);
@@ -1035,7 +1035,7 @@ describe('omx setup AGENTS refresh behavior', () => {
         scope: 'project',
       });
 
-      assert.match(output, /WARNING: Active omx session detected/);
+      assert.match(output, /WARNING: Active nomx session detected/);
       assert.match(output, /Skipping AGENTS\.md overwrite to avoid corrupting runtime overlay\./);
       assert.match(output, /Stop the active session first, then re-run setup\./);
       assert.match(output, /agents_md: updated=0, unchanged=0, backed_up=0, skipped=1, removed=0/);

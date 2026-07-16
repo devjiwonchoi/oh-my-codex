@@ -1585,7 +1585,7 @@ describe('keyword input classification direct grammar', () => {
 
   it('applies marked-answer, accepted-direct, prompts, and explicit-like precedence in order', () => {
     const cases = [
-      { text: '[omx question answered] $ralplan', reservedInput: 'omx-question-answered', skills: [] },
+      { text: '[nomx question answered] $ralplan', reservedInput: 'omx-question-answered', skills: [] },
       { text: '$ralplan plan this; /prompts:architect review', reservedInput: null, skills: ['ralplan'] },
       { text: '$unknown /prompts:architect review', reservedInput: null, skills: [] },
       { text: '/prompts:architect, keep going', reservedInput: 'prompts', skills: [] },
@@ -1805,7 +1805,7 @@ describe('keyword input classification direct grammar', () => {
         await mkdir(sessionDir, { recursive: true });
         await writeFile(statePath, rawState);
 
-        const text = '[omx question answered] yes';
+        const text = '[nomx question answered] yes';
         const classification = classifyKeywordInput(text);
         assert.equal(classification.reservedInput, 'omx-question-answered');
         const result = await recordSkillActivation({
@@ -1860,7 +1860,7 @@ describe('keyword input classification direct grammar', () => {
       await mkdir(sessionDir, { recursive: true });
       await writeFile(statePath, rawState);
       await writeFile(detailPath, rawDetail);
-      const text = '[omx question answered] yes';
+      const text = '[nomx question answered] yes';
       const result = await recordSkillActivation({
         stateDir,
         sourceCwd: cwd,
@@ -3048,7 +3048,7 @@ describe('keyword detector skill-active-state lifecycle', () => {
 
       assert.ok(denied?.transition_error);
       assert.match(String(denied?.transition_error), /Unsupported workflow overlap: team \+ autopilot\./);
-      assert.match(String(denied?.transition_error), /`omx state clear --input '{"mode":"<mode>"}' --json`/);
+      assert.match(String(denied?.transition_error), /`nomx state clear --input '{"mode":"<mode>"}' --json`/);
       assert.match(String(denied?.transition_error), /explicit MCP compatibility is enabled/);
 
       const persisted = JSON.parse(
@@ -5631,7 +5631,7 @@ describe('applyRalplanGate', () => {
       await mkdir(plansDir, { recursive: true });
       await writeFile(
         join(plansDir, 'prd-issue-831.md'),
-        '# Approved plan\n\nLaunch hint: omx team 3:executor "Execute approved issue 831 plan"\n',
+        '# Approved plan\n\nLaunch hint: nomx team 3:executor "Execute approved issue 831 plan"\n',
       );
       await writeFile(join(plansDir, 'test-spec-issue-831.md'), '# Test spec\n');
 
@@ -5652,7 +5652,7 @@ describe('applyRalplanGate', () => {
       await mkdir(stateDir, { recursive: true });
       await writeFile(
         join(plansDir, 'prd-issue-831.md'),
-        '# Approved plan\n\nLaunch hint: omx team 3:executor "Execute approved issue 831 plan"\n',
+        '# Approved plan\n\nLaunch hint: nomx team 3:executor "Execute approved issue 831 plan"\n',
       );
       await writeFile(join(plansDir, 'test-spec-issue-831.md'), '# Test spec\n');
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
@@ -5683,7 +5683,7 @@ describe('applyRalplanGate', () => {
       await mkdir(stateDir, { recursive: true });
       await writeFile(
         join(plansDir, 'prd-issue-833.md'),
-        '# Approved plan\n\nLaunch hint: omx team 3:executor "Execute approved issue 833 plan"\n',
+        '# Approved plan\n\nLaunch hint: nomx team 3:executor "Execute approved issue 833 plan"\n',
       );
       await writeFile(join(plansDir, 'test-spec-issue-833.md'), '# Test spec\n');
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
@@ -5724,7 +5724,7 @@ describe('applyRalplanGate', () => {
       await mkdir(stateDir, { recursive: true });
       await writeFile(
         join(plansDir, 'prd-issue-832.md'),
-        '# Approved plan\n\nLaunch hint: omx ralph "Execute approved issue 832 plan"\n',
+        '# Approved plan\n\nLaunch hint: nomx ralph "Execute approved issue 832 plan"\n',
       );
       await writeFile(join(plansDir, 'test-spec-issue-832.md'), '# Test spec\n');
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
@@ -5789,7 +5789,7 @@ describe('applyRalplanGate', () => {
       await mkdir(stateDir, { recursive: true });
       await writeFile(
         join(plansDir, 'prd-local.md'),
-        '# Plan\n\nLaunch hint: omx team 3:executor "Execute approved local plan"\n',
+        '# Plan\n\nLaunch hint: nomx team 3:executor "Execute approved local plan"\n',
       );
       await writeFile(join(plansDir, 'test-spec-local.md'), '# Test spec\n');
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({

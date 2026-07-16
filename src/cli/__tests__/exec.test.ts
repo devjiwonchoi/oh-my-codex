@@ -20,7 +20,7 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'omx.js');
+  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
   const result = spawnSync(process.execPath, [omxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
@@ -42,7 +42,7 @@ function runOmx(
   };
 }
 
-describe('omx exec', () => {
+describe('nomx exec', () => {
   it('persists audited follow-up prompts for the active exec session without pane input', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-exec-followup-'));
     try {

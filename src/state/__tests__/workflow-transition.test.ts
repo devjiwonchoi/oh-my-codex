@@ -42,7 +42,7 @@ describe('workflow transition rules', () => {
   it('allows the approved overlap matrix and denies unsupported combinations', () => {
     const cases: Array<{
       current: string[];
-      requested: 'team' | 'ralph' | 'ultrawork' | 'autopilot' | 'autoresearch';
+      requested: 'team' | 'ralph' | 'ultrawork' | 'autopilot';
       allowed: boolean;
       resulting: string[];
     }> = [
@@ -55,7 +55,6 @@ describe('workflow transition rules', () => {
       { current: ['ultrawork'], requested: 'ralph', allowed: true, resulting: ['ultrawork', 'ralph'] },
       { current: ['autopilot'], requested: 'team', allowed: false, resulting: ['autopilot'] },
       { current: ['team'], requested: 'autopilot', allowed: false, resulting: ['team'] },
-      { current: ['autoresearch'], requested: 'ralph', allowed: false, resulting: ['autoresearch'] },
       { current: ['team', 'ralph'], requested: 'ultrawork', allowed: true, resulting: ['team', 'ralph', 'ultrawork'] },
       { current: ['team', 'ultrawork'], requested: 'ralph', allowed: true, resulting: ['team', 'ultrawork', 'ralph'] },
     ];
@@ -73,7 +72,7 @@ describe('workflow transition rules', () => {
     assert.match(error, /Unsupported workflow overlap: team \+ autopilot\./);
     assert.match(error, /Current state is unchanged\./);
     assert.match(error, /Clear incompatible workflow state yourself via/);
-    assert.match(error, /`omx state clear --input '{"mode":"<mode>"}' --json`/);
+    assert.match(error, /`nomx state clear --input '{"mode":"<mode>"}' --json`/);
     assert.match(error, /explicit MCP compatibility is enabled/);
   });
 
@@ -84,13 +83,6 @@ describe('workflow transition rules', () => {
     assert.deepEqual(interviewToRalplan.autoCompleteModes, ['deep-interview']);
     assert.deepEqual(interviewToRalplan.resultingModes, ['ralplan']);
     assert.equal(interviewToRalplan.transitionMessage, 'mode transiting: deep-interview -> ralplan');
-
-    const interviewToAutoresearch = evaluateWorkflowTransition(['deep-interview'], 'autoresearch');
-    assert.equal(interviewToAutoresearch.allowed, true);
-    assert.equal(interviewToAutoresearch.kind, 'auto-complete');
-    assert.deepEqual(interviewToAutoresearch.autoCompleteModes, ['deep-interview']);
-    assert.deepEqual(interviewToAutoresearch.resultingModes, ['autoresearch']);
-    assert.equal(interviewToAutoresearch.transitionMessage, 'mode transiting: deep-interview -> autoresearch');
 
     const interviewToUltragoal = evaluateWorkflowTransition(['deep-interview'], 'ultragoal');
     assert.equal(interviewToUltragoal.allowed, true);
@@ -112,11 +104,6 @@ describe('workflow transition rules', () => {
     assert.deepEqual(ralplanToUltragoal.resultingModes, ['ultragoal']);
     assert.equal(ralplanToUltragoal.transitionMessage, 'mode transiting: ralplan -> ultragoal');
 
-    const ralplanToAutoresearch = evaluateWorkflowTransition(['ralplan'], 'autoresearch');
-    assert.equal(ralplanToAutoresearch.allowed, true);
-    assert.equal(ralplanToAutoresearch.kind, 'auto-complete');
-    assert.deepEqual(ralplanToAutoresearch.autoCompleteModes, ['ralplan']);
-    assert.deepEqual(ralplanToAutoresearch.resultingModes, ['autoresearch']);
   });
 
   it('builds rollback denial guidance for execution-to-planning transitions', () => {

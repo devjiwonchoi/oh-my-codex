@@ -80,7 +80,7 @@ Code-review is a merge-readiness gate and Autopilot child phase, not a standalon
 Minimal Autopilot phase declaration when the review stage begins:
 
 ```sh
-omx state write --input '{"mode":"autopilot","active":true,"current_phase":"code-review"}' --json
+nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"code-review"}' --json
 ```
 
 ## Agent Delegation

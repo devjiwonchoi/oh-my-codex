@@ -37,12 +37,6 @@ import { OMX_TMUX_HUD_LEADER_PANE_ENV } from "../../hud/tmux.js";
 import { readAllState } from "../../hud/state.js";
 import { renderHud } from "../../hud/render.js";
 import {
-	getLegacyWikiDir,
-	serializePage,
-	writePage,
-} from "../../wiki/storage.js";
-import { WIKI_SCHEMA_VERSION } from "../../wiki/types.js";
-import {
 	createUltragoalPlan,
 	readUltragoalPlan,
 } from "../../ultragoal/artifacts.js";
@@ -560,7 +554,7 @@ describe("codex native hook config", () => {
 
 describe("codex native hook dispatch", () => {
 	it("treats space-containing argv entry paths as the main module", () => {
-		const entryPath = "/tmp/omx native/codex-native-hook.js";
+		const entryPath = "/tmp/nomx native/codex-native-hook.js";
 
 		assert.equal(
 			isCodexNativeHookMainModule(pathToFileURL(entryPath).href, entryPath),
@@ -571,8 +565,8 @@ describe("codex native hook dispatch", () => {
 	it("does not treat a different module url as the main module", () => {
 		assert.equal(
 			isCodexNativeHookMainModule(
-				pathToFileURL("/tmp/omx native/other-script.js").href,
-				"/tmp/omx native/codex-native-hook.js",
+				pathToFileURL("/tmp/nomx native/other-script.js").href,
+				"/tmp/nomx native/codex-native-hook.js",
 			),
 			false,
 		);
@@ -3577,22 +3571,6 @@ PY`,
   it("does not write PreCompact stdout that Codex rejects as hook JSON", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "omx-native-hook-precompact-"));
     try {
-      writePage(cwd, {
-        filename: "architecture.md",
-        frontmatter: {
-          title: "Architecture",
-          tags: ["architecture"],
-          created: "2026-05-08T00:00:00.000Z",
-          updated: "2026-05-08T00:00:00.000Z",
-          sources: [],
-          links: [],
-          category: "architecture",
-          confidence: "high",
-          schemaVersion: WIKI_SCHEMA_VERSION,
-        },
-        content: "\n# Architecture\n\nCompaction-relevant architecture note.\n",
-      });
-
       const result = await dispatchCodexNativeHook({
         hook_event_name: "PreCompact",
         cwd,
@@ -3610,22 +3588,6 @@ PY`,
   it("emits no CLI stdout for PreCompact when no Codex action is needed", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "omx-native-hook-precompact-cli-"));
     try {
-      writePage(cwd, {
-        filename: "architecture.md",
-        frontmatter: {
-          title: "Architecture",
-          tags: ["architecture"],
-          created: "2026-05-08T00:00:00.000Z",
-          updated: "2026-05-08T00:00:00.000Z",
-          sources: [],
-          links: [],
-          category: "architecture",
-          confidence: "high",
-          schemaVersion: WIKI_SCHEMA_VERSION,
-        },
-        content: "\n# Architecture\n\nCompaction-relevant architecture note.\n",
-      });
-
       const stdout = runNativeHookCli({
         hook_event_name: "PreCompact",
         cwd,
@@ -3691,7 +3653,7 @@ PY`,
       );
       assert.match(additionalContext, /\[Execution environment\]/);
       assert.match(additionalContext, /native-hook \/ Codex App outside tmux/);
-      assert.match(additionalContext, /omx team, omx hud, and omx quest(?:ion) need an attached tmux OMX CLI shell|omx team and omx hud need an attached tmux OMX CLI shell/);
+      assert.match(additionalContext, /nomx team, nomx hud, and nomx quest(?:ion) need an attached tmux OMX CLI shell|nomx team and nomx hud need an attached tmux OMX CLI shell/);
       assert.match(additionalContext, /not available from this outside-tmux surface/);
       const sessionState = JSON.parse(
         await readFile(join(cwd, ".omx", "state", "session.json"), "utf-8"),
@@ -4859,7 +4821,7 @@ PY`,
       );
       assert.match(additionalContext, /\[Execution environment\]/);
       assert.match(additionalContext, /attached tmux runtime/);
-      assert.match(additionalContext, /omx team, omx hud, and omx quest(?:ion) are directly usable in this session/);
+      assert.match(additionalContext, /nomx team, nomx hud, and nomx quest(?:ion) are directly usable in this session/);
       assert.match(additionalContext, /visible temporary renderer available from the current pane; primary success JSON is answers\[\]/);
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -4888,7 +4850,7 @@ PY`,
       assert.match(additionalContext, /\[Execution environment\]/);
       assert.match(additionalContext, /direct CLI outside tmux/);
       assert.doesNotMatch(additionalContext, /native-hook \/ Codex App outside tmux/);
-      assert.match(additionalContext, /omx team, omx hud, and omx quest(?:ion) need an attached tmux OMX CLI shell|omx team and omx hud need an attached tmux OMX CLI shell/);
+      assert.match(additionalContext, /nomx team, nomx hud, and nomx quest(?:ion) need an attached tmux OMX CLI shell|nomx team and nomx hud need an attached tmux OMX CLI shell/);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
@@ -5163,7 +5125,7 @@ PY`,
     }
   });
 
-  it("includes repo-local .omx project-memory during SessionStart when OMX_ROOT is boxed", async () => {
+  it("includes repo-local .nomx project-memory during SessionStart when OMX_ROOT is boxed", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "omx-native-hook-session-boxed-memory-"));
     const boxedRoot = await mkdtemp(join(tmpdir(), "omx-native-hook-boxed-root-"));
     const previousOmxRoot = process.env.OMX_ROOT;
@@ -5173,7 +5135,7 @@ PY`,
         techStack: "Repo-local CLI memory",
         conventions: "SessionStart should load CLI-written project memory",
         directives: [
-          { directive: "Prefer repo-local .omx project memory over boxed runtime fallback.", priority: "high" },
+          { directive: "Prefer repo-local .nomx project memory over boxed runtime fallback.", priority: "high" },
         ],
       });
       await writeJson(join(boxedRoot, ".omx", "project-memory.json"), {
@@ -5197,7 +5159,7 @@ PY`,
       assert.match(additionalContext, /source: \.omx\/project-memory\.json/);
       assert.match(additionalContext, /Repo-local CLI memory/);
       assert.match(additionalContext, /SessionStart should load CLI-written project memory/);
-      assert.match(additionalContext, /Prefer repo-local \.omx project memory over boxed runtime fallback\./);
+      assert.match(additionalContext, /Prefer repo-local \.nomx project memory over boxed runtime fallback\./);
       assert.doesNotMatch(additionalContext, /Boxed runtime memory should not win/);
       assert.doesNotMatch(additionalContext, /stale boxed runtime note/);
     } finally {
@@ -5205,68 +5167,6 @@ PY`,
       else process.env.OMX_ROOT = previousOmxRoot;
       await rm(cwd, { recursive: true, force: true });
       await rm(boxedRoot, { recursive: true, force: true });
-    }
-  });
-
-  it("prefers repository project-memory.json during SessionStart while preserving legacy wiki guidance", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-native-hook-session-root-memory-legacy-wiki-"));
-    try {
-      const now = new Date().toISOString();
-      const legacyWikiDir = getLegacyWikiDir(cwd);
-      await mkdir(legacyWikiDir, { recursive: true });
-      await writeFile(join(legacyWikiDir, "legacy.md"), serializePage({
-        filename: "legacy.md",
-        frontmatter: {
-          title: "Legacy",
-          tags: ["legacy"],
-          created: now,
-          updated: now,
-          sources: [],
-          links: [],
-          category: "reference",
-          confidence: "medium",
-          schemaVersion: WIKI_SCHEMA_VERSION,
-        },
-        content: "\n# Legacy\n\nLegacy wiki context must remain visible.\n",
-      }));
-      await writeJson(join(cwd, ".omx", "project-memory.json"), {
-        techStack: "Legacy runtime memory should not win",
-        notes: [{ category: "legacy", content: "stale legacy note", timestamp: now }],
-      });
-      await writeJson(join(cwd, "project-memory.json"), {
-        techStack: "Canonical root memory",
-        build: "npm run build && node --test dist/scripts/__tests__/codex-native-hook.test.js",
-        conventions: "prefer repository-visible project memory at startup",
-        directives: [
-          { directive: "Load root project-memory.json before legacy .omx memory.", priority: "high", timestamp: now },
-        ],
-        notes: [
-          { category: "issue", content: "Regression fixture for issue #2273.", timestamp: now },
-        ],
-      });
-
-      const result = await dispatchCodexNativeHook(
-        {
-          hook_event_name: "SessionStart",
-          cwd,
-          session_id: "sess-root-memory-legacy-wiki",
-        },
-        { cwd, sessionOwnerPid: 43210 },
-      );
-
-      const additionalContext = String(
-        (result.outputJson as { hookSpecificOutput?: { additionalContext?: string } })?.hookSpecificOutput?.additionalContext ?? "",
-      );
-      assert.match(additionalContext, /\[Project memory\]/);
-      assert.match(additionalContext, /source: project-memory\.json/);
-      assert.match(additionalContext, /Canonical root memory/);
-      assert.match(additionalContext, /Load root project-memory\.json before legacy \.omx memory\./);
-      assert.match(additionalContext, /Regression fixture for issue #2273\./);
-      assert.doesNotMatch(additionalContext, /Legacy runtime memory should not win/);
-      assert.match(additionalContext, /legacy pages at \.omx\/wiki\//);
-      assert.match(additionalContext, /Legacy wiki fallback is read-only/);
-    } finally {
-      await rm(cwd, { recursive: true, force: true });
     }
   });
 
@@ -5618,7 +5518,7 @@ PY`,
       assert.equal(result.omxEventName, "keyword-detector");
       assert.equal(result.skillState?.skill, "ralplan");
       assert.ok(result.outputJson, "UserPromptSubmit should emit developer context");
-      assert.match(JSON.stringify(result.outputJson), /use CLI-first state updates via `omx state write\/read\/clear --input '<json>' --json`/);
+      assert.match(JSON.stringify(result.outputJson), /use CLI-first state updates via `nomx state write\/read\/clear --input '<json>' --json`/);
 
       assert.equal(
         existsSync(join(cwd, ".omx", "state", "skill-active-state.json")),
@@ -6380,7 +6280,7 @@ standardMaxRounds = 15
 			"complete this goal now",
 			'Performance goal complete; next call update_goal({status: "complete"}).',
 			"get_goal returned a completed legacy goal, so ultragoal complete failed; marking complete now.",
-			"omx ultragoal checkpoint --goal-id G001-demo --status complete --codex-goal-json goal.json",
+			"nomx ultragoal checkpoint --goal-id G001-demo --status complete --codex-goal-json goal.json",
 			'Call update_goal({status: "complete"}) after verification.',
 			"Goal complete.",
 			"The goal is complete.",
@@ -6471,7 +6371,7 @@ standardMaxRounds = 15
 			);
 			assert.match(
 				JSON.stringify(result.outputJson),
-				/omx performance-goal complete --slug latency/,
+				/nomx performance-goal complete --slug latency/,
 			);
 			assert.match(
 				JSON.stringify(result.outputJson),
@@ -6498,7 +6398,7 @@ standardMaxRounds = 15
 					lastValidation: {
 						status: "blocked",
 						evidence:
-							'omx performance-goal complete rejected the fresh get_goal snapshot: Codex goal objective mismatch: expected "reduce latency", got "legacy objective".',
+							'nomx performance-goal complete rejected the fresh get_goal snapshot: Codex goal objective mismatch: expected "reduce latency", got "legacy objective".',
 						recordedAt: "2026-05-20T00:00:00.000Z",
 					},
 				},
@@ -6519,7 +6419,7 @@ standardMaxRounds = 15
 			assert.notEqual(result.outputJson?.decision, "block");
 			assert.doesNotMatch(
 				JSON.stringify(result.outputJson),
-				/omx performance-goal complete --slug latency/,
+				/nomx performance-goal complete --slug latency/,
 			);
 			assert.doesNotMatch(
 				JSON.stringify(result.outputJson),
@@ -6562,7 +6462,7 @@ standardMaxRounds = 15
 			assert.notEqual(result.outputJson?.decision, "block");
 			assert.doesNotMatch(
 				JSON.stringify(result.outputJson),
-				/omx performance-goal complete --slug latency/,
+				/nomx performance-goal complete --slug latency/,
 			);
 			assert.doesNotMatch(
 				JSON.stringify(result.outputJson),
@@ -6803,7 +6703,7 @@ standardMaxRounds = 15
 			assert.equal(result.outputJson?.decision, "block");
 			assert.match(
 				JSON.stringify(result.outputJson),
-				/omx ultragoal checkpoint --goal-id G001-demo --status complete/,
+				/nomx ultragoal checkpoint --goal-id G001-demo --status complete/,
 			);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -6841,7 +6741,7 @@ standardMaxRounds = 15
 			);
 			assert.doesNotMatch(
 				JSON.stringify(result.outputJson),
-				/omx ultragoal checkpoint --goal-id G001-demo --status complete/,
+				/nomx ultragoal checkpoint --goal-id G001-demo --status complete/,
 			);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -6877,7 +6777,7 @@ standardMaxRounds = 15
 			assert.equal(result.outputJson?.decision, "block");
 			assert.match(
 				output,
-				/omx ultragoal checkpoint --goal-id G001-demo --status complete/,
+				/nomx ultragoal checkpoint --goal-id G001-demo --status complete/,
 			);
 			assert.match(output, /--status blocked/);
 			assert.match(output, /Codex goal context/);
@@ -6930,7 +6830,7 @@ standardMaxRounds = 15
 			);
 			assert.doesNotMatch(
 				JSON.stringify(result.outputJson),
-				/omx ultragoal checkpoint --goal-id G001-demo --status complete/,
+				/nomx ultragoal checkpoint --goal-id G001-demo --status complete/,
 			);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -6978,7 +6878,7 @@ standardMaxRounds = 15
 			);
 			assert.doesNotMatch(
 				JSON.stringify(result.outputJson),
-				/omx ultragoal checkpoint --goal-id/,
+				/nomx ultragoal checkpoint --goal-id/,
 			);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -7093,7 +6993,7 @@ standardMaxRounds = 15
 			);
 			assert.match(
 				JSON.stringify(result.outputJson),
-				/omx autoresearch-goal complete --slug passing-mission/,
+				/nomx autoresearch-goal complete --slug passing-mission/,
 			);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -7151,7 +7051,7 @@ standardMaxRounds = 15
 			assert.equal(result.outputJson?.decision, "block");
 			assert.match(
 				JSON.stringify(result.outputJson),
-				/omx autoresearch-goal complete --slug verdict-pass-mission/,
+				/nomx autoresearch-goal complete --slug verdict-pass-mission/,
 			);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -7202,7 +7102,7 @@ standardMaxRounds = 15
 					session_id: "sess-autoresearch-mismatch-reported-stop",
 					thread_id: "thread-autoresearch-mismatch-reported-stop",
 					last_assistant_message: [
-						"I called get_goal and ran omx autoresearch-goal complete --slug mismatched-mission --codex-goal-json /tmp/snapshot.json.",
+						"I called get_goal and ran nomx autoresearch-goal complete --slug mismatched-mission --codex-goal-json /tmp/snapshot.json.",
 						"The autoresearch-goal completion failed with Codex goal objective mismatch, so I will not repeat the same complete command blindly in this thread.",
 					].join("\n"),
 				},
@@ -7280,7 +7180,7 @@ standardMaxRounds = 15
 			);
 			assert.match(
 				JSON.stringify(result.outputJson),
-				/omx autoresearch-goal complete --slug retryable-mission/,
+				/nomx autoresearch-goal complete --slug retryable-mission/,
 			);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -8025,7 +7925,7 @@ standardMaxRounds = 15
 			assert.match(message, /\$oh-my-codex:ralplan" -> ralplan/);
 			assert.match(
 				message,
-				/use CLI-first state updates via `omx state write\/read\/clear --input '<json>' --json`/,
+				/use CLI-first state updates via `nomx state write\/read\/clear --input '<json>' --json`/,
 			);
 			assert.equal(
 				existsSync(
@@ -8884,15 +8784,15 @@ ${JSON.stringify({
 			assert.match(message, /\$ralph" -> ralph/);
 			assert.match(
 				message,
-				/use CLI-first state updates via `omx state write\/read\/clear --input '<json>' --json`/,
+				/use CLI-first state updates via `nomx state write\/read\/clear --input '<json>' --json`/,
 			);
 			assert.match(
 				message,
-				/Prompt-side `\$ralph` activation seeds Ralph workflow state only; it does not invoke `omx ralph`\./,
+				/Prompt-side `\$ralph` activation seeds Ralph workflow state only; it does not invoke `nomx ralph`\./,
 			);
 			assert.match(
 				message,
-				/Use `omx ralph --prd \.\.\.` only when you explicitly want the PRD-gated CLI startup path\./,
+				/Use `nomx ralph --prd \.\.\.` only when you explicitly want the PRD-gated CLI startup path\./,
 			);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -8929,11 +8829,11 @@ ${JSON.stringify({
 			assert.match(message, /\$oh-my-codex:ralph" -> ralph/);
 			assert.match(
 				message,
-				/use CLI-first state updates via `omx state write\/read\/clear --input '<json>' --json`/,
+				/use CLI-first state updates via `nomx state write\/read\/clear --input '<json>' --json`/,
 			);
 			assert.match(
 				message,
-				/Prompt-side `\$ralph` activation seeds Ralph workflow state only; it does not invoke `omx ralph`\./,
+				/Prompt-side `\$ralph` activation seeds Ralph workflow state only; it does not invoke `nomx ralph`\./,
 			);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -9018,7 +8918,7 @@ ${JSON.stringify({
 		}
 	});
 
-	it("keeps omx question answers on the active autopilot skill so the interview chain guidance is injected", async () => {
+	it("keeps nomx question answers on the active autopilot skill so the interview chain guidance is injected", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-autopilot-question-answer-continuation-"),
 		);
@@ -9060,7 +8960,7 @@ ${JSON.stringify({
 					session_id: sessionId,
 					thread_id: "thread-autopilot-question-answer",
 					turn_id: "turn-autopilot-question-answer",
-					prompt: "[omx question answered] semantic_marker_expansion $ralplan",
+					prompt: "[nomx question answered] semantic_marker_expansion $ralplan",
 				},
 				{ cwd },
 			);
@@ -9080,7 +8980,7 @@ ${JSON.stringify({
 				message,
 				/structured question chain, not a one-question gate/,
 			);
-			assert.match(message, /This turn is a marked omx question answer/);
+			assert.match(message, /This turn is a marked nomx question answer/);
 			assert.match(message, /then re-score/);
 			assert.match(message, /write interview_complete evidence and hand off/);
 			assert.match(
@@ -9142,7 +9042,7 @@ ${JSON.stringify({
 					session_id: sessionId,
 					thread_id: "thread-deep-interview-question-answer",
 					turn_id: "turn-deep-interview-question-answer",
-					prompt: "[omx question answered] answer text $ralplan",
+					prompt: "[nomx question answered] answer text $ralplan",
 				},
 				{ cwd },
 			);
@@ -9159,7 +9059,7 @@ ${JSON.stringify({
 			assert.match(message, /continued active workflow skill "deep-interview"/);
 			assert.match(
 				message,
-				/workflow-like tokens inside the marked omx question answer are treated as answer text/,
+				/workflow-like tokens inside the marked nomx question answer are treated as answer text/,
 			);
 			assert.match(
 				message,
@@ -9176,7 +9076,7 @@ ${JSON.stringify({
 		}
 	});
 
-	it("clarifies outside-tmux prompt-side deep-interview activation without pretending omx question is directly available", async () => {
+	it("clarifies outside-tmux prompt-side deep-interview activation without pretending nomx question is directly available", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-deep-interview-routing-"),
 		);
@@ -9206,7 +9106,7 @@ ${JSON.stringify({
 			assert.match(message, /\$deep-interview" -> deep-interview/);
 			assert.match(
 				message,
-				/use CLI-first state updates via `omx state write\/read\/clear --input '<json>' --json`/,
+				/use CLI-first state updates via `nomx state write\/read\/clear --input '<json>' --json`/,
 			);
 			assert.match(
 				message,
@@ -9214,7 +9114,7 @@ ${JSON.stringify({
 			);
 			assert.match(
 				message,
-				/Do not invoke `omx question`, `omx hud`, or `omx team`/,
+				/Do not invoke `nomx question`, `nomx hud`, or `nomx team`/,
 			);
 			assert.match(message, /native structured question tool when available/);
 			assert.match(message, /ask exactly one concise plain-text question/);
@@ -9607,7 +9507,7 @@ export async function onHookEvent(event) {
     const cases = [
       { source: "codex-app", sessionId: "sess-inert-native", prompt: "Do not run $autopilot" },
       { source: "cli", sessionId: "sess-reserved-cli", prompt: "/prompts:architect $autopilot" },
-      { source: "codex-app", sessionId: "sess-marked-native", prompt: "[omx question answered] $autopilot" },
+      { source: "codex-app", sessionId: "sess-marked-native", prompt: "[nomx question answered] $autopilot" },
     ] as const;
 
     for (const testCase of cases) {
@@ -9803,7 +9703,7 @@ export async function onHookEvent(event) {
       );
       assert.equal(ralphFirst.skillState?.active_skills?.some((entry) => entry.skill === "team"), false);
       assert.equal(existsSync(join(cwd, ".omx", "state", "team-state.json")), false);
-      assert.doesNotMatch(JSON.stringify(ralphFirst.outputJson), /Use the durable OMX team runtime via `omx team \.\.\.`/);
+      assert.doesNotMatch(JSON.stringify(ralphFirst.outputJson), /Use the durable OMX team runtime via `nomx team \.\.\.`/);
 
       const teamFirst = await dispatchCodexNativeHook(
         {
@@ -9952,7 +9852,7 @@ export async function onHookEvent(event) {
 					} | null
 				)?.hookSpecificOutput?.additionalContext ?? "",
 			);
-			assert.match(message, /run `omx team \.\.\.` yourself from shell/);
+			assert.match(message, /run `nomx team \.\.\.` yourself from shell/);
 			assert.doesNotMatch(message, /not directly available here/);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -9986,9 +9886,9 @@ export async function onHookEvent(event) {
 			);
 			assert.match(
 				message,
-				/Use the durable OMX team runtime via `omx team \.\.\.`/,
+				/Use the durable OMX team runtime via `nomx team \.\.\.`/,
 			);
-			assert.match(message, /run `omx team --help` yourself/);
+			assert.match(message, /run `nomx team --help` yourself/);
 			assert.doesNotMatch(message, /not directly available here/);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -10035,7 +9935,7 @@ export async function onHookEvent(event) {
 			);
 			assert.match(
 				JSON.stringify(denied.outputJson),
-				/omx state clear --input/,
+				/nomx state clear --input/,
 			);
 			assert.match(JSON.stringify(denied.outputJson), /mode\\":\\"<mode>/);
 			assert.match(JSON.stringify(denied.outputJson), /--json/);
@@ -10165,11 +10065,11 @@ export async function onHookEvent(event) {
 			);
 			assert.match(
 				message,
-				/use CLI-first state updates via `omx state write\/read\/clear --input '<json>' --json`/,
+				/use CLI-first state updates via `nomx state write\/read\/clear --input '<json>' --json`/,
 			);
 			assert.doesNotMatch(
 				message,
-				/Use the durable OMX team runtime via `omx team \.\.\.`/,
+				/Use the durable OMX team runtime via `nomx team \.\.\.`/,
 			);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -10212,7 +10112,7 @@ export async function onHookEvent(event) {
 			);
 			assert.match(
 				message,
-				/use CLI-first state updates via `omx state write\/read\/clear --input '<json>' --json`/,
+				/use CLI-first state updates via `nomx state write\/read\/clear --input '<json>' --json`/,
 			);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
@@ -10644,7 +10544,7 @@ printf '%s\n' "$*" >> ${JSON.stringify(tmuxLog)}
 case "$1" in
   list-panes)
     printf '%%1\tcodex\tcodex\n'
-    printf '%%2\tnode\texec env OMX_TMUX_HUD_OWNER='"'"'1'"'"' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='"'"'%%1'"'"' /node /omx.js hud --watch\n'
+    printf '%%2\tnode\texec env OMX_TMUX_HUD_OWNER='"'"'1'"'"' ${OMX_TMUX_HUD_LEADER_PANE_ENV}='"'"'%%1'"'"' /node /nomx.js hud --watch\n'
     ;;
   display-message)
     printf '200\t60\n'
@@ -10769,7 +10669,7 @@ exit 0
 		}
 	});
 
-	it("blocks Bash omx question when no leader-pane return hint is preserved", async () => {
+	it("blocks Bash nomx question when no leader-pane return hint is preserved", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-question-enforce-"),
 		);
@@ -10781,7 +10681,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-question-block",
 					tool_input: {
-						command: `omx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+						command: `nomx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
 					},
 				},
 				{ cwd },
@@ -10804,7 +10704,7 @@ exit 0
 		}
 	});
 
-	it("does not block Bash commands that only mention omx question in quoted arguments", async () => {
+	it("does not block Bash commands that only mention nomx question in quoted arguments", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-question-quoted-mention-"),
 		);
@@ -10816,7 +10716,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-question-quoted-mention",
 					tool_input: {
-						command: `omx ultragoal create-goals --brief "Deep interview says omx question failed in tmux"`,
+						command: `nomx ultragoal create-goals --brief "Deep interview says nomx question failed in tmux"`,
 					},
 				},
 				{ cwd },
@@ -10829,7 +10729,7 @@ exit 0
 		}
 	});
 
-	it("does not block Bash heredocs that only document omx question text", async () => {
+	it("does not block Bash heredocs that only document nomx question text", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-question-heredoc-mention-"),
 		);
@@ -10854,7 +10754,7 @@ exit 0
 		}
 	});
 
-	it("allows Bash omx question when the command preserves the leader-pane return hint", async () => {
+	it("allows Bash nomx question when the command preserves the leader-pane return hint", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-question-allow-"),
 		);
@@ -10866,7 +10766,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-question-allow",
 					tool_input: {
-						command: `OMX_QUESTION_RETURN_PANE=$TMUX_PANE omx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+						command: `OMX_QUESTION_RETURN_PANE=$TMUX_PANE nomx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
 					},
 				},
 				{ cwd },
@@ -10891,7 +10791,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-question-quoted-allow",
 					tool_input: {
-						command: `OMX_QUESTION_RETURN_PANE='%42' node ./dist/cli/omx.js question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+						command: `OMX_QUESTION_RETURN_PANE='%42' node ./dist/cli/nomx.js question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
 					},
 				},
 				{ cwd },
@@ -10904,15 +10804,15 @@ exit 0
 		}
 	});
 
-	it("allows PowerShell env bridge forms for omx question return panes", async () => {
+	it("allows PowerShell env bridge forms for nomx question return panes", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-question-powershell-allow-"),
 		);
 		try {
 			const commands = [
-				`$env:OMX_QUESTION_RETURN_PANE=$env:TMUX_PANE; omx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
-				`$env:OMX_QUESTION_RETURN_PANE='%42'; node ./dist/cli/omx.js question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
-				`$env:OMX_LEADER_PANE_ID="%43"; omx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+				`$env:OMX_QUESTION_RETURN_PANE=$env:TMUX_PANE; nomx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+				`$env:OMX_QUESTION_RETURN_PANE='%42'; node ./dist/cli/nomx.js question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+				`$env:OMX_LEADER_PANE_ID="%43"; nomx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
 			];
 
 			for (const [index, command] of commands.entries()) {
@@ -10935,7 +10835,7 @@ exit 0
 		}
 	});
 
-	it("allows Bash omx question when a valid inherited OMX_QUESTION_RETURN_PANE bridge is already exported", async () => {
+	it("allows Bash nomx question when a valid inherited OMX_QUESTION_RETURN_PANE bridge is already exported", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-question-env-allow-"),
 		);
@@ -10949,7 +10849,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-question-env-allow",
 					tool_input: {
-						command: `omx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+						command: `nomx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
 					},
 				},
 				{ cwd },
@@ -10965,7 +10865,7 @@ exit 0
 		}
 	});
 
-	it("allows Bash omx question when a valid inherited OMX_LEADER_PANE_ID bridge is already exported", async () => {
+	it("allows Bash nomx question when a valid inherited OMX_LEADER_PANE_ID bridge is already exported", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-question-leader-env-allow-"),
 		);
@@ -10979,7 +10879,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-question-leader-env-allow",
 					tool_input: {
-						command: `omx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+						command: `nomx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
 					},
 				},
 				{ cwd },
@@ -10995,7 +10895,7 @@ exit 0
 		}
 	});
 
-	it("still blocks Bash omx question when an inherited OMX_QUESTION_RETURN_PANE value is malformed", async () => {
+	it("still blocks Bash nomx question when an inherited OMX_QUESTION_RETURN_PANE value is malformed", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-question-env-malformed-"),
 		);
@@ -11009,7 +10909,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-question-env-malformed",
 					tool_input: {
-						command: `omx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+						command: `nomx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
 					},
 				},
 				{ cwd },
@@ -11040,7 +10940,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-question-node-block",
 					tool_input: {
-						command: `node ./dist/cli/omx.js question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+						command: `node ./dist/cli/nomx.js question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
 					},
 				},
 				{ cwd },
@@ -11056,7 +10956,7 @@ exit 0
 		}
 	});
 
-	it("blocks native/App Bash omx question with bridge-specific outside-tmux guidance", async () => {
+	it("blocks native/App Bash nomx question with bridge-specific outside-tmux guidance", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-question-native-block-"),
 		);
@@ -11070,7 +10970,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-question-native-block",
 					tool_input: {
-						command: `omx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+						command: `nomx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
 					},
 				},
 				{ cwd },
@@ -11102,7 +11002,7 @@ exit 0
 		}
 	});
 
-	it("blocks native/App Bash omx question even when the command preserves a tmux return bridge", async () => {
+	it("blocks native/App Bash nomx question even when the command preserves a tmux return bridge", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-question-native-allow-"),
 		);
@@ -11116,7 +11016,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-question-native-bridge-block",
 					tool_input: {
-						command: `OMX_QUESTION_RETURN_PANE=$TMUX_PANE omx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+						command: `OMX_QUESTION_RETURN_PANE=$TMUX_PANE nomx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
 					},
 				},
 				{ cwd },
@@ -11139,7 +11039,7 @@ exit 0
 		}
 	});
 
-	it("blocks native/App Bash omx question when a valid inherited OMX_QUESTION_RETURN_PANE bridge is already exported", async () => {
+	it("blocks native/App Bash nomx question when a valid inherited OMX_QUESTION_RETURN_PANE bridge is already exported", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-question-native-env-allow-"),
 		);
@@ -11155,7 +11055,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-question-native-env-allow",
 					tool_input: {
-						command: `omx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
+						command: `nomx question --json --input '{"question":"Q?","options":["A"],"allow_other":true}'`,
 					},
 				},
 				{ cwd },
@@ -11174,7 +11074,7 @@ exit 0
 		}
 	});
 
-	it("blocks Bash omx hud from Codex App/native outside tmux without PreToolUse additionalContext", async () => {
+	it("blocks Bash nomx hud from Codex App/native outside tmux without PreToolUse additionalContext", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-hud-native-block-"),
 		);
@@ -11187,7 +11087,7 @@ exit 0
 					session_id: "sess-hud-native-block",
 					tool_name: "Bash",
 					tool_use_id: "tool-hud-native-block",
-					tool_input: { command: "omx hud --tmux" },
+					tool_input: { command: "nomx hud --tmux" },
 				},
 				{ cwd },
 			);
@@ -11214,7 +11114,7 @@ exit 0
 		}
 	});
 
-	it("blocks Bash omx team from Codex App/native outside tmux", async () => {
+	it("blocks Bash nomx team from Codex App/native outside tmux", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-team-native-block-"),
 		);
@@ -11227,7 +11127,7 @@ exit 0
 					session_id: "sess-team-native-block",
 					tool_name: "Bash",
 					tool_use_id: "tool-team-native-block",
-					tool_input: { command: "omx team status my-team" },
+					tool_input: { command: "nomx team status my-team" },
 				},
 				{ cwd },
 			);
@@ -11271,7 +11171,7 @@ exit 0
 					session_id: "sess-team-node-native-block",
 					tool_name: "Bash",
 					tool_use_id: "tool-team-node-native-block",
-					tool_input: { command: "node ./dist/cli/omx.js team status my-team" },
+					tool_input: { command: "node ./dist/cli/nomx.js team status my-team" },
 				},
 				{ cwd },
 			);
@@ -11293,7 +11193,7 @@ exit 0
 		}
 	});
 
-	it("preserves direct CLI outside-tmux omx team Bash behavior", async () => {
+	it("preserves direct CLI outside-tmux nomx team Bash behavior", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-team-cli-outside-"),
 		);
@@ -11306,7 +11206,7 @@ exit 0
 					session_id: "sess-team-cli-outside",
 					tool_name: "Bash",
 					tool_use_id: "tool-team-cli-outside",
-					tool_input: { command: "omx team status my-team" },
+					tool_input: { command: "nomx team status my-team" },
 				},
 				{ cwd },
 			);
@@ -11318,7 +11218,7 @@ exit 0
 		}
 	});
 
-	it("preserves source-less outside-tmux omx team Bash behavior when no native session evidence exists", async () => {
+	it("preserves source-less outside-tmux nomx team Bash behavior when no native session evidence exists", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-pretool-team-cli-nosource-"),
 		);
@@ -11330,7 +11230,7 @@ exit 0
 					session_id: "sess-team-cli-nosource",
 					tool_name: "Bash",
 					tool_use_id: "tool-team-cli-nosource",
-					tool_input: { command: "omx team status my-team" },
+					tool_input: { command: "nomx team status my-team" },
 				},
 				{ cwd },
 			);
@@ -11572,7 +11472,7 @@ exit 0
 				session_id: sessionId,
 				state: { spec_path: ".omx/interviews/final.md" },
 			});
-			const validCommand = `omx state write --input '${validPayload}' --json`;
+			const validCommand = `nomx state write --input '${validPayload}' --json`;
 			assert.equal((await preToolUse(validCommand)).outputJson, null);
 			const terminalInputFile = join(cwd, "terminal-input.json");
 			await writeFile(terminalInputFile, validPayload);
@@ -11590,68 +11490,68 @@ exit 0
 				session_id: sessionId,
 			});
 			for (const command of [
-				`env bun --preload ./preload.ts dist/cli/omx.js state write --input '${activePayload}' --json`,
-				`command tsx --tsconfig tsconfig.json dist/cli/omx.js state write --input '${activePayload}' --json`,
-				`time nodejs --require ./preload.js dist/cli/omx.js state write --input '${activePayload}' --json`,
+				`env bun --preload ./preload.ts dist/cli/nomx.js state write --input '${activePayload}' --json`,
+				`command tsx --tsconfig tsconfig.json dist/cli/nomx.js state write --input '${activePayload}' --json`,
+				`time nodejs --require ./preload.js dist/cli/nomx.js state write --input '${activePayload}' --json`,
 			]) {
 				assert.equal((await preToolUse(command)).outputJson, null, command);
 			}
 
 			const rejectedCommands = [
-				["wrong mode", `omx state write --input '${JSON.stringify({ mode: "ralplan", active: false, current_phase: "complete", session_id: sessionId })}' --json`],
-				["wrong session", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: "sess-other" })}' --json`],
-				["missing session", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete" })}' --json`],
-				["missing inactive flag", `omx state write --input '${JSON.stringify({ mode: "deep-interview", current_phase: "complete", session_id: sessionId })}' --json`],
-				["missing complete phase", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, session_id: sessionId })}' --json`],
-				["cancelled deactivation", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "cancelled", session_id: sessionId })}' --json`],
-				["cleared deactivation", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "cleared", session_id: sessionId })}' --json`],
-				["contradictory run outcome", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, run_outcome: "cancelled" })}' --json`],
-				["contradictory lifecycle outcome", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, lifecycle_outcome: "askuserQuestion" })}' --json`],
-				["nested mode conflict", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, state: { mode: "ralplan" } })}' --json`],
-				["nested session conflict", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, state: { session_id: "sess-other" } })}' --json`],
-				["paired run outcome conflict", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, lifecycle_outcome: "finished", run_outcome: "cancelled" })}' --json`],
-				["paired terminal outcome conflict", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, lifecycle_outcome: "finished", terminal_outcome: "cancelled" })}' --json`],
-				["shadowed run outcome conflict", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, run_outcome: "cancelled", state: { run_outcome: "finish" } })}' --json`],
-				["shadowed lifecycle outcome conflict", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, lifecycle_outcome: "askuserQuestion", state: { lifecycle_outcome: "finished" } })}' --json`],
-				["shadowed terminal outcome conflict", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, terminal_outcome: "cancelled", state: { terminal_outcome: "finished" } })}' --json`],
-				["foreign working directory", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, workingDirectory: join(cwd, "other") })}' --json`],
-				["top-level owner session conflict", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, owner_omx_session_id: "sess-other" })}' --json`],
-				["top-level codex session conflict", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, codex_session_id: "sess-other" })}' --json`],
-				["nested owner session conflict", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, state: { owner_codex_session_id: "sess-other" } })}' --json`],
-				["nested active override", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: true, current_phase: "intent-first", session_id: sessionId, state: { active: false, current_phase: "complete" } })}' --json`],
-				["nested camel phase override", `omx state write --input '${JSON.stringify({ mode: "deep-interview", active: true, current_phase: "intent-first", session_id: sessionId, state: { active: false, currentPhase: "complete" } })}' --json`],
-				["state clear", "omx state clear --mode deep-interview --json"],
-				["direct input file", `omx state write --input-file ${terminalInputFile} --json`],
+				["wrong mode", `nomx state write --input '${JSON.stringify({ mode: "ralplan", active: false, current_phase: "complete", session_id: sessionId })}' --json`],
+				["wrong session", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: "sess-other" })}' --json`],
+				["missing session", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete" })}' --json`],
+				["missing inactive flag", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", current_phase: "complete", session_id: sessionId })}' --json`],
+				["missing complete phase", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, session_id: sessionId })}' --json`],
+				["cancelled deactivation", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "cancelled", session_id: sessionId })}' --json`],
+				["cleared deactivation", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "cleared", session_id: sessionId })}' --json`],
+				["contradictory run outcome", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, run_outcome: "cancelled" })}' --json`],
+				["contradictory lifecycle outcome", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, lifecycle_outcome: "askuserQuestion" })}' --json`],
+				["nested mode conflict", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, state: { mode: "ralplan" } })}' --json`],
+				["nested session conflict", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, state: { session_id: "sess-other" } })}' --json`],
+				["paired run outcome conflict", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, lifecycle_outcome: "finished", run_outcome: "cancelled" })}' --json`],
+				["paired terminal outcome conflict", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, lifecycle_outcome: "finished", terminal_outcome: "cancelled" })}' --json`],
+				["shadowed run outcome conflict", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, run_outcome: "cancelled", state: { run_outcome: "finish" } })}' --json`],
+				["shadowed lifecycle outcome conflict", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, lifecycle_outcome: "askuserQuestion", state: { lifecycle_outcome: "finished" } })}' --json`],
+				["shadowed terminal outcome conflict", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, terminal_outcome: "cancelled", state: { terminal_outcome: "finished" } })}' --json`],
+				["foreign working directory", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, workingDirectory: join(cwd, "other") })}' --json`],
+				["top-level owner session conflict", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, owner_omx_session_id: "sess-other" })}' --json`],
+				["top-level codex session conflict", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, codex_session_id: "sess-other" })}' --json`],
+				["nested owner session conflict", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: false, current_phase: "complete", session_id: sessionId, state: { owner_codex_session_id: "sess-other" } })}' --json`],
+				["nested active override", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: true, current_phase: "intent-first", session_id: sessionId, state: { active: false, current_phase: "complete" } })}' --json`],
+				["nested camel phase override", `nomx state write --input '${JSON.stringify({ mode: "deep-interview", active: true, current_phase: "intent-first", session_id: sessionId, state: { active: false, currentPhase: "complete" } })}' --json`],
+				["state clear", "nomx state clear --mode deep-interview --json"],
+				["direct input file", `nomx state write --input-file ${terminalInputFile} --json`],
 				["prefix chain", `printf ready && ${validCommand}`],
 				["suffix chain", `${validCommand} && printf done`],
 				["pipeline", `${validCommand} | tee terminal.json`],
 				["command substitution", `printf '%s' \"$(${validCommand})\"`],
-				["nested shell", `bash -c 'omx state write --input-file ${terminalInputFile} --json'`],
+				["nested shell", `bash -c 'nomx state write --input-file ${terminalInputFile} --json'`],
 				["subshell grouping", `( ${validCommand} )`],
 				["background execution", `${validCommand} &`],
 				["wrapper dispatch", `env ${validCommand}`],
-				["node runtime wrapper", `node --require ./preload.js dist/cli/omx.js state write --input '${validPayload}' --json`],
-				["bun runtime wrapper", `bun --preload ./preload.ts dist/cli/omx.js state write --input '${validPayload}' --json`],
-				["tsx runtime wrapper", `tsx --require ./preload.ts dist/cli/omx.js state write --input '${validPayload}' --json`],
-				["path-qualified omx", `./attacker/omx state write --input '${validPayload}' --json`],
-				["env bun preload wrapper", `env bun --preload ./preload.ts dist/cli/omx.js state write --input '${validPayload}' --json`],
-				["command tsx config wrapper", `command tsx --tsconfig tsconfig.json dist/cli/omx.js state write --input '${validPayload}' --json`],
-				["time node preload wrapper", `time node --require ./preload.js dist/cli/omx.js state write --input '${validPayload}' --json`],
-				["nodejs runtime wrapper", `nodejs --require ./preload.js dist/cli/omx.js state write --input '${validPayload}' --json`],
-				["path-qualified nodejs wrapper", `/usr/bin/nodejs --require ./preload.js dist/cli/omx.js state write --input '${validPayload}' --json`],
-				["nested terminal payload wrapper", `env bun --preload ./preload.ts dist/cli/omx.js state write --input '${JSON.stringify({ mode: "deep-interview", session_id: sessionId, state: { active: false, current_phase: "complete" } })}' --json`],
-				["foreign completed payload wrapper", `command tsx --tsconfig tsconfig.json dist/cli/omx.js state write --input '${JSON.stringify({ mode: "ralph", active: false, current_phase: "complete", session_id: sessionId })}' --json`],
-				["nodejs terminal input file wrapper", `nodejs dist/cli/omx.js state write --input-file ${terminalInputFile} --json`],
-				["path-qualified nodejs foreign input file wrapper", `/usr/bin/nodejs dist/cli/omx.js state write --input-file ${foreignInputFile} --json`],
-				["split-string nodejs terminal input file wrapper", `env -S "nodejs dist/cli/omx.js state write --input-file ${terminalInputFile} --json"`],
-				["long split-string nodejs foreign input file wrapper", `env --split-string "nodejs dist/cli/omx.js state write --input-file ${foreignInputFile} --json"`],
-				["split-string bun terminal wrapper", `env -S "bun --preload ./preload.ts dist/cli/omx.js state write --input '${validPayload}' --json"`],
-				["split-string tsx foreign wrapper", `env --split-string "tsx --tsconfig tsconfig.json dist/cli/omx.js state write --input '${JSON.stringify({ mode: "team", active: true, current_phase: "running", session_id: sessionId })}' --json"`],
+				["node runtime wrapper", `node --require ./preload.js dist/cli/nomx.js state write --input '${validPayload}' --json`],
+				["bun runtime wrapper", `bun --preload ./preload.ts dist/cli/nomx.js state write --input '${validPayload}' --json`],
+				["tsx runtime wrapper", `tsx --require ./preload.ts dist/cli/nomx.js state write --input '${validPayload}' --json`],
+				["path-qualified omx", `./attacker/nomx state write --input '${validPayload}' --json`],
+				["env bun preload wrapper", `env bun --preload ./preload.ts dist/cli/nomx.js state write --input '${validPayload}' --json`],
+				["command tsx config wrapper", `command tsx --tsconfig tsconfig.json dist/cli/nomx.js state write --input '${validPayload}' --json`],
+				["time node preload wrapper", `time node --require ./preload.js dist/cli/nomx.js state write --input '${validPayload}' --json`],
+				["nodejs runtime wrapper", `nodejs --require ./preload.js dist/cli/nomx.js state write --input '${validPayload}' --json`],
+				["path-qualified nodejs wrapper", `/usr/bin/nodejs --require ./preload.js dist/cli/nomx.js state write --input '${validPayload}' --json`],
+				["nested terminal payload wrapper", `env bun --preload ./preload.ts dist/cli/nomx.js state write --input '${JSON.stringify({ mode: "deep-interview", session_id: sessionId, state: { active: false, current_phase: "complete" } })}' --json`],
+				["foreign completed payload wrapper", `command tsx --tsconfig tsconfig.json dist/cli/nomx.js state write --input '${JSON.stringify({ mode: "ralph", active: false, current_phase: "complete", session_id: sessionId })}' --json`],
+				["nodejs terminal input file wrapper", `nodejs dist/cli/nomx.js state write --input-file ${terminalInputFile} --json`],
+				["path-qualified nodejs foreign input file wrapper", `/usr/bin/nodejs dist/cli/nomx.js state write --input-file ${foreignInputFile} --json`],
+				["split-string nodejs terminal input file wrapper", `env -S "nodejs dist/cli/nomx.js state write --input-file ${terminalInputFile} --json"`],
+				["long split-string nodejs foreign input file wrapper", `env --split-string "nodejs dist/cli/nomx.js state write --input-file ${foreignInputFile} --json"`],
+				["split-string bun terminal wrapper", `env -S "bun --preload ./preload.ts dist/cli/nomx.js state write --input '${validPayload}' --json"`],
+				["split-string tsx foreign wrapper", `env --split-string "tsx --tsconfig tsconfig.json dist/cli/nomx.js state write --input '${JSON.stringify({ mode: "team", active: true, current_phase: "running", session_id: sessionId })}' --json"`],
 				["stdout redirect", `${validCommand} > terminal.json`],
 				["null redirect", `${validCommand} > /dev/null`],
 				["stderr redirect", `${validCommand} 2> terminal.err`],
 				["stdin redirect", `${validCommand} < ${terminalInputFile}`],
-				["arbitrary state mutation", `omx state write --input '${JSON.stringify({ mode: "team", active: false, current_phase: "complete", session_id: sessionId, state: { arbitrary: true } })}' --json`],
+				["arbitrary state mutation", `nomx state write --input '${JSON.stringify({ mode: "team", active: false, current_phase: "complete", session_id: sessionId, state: { arbitrary: true } })}' --json`],
 			] as const;
 			for (const [name, command] of rejectedCommands) {
 				const result = await preToolUse(command);
@@ -12018,7 +11918,7 @@ exit 0
 							"cat > .omx/specs/deep-interview-demo.md <<'EOF'",
 							"# Spec",
 							"EOF",
-							`omx state write --input '${deepInterviewRalplanHandoffState}' --json`,
+							`nomx state write --input '${deepInterviewRalplanHandoffState}' --json`,
 						].join("\n"),
 					},
 				},
@@ -12039,7 +11939,7 @@ exit 0
 							"cat > .omx/tmp/sess-di-artifact/only.md <<'EOF'",
 							"# Tmp-only scratch",
 							"EOF",
-							`omx state write --input '${deepInterviewRalplanHandoffState}' --json`,
+							`nomx state write --input '${deepInterviewRalplanHandoffState}' --json`,
 						].join("\n"),
 					},
 				},
@@ -12072,7 +11972,7 @@ exit 0
 							"printf '%s\\n' same-command-artifact-executed",
 							"EOF",
 							"sh .omx/context/run.sh",
-							`omx state write --input '${deepInterviewRalplanHandoffState}' --json`,
+							`nomx state write --input '${deepInterviewRalplanHandoffState}' --json`,
 						].join("\n"),
 					},
 				},
@@ -12112,7 +12012,7 @@ exit 0
 								"Path('.omx/context/run.sh').write_text('echo ran')",
 								"PY",
 								"sh .omx/context/run.sh",
-								`omx state write --input '${deepInterviewRalplanHandoffState}' --json`,
+								`nomx state write --input '${deepInterviewRalplanHandoffState}' --json`,
 							].join("\n"),
 						},
 					},
@@ -12219,7 +12119,7 @@ exit 0
 								"printf '%s\\n' same-command-cwd-relative-artifact-executed",
 								"EOF",
 								executionLine,
-								`omx state write --input '${deepInterviewRalplanHandoffState}' --json`,
+								`nomx state write --input '${deepInterviewRalplanHandoffState}' --json`,
 							].join("\n"),
 						},
 					},
@@ -12263,7 +12163,7 @@ exit 0
 							"cat > src/runtime.ts <<'EOF'",
 							"export const changed = true;",
 							"EOF",
-							`omx state write --input '${deepInterviewRalplanHandoffState}' --json`,
+							`nomx state write --input '${deepInterviewRalplanHandoffState}' --json`,
 						].join("\n"),
 					},
 				},
@@ -12301,7 +12201,7 @@ exit 0
 							"cat > .omx/context/deep-interview-demo.md <<'EOF'",
 							"# Context",
 							"EOF",
-							`omx state write --input '${deepInterviewRalplanHandoffState}' --json`,
+							`nomx state write --input '${deepInterviewRalplanHandoffState}' --json`,
 						].join("\n"),
 					},
 				},
@@ -12553,7 +12453,7 @@ exit 0
 				await rm(runtimeRoot, { recursive: true, force: true });
 			}
 
-			// Cross-mode non-terminal `omx state write` payloads are activations,
+			// Cross-mode non-terminal `nomx state write` payloads are activations,
 			// because state_write normalizes them to active=true after the hook.
 			const blockedStateCliMutation = await preToolUse(
 				{
@@ -12564,7 +12464,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-write",
 					tool_input: {
 						command:
-							'omx state write --input \'{"mode":"ralph","current_phase":"executing"}\' --json',
+							'nomx state write --input \'{"mode":"ralph","current_phase":"executing"}\' --json',
 					},
 				},
 				{ cwd },
@@ -12624,7 +12524,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-mode-mention-in-json",
 					tool_input: {
 						command:
-							'omx state write --input \'{"mode":"ralph","note":"--mode deep-interview","active":false}\' --json',
+							'nomx state write --input \'{"mode":"ralph","note":"--mode deep-interview","active":false}\' --json',
 					},
 				},
 				{ cwd },
@@ -12648,7 +12548,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-input-file-allowed",
 					tool_input: {
-						command: `omx state write --input-file ${allowedStateInputFile} --json`,
+						command: `nomx state write --input-file ${allowedStateInputFile} --json`,
 					},
 				},
 				{ cwd },
@@ -12693,7 +12593,7 @@ exit 0
 						tool_use_id:
 							"tool-di-standalone-autopilot-ralplan-handoff-without-evidence",
 						tool_input: {
-							command: `omx state write --input-file ${standaloneAutopilotRalplanHandoffInputFile} --json`,
+							command: `nomx state write --input-file ${standaloneAutopilotRalplanHandoffInputFile} --json`,
 						},
 					},
 					{ cwd },
@@ -12725,7 +12625,7 @@ exit 0
 						tool_use_id:
 							"tool-di-standalone-autopilot-ralplan-handoff-with-evidence",
 						tool_input: {
-							command: `omx state write --input-file ${standaloneAutopilotRalplanHandoffInputFile} --json`,
+							command: `nomx state write --input-file ${standaloneAutopilotRalplanHandoffInputFile} --json`,
 						},
 					},
 					{ cwd },
@@ -12736,7 +12636,7 @@ exit 0
 				"a valid autopilot deep-interview -> ralplan state write may use prior durable .omx/specs evidence",
 			);
 
-			// A deactivating `omx state write` (or `omx state clear`) ends the planning
+			// A deactivating `nomx state write` (or `nomx state clear`) ends the planning
 			// phase, which the backend does not gate for standalone modes; the hook
 			// rejects these deactivation vectors at the transport boundary.
 			const blockedStateDeactivation = await preToolUse(
@@ -12748,7 +12648,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-deactivate",
 					tool_input: {
 						command:
-							'omx state write --input \'{"mode":"deep-interview","active":false}\' --json',
+							'nomx state write --input \'{"mode":"deep-interview","active":false}\' --json',
 					},
 				},
 				{ cwd },
@@ -12772,7 +12672,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-input-file-blocked",
 					tool_input: {
-						command: `omx state write --input-file ${blockedStateInputFile} --json`,
+						command: `nomx state write --input-file ${blockedStateInputFile} --json`,
 					},
 				},
 				{ cwd },
@@ -12795,7 +12695,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-mode-flag-deactivate",
 					tool_input: {
 						command:
-							"omx state write --mode deep-interview --input '{\"active\":false}' --json",
+							"nomx state write --mode deep-interview --input '{\"active\":false}' --json",
 					},
 				},
 				{ cwd },
@@ -12822,7 +12722,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-mode-flag-file-deactivate",
 					tool_input: {
-						command: `omx state write --mode deep-interview --input-file ${conflictingModeFlagPayload} --json`,
+						command: `nomx state write --mode deep-interview --input-file ${conflictingModeFlagPayload} --json`,
 					},
 				},
 				{ cwd },
@@ -12845,7 +12745,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-repeated-mode-flag-deactivate",
 					tool_input: {
 						command:
-							"omx state write --mode ralph --mode deep-interview --input '{\"active\":false}' --json",
+							"nomx state write --mode ralph --mode deep-interview --input '{\"active\":false}' --json",
 					},
 				},
 				{ cwd },
@@ -12868,7 +12768,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-repeated-input-deactivate",
 					tool_input: {
 						command:
-							'omx state write --input \'{"mode":"deep-interview","active":true}\' ' +
+							'nomx state write --input \'{"mode":"deep-interview","active":true}\' ' +
 							'--input \'{"mode":"deep-interview","active":false}\' --json',
 					},
 				},
@@ -12905,7 +12805,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-repeated-input-file-deactivate",
 					tool_input: {
-						command: `omx state write --input-file ${repeatedInputFileSafe} --input-file ${repeatedInputFileBlocked} --json`,
+						command: `nomx state write --input-file ${repeatedInputFileSafe} --input-file ${repeatedInputFileBlocked} --json`,
 					},
 				},
 				{ cwd },
@@ -12954,7 +12854,7 @@ exit 0
 						tool_name: "Bash",
 						tool_use_id: `tool-di-state-cli-current-phase-alias-${alias}`,
 						tool_input: {
-							command: `omx state write --input '${JSON.stringify({ mode: "deep-interview", current_phase: alias })}' --json`,
+							command: `nomx state write --input '${JSON.stringify({ mode: "deep-interview", current_phase: alias })}' --json`,
 						},
 					},
 					{ cwd },
@@ -12986,7 +12886,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-current-phase-alias-input-file",
 					tool_input: {
-						command: `omx state write --input-file ${blockedCurrentPhaseAliasInputFile} --json`,
+						command: `nomx state write --input-file ${blockedCurrentPhaseAliasInputFile} --json`,
 					},
 				},
 				{ cwd },
@@ -13017,7 +12917,7 @@ exit 0
 						tool_name: "Bash",
 						tool_use_id: `tool-di-state-cli-camel-terminal-outcome-${index}`,
 						tool_input: {
-							command: `omx state write --input '${JSON.stringify({ mode: "deep-interview", ...aliasPayload })}' --json`,
+							command: `nomx state write --input '${JSON.stringify({ mode: "deep-interview", ...aliasPayload })}' --json`,
 						},
 					},
 					{ cwd },
@@ -13049,7 +12949,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-camel-terminal-outcome-input-file",
 					tool_input: {
-						command: `omx state write --input-file ${blockedCamelCaseOutcomeInputFile} --json`,
+						command: `nomx state write --input-file ${blockedCamelCaseOutcomeInputFile} --json`,
 					},
 				},
 				{ cwd },
@@ -13072,7 +12972,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-cross-mode-activation",
 					tool_input: {
 						command:
-							'omx state write --input \'{"mode":"ralph","active":true}\' --json',
+							'nomx state write --input \'{"mode":"ralph","active":true}\' --json',
 					},
 				},
 				{ cwd },
@@ -13109,7 +13009,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-cwd-relative-input-file-after-cd",
 					tool_input: {
 						command:
-							"cd cwd-relative-input-file-subdir && omx state write --input-file payload.json --json",
+							"cd cwd-relative-input-file-subdir && nomx state write --input-file payload.json --json",
 					},
 				},
 				{ cwd },
@@ -13138,7 +13038,7 @@ exit 0
 					tool_input: {
 						command:
 							'printf \'{"mode":"deep-interview","active":false}\' > rewritten-input-file.json && ' +
-							"omx state write --input-file rewritten-input-file.json --json",
+							"nomx state write --input-file rewritten-input-file.json --json",
 					},
 				},
 				{ cwd },
@@ -13161,7 +13061,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-nested-state-deactivate",
 					tool_input: {
 						command:
-							'omx state write --mode deep-interview --input \'{"state":{"active":false}}\' --json',
+							'nomx state write --mode deep-interview --input \'{"state":{"active":false}}\' --json',
 					},
 				},
 				{ cwd },
@@ -13184,8 +13084,8 @@ exit 0
 					tool_use_id: "tool-di-state-cli-multiple-writes",
 					tool_input: {
 						command:
-							'omx state write --input \'{"mode":"deep-interview","active":true}\' --json && ' +
-							'omx state write --input \'{"mode":"deep-interview","active":false}\' --json',
+							'nomx state write --input \'{"mode":"deep-interview","active":true}\' --json && ' +
+							'nomx state write --input \'{"mode":"deep-interview","active":false}\' --json',
 					},
 				},
 				{ cwd },
@@ -13206,7 +13106,7 @@ exit 0
 					tool_input: {
 						command:
 							'printf \'%s\\n\' "--input \'{\\"mode\\":\\"deep-interview\\",\\"active\\":false}\'" && ' +
-							'omx state write --input \'{"mode":"deep-interview","active":true}\' --json',
+							'nomx state write --input \'{"mode":"deep-interview","active":true}\' --json',
 					},
 				},
 				{ cwd },
@@ -13230,7 +13130,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-bounded-segment",
 					tool_input: {
 						command:
-							`omx state write --input-file ${blockedFileWriteWithLaterSafeDecoy} --json && ` +
+							`nomx state write --input-file ${blockedFileWriteWithLaterSafeDecoy} --json && ` +
 							'printf \'%s\\n\' "--input \'{\\"mode\\":\\"deep-interview\\",\\"active\\":true}\'"',
 					},
 				},
@@ -13369,7 +13269,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-clear",
-					tool_input: { command: "omx state clear --json" },
+					tool_input: { command: "nomx state clear --json" },
 				},
 				{ cwd },
 			);
@@ -13383,398 +13283,398 @@ exit 0
 				'\'{"mode":"deep-interview","active":false}\'';
 			const absolutePathQualifiedNpm = resolve(cwd, "bin", "npm");
 			const cliWrapperPlanningDeactivationCommands = [
-				["node-wrapper-clear", "node dist/cli/omx.js state clear --json"],
+				["node-wrapper-clear", "node dist/cli/nomx.js state clear --json"],
 				[
 					"node-wrapper-write",
-					`node dist/cli/omx.js state write --input ${stateDeactivationInput} --json`,
+					`node dist/cli/nomx.js state write --input ${stateDeactivationInput} --json`,
 				],
 				[
 					"node-wrapper-option-clear",
-					"node --enable-source-maps dist/cli/omx.js state clear --json",
+					"node --enable-source-maps dist/cli/nomx.js state clear --json",
 				],
 				[
 					"node-wrapper-require-clear",
-					"node --require tsx/cjs dist/cli/omx.js state clear --json",
+					"node --require tsx/cjs dist/cli/nomx.js state clear --json",
 				],
 				[
 					"bun-wrapper-path-variant",
-					"bun ./dist/cli/omx.js state clear --json",
+					"bun ./dist/cli/nomx.js state clear --json",
 				],
 				[
 					"tsx-wrapper-write",
-					`tsx dist/cli/omx.js state write --input ${stateDeactivationInput} --json`,
+					`tsx dist/cli/nomx.js state write --input ${stateDeactivationInput} --json`,
 				],
-				["direct-wrapper-clear", "./dist/cli/omx.js state clear --json"],
+				["direct-wrapper-clear", "./dist/cli/nomx.js state clear --json"],
 				[
 					"path-qualified-omx-clear",
-					"./node_modules/.bin/omx state clear --json",
+					"./node_modules/.bin/nomx state clear --json",
 				],
 				[
 					"quoted-node-wrapper-clear",
-					'node "dist/cli/omx.js" state clear --json',
+					'node "dist/cli/nomx.js" state clear --json',
 				],
 				[
 					"quoted-direct-wrapper-clear",
-					'"./dist/cli/omx.js" state clear --json',
+					'"./dist/cli/nomx.js" state clear --json',
 				],
 				[
 					"quoted-node-wrapper-write",
-					`node "dist/cli/omx.js" state write --input ${stateDeactivationInput} --json`,
+					`node "dist/cli/nomx.js" state write --input ${stateDeactivationInput} --json`,
 				],
 				[
 					"env-wrapper-clear",
-					"env FOO=bar node dist/cli/omx.js state clear --json",
+					"env FOO=bar node dist/cli/nomx.js state clear --json",
 				],
 				[
 					"env-argv0-short-wrapper-clear",
-					"env -a fake node dist/cli/omx.js state clear --json",
+					"env -a fake node dist/cli/nomx.js state clear --json",
 				],
 				[
 					"env-argv0-long-wrapper-clear",
-					"env --argv0 fake node dist/cli/omx.js state clear --json",
+					"env --argv0 fake node dist/cli/nomx.js state clear --json",
 				],
 				[
 					"node-title-wrapper-clear",
-					"node --title foo dist/cli/omx.js state clear --json",
+					"node --title foo dist/cli/nomx.js state clear --json",
 				],
-				["time-wrapper-clear", "time omx state clear --json"],
+				["time-wrapper-clear", "time nomx state clear --json"],
 				[
 					"time-format-wrapper-clear",
-					"/usr/bin/time -f x omx state clear --json",
+					"/usr/bin/time -f x nomx state clear --json",
 				],
-				["time-output-wrapper-clear", "time -o out omx state clear --json"],
+				["time-output-wrapper-clear", "time -o out nomx state clear --json"],
 				[
 					"time-cluster-output-wrapper-clear",
-					"/usr/bin/time -ao out omx state clear --json",
+					"/usr/bin/time -ao out nomx state clear --json",
 				],
 				[
 					"time-cluster-format-wrapper-clear",
-					"/usr/bin/time -af fmt omx state clear --json",
+					"/usr/bin/time -af fmt nomx state clear --json",
 				],
-				["nice-wrapper-clear", "nice -n 5 omx state clear --json"],
+				["nice-wrapper-clear", "nice -n 5 nomx state clear --json"],
 				[
 					"nice-wrapper-write",
-					`nice -n 5 omx state write --input ${stateDeactivationInput} --json`,
+					`nice -n 5 nomx state write --input ${stateDeactivationInput} --json`,
 				],
-				["stdbuf-wrapper-clear", "stdbuf -o0 omx state clear --json"],
+				["stdbuf-wrapper-clear", "stdbuf -o0 nomx state clear --json"],
 				[
 					"stdbuf-wrapper-write",
-					`stdbuf -o0 omx state write --input ${stateDeactivationInput} --json`,
+					`stdbuf -o0 nomx state write --input ${stateDeactivationInput} --json`,
 				],
-				["timeout-wrapper-clear", "timeout 5 omx state clear --json"],
+				["timeout-wrapper-clear", "timeout 5 nomx state clear --json"],
 				[
 					"timeout-wrapper-write",
-					`timeout 5 omx state write --input ${stateDeactivationInput} --json`,
+					`timeout 5 nomx state write --input ${stateDeactivationInput} --json`,
 				],
-				["setsid-wrapper-clear", "setsid omx state clear --json"],
+				["setsid-wrapper-clear", "setsid nomx state clear --json"],
 				[
 					"setsid-wrapper-write",
-					`setsid omx state write --input ${stateDeactivationInput} --json`,
+					`setsid nomx state write --input ${stateDeactivationInput} --json`,
 				],
-				["setsid-wait-wrapper-clear", "setsid -w omx state clear --json"],
+				["setsid-wait-wrapper-clear", "setsid -w nomx state clear --json"],
 				[
 					"setsid-wait-wrapper-write",
-					`setsid -w omx state write --input ${stateDeactivationInput} --json`,
+					`setsid -w nomx state write --input ${stateDeactivationInput} --json`,
 				],
-				["time-brace-group-clear", "time { omx state clear --json; }"],
+				["time-brace-group-clear", "time { nomx state clear --json; }"],
 				[
 					"time-if-condition-clear",
-					"time if omx state clear --json; then :; fi",
+					"time if nomx state clear --json; then :; fi",
 				],
-				["time-subshell-clear", "time ( omx state clear --json )"],
+				["time-subshell-clear", "time ( nomx state clear --json )"],
 				[
 					"time-command-env-node-wrapper-clear",
-					"time command env node dist/cli/omx.js state clear --json",
+					"time command env node dist/cli/nomx.js state clear --json",
 				],
 				[
 					"command-time-subshell-clear",
-					"command time ( omx state clear --json )",
+					"command time ( nomx state clear --json )",
 				],
-				["coproc-wrapper-clear", "coproc omx state clear --json"],
+				["coproc-wrapper-clear", "coproc nomx state clear --json"],
 				[
 					"coproc-wrapper-write",
-					`coproc omx state write --input ${stateDeactivationInput} --json`,
+					`coproc nomx state write --input ${stateDeactivationInput} --json`,
 				],
 				[
 					"coproc-name-brace-wrapper-clear",
-					"coproc worker { omx state clear --json; }",
+					"coproc worker { nomx state clear --json; }",
 				],
 				[
 					"coproc-name-brace-wrapper-write",
-					`coproc worker { omx state write --input ${stateDeactivationInput} --json; }`,
+					`coproc worker { nomx state write --input ${stateDeactivationInput} --json; }`,
 				],
-				["xargs-wrapper-clear", "xargs omx state clear --json </dev/null"],
+				["xargs-wrapper-clear", "xargs nomx state clear --json </dev/null"],
 				[
 					"xargs-wrapper-write",
-					`xargs omx state write --input ${stateDeactivationInput} --json </dev/null`,
+					`xargs nomx state write --input ${stateDeactivationInput} --json </dev/null`,
 				],
-				["case-arm-clear", "case x in x) omx state clear --json;; esac"],
+				["case-arm-clear", "case x in x) nomx state clear --json;; esac"],
 				[
 					"case-arm-write",
-					`case x in x) omx state write --input ${stateDeactivationInput} --json;; esac`,
+					`case x in x) nomx state write --input ${stateDeactivationInput} --json;; esac`,
 				],
 				[
 					"case-late-arm-clear",
-					"case y in x) :;; y) omx state clear --json;; esac",
+					"case y in x) :;; y) nomx state clear --json;; esac",
 				],
 				[
 					"case-late-arm-write",
-					`case y in x) :;; y) omx state write --input ${stateDeactivationInput} --json;; esac`,
+					`case y in x) :;; y) nomx state write --input ${stateDeactivationInput} --json;; esac`,
 				],
-				["subshell-function-body-clear", "f() ( omx state clear --json ); f"],
+				["subshell-function-body-clear", "f() ( nomx state clear --json ); f"],
 				[
 					"subshell-function-body-write",
-					`f() ( omx state write --input ${stateDeactivationInput} --json ); f`,
+					`f() ( nomx state write --input ${stateDeactivationInput} --json ); f`,
 				],
 				[
 					"path-qualified-env-wrapper-clear",
-					"/usr/bin/env node dist/cli/omx.js state clear --json",
+					"/usr/bin/env node dist/cli/nomx.js state clear --json",
 				],
 				[
 					"path-qualified-env-split-wrapper-clear",
-					"/usr/bin/env -S 'omx state clear --json'",
+					"/usr/bin/env -S 'nomx state clear --json'",
 				],
-				["npm-exec-wrapper-clear", "npm exec -- omx state clear --json"],
+				["npm-exec-wrapper-clear", "npm exec -- nomx state clear --json"],
 				[
 					"npm-exec-wrapper-write",
-					`npm exec -- omx state write --input ${stateDeactivationInput} --json`,
+					`npm exec -- nomx state write --input ${stateDeactivationInput} --json`,
 				],
 				[
 					"npm-prefix-exec-wrapper-clear",
-					"npm --prefix . exec -- omx state clear --json",
+					"npm --prefix . exec -- nomx state clear --json",
 				],
 				[
 					"npm-prefix-exec-wrapper-write",
-					`npm --prefix . exec -- omx state write --input ${stateDeactivationInput} --json`,
+					`npm --prefix . exec -- nomx state write --input ${stateDeactivationInput} --json`,
 				],
-				["npm-exec-call-wrapper-clear", "npm exec -c 'omx state clear --json'"],
-				["pnpm-exec-wrapper-clear", "pnpm exec omx state clear --json"],
+				["npm-exec-call-wrapper-clear", "npm exec -c 'nomx state clear --json'"],
+				["pnpm-exec-wrapper-clear", "pnpm exec nomx state clear --json"],
 				[
 					"pnpm-exec-wrapper-write",
-					`pnpm exec omx state write --input ${stateDeactivationInput} --json`,
+					`pnpm exec nomx state write --input ${stateDeactivationInput} --json`,
 				],
 				[
 					"pnpm-dir-exec-wrapper-clear",
-					"pnpm -C . exec omx state clear --json",
+					"pnpm -C . exec nomx state clear --json",
 				],
 				[
 					"pnpm-dir-exec-wrapper-write",
-					`pnpm -C . exec omx state write --input ${stateDeactivationInput} --json`,
+					`pnpm -C . exec nomx state write --input ${stateDeactivationInput} --json`,
 				],
 				[
 					"path-qualified-npm-exec-wrapper-clear",
-					`${absolutePathQualifiedNpm} exec -- omx state clear --json`,
+					`${absolutePathQualifiedNpm} exec -- nomx state clear --json`,
 				],
 				[
 					"path-qualified-npm-exec-wrapper-write",
-					`${absolutePathQualifiedNpm} exec -- omx state write --input ${stateDeactivationInput} --json`,
+					`${absolutePathQualifiedNpm} exec -- nomx state write --input ${stateDeactivationInput} --json`,
 				],
-				["npx-wrapper-clear", "npx omx state clear --json"],
-				["nohup-trailing-clear", "true && nohup omx state clear --json"],
+				["npx-wrapper-clear", "npx nomx state clear --json"],
+				["nohup-trailing-clear", "true && nohup nomx state clear --json"],
 				[
 					"nohup-trailing-write",
-					`true && nohup omx state write --input ${stateDeactivationInput} --json`,
+					`true && nohup nomx state write --input ${stateDeactivationInput} --json`,
 				],
 				[
 					"env-unset-wrapper-clear",
-					"env -u FOO node dist/cli/omx.js state clear --json",
+					"env -u FOO node dist/cli/nomx.js state clear --json",
 				],
 				[
 					"env-chdir-wrapper-clear",
-					`env -C ${cwd} node dist/cli/omx.js state clear --json`,
+					`env -C ${cwd} node dist/cli/nomx.js state clear --json`,
 				],
 				[
 					"command-wrapper-write",
-					`command node dist/cli/omx.js state write --input ${stateDeactivationInput} --json`,
+					`command node dist/cli/nomx.js state write --input ${stateDeactivationInput} --json`,
 				],
-				["exec-wrapper-clear", "exec node dist/cli/omx.js state clear --json"],
-				["pipeline-clear", "printf 'x' | omx state clear --json"],
+				["exec-wrapper-clear", "exec node dist/cli/nomx.js state clear --json"],
+				["pipeline-clear", "printf 'x' | nomx state clear --json"],
 				[
 					"pipeline-write",
-					`printf 'x' | omx state write --input ${stateDeactivationInput} --json`,
+					`printf 'x' | nomx state write --input ${stateDeactivationInput} --json`,
 				],
 				[
 					"pipeline-node-wrapper-clear",
-					"printf 'x' | node dist/cli/omx.js state clear --json",
+					"printf 'x' | node dist/cli/nomx.js state clear --json",
 				],
 				[
 					"pipeline-node-wrapper-write",
-					`printf 'x' | node dist/cli/omx.js state write --input ${stateDeactivationInput} --json`,
+					`printf 'x' | node dist/cli/nomx.js state write --input ${stateDeactivationInput} --json`,
 				],
 				[
 					"pipeline-command-wrapper-clear",
-					"printf 'x' | command node dist/cli/omx.js state clear --json",
+					"printf 'x' | command node dist/cli/nomx.js state clear --json",
 				],
-				["pipeline-stderr-clear", "printf 'x' |& omx state clear --json"],
+				["pipeline-stderr-clear", "printf 'x' |& nomx state clear --json"],
 				[
 					"pipeline-stderr-write",
-					`printf 'x' |& omx state write --input ${stateDeactivationInput} --json`,
+					`printf 'x' |& nomx state write --input ${stateDeactivationInput} --json`,
 				],
 				[
 					"pipeline-stderr-node-wrapper-clear",
-					"printf 'x' |& node dist/cli/omx.js state clear --json",
+					"printf 'x' |& node dist/cli/nomx.js state clear --json",
 				],
 				[
 					"pipeline-stderr-node-wrapper-write",
-					`printf 'x' |& node dist/cli/omx.js state write --input ${stateDeactivationInput} --json`,
+					`printf 'x' |& node dist/cli/nomx.js state write --input ${stateDeactivationInput} --json`,
 				],
-				["subshell-clear", "(omx state clear --json)"],
+				["subshell-clear", "(nomx state clear --json)"],
 				[
 					"subshell-write",
-					`(omx state write --input ${stateDeactivationInput} --json)`,
+					`(nomx state write --input ${stateDeactivationInput} --json)`,
 				],
 				[
 					"subshell-node-wrapper-clear",
-					"(node dist/cli/omx.js state clear --json)",
+					"(node dist/cli/nomx.js state clear --json)",
 				],
 				[
 					"subshell-node-wrapper-write",
-					`(node dist/cli/omx.js state write --input ${stateDeactivationInput} --json)`,
+					`(node dist/cli/nomx.js state write --input ${stateDeactivationInput} --json)`,
 				],
 				[
 					"bash-wrapper-trailing-clear",
-					"bash -c 'true'; omx state clear --json",
+					"bash -c 'true'; nomx state clear --json",
 				],
 				[
 					"sh-wrapper-trailing-write",
-					`sh -c 'true' && omx state write --input ${stateDeactivationInput} --json`,
+					`sh -c 'true' && nomx state write --input ${stateDeactivationInput} --json`,
 				],
-				["function-body-clear", "f(){ omx state clear --json; }; f"],
+				["function-body-clear", "f(){ nomx state clear --json; }; f"],
 				[
 					"function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; f`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; f`,
 				],
-				["timed-function-body-clear", "f(){ omx state clear --json; }; time f"],
+				["timed-function-body-clear", "f(){ nomx state clear --json; }; time f"],
 				[
 					"timed-function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; time f`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; time f`,
 				],
-				["negated-function-body-clear", "f(){ omx state clear --json; }; ! f"],
+				["negated-function-body-clear", "f(){ nomx state clear --json; }; ! f"],
 				[
 					"negated-function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; ! f`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; ! f`,
 				],
 				[
 					"conditional-function-body-clear",
-					"f(){ omx state clear --json; }; if f; then :; fi",
+					"f(){ nomx state clear --json; }; if f; then :; fi",
 				],
 				[
 					"conditional-function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; if f; then :; fi`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; if f; then :; fi`,
 				],
 				[
 					"while-function-body-clear",
-					"f(){ omx state clear --json; }; while f; do break; done",
+					"f(){ nomx state clear --json; }; while f; do break; done",
 				],
 				[
 					"while-function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; while f; do break; done`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; while f; do break; done`,
 				],
 				[
 					"until-function-body-clear",
-					"f(){ omx state clear --json; }; until f; do break; done",
+					"f(){ nomx state clear --json; }; until f; do break; done",
 				],
 				[
 					"until-function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; until f; do break; done`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; until f; do break; done`,
 				],
 				[
 					"time-negated-function-body-clear",
-					"f(){ omx state clear --json; }; time ! f",
+					"f(){ nomx state clear --json; }; time ! f",
 				],
 				[
 					"time-negated-function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; time ! f`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; time ! f`,
 				],
 				[
 					"time-brace-function-body-clear",
-					"f(){ omx state clear --json; }; time { f; }",
+					"f(){ nomx state clear --json; }; time { f; }",
 				],
 				[
 					"time-brace-function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; time { f; }`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; time { f; }`,
 				],
 				[
 					"time-subshell-function-body-clear",
-					"f(){ omx state clear --json; }; time ( f )",
+					"f(){ nomx state clear --json; }; time ( f )",
 				],
 				[
 					"time-subshell-function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; time ( f )`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; time ( f )`,
 				],
 				[
 					"time-if-function-body-clear",
-					"f(){ omx state clear --json; }; time if f; then :; fi",
+					"f(){ nomx state clear --json; }; time if f; then :; fi",
 				],
 				[
 					"time-if-function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; time if f; then :; fi`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; time if f; then :; fi`,
 				],
 				[
 					"command-time-negated-function-body-clear",
-					"f(){ omx state clear --json; }; command time ! f",
+					"f(){ nomx state clear --json; }; command time ! f",
 				],
 				[
 					"command-time-negated-function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; command time ! f`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; command time ! f`,
 				],
 				[
 					"coproc-function-body-clear",
-					"f(){ omx state clear --json; }; coproc f",
+					"f(){ nomx state clear --json; }; coproc f",
 				],
 				[
 					"coproc-function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; coproc f`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; coproc f`,
 				],
 				[
 					"setsid-function-body-clear",
-					"f(){ omx state clear --json; }; setsid f",
+					"f(){ nomx state clear --json; }; setsid f",
 				],
 				[
 					"setsid-function-body-write",
-					`f(){ omx state write --input ${stateDeactivationInput} --json; }; setsid f`,
+					`f(){ nomx state write --input ${stateDeactivationInput} --json; }; setsid f`,
 				],
-				["leading-redirection-clear", ">/dev/null omx state clear --json"],
+				["leading-redirection-clear", ">/dev/null nomx state clear --json"],
 				[
 					"leading-redirection-write",
-					`>/dev/null omx state write --input ${stateDeactivationInput} --json`,
+					`>/dev/null nomx state write --input ${stateDeactivationInput} --json`,
 				],
-				["env-split-trailing-clear", "env -S FOO=bar omx state clear --json"],
+				["env-split-trailing-clear", "env -S FOO=bar nomx state clear --json"],
 				[
 					"env-split-string-trailing-write",
-					`env --split-string 'FOO=bar' omx state write --input ${stateDeactivationInput} --json`,
+					`env --split-string 'FOO=bar' nomx state write --input ${stateDeactivationInput} --json`,
 				],
-				["brace-group-clear", "{ omx state clear --json; }"],
+				["brace-group-clear", "{ nomx state clear --json; }"],
 				[
 					"brace-group-write",
-					`{ omx state write --input ${stateDeactivationInput} --json; }`,
+					`{ nomx state write --input ${stateDeactivationInput} --json; }`,
 				],
-				["pipeline-to-subshell-clear", "printf 'x' | (omx state clear --json)"],
+				["pipeline-to-subshell-clear", "printf 'x' | (nomx state clear --json)"],
 				[
 					"pipeline-stderr-to-subshell-write",
-					`printf 'x' |& (node dist/cli/omx.js state write --input ${stateDeactivationInput} --json)`,
+					`printf 'x' |& (node dist/cli/nomx.js state write --input ${stateDeactivationInput} --json)`,
 				],
-				["if-condition-clear", "if omx state clear --json; then :; fi"],
+				["if-condition-clear", "if nomx state clear --json; then :; fi"],
 				[
 					"if-condition-write",
-					`if node dist/cli/omx.js state write --input ${stateDeactivationInput} --json; then :; fi`,
+					`if node dist/cli/nomx.js state write --input ${stateDeactivationInput} --json; then :; fi`,
 				],
-				["background-clear", "sleep 0 & omx state clear --json"],
+				["background-clear", "sleep 0 & nomx state clear --json"],
 				[
 					"background-node-wrapper-write",
-					`sleep 0 & node dist/cli/omx.js state write --input ${stateDeactivationInput} --json`,
+					`sleep 0 & node dist/cli/nomx.js state write --input ${stateDeactivationInput} --json`,
 				],
 				[
 					"nested-command-env-wrapper-clear",
-					"command env node dist/cli/omx.js state clear --json",
+					"command env node dist/cli/nomx.js state clear --json",
 				],
 				[
 					"nested-exec-env-wrapper-clear",
-					"exec env node dist/cli/omx.js state clear --json",
+					"exec env node dist/cli/nomx.js state clear --json",
 				],
 				[
 					"nested-env-option-wrapper-clear",
-					"env -i env node dist/cli/omx.js state clear --json",
+					"env -i env node dist/cli/nomx.js state clear --json",
 				],
 			] as const;
 
@@ -13797,7 +13697,7 @@ exit 0
 						} | null
 					)?.decision,
 					"block",
-					`${command} should be normalized to a protected omx state operation`,
+					`${command} should be normalized to a protected nomx state operation`,
 				);
 			}
 
@@ -13806,23 +13706,23 @@ exit 0
 			const safeCliWrapperStateWriteCommands = [
 				[
 					"env-wrapper-safe-write",
-					`env FOO=bar node dist/cli/omx.js state write --input ${safeStateWriteInput} --json`,
+					`env FOO=bar node dist/cli/nomx.js state write --input ${safeStateWriteInput} --json`,
 				],
 				[
 					"command-wrapper-safe-write",
-					`command node dist/cli/omx.js state write --input ${safeStateWriteInput} --json`,
+					`command node dist/cli/nomx.js state write --input ${safeStateWriteInput} --json`,
 				],
 				[
 					"exec-wrapper-safe-write",
-					`exec node dist/cli/omx.js state write --input ${safeStateWriteInput} --json`,
+					`exec node dist/cli/nomx.js state write --input ${safeStateWriteInput} --json`,
 				],
 				[
 					"nested-command-env-wrapper-safe-write",
-					`command env node dist/cli/omx.js state write --input ${safeStateWriteInput} --json`,
+					`command env node dist/cli/nomx.js state write --input ${safeStateWriteInput} --json`,
 				],
 				[
 					"nested-env-command-wrapper-safe-write",
-					`env -i command node dist/cli/omx.js state write --input ${safeStateWriteInput} --json`,
+					`env -i command node dist/cli/nomx.js state write --input ${safeStateWriteInput} --json`,
 				],
 			] as const;
 
@@ -13860,19 +13760,19 @@ exit 0
 			const safeCliWrapperInputFileStateWriteCommands = [
 				[
 					"env-unset-wrapper-safe-input-file",
-					`env -u FOO node dist/cli/omx.js state write --input-file ${safeArtifactInputFile} --json`,
+					`env -u FOO node dist/cli/nomx.js state write --input-file ${safeArtifactInputFile} --json`,
 				],
 				[
 					"env-chdir-wrapper-safe-input-file",
-					`env -C ${cwd} node dist/cli/omx.js state write --input-file ${safeArtifactInputFile} --json`,
+					`env -C ${cwd} node dist/cli/nomx.js state write --input-file ${safeArtifactInputFile} --json`,
 				],
 				[
 					"command-wrapper-safe-input-file",
-					`command node dist/cli/omx.js state write --input-file ${safeArtifactInputFile} --json`,
+					`command node dist/cli/nomx.js state write --input-file ${safeArtifactInputFile} --json`,
 				],
 				[
 					"exec-wrapper-safe-input-file",
-					`exec node dist/cli/omx.js state write --input-file ${safeArtifactInputFile} --json`,
+					`exec node dist/cli/nomx.js state write --input-file ${safeArtifactInputFile} --json`,
 				],
 			] as const;
 
@@ -13920,7 +13820,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-env-chdir-relative-input-file-write",
 					tool_input: {
-						command: `env -C ${envChdirRelativeInputFileSubdir} node ${resolve(cwd, "dist/cli/omx.js")} state write --input-file payload.json --json`,
+						command: `env -C ${envChdirRelativeInputFileSubdir} node ${resolve(cwd, "dist/cli/nomx.js")} state write --input-file payload.json --json`,
 					},
 				},
 				{ cwd },
@@ -13944,7 +13844,7 @@ exit 0
 					tool_use_id:
 						"tool-di-state-cli-env-chdir-long-relative-input-file-write",
 					tool_input: {
-						command: `env --chdir ${envChdirRelativeInputFileSubdir} node ${resolve(cwd, "dist/cli/omx.js")} state write --input-file payload.json --json`,
+						command: `env --chdir ${envChdirRelativeInputFileSubdir} node ${resolve(cwd, "dist/cli/nomx.js")} state write --input-file payload.json --json`,
 					},
 				},
 				{ cwd },
@@ -13983,7 +13883,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-pnpm-chdir-relative-input-file-write",
 					tool_input: {
-						command: `pnpm -C ${pnpmChdirRelativeInputFileSubdir} exec omx state write --input-file payload.json --json`,
+						command: `pnpm -C ${pnpmChdirRelativeInputFileSubdir} exec nomx state write --input-file payload.json --json`,
 					},
 				},
 				{ cwd },
@@ -14012,21 +13912,21 @@ exit 0
 			const blockedNestedArtifactInputFileRewriteBeforeStateWriteCommands = [
 				[
 					"bash-c",
-					`printf '{"mode":"deep-interview","active":false}' > ${rewrittenArtifactInputFile} && bash -c 'omx state write --input-file ${rewrittenArtifactInputFile} --json'`,
+					`printf '{"mode":"deep-interview","active":false}' > ${rewrittenArtifactInputFile} && bash -c 'nomx state write --input-file ${rewrittenArtifactInputFile} --json'`,
 				],
 				[
 					"env-split",
-					`printf '{"mode":"deep-interview","active":false}' > ${rewrittenArtifactInputFile} && env -S 'omx state write --input-file ${rewrittenArtifactInputFile} --json'`,
+					`printf '{"mode":"deep-interview","active":false}' > ${rewrittenArtifactInputFile} && env -S 'nomx state write --input-file ${rewrittenArtifactInputFile} --json'`,
 				],
 				[
 					"command-substitution",
-					`printf '{"mode":"deep-interview","active":false}' > ${rewrittenArtifactInputFile} && echo $(omx state write --input-file ${rewrittenArtifactInputFile} --json)`,
+					`printf '{"mode":"deep-interview","active":false}' > ${rewrittenArtifactInputFile} && echo $(nomx state write --input-file ${rewrittenArtifactInputFile} --json)`,
 				],
 				[
 					"backtick-substitution",
 					'printf \'{"mode":"deep-interview","active":false}\' > ' +
 						rewrittenArtifactInputFile +
-						" && echo `omx state write --input-file " +
+						" && echo `nomx state write --input-file " +
 						rewrittenArtifactInputFile +
 						" --json`",
 				],
@@ -14070,7 +13970,7 @@ exit 0
 					tool_input: {
 						command:
 							`printf '{"mode":"deep-interview","active":false}' > ${rewrittenArtifactInputFile} && ` +
-							`omx state write --input-file ${rewrittenArtifactInputFile} --json`,
+							`nomx state write --input-file ${rewrittenArtifactInputFile} --json`,
 					},
 				},
 				{ cwd },
@@ -14105,9 +14005,9 @@ exit 0
 							"tool-di-state-cli-repeated-artifact-input-file-rewrite",
 						tool_input: {
 							command:
-								`omx state write --input-file ${repeatedArtifactInputFile} --json && ` +
+								`nomx state write --input-file ${repeatedArtifactInputFile} --json && ` +
 								`printf '{"mode":"deep-interview","active":false}' > ${repeatedArtifactInputFile} && ` +
-								`omx state write --input-file ${repeatedArtifactInputFile} --json`,
+								`nomx state write --input-file ${repeatedArtifactInputFile} --json`,
 						},
 					},
 					{ cwd },
@@ -14121,7 +14021,7 @@ exit 0
 				"block",
 			);
 
-			// An implementation write smuggled alongside an allowed `omx state` command
+			// An implementation write smuggled alongside an allowed `nomx state` command
 			// must not be short-circuited through the allowance.
 			const blockedChainedWrite = await preToolUse(
 				{
@@ -14131,7 +14031,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-chained",
 					tool_input: {
-						command: "printf 'x' > src/evil.ts && omx state read --json",
+						command: "printf 'x' > src/evil.ts && nomx state read --json",
 					},
 				},
 				{ cwd },
@@ -14145,11 +14045,11 @@ exit 0
 			const blockedSourceGeneratedScriptCommands = [
 				[
 					"source-redirect",
-					"printf 'omx state clear --json\n' > .omx/context/x.sh && source .omx/context/x.sh",
+					"printf 'nomx state clear --json\n' > .omx/context/x.sh && source .omx/context/x.sh",
 				],
 				[
 					"bash-redirect",
-					"printf 'omx state clear --json\n' > .omx/context/x.sh && bash .omx/context/x.sh",
+					"printf 'nomx state clear --json\n' > .omx/context/x.sh && bash .omx/context/x.sh",
 				],
 				[
 					"direct-exec",
@@ -14185,31 +14085,31 @@ exit 0
 				],
 				[
 					"sh-c-generated-script",
-					"printf 'omx state clear --json\n' > .omx/context/x.sh && sh -c '. .omx/context/x.sh'",
+					"printf 'nomx state clear --json\n' > .omx/context/x.sh && sh -c '. .omx/context/x.sh'",
 				],
 				[
 					"sh-c-at-generated-script",
-					"printf 'omx state clear --json\n' > .omx/context/x.sh && sh -c '. \"$@\"' ignored .omx/context/x.sh",
+					"printf 'nomx state clear --json\n' > .omx/context/x.sh && sh -c '. \"$@\"' ignored .omx/context/x.sh",
 				],
 				[
 					"sh-c-positional-generated-script",
-					"printf 'omx state clear --json\n' > .omx/context/x.sh && sh -c '. \"$0\"' .omx/context/x.sh",
+					"printf 'nomx state clear --json\n' > .omx/context/x.sh && sh -c '. \"$0\"' .omx/context/x.sh",
 				],
 				[
 					"source-tee",
-					"printf 'omx state clear --json\n' | tee .omx/context/x.sh >/dev/null && source .omx/context/x.sh",
+					"printf 'nomx state clear --json\n' | tee .omx/context/x.sh >/dev/null && source .omx/context/x.sh",
 				],
 				[
 					"source-variable",
-					'tmp=.omx/context/x.sh; printf \'omx state clear --json\n\' > "$tmp"; source "$tmp"',
+					'tmp=.omx/context/x.sh; printf \'nomx state clear --json\n\' > "$tmp"; source "$tmp"',
 				],
 				[
 					"source-tee-second-target",
-					"printf 'omx state clear --json\n' | tee .omx/context/x.sh .omx/context/y.sh >/dev/null && source .omx/context/y.sh",
+					"printf 'nomx state clear --json\n' | tee .omx/context/x.sh .omx/context/y.sh >/dev/null && source .omx/context/y.sh",
 				],
 				[
 					"bash-tee-append-second-target",
-					"printf 'omx state clear --json\n' | tee -a .omx/context/x.sh .omx/context/y.sh >/dev/null && bash .omx/context/y.sh",
+					"printf 'nomx state clear --json\n' | tee -a .omx/context/x.sh .omx/context/y.sh >/dev/null && bash .omx/context/y.sh",
 				],
 			] as const;
 			for (const [name, command] of blockedSourceGeneratedScriptCommands) {
@@ -14242,7 +14142,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-read",
-					tool_input: { command: "omx state read --json" },
+					tool_input: { command: "nomx state read --json" },
 				},
 				{ cwd },
 			);
@@ -14257,7 +14157,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-quoted-mention",
 					tool_input: {
 						command:
-							'printf \'%s\\n\' "omx state write --input \'{\\"mode\\":\\"deep-interview\\",\\"active\\":false}\'"',
+							'printf \'%s\\n\' "nomx state write --input \'{\\"mode\\":\\"deep-interview\\",\\"active\\":false}\'"',
 					},
 				},
 				{ cwd },
@@ -14289,7 +14189,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-unquoted-heredoc-substitution",
 					tool_input: {
 						command:
-							"cat > .omx/context/state-example.md <<EOF\n$(omx state clear --json)\nEOF",
+							"cat > .omx/context/state-example.md <<EOF\n$(nomx state clear --json)\nEOF",
 					},
 				},
 				{ cwd },
@@ -14333,7 +14233,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-escaped-newline-clear",
-					tool_input: { command: "omx \\\nstate \\\nclear --json" },
+					tool_input: { command: "nomx \\\nstate \\\nclear --json" },
 				},
 				{ cwd },
 			);
@@ -14355,7 +14255,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-escaped-newline-write-input",
 					tool_input: {
 						command:
-							"omx state write \\\n--mode deep-interview \\\n--input '{\\\"active\\\":false}' --json",
+							"nomx state write \\\n--mode deep-interview \\\n--input '{\\\"active\\\":false}' --json",
 					},
 				},
 				{ cwd },
@@ -14385,7 +14285,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-escaped-newline-write-input-file",
 					tool_input: {
-						command: `omx state write \\\n--mode ralplan \\\n--input-file ${escapedNewlineInputFile} --json`,
+						command: `nomx state write \\\n--mode ralplan \\\n--input-file ${escapedNewlineInputFile} --json`,
 					},
 				},
 				{ cwd },
@@ -14423,7 +14323,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-shell-stdin-herestring",
-					tool_input: { command: "bash<<<'omx state clear --json'" },
+					tool_input: { command: "bash<<<'nomx state clear --json'" },
 				},
 				{ cwd },
 			);
@@ -14440,7 +14340,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-shell-stdin-pipe",
-					tool_input: { command: "printf 'omx state clear --json' | bash" },
+					tool_input: { command: "printf 'nomx state clear --json' | bash" },
 				},
 				{ cwd },
 			);
@@ -14470,9 +14370,9 @@ exit 0
 			);
 
 			for (const [index, command] of [
-				"printf 'omx state clear --json'|bash",
-				"printf 'omx state clear --json' |bash",
-				"printf 'omx state clear --json'| bash",
+				"printf 'nomx state clear --json'|bash",
+				"printf 'nomx state clear --json' |bash",
+				"printf 'nomx state clear --json'| bash",
 			].entries()) {
 				const blockedCompactShellStdinPipe = await preToolUse(
 					{
@@ -14504,7 +14404,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-env-dispatcher-shell",
 					tool_input: {
-						command: 'env FOO=bar bash -c "omx state clear --json"',
+						command: 'env FOO=bar bash -c "nomx state clear --json"',
 					},
 				},
 				{ cwd },
@@ -14522,7 +14422,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-env-split-string-clear",
-					tool_input: { command: "env -S 'omx state clear --json'" },
+					tool_input: { command: "env -S 'nomx state clear --json'" },
 				},
 				{ cwd },
 			);
@@ -14543,7 +14443,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-env-split-string-shell-clear",
 					tool_input: {
-						command: "env -S 'bash -c \"omx state clear --json\"'",
+						command: "env -S 'bash -c \"nomx state clear --json\"'",
 					},
 				},
 				{ cwd },
@@ -14566,7 +14466,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-env-split-string-write",
 					tool_input: {
 						command:
-							'env --split-string \'omx state write --input "{\\"mode\\":\\"deep-interview\\",\\"current_phase\\":\\"done\\"}" --json\'',
+							'env --split-string \'nomx state write --input "{\\"mode\\":\\"deep-interview\\",\\"current_phase\\":\\"done\\"}" --json\'',
 					},
 				},
 				{ cwd },
@@ -14588,7 +14488,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-env-split-string-equals-clear",
 					tool_input: {
-						command: "env --split-string='omx state clear --json'",
+						command: "env --split-string='nomx state clear --json'",
 					},
 				},
 				{ cwd },
@@ -14609,7 +14509,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-env-split-string-attached-clear",
-					tool_input: { command: "env -S'omx state clear --json'" },
+					tool_input: { command: "env -S'nomx state clear --json'" },
 				},
 				{ cwd },
 			);
@@ -14630,7 +14530,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id:
 						"tool-di-state-cli-env-split-string-prefixed-options-clear",
-					tool_input: { command: "env -S '-i omx state clear --json'" },
+					tool_input: { command: "env -S '-i nomx state clear --json'" },
 				},
 				{ cwd },
 			);
@@ -14652,7 +14552,7 @@ exit 0
 					tool_use_id:
 						"tool-di-state-cli-env-split-string-prefixed-options-split-clear",
 					tool_input: {
-						command: "env --split-string '-i omx state clear --json'",
+						command: "env --split-string '-i nomx state clear --json'",
 					},
 				},
 				{ cwd },
@@ -14673,7 +14573,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-shell-stdin-stderr-pipe",
-					tool_input: { command: "printf 'omx state clear --json' |& bash" },
+					tool_input: { command: "printf 'nomx state clear --json' |& bash" },
 				},
 				{ cwd },
 			);
@@ -14684,9 +14584,9 @@ exit 0
 			);
 
 			for (const [index, command] of [
-				"printf 'omx state clear --json'|&bash",
-				"printf 'omx state clear --json' |&bash",
-				"printf 'omx state clear --json'|& bash",
+				"printf 'nomx state clear --json'|&bash",
+				"printf 'nomx state clear --json' |&bash",
+				"printf 'nomx state clear --json'|& bash",
 			].entries()) {
 				const blockedCompactShellStdinStderrPipe = await preToolUse(
 					{
@@ -14717,7 +14617,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-dot-process-substitution",
-					tool_input: { command: ". <(printf 'omx state clear --json')" },
+					tool_input: { command: ". <(printf 'nomx state clear --json')" },
 				},
 				{ cwd },
 			);
@@ -14737,7 +14637,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-bash-process-substitution",
-					tool_input: { command: "bash <(printf 'omx state clear --json')" },
+					tool_input: { command: "bash <(printf 'nomx state clear --json')" },
 				},
 				{ cwd },
 			);
@@ -14757,7 +14657,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-cat-process-substitution",
-					tool_input: { command: "cat <(omx state clear --json)" },
+					tool_input: { command: "cat <(nomx state clear --json)" },
 				},
 				{ cwd },
 			);
@@ -14778,7 +14678,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-diff-process-substitution",
 					tool_input: {
-						command: `diff <(omx state write --input ${stateDeactivationInput} --json) /dev/null`,
+						command: `diff <(nomx state write --input ${stateDeactivationInput} --json) /dev/null`,
 					},
 				},
 				{ cwd },
@@ -14799,7 +14699,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-quoted-substitution-clear",
-					tool_input: { command: 'echo "$(omx state clear --json)"' },
+					tool_input: { command: 'echo "$(nomx state clear --json)"' },
 				},
 				{ cwd },
 			);
@@ -14821,7 +14721,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-quoted-substitution-write",
 					tool_input: {
 						command:
-							'echo "$(omx state write --input \'{\\"mode\\":\\"deep-interview\\",\\"active\\":false}\' --json)"',
+							'echo "$(nomx state write --input \'{\\"mode\\":\\"deep-interview\\",\\"active\\":false}\' --json)"',
 					},
 				},
 				{ cwd },
@@ -14842,7 +14742,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-quoted-backtick-clear",
-					tool_input: { command: 'echo "`omx state clear --json`"' },
+					tool_input: { command: 'echo "`nomx state clear --json`"' },
 				},
 				{ cwd },
 			);
@@ -14862,7 +14762,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-raw-nested-substitution-clear",
-					tool_input: { command: "echo $(bash -c 'omx state clear --json')" },
+					tool_input: { command: "echo $(bash -c 'nomx state clear --json')" },
 				},
 				{ cwd },
 			);
@@ -14882,7 +14782,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-raw-nested-eval-substitution-clear",
-					tool_input: { command: "echo $(eval 'omx state clear --json')" },
+					tool_input: { command: "echo $(eval 'nomx state clear --json')" },
 				},
 				{ cwd },
 			);
@@ -14902,7 +14802,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-raw-nested-backtick-clear",
-					tool_input: { command: "echo `bash -c 'omx state clear --json'`" },
+					tool_input: { command: "echo `bash -c 'nomx state clear --json'`" },
 				},
 				{ cwd },
 			);
@@ -14924,7 +14824,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-backtick-write",
 					tool_input: {
 						command:
-							'echo `omx state write --input \'{"mode":"deep-interview","active":false}\' --json`',
+							'echo `nomx state write --input \'{"mode":"deep-interview","active":false}\' --json`',
 					},
 				},
 				{ cwd },
@@ -14945,7 +14845,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-nested-bash-clear",
-					tool_input: { command: 'bash -c "omx state clear --json"' },
+					tool_input: { command: 'bash -c "nomx state clear --json"' },
 				},
 				{ cwd },
 			);
@@ -14964,7 +14864,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-nested-sh-write",
 					tool_input: {
 						command:
-							'sh -c "omx state write --mode deep-interview --input \'{\\"active\\":false}\' --json"',
+							'sh -c "nomx state write --mode deep-interview --input \'{\\"active\\":false}\' --json"',
 					},
 				},
 				{ cwd },
@@ -14982,7 +14882,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-path-bash-clear",
-					tool_input: { command: '/bin/bash -c "omx state clear --json"' },
+					tool_input: { command: '/bin/bash -c "nomx state clear --json"' },
 				},
 				{ cwd },
 			);
@@ -15002,7 +14902,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-login-bash-clear",
-					tool_input: { command: 'bash -lc "omx state clear --json"' },
+					tool_input: { command: 'bash -lc "nomx state clear --json"' },
 				},
 				{ cwd },
 			);
@@ -15019,7 +14919,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-dash-clear",
-					tool_input: { command: 'dash -c "omx state clear --json"' },
+					tool_input: { command: 'dash -c "nomx state clear --json"' },
 				},
 				{ cwd },
 			);
@@ -15037,7 +14937,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-rcfile-bash-clear",
 					tool_input: {
-						command: 'bash --rcfile /tmp/empty -c "omx state clear --json"',
+						command: 'bash --rcfile /tmp/empty -c "nomx state clear --json"',
 					},
 				},
 				{ cwd },
@@ -15056,7 +14956,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-shell-option-value-before-c",
 					tool_input: {
-						command: 'bash -o pipefail -c "omx state clear --json"',
+						command: 'bash -o pipefail -c "nomx state clear --json"',
 					},
 				},
 				{ cwd },
@@ -15077,7 +14977,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-eval-clear",
-					tool_input: { command: 'eval "omx state clear --json"' },
+					tool_input: { command: 'eval "nomx state clear --json"' },
 				},
 				{ cwd },
 			);
@@ -15095,7 +14995,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-dynamic-eval-clear",
 					tool_input: {
-						command: "payload='omx state clear --json'; eval \"$payload\"",
+						command: "payload='nomx state clear --json'; eval \"$payload\"",
 					},
 				},
 				{ cwd },
@@ -15118,7 +15018,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-dynamic-shell-write",
 					tool_input: {
 						command:
-							'payload=\'omx state write --mode deep-interview --input "{\\"active\\":false}" --json\'; bash -c "$payload"',
+							'payload=\'nomx state write --mode deep-interview --input "{\\"active\\":false}" --json\'; bash -c "$payload"',
 					},
 				},
 				{ cwd },
@@ -15139,7 +15039,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-dynamic-top-level-payload",
-					tool_input: { command: "payload='omx state clear --json'; $payload" },
+					tool_input: { command: "payload='nomx state clear --json'; $payload" },
 				},
 				{ cwd },
 			);
@@ -15160,7 +15060,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-exec-payload",
 					tool_input: {
-						command: "payload='omx state clear --json'; exec $payload",
+						command: "payload='nomx state clear --json'; exec $payload",
 					},
 				},
 				{ cwd },
@@ -15179,7 +15079,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-command-payload",
 					tool_input: {
-						command: "payload='omx state clear --json'; command $payload",
+						command: "payload='nomx state clear --json'; command $payload",
 					},
 				},
 				{ cwd },
@@ -15201,7 +15101,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-exec-dashdash-payload",
 					tool_input: {
-						command: "payload='omx state clear --json'; exec -- $payload",
+						command: "payload='nomx state clear --json'; exec -- $payload",
 					},
 				},
 				{ cwd },
@@ -15223,7 +15123,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-exec-option-payload",
 					tool_input: {
-						command: "payload='omx state clear --json'; exec -c $payload",
+						command: "payload='nomx state clear --json'; exec -c $payload",
 					},
 				},
 				{ cwd },
@@ -15245,7 +15145,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-command-dashdash-payload",
 					tool_input: {
-						command: "payload='omx state clear --json'; command -- $payload",
+						command: "payload='nomx state clear --json'; command -- $payload",
 					},
 				},
 				{ cwd },
@@ -15267,7 +15167,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-command-option-payload",
 					tool_input: {
-						command: "payload='omx state clear --json'; command -p $payload",
+						command: "payload='nomx state clear --json'; command -p $payload",
 					},
 				},
 				{ cwd },
@@ -15289,7 +15189,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-dynamic-shell-substitution",
 					tool_input: {
-						command: "bash -c \"$(printf 'omx state clear --json')\"",
+						command: "bash -c \"$(printf 'nomx state clear --json')\"",
 					},
 				},
 				{ cwd },
@@ -15310,7 +15210,7 @@ exit 0
 					session_id: "sess-di-artifact",
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-dynamic-eval-backtick",
-					tool_input: { command: "eval \"`printf 'omx state clear --json'`\"" },
+					tool_input: { command: "eval \"`printf 'nomx state clear --json'`\"" },
 				},
 				{ cwd },
 			);
@@ -15357,7 +15257,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-di-state-cli-nested-shell-mention",
 					tool_input: {
-						command: "printf '%s\\n' 'bash -c \"omx state clear --json\"'",
+						command: "printf '%s\\n' 'bash -c \"nomx state clear --json\"'",
 					},
 				},
 				{ cwd },
@@ -15373,7 +15273,7 @@ exit 0
 					tool_use_id: "tool-di-state-cli-quoted-literal-after-substitution",
 					tool_input: {
 						command:
-							'echo "$(printf safe) omx state write --input \'{\\"mode\\":\\"deep-interview\\",\\"active\\":false}\'"',
+							'echo "$(printf safe) nomx state write --input \'{\\"mode\\":\\"deep-interview\\",\\"active\\":false}\'"',
 					},
 				},
 				{ cwd },
@@ -15451,7 +15351,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-ralplan-state-input-file-allowed",
 					tool_input: {
-						command: `omx state write --input-file ${allowedPayload} --json`,
+						command: `nomx state write --input-file ${allowedPayload} --json`,
 					},
 				},
 				{ cwd },
@@ -15471,7 +15371,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-ralplan-state-input-file-blocked",
 					tool_input: {
-						command: `omx state write --input-file ${blockedPayload} --json`,
+						command: `nomx state write --input-file ${blockedPayload} --json`,
 					},
 				},
 				{ cwd },
@@ -15497,7 +15397,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-ralplan-state-input-file-terminal-allowed",
 					tool_input: {
-						command: `omx state write --input-file ${terminalPayload} --json`,
+						command: `nomx state write --input-file ${terminalPayload} --json`,
 					},
 				},
 				{ cwd },
@@ -15522,7 +15422,7 @@ exit 0
 					tool_name: "Bash",
 					tool_use_id: "tool-ralplan-state-input-file-terminal-mismatched",
 					tool_input: {
-						command: `omx state write --input-file ${mismatchedTerminalPayload} --json`,
+						command: `nomx state write --input-file ${mismatchedTerminalPayload} --json`,
 					},
 				},
 				{ cwd },
@@ -15579,7 +15479,7 @@ exit 0
 						tool_name: "Bash",
 						tool_use_id: `tool-ralplan-state-input-file-blocked-alias-${alias}`,
 						tool_input: {
-							command: `omx state write --input-file ${blockedAliasPayload} --json`,
+							command: `nomx state write --input-file ${blockedAliasPayload} --json`,
 						},
 					},
 					{ cwd },
@@ -15601,7 +15501,7 @@ exit 0
 					tool_use_id: "tool-ralplan-state-mode-flag-terminal",
 					tool_input: {
 						command:
-							'omx state write --mode ralplan --input \'{"current_phase":"complete"}\' --json',
+							'nomx state write --mode ralplan --input \'{"current_phase":"complete"}\' --json',
 					},
 				},
 				{ cwd },
@@ -15621,7 +15521,7 @@ exit 0
 					tool_use_id: "tool-ralplan-state-mode-flag-terminal-allowed",
 					tool_input: {
 						command:
-							'omx state write --mode ralplan --input \'{"active":false,"current_phase":"complete"}\' --json',
+							'nomx state write --mode ralplan --input \'{"active":false,"current_phase":"complete"}\' --json',
 					},
 				},
 				{ cwd },
@@ -15639,7 +15539,7 @@ exit 0
 							"tool-ralplan-state-terminal-then-implementation-write",
 						tool_input: {
 							command:
-								'omx state write --mode ralplan --input \'{"active":false,"current_phase":"complete"}\' --json && printf bad > src/leak.ts',
+								'nomx state write --mode ralplan --input \'{"active":false,"current_phase":"complete"}\' --json && printf bad > src/leak.ts',
 						},
 					},
 					{ cwd },
@@ -15678,7 +15578,7 @@ exit 0
 						tool_name: "Bash",
 						tool_use_id: toolUseId,
 						tool_input: {
-							command: `omx state write --mode ralplan --input '{"active":false,"current_phase":"complete"}' --json ${suffix}`,
+							command: `nomx state write --mode ralplan --input '{"active":false,"current_phase":"complete"}' --json ${suffix}`,
 						},
 					},
 					{ cwd },
@@ -15700,7 +15600,7 @@ exit 0
 						tool_name: "Bash",
 						tool_use_id: `tool-ralplan-state-mode-flag-terminal-alias-${alias}`,
 						tool_input: {
-							command: `omx state write --mode ralplan --input '${JSON.stringify({ current_phase: alias })}' --json`,
+							command: `nomx state write --mode ralplan --input '${JSON.stringify({ current_phase: alias })}' --json`,
 						},
 					},
 					{ cwd },
@@ -15730,7 +15630,7 @@ exit 0
 						tool_name: "Bash",
 						tool_use_id: `tool-ralplan-state-mode-flag-terminal-outcome-${index}`,
 						tool_input: {
-							command: `omx state write --mode ralplan --input '${JSON.stringify(aliasPayload)}' --json`,
+							command: `nomx state write --mode ralplan --input '${JSON.stringify(aliasPayload)}' --json`,
 						},
 					},
 					{ cwd },
@@ -15763,7 +15663,7 @@ exit 0
 					tool_use_id:
 						"tool-ralplan-state-input-file-blocked-camel-terminal-outcome",
 					tool_input: {
-						command: `omx state write --input-file ${blockedOutcomeAliasPayload} --json`,
+						command: `nomx state write --input-file ${blockedOutcomeAliasPayload} --json`,
 					},
 				},
 				{ cwd },
@@ -15783,7 +15683,7 @@ exit 0
 					tool_use_id: "tool-ralplan-state-mode-flag-safe",
 					tool_input: {
 						command:
-							'omx state write --mode ralplan --input \'{"current_phase":"critic-review","active":true}\' --json',
+							'nomx state write --mode ralplan --input \'{"current_phase":"critic-review","active":true}\' --json',
 					},
 				},
 				{ cwd },
@@ -16382,31 +16282,31 @@ exit 0
 					{ cwd },
 				);
 
-			const absoluteCliEntry = resolve(cwd, "dist/cli/omx.js");
+			const absoluteCliEntry = resolve(cwd, "dist/cli/nomx.js");
 			const blockedCommands = [
-				`printf 'omx state clear --json'|bash`,
-				`printf 'omx state clear --json'|&bash`,
-				`bash<<<'omx state clear --json'`,
+				`printf 'nomx state clear --json'|bash`,
+				`printf 'nomx state clear --json'|&bash`,
+				`bash<<<'nomx state clear --json'`,
 				`bash<<'EOF'\nomx state clear --json\nEOF`,
-				`bash< <(printf 'omx state clear --json')`,
-				`env -S "bash -c 'omx state clear --json'"`,
-				`env --split-string "bash -c 'omx state clear --json'"`,
-				`env -S "node dist/cli/omx.js state clear --json"`,
-				`env --split-string "node dist/cli/omx.js state clear --json"`,
-				`env -S "dist/cli/omx.js state clear --json"`,
-				`env --split-string "dist/cli/omx.js state clear --json"`,
-				`node dist/cli/omx.js state clear --json`,
-				`node ./dist/cli/omx.js state clear --json`,
+				`bash< <(printf 'nomx state clear --json')`,
+				`env -S "bash -c 'nomx state clear --json'"`,
+				`env --split-string "bash -c 'nomx state clear --json'"`,
+				`env -S "node dist/cli/nomx.js state clear --json"`,
+				`env --split-string "node dist/cli/nomx.js state clear --json"`,
+				`env -S "dist/cli/nomx.js state clear --json"`,
+				`env --split-string "dist/cli/nomx.js state clear --json"`,
+				`node dist/cli/nomx.js state clear --json`,
+				`node ./dist/cli/nomx.js state clear --json`,
 				`node ${absoluteCliEntry} state clear --json`,
-				`bun dist/cli/omx.js state clear --json`,
-				`tsx src/cli/omx.ts state clear --json`,
-				`dist/cli/omx.js state clear --json`,
-				`./dist/cli/omx.js state clear --json`,
-				`exec node dist/cli/omx.js state clear --json`,
-				`command node dist/cli/omx.js state clear --json`,
-				`command env VAR=x node dist/cli/omx.js state clear --json`,
-				`env VAR=x node dist/cli/omx.js state clear --json`,
-				`exec env -S "node dist/cli/omx.js state clear --json"`,
+				`bun dist/cli/nomx.js state clear --json`,
+				`tsx src/cli/nomx.ts state clear --json`,
+				`dist/cli/nomx.js state clear --json`,
+				`./dist/cli/nomx.js state clear --json`,
+				`exec node dist/cli/nomx.js state clear --json`,
+				`command node dist/cli/nomx.js state clear --json`,
+				`command env VAR=x node dist/cli/nomx.js state clear --json`,
+				`env VAR=x node dist/cli/nomx.js state clear --json`,
+				`exec env -S "node dist/cli/nomx.js state clear --json"`,
 			];
 			for (const [index, command] of blockedCommands.entries()) {
 				const blocked = await preToolUse(
@@ -16422,7 +16322,7 @@ exit 0
 
 			const allowedCommands = [
 				`echo '|& <<< <<'`,
-				`node dist/cli/omx.js state write --input '{"mode":"deep-interview","active":true}' --json`,
+				`node dist/cli/nomx.js state write --input '{"mode":"deep-interview","active":true}' --json`,
 			];
 			for (const [index, command] of allowedCommands.entries()) {
 				const allowed = await preToolUse(
@@ -16847,26 +16747,26 @@ exit 0
 				);
 			}
 
-			// A non-deactivating `omx state write` defers to the gate-enforcing
+			// A non-deactivating `nomx state write` defers to the gate-enforcing
 			// state_write backend (same enforcement for CLI and MCP).
 			const allowedStateCliMutation = await preToolUse(
 				"Bash",
 				"tool-ralplan-state-cli-write",
 				{
 					command:
-						'omx state write --input \'{"mode":"autopilot","current_phase":"ultragoal"}\' --json',
+						'nomx state write --input \'{"mode":"autopilot","current_phase":"ultragoal"}\' --json',
 				},
 			);
 			assert.equal(allowedStateCliMutation.outputJson, null);
 
-			// Broad deactivation vectors such as `omx state clear` are still rejected
+			// Broad deactivation vectors such as `nomx state clear` are still rejected
 			// at the transport boundary; complete consensus terminal writes are
 			// covered by the state-write closeout tests.
 			const blockedStateClear = await preToolUse(
 				"Bash",
 				"tool-ralplan-state-cli-clear",
 				{
-					command: "omx state clear --json",
+					command: "nomx state clear --json",
 				},
 			);
 			assert.equal(
@@ -20252,7 +20152,7 @@ PY`,
       );
       assert.match(
         additionalContext,
-        /omx state write --input/,
+        /nomx state write --input/,
       );
       assert.match(
         additionalContext,
@@ -20622,11 +20522,11 @@ PY`,
       assert.equal(hookSpecificOutput?.hookEventName, "PostToolUse");
       assert.match(
         String(hookSpecificOutput?.additionalContext || ""),
-        /Retry via CLI parity with `omx state write --input '\{\}' --json`\./,
+        /Retry via CLI parity with `nomx state write --input '\{\}' --json`\./,
       );
       assert.match(
         String(hookSpecificOutput?.additionalContext || ""),
-        /omx team api read-stall-state/,
+        /nomx team api read-stall-state/,
       );
 
       const phase = JSON.parse(
@@ -20708,7 +20608,7 @@ PY`,
         hookSpecificOutput: {
           hookEventName: "PostToolUse",
           additionalContext:
-            "Clear MCP transport-death signal detected. Preserve current team/runtime state. Retry via CLI parity with `omx state write --input '{\"mode\":\"team\",\"active\":true}' --json`. OMX MCP servers are plain Node stdio processes, so they still shut down when stdin/transport closes. If this happened during team runtime, inspect first with `omx team status <team>` or `omx team api read-stall-state --input '{\"team_name\":\"<team>\"}' --json`, and only force cleanup after capturing needed state. For root-cause debugging, rerun with `OMX_MCP_TRANSPORT_DEBUG=1` to log why the stdio transport closed.",
+            "Clear MCP transport-death signal detected. Preserve current team/runtime state. Retry via CLI parity with `nomx state write --input '{\"mode\":\"team\",\"active\":true}' --json`. OMX MCP servers are plain Node stdio processes, so they still shut down when stdin/transport closes. If this happened during team runtime, inspect first with `nomx team status <team>` or `nomx team api read-stall-state --input '{\"team_name\":\"<team>\"}' --json`, and only force cleanup after capturing needed state. For root-cause debugging, rerun with `OMX_MCP_TRANSPORT_DEBUG=1` to log why the stdio transport closed.",
         },
       });
 
@@ -21819,7 +21719,7 @@ PY`,
         buildWorkerStopFakeTmux(tmuxLogPath, {
           busyLeader: true,
           captureText:
-            `[OMX] worker-1 native Stop allowed. Run \`omx team status ${teamName}\`, read worker messages/results, then assign next task, reconcile completion, or shut down. [OMX_TMUX_INJECT]\n`
+            `[OMX] worker-1 native Stop allowed. Run \`nomx team status ${teamName}\`, read worker messages/results, then assign next task, reconcile completion, or shut down. [OMX_TMUX_INJECT]\n`
             + "• Working… (esc to interrupt)",
         }),
       );
@@ -24178,7 +24078,7 @@ PY`,
     }
   });
 
-  it("blocks Stop when deep-interview has a pending omx question obligation", async () => {
+  it("blocks Stop when deep-interview has a pending nomx question obligation", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "omx-native-hook-stop-deep-interview-question-"));
     try {
       const stateDir = join(cwd, ".omx", "state");
@@ -24220,10 +24120,10 @@ PY`,
       assert.deepEqual(result.outputJson, {
         decision: "block",
         reason:
-          "Deep interview is still active (phase: intent-first) and has a pending structured question obligation; use `omx question` before stopping.",
+          "Deep interview is still active (phase: intent-first) and has a pending structured question obligation; use `nomx question` before stopping.",
         stopReason: "deep_interview_question_required",
         systemMessage:
-          "OMX deep-interview is still active (phase: intent-first) and requires a structured question via omx question before stopping; read the returned answers[] JSON before continuing.",
+          "OMX deep-interview is still active (phase: intent-first) and requires a structured question via nomx question before stopping; read the returned answers[] JSON before continuing.",
       });
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -24276,10 +24176,10 @@ PY`,
       assert.deepEqual(result.outputJson, {
         decision: "block",
         reason:
-          "Deep interview is still active (phase: intent-first) and has a pending structured question obligation; use `omx question` before stopping.",
+          "Deep interview is still active (phase: intent-first) and has a pending structured question obligation; use `nomx question` before stopping.",
         stopReason: "deep_interview_question_required",
         systemMessage:
-          "OMX deep-interview is still active (phase: intent-first) and requires a structured question via omx question before stopping; read the returned answers[] JSON before continuing.",
+          "OMX deep-interview is still active (phase: intent-first) and requires a structured question via nomx question before stopping; read the returned answers[] JSON before continuing.",
       });
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -24404,10 +24304,10 @@ PY`,
       const expected = {
         decision: "block",
         reason:
-          "Deep interview is still active (phase: intent-first) and has a pending structured question obligation; use `omx question` before stopping.",
+          "Deep interview is still active (phase: intent-first) and has a pending structured question obligation; use `nomx question` before stopping.",
         stopReason: "deep_interview_question_required",
         systemMessage:
-          "OMX deep-interview is still active (phase: intent-first) and requires a structured question via omx question before stopping; read the returned answers[] JSON before continuing.",
+          "OMX deep-interview is still active (phase: intent-first) and requires a structured question via nomx question before stopping; read the returned answers[] JSON before continuing.",
       };
 
       const first = await dispatchCodexNativeHook(payload, { cwd });
@@ -24550,10 +24450,10 @@ PY`,
       assert.deepEqual(result.outputJson, {
         decision: "block",
         reason:
-          "Deep interview is still active (phase: intent-first) and has a pending structured question obligation; use `omx question` before stopping.",
+          "Deep interview is still active (phase: intent-first) and has a pending structured question obligation; use `nomx question` before stopping.",
         stopReason: "deep_interview_question_required",
         systemMessage:
-          "OMX deep-interview is still active (phase: intent-first) and requires a structured question via omx question before stopping; read the returned answers[] JSON before continuing.",
+          "OMX deep-interview is still active (phase: intent-first) and requires a structured question via nomx question before stopping; read the returned answers[] JSON before continuing.",
       });
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -27747,7 +27647,7 @@ PY`,
           thread_id: "thread-ralplan-live-root-conflict",
           tool_name: "Bash",
           tool_input: {
-            command: "omx state write --mode ralplan --input '{\"active\":false,\"current_phase\":\"complete\"}' --json",
+            command: "nomx state write --mode ralplan --input '{\"active\":false,\"current_phase\":\"complete\"}' --json",
           },
         },
         { cwd },
@@ -28255,7 +28155,7 @@ PY`,
       // own workflow state even when delegation is genuinely unsupported, even
       // when the JSON payload contains a `>` character.
       const terminalBlockedWrite = await dispatch(
-        "omx state write --mode ultragoal --input '{\"active\":true,\"current_phase\":\"blocked\",\"reason\":\"native delegation unavailable -> terminalized\"}' --json",
+        "nomx state write --mode ultragoal --input '{\"active\":true,\"current_phase\":\"blocked\",\"reason\":\"native delegation unavailable -> terminalized\"}' --json",
       );
       assert.notEqual((terminalBlockedWrite.outputJson as { decision?: string } | null)?.decision, "block");
 
@@ -29366,7 +29266,7 @@ PY`,
     }
   });
 
-  it("blocks Main-root ralph conductor source and planning artifact writes while allowing .omx workflow state writes", async () => {
+  it("blocks Main-root ralph conductor source and planning artifact writes while allowing .nomx workflow state writes", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "omx-native-hook-ralph-conductor-write-"));
     try {
       const stateDir = join(cwd, ".omx", "state");
@@ -29447,7 +29347,7 @@ PY`,
           session_id: sessionId,
           thread_id: "thread-ralph-conductor-write",
           tool_name: "Bash",
-          tool_input: { command: "omx state write --input '{\"mode\":\"ralph\",\"current_phase\":\"executing\",\"active\":true}' --json" },
+          tool_input: { command: "nomx state write --input '{\"mode\":\"ralph\",\"current_phase\":\"executing\",\"active\":true}' --json" },
         },
         { cwd },
       );
@@ -29480,7 +29380,7 @@ PY`,
           thread_id: "thread-ultragoal-steer-cleanup",
           tool_name: "Bash",
           tool_input: {
-            command: `bash -lc 'for goal_id in G001-atomized G002-atomized; do omx ultragoal steer --kind mark_blocked_superseded --target-goal-id "$goal_id" --evidence ".omx/ultragoal cleanup supersedes atomized pseudo-goals." --rationale "Structured steering cleanup keeps durable Ultragoal metadata auditable." --json; done'`,
+            command: `bash -lc 'for goal_id in G001-atomized G002-atomized; do nomx ultragoal steer --kind mark_blocked_superseded --target-goal-id "$goal_id" --evidence ".omx/ultragoal cleanup supersedes atomized pseudo-goals." --rationale "Structured steering cleanup keeps durable Ultragoal metadata auditable." --json; done'`,
           },
         },
         { cwd },
@@ -29656,7 +29556,7 @@ PY`,
     }
   });
 
-  it("blocks Main-root ralph conductor source writes while allowing .omx workflow state writes", async () => {
+  it("blocks Main-root ralph conductor source writes while allowing .nomx workflow state writes", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "omx-native-hook-ralph-conductor-write-"));
     try {
       const stateDir = join(cwd, ".omx", "state");
@@ -29861,7 +29761,7 @@ PY`,
     }
   });
 
-  it("blocks Main-root ralph conductor source writes while allowing .omx workflow state writes", async () => {
+  it("blocks Main-root ralph conductor source writes while allowing .nomx workflow state writes", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "omx-native-hook-ralph-conductor-write-"));
     try {
       const stateDir = join(cwd, ".omx", "state");
@@ -31259,7 +31159,7 @@ describe("codex native hook triage integration", () => {
           source: "codex-app",
           session_id: "triage-marked-answer-inert",
           thread_id: "thread-triage-marked-answer-inert",
-          prompt: "[omx question answered] explain this function?",
+          prompt: "[nomx question answered] explain this function?",
         },
         { cwd },
       );
@@ -32529,7 +32429,7 @@ describe("codex native hook triage integration", () => {
 });
 
 describe("native Stop autopilot deep-interview wait", () => {
-	it("does not force continued execution while autopilot is waiting on a deep-interview omx question", async () => {
+	it("does not force continued execution while autopilot is waiting on a deep-interview nomx question", async () => {
 		const cwd = await mkdtemp(
 			join(tmpdir(), "omx-native-hook-autopilot-question-wait-"),
 		);

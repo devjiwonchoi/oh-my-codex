@@ -94,7 +94,7 @@ export function resolveOmxEntryPath(
 function isOmxCliEntryPath(value: string | null | undefined): boolean {
   if (typeof value !== "string") return false;
   const normalized = value.trim().replace(/\\/g, "/");
-  return normalized.endsWith('/dist/cli/omx.js') || normalized.endsWith('/omx.js')
+  return normalized.endsWith('/dist/cli/nomx.js') || normalized.endsWith('/nomx.js')
 }
 
 export function resolveOmxCliEntryPath(
@@ -109,7 +109,7 @@ export function resolveOmxCliEntryPath(
   if (isOmxCliEntryPath(entry)) return entry;
 
   const packageRootDir = options.packageRootDir || packageRoot();
-  const fallback = resolveLauncherPath(join(packageRootDir, 'dist', 'cli', 'omx.js'), options.cwd || process.cwd());
+  const fallback = resolveLauncherPath(join(packageRootDir, 'dist', 'cli', 'nomx.js'), options.cwd || process.cwd());
   return existsSync(fallback) ? fallback : entry;
 }
 

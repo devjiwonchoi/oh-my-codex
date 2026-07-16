@@ -358,7 +358,7 @@ export async function maybeNudgeLeaderForAllowedWorkerStop({
 
   const prompt =
     `[OMX] ${workerName} native Stop allowed. `
-    + `Run \`omx team status ${teamName}\`, read worker messages/results, then assign next task, reconcile completion, or shut down. `
+    + `Run \`nomx team status ${teamName}\`, read worker messages/results, then assign next task, reconcile completion, or shut down. `
     + DEFAULT_MARKER;
 
     const leaderHasActiveTask = paneHasActiveTask(paneGuard.paneCapture);

@@ -655,7 +655,7 @@ describe('notify-hook team leader nudge', () => {
       const tmuxLog = await readFile(tmuxLogPath, 'utf-8');
       assert.match(tmuxLog, /\[OMX\] All 2 workers idle\./);
       assert.match(tmuxLog, /Team idle-shutdown looks complete\./);
-      assert.match(tmuxLog, /Next: decide whether to reconcile\/merge results or gracefully shut down: omx team shutdown idle-shutdown\./);
+      assert.match(tmuxLog, /Next: decide whether to reconcile\/merge results or gracefully shut down: nomx team shutdown idle-shutdown\./);
       assert.doesNotMatch(tmuxLog, /keep polling/);
     });
   });
@@ -1599,7 +1599,7 @@ exit 0
       assert.match(tmuxLog, /worker-1 said "on it"/);
       assert.match(tmuxLog, /no start evidence/);
       assert.match(tmuxLog, /status: unknown/);
-      assert.match(tmuxLog, /Next: check worker-1 msg\/output, confirm task in omx team status ack-missing-start/);
+      assert.match(tmuxLog, /Next: check worker-1 msg\/output, confirm task in nomx team status ack-missing-start/);
       assert.doesNotMatch(tmuxLog, /\[OMX_INTENT:/);
 
       const eventsPath = join(teamDir, 'events', 'events.ndjson');
@@ -1683,7 +1683,7 @@ exit 0
       const tmuxLog = await readFile(tmuxLogPath, 'utf-8');
       assert.doesNotMatch(tmuxLog, /no start evidence/);
       assert.match(tmuxLog, /Team ack-with-start: 1 msg\(s\) for leader\./);
-      assert.match(tmuxLog, /Next: read messages; keep orchestrating; if done, gracefully shut down: omx team shutdown ack-with-start\./);
+      assert.match(tmuxLog, /Next: read messages; keep orchestrating; if done, gracefully shut down: nomx team shutdown ack-with-start\./);
 
       const eventsPath = join(teamDir, 'events', 'events.ndjson');
       const events = (await readFile(eventsPath, 'utf-8')).trim().split('\n').map(line => JSON.parse(line));
@@ -2181,7 +2181,7 @@ if [[ "$cmd" == "display-message" ]]; then
 fi
 if [[ "$cmd" == "capture-pane" ]]; then
   cat <<'EOF'
-Team same-classified-state: 1 msg(s) for leader. Next: read messages; keep orchestrating; if done, gracefully shut down: omx team shutdown same-classified-state.
+Team same-classified-state: 1 msg(s) for leader. Next: read messages; keep orchestrating; if done, gracefully shut down: nomx team shutdown same-classified-state.
 EOF
   exit 0
 fi
@@ -2603,7 +2603,7 @@ exit 0
       assert.match(tmuxLog, /send-keys/);
       assert.match(tmuxLog, /Team beta:/);
       assert.match(tmuxLog, /leader stale, \d+ worker pane\(s\) still active\./);
-      assert.match(tmuxLog, /Next: check messages; keep orchestrating; if done, gracefully shut down: omx team shutdown beta\./);
+      assert.match(tmuxLog, /Next: check messages; keep orchestrating; if done, gracefully shut down: nomx team shutdown beta\./);
       assert.doesNotMatch(tmuxLog, /keep polling/);
       assert.match(tmuxLog, /\[OMX_TMUX_INJECT\]/, 'should include injection marker');
     });
@@ -3754,7 +3754,7 @@ exit 0
 
       const tmuxLog = await readFile(tmuxLogPath, 'utf-8');
       assert.match(tmuxLog, /Team delta: leader stale, \d+ pane\(s\) active, 1 msg\(s\) pending\./);
-      assert.match(tmuxLog, /Next: read messages; keep orchestrating; if done, gracefully shut down: omx team shutdown delta\./);
+      assert.match(tmuxLog, /Next: read messages; keep orchestrating; if done, gracefully shut down: nomx team shutdown delta\./);
       assert.doesNotMatch(tmuxLog, /keep polling/);
       assert.match(tmuxLog, /\[OMX_TMUX_INJECT\]/, 'should include injection marker');
 

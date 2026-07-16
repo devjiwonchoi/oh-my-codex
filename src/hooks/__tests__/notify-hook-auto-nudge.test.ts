@@ -2442,7 +2442,7 @@ exit 0
       const markedResult = await recordNotifySkillActivation({
         stateDir,
         sourceCwd: cwd,
-        text: '[omx question answered] yes',
+        text: '[nomx question answered] yes',
         sessionId: markedSessionId,
         threadId: markedThreadId,
         turnId: markedTurnId,

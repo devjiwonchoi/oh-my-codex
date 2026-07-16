@@ -520,7 +520,7 @@ describe("Hermes MCP bridge core", () => {
       const result = await hermesStartSession(
         { workingDirectory: cwd, prompt: "$ralph fix it", worktreeName: "pkg/demo", allow_mutation: true },
         {
-          resolveOmxCliEntryPath: () => "/opt/omx/dist/cli/omx.js",
+          resolveOmxCliEntryPath: () => "/opt/omx/dist/cli/nomx.js",
           spawnProcess: ((command: string, args: string[], options: { cwd?: string; env?: NodeJS.ProcessEnv }) => {
             observed.push({ command, args, cwd: options.cwd, env: options.env });
             return { pid: 4242, unref() {} };
@@ -529,7 +529,7 @@ describe("Hermes MCP bridge core", () => {
       );
 
       assert.equal(result.ok, true);
-      assert.equal(observed[0]?.command, "/opt/omx/dist/cli/omx.js");
+      assert.equal(observed[0]?.command, "/opt/omx/dist/cli/nomx.js");
       assert.deepEqual(observed[0]?.args, ["--tmux", "--worktree=pkg/demo", "$ralph fix it"]);
       assert.equal(observed[0]?.cwd, cwd);
       assert.equal(observed[0]?.env?.OMX_HERMES_MCP_BRIDGE, "1");

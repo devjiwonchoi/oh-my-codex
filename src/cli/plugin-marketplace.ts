@@ -278,7 +278,7 @@ function buildPinnedHookLauncherContent(
 	return `${JSON.stringify(
 		{
 			command: process.execPath,
-			argsPrefix: [join(packagedMarketplace.packageRoot, "dist", "cli", "omx.js")],
+			argsPrefix: [join(packagedMarketplace.packageRoot, "dist", "cli", "nomx.js")],
 		},
 		null,
 		2,

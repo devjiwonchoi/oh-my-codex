@@ -125,7 +125,7 @@ function resolveHudWatcherScript(packageRoot: string, scriptName: 'notify-fallba
   if (existsSync(packageScript)) return packageScript;
 
   const entryPath = resolveOmxCliEntryPath({ cwd, env });
-  if (entryPath && entryPath.endsWith('/dist/cli/omx.js')) {
+  if (entryPath && entryPath.endsWith('/dist/cli/nomx.js')) {
     const entryRoot = dirname(dirname(dirname(entryPath)));
     const entryScript = join(entryRoot, 'dist', 'scripts', scriptName);
     if (existsSync(entryScript)) return entryScript;

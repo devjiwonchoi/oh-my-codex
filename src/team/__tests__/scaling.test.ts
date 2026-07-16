@@ -328,7 +328,7 @@ async function prepareScaleUpApprovedBindingState(
     await writePersistedApprovedTeamExecutionBinding(teamName, cwd, {
       prd_path: prdPath,
       task: approvedTask,
-      command: `omx team 1:executor "${approvedTask}"`,
+      command: `nomx team 1:executor "${approvedTask}"`,
     });
     return;
   }
@@ -339,8 +339,8 @@ async function prepareScaleUpApprovedBindingState(
       [
         '# Approved plan',
         '',
-        `Launch via omx team 1:executor "${approvedTask}"`,
-        `Launch via omx team 2:writer "${approvedTask}"`,
+        `Launch via nomx team 1:executor "${approvedTask}"`,
+        `Launch via nomx team 2:writer "${approvedTask}"`,
       ].join('\n'),
     );
     await writePersistedApprovedTeamExecutionBinding(teamName, cwd, {
@@ -354,7 +354,7 @@ async function prepareScaleUpApprovedBindingState(
   if (state === 'incomplete' || state === 'invalid' || state === 'ready') {
     prdLines.push(buildContextPackOutcome(canonicalContextPackRelativePath(state)), '');
   }
-  prdLines.push(`Launch via omx team 1:executor "${approvedTask}"`);
+  prdLines.push(`Launch via nomx team 1:executor "${approvedTask}"`);
   await writeFile(prdPath, prdLines.join('\n'));
 
   if (state !== 'missing-baseline') {
@@ -375,7 +375,7 @@ async function prepareScaleUpApprovedBindingState(
   await writePersistedApprovedTeamExecutionBinding(teamName, cwd, {
     prd_path: prdPath,
     task: approvedTask,
-    command: `omx team 1:executor "${approvedTask}"`,
+    command: `nomx team 1:executor "${approvedTask}"`,
   });
 }
 
@@ -1097,7 +1097,7 @@ printf '%s\\n' "$@" > '${capturePath}'
       assert.match(inbox, /### Leader-owned Ultragoal context/);
       assert.match(inbox, /G001-team-runtime-bridge/);
       assert.match(inbox, /workers do not own Ultragoal goal state/i);
-      assert.match(inbox, /omx ultragoal checkpoint --goal-id G001-team-runtime-bridge/);
+      assert.match(inbox, /nomx ultragoal checkpoint --goal-id G001-team-runtime-bridge/);
       assert.ok(tmuxCommands.some((command) => command.startsWith('split-window ')));
     } finally {
       if (typeof previousPath === 'string') process.env.PATH = previousPath;
@@ -1222,7 +1222,7 @@ printf '%s\\n' "$@" > '${capturePath}'
           '',
           buildContextPackOutcome(canonicalContextPackRelativePath('issue-1410')),
           '',
-          `Launch via omx team 1:executor "${approvedTask}"`,
+          `Launch via nomx team 1:executor "${approvedTask}"`,
         ].join('\n'),
       );
       await writeFile(testSpecPath, '# Test spec\n');
@@ -1234,7 +1234,7 @@ printf '%s\\n' "$@" > '${capturePath}'
       await writePersistedApprovedTeamExecutionBinding(teamName, cwd, {
         prd_path: prdPath,
         task: approvedTask,
-        command: `omx team 1:executor "${approvedTask}"`,
+        command: `nomx team 1:executor "${approvedTask}"`,
       });
 
       assert.equal(await readExpectedScaleUpApprovedBindingError(teamName, cwd), null);

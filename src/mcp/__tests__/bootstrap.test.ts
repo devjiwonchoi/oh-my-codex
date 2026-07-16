@@ -207,11 +207,11 @@ describe('mcp duplicate sibling detection', () => {
       'trace-server.ts',
     );
     assert.equal(
-      extractMcpEntrypointMarker('node /tmp/dist/cli/omx.js mcp-serve state'),
+      extractMcpEntrypointMarker('node /tmp/dist/cli/nomx.js mcp-serve state'),
       'state-server.js',
     );
     assert.equal(
-      extractMcpEntrypointMarker('node /tmp/dist/cli/omx.js mcp-serve code-intel'),
+      extractMcpEntrypointMarker('node /tmp/dist/cli/nomx.js mcp-serve code-intel'),
       'code-intel-server.js',
     );
     assert.equal(extractMcpEntrypointMarker('node something-else.js'), null);
@@ -222,7 +222,7 @@ describe('mcp duplicate sibling detection', () => {
     assert.equal(
       resolveCurrentMcpEntrypointMarker(
         { [MCP_ENTRYPOINT_MARKER_ENV]: 'trace-server.js' },
-        '/repo/dist/cli/omx.js',
+        '/repo/dist/cli/nomx.js',
       ),
       'trace-server.js',
     );
@@ -411,9 +411,9 @@ describe('mcp duplicate sibling detection', () => {
 
   it('detects duplicate plugin-launched mcp-serve public-target siblings', () => {
     const processes = [
-      { pid: 101, ppid: 55, command: 'node /repo/dist/cli/omx.js mcp-serve state' },
-      { pid: 140, ppid: 55, command: 'node /repo/dist/cli/omx.js mcp-serve state' },
-      { pid: 160, ppid: 55, command: 'node /repo/dist/cli/omx.js mcp-serve memory' },
+      { pid: 101, ppid: 55, command: 'node /repo/dist/cli/nomx.js mcp-serve state' },
+      { pid: 140, ppid: 55, command: 'node /repo/dist/cli/nomx.js mcp-serve state' },
+      { pid: 160, ppid: 55, command: 'node /repo/dist/cli/nomx.js mcp-serve memory' },
     ];
 
     const older = analyzeDuplicateSiblingState(

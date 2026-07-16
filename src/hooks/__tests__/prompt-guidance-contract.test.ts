@@ -15,7 +15,7 @@ describe('prompt guidance contract', () => {
       const content = loadSurface(surface);
       assert.match(content, /Do not ask or instruct humans to perform ordinary non-destructive, reversible actions/i);
       assert.match(content, /Treat OMX runtime manipulation, state transitions, and ordinary command execution as agent responsibilities/i);
-      assert.doesNotMatch(content, /Run `omx setup` to install all components\. Run `omx doctor` to verify installation\./);
+      assert.doesNotMatch(content, /Run `nomx setup` to install all components\. Run `nomx doctor` to verify installation\./);
     }
   });
 

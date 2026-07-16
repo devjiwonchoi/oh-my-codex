@@ -206,8 +206,8 @@ export function buildTerminalCliResult(
     exitCode: status === 'completed' ? 0 : 1,
     notice:
       `[runtime-cli] phase=${phase} reached terminal state; preserving team state for inspection. `
-      + `Inspect with "omx team status ${teamName} --json" or "omx team api read-stall-state --input '{\"team_name\":\"${teamName}\"}' --json". `
-      + `Run "omx team shutdown ${teamName}" (or --force after state capture) when explicit cleanup is desired.\n`,
+      + `Inspect with "nomx team status ${teamName} --json" or "nomx team api read-stall-state --input '{\"team_name\":\"${teamName}\"}' --json". `
+      + `Run "nomx team shutdown ${teamName}" (or --force after state capture) when explicit cleanup is desired.\n`,
   };
 }
 

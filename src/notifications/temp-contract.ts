@@ -16,17 +16,6 @@ export interface ParseNotifyTempContractResult {
   passthroughArgs: string[];
 }
 
-function normalizeCustomSelector(raw: string): string | null {
-  const normalized = raw.trim().toLowerCase();
-  if (!normalized) return null;
-  if (normalized.startsWith('openclaw:')) {
-    const gateway = normalized.slice('openclaw:'.length).trim();
-    if (!gateway) return null;
-    return `openclaw:${gateway}`;
-  }
-  return `custom:${normalized}`;
-}
-
 function toUnique(values: string[]): string[] {
   return [...new Set(values)];
 }
@@ -49,33 +38,6 @@ export function parseNotifyTempContractFromArgs(
 
     if (arg === '--discord' || arg === '--slack' || arg === '--telegram') {
       selectors.push(arg.slice(2));
-      continue;
-    }
-
-    if (arg === '--custom') {
-      const next = args[index + 1];
-      if (!next || next.startsWith('-')) {
-        warnings.push('notify temp: ignoring --custom without a provider name');
-        continue;
-      }
-      const normalized = normalizeCustomSelector(next);
-      if (!normalized) {
-        warnings.push(`notify temp: ignoring invalid --custom selector "${next}"`);
-      } else {
-        selectors.push(normalized);
-      }
-      index += 1;
-      continue;
-    }
-
-    if (arg.startsWith('--custom=')) {
-      const raw = arg.slice('--custom='.length);
-      const normalized = normalizeCustomSelector(raw);
-      if (!normalized) {
-        warnings.push(`notify temp: ignoring invalid --custom selector "${raw}"`);
-      } else {
-        selectors.push(normalized);
-      }
       continue;
     }
 
@@ -145,33 +107,10 @@ export function readNotifyTempContractFromEnv(
   }
 }
 
-export function isOpenClawSelectedInTempContract(contract: NotifyTempContract | null): boolean {
-  if (!contract?.active) return false;
-  return contract.canonicalSelectors.some((selector) =>
-    selector.startsWith('openclaw:') || selector.startsWith('custom:'));
-}
-
 export function getTempBuiltinSelectors(contract: NotifyTempContract | null): Set<string> {
   if (!contract?.active) return new Set<string>();
   return new Set(
     contract.canonicalSelectors.filter((selector) =>
       selector === 'discord' || selector === 'slack' || selector === 'telegram'),
   );
-}
-
-export function getSelectedOpenClawGatewayNames(contract: NotifyTempContract | null): Set<string> {
-  if (!contract?.active) return new Set<string>();
-  const names: string[] = [];
-  for (const selector of contract.canonicalSelectors) {
-    if (selector.startsWith('openclaw:')) {
-      const name = selector.slice('openclaw:'.length).trim().toLowerCase();
-      if (name) names.push(name);
-      continue;
-    }
-    if (selector.startsWith('custom:')) {
-      const name = selector.slice('custom:'.length).trim().toLowerCase();
-      if (name) names.push(name);
-    }
-  }
-  return new Set(names);
 }

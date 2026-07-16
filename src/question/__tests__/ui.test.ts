@@ -98,7 +98,7 @@ describe('question ui injection metadata', () => {
           selected_values: ['hello can you hear me'],
           other_text: 'hello can you hear me',
         }),
-        '[omx question answered] hello can you hear me',
+        '[nomx question answered] hello can you hear me',
       );
     } finally {
       await rm(cwd, { recursive: true, force: true });

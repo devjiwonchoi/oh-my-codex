@@ -129,12 +129,6 @@ import type {
   DispatchResult,
 } from "./types.js";
 import { getNotificationConfig, isEventEnabled, getVerbosity, shouldIncludeTmuxTail, getActiveProfileName } from "./config.js";
-import {
-  getSelectedOpenClawGatewayNames,
-  isOpenClawSelectedInTempContract,
-  readNotifyTempContractFromEnv,
-  type NotifyTempContract,
-} from "./temp-contract.js";
 import { formatNotification } from "./formatter.js";
 import { dispatchNotifications } from "./dispatcher.js";
 import { getCurrentTmuxSession, sanitizeTmuxAlertText } from "./tmux.js";
@@ -144,7 +138,6 @@ import {
   shouldSendLifecycleNotification,
   recordLifecycleNotificationSent,
 } from "./lifecycle-dedupe.js";
-import type { OpenClawHookEvent } from "../openclaw/types.js";
 import { parseTmuxTail } from "./formatter.js";
 import {
   shouldIncludeSessionIdleTmuxTail,
@@ -153,45 +146,6 @@ import {
 
 // Suppress unused import — used by callers via re-export
 void getActiveProfileName;
-
-/**
- * Map a NotificationEvent to an OpenClawHookEvent.
- * Returns null for events that have no OpenClaw equivalent.
- */
-function toOpenClawEvent(event: NotificationEvent): OpenClawHookEvent | null {
-  switch (event) {
-    case "session-start": return "session-start";
-    case "session-end": return "session-end";
-    case "session-idle": return "session-idle";
-    case "ask-user-question": return "ask-user-question";
-    case "session-stop": return "stop";
-    default: return null;
-  }
-}
-
-export async function shouldDispatchOpenClaw(
-  event: OpenClawHookEvent,
-  tempContract: NotifyTempContract | null,
-  env: NodeJS.ProcessEnv = process.env,
-) : Promise<boolean> {
-  if (env.OMX_OPENCLAW !== "1") return false;
-  if (!tempContract?.active) return true;
-  if (!isOpenClawSelectedInTempContract(tempContract)) return false;
-
-  const selectedGatewayNames = getSelectedOpenClawGatewayNames(tempContract);
-  if (selectedGatewayNames.size === 0) return false;
-
-  try {
-    const { getOpenClawConfig, resolveGateway } = await import("../openclaw/config.js");
-    const config = getOpenClawConfig();
-    if (!config) return false;
-    const resolved = resolveGateway(config, event);
-    if (!resolved) return false;
-    return selectedGatewayNames.has(resolved.gatewayName.toLowerCase());
-  } catch {
-    return false;
-  }
-}
 
 /**
  * High-level notification function for lifecycle events.
@@ -283,62 +237,12 @@ export async function notifyLifecycle(
       };
     }
 
-    const openClawEvent = toOpenClawEvent(event);
-    let dispatchOpenClawLater: (() => Promise<void>) | null = null;
-    if (openClawEvent !== null) {
-      const tempContract = readNotifyTempContractFromEnv(process.env);
-      const openClawContext = {
-        sessionId: payload.sessionId,
-        projectPath: payload.projectPath,
-        tmuxSession: payload.tmuxSession,
-        contextSummary: payload.contextSummary,
-        reason: payload.reason,
-        question: payload.question,
-        tmuxTail: payload.tmuxTail,
-        // Reply context env vars are read inside wakeOpenClaw;
-        // callers do not need to pass them explicitly.
-      };
-      dispatchOpenClawLater = async (): Promise<void> => {
-        try {
-          const openClawAllowed = await shouldDispatchOpenClaw(
-            openClawEvent,
-            tempContract,
-            process.env,
-          );
-          if (!openClawAllowed) return;
-
-          const { wakeOpenClaw } = await import("../openclaw/index.js");
-          if (openClawEvent === "ask-user-question") {
-            // ask-user-question must launch through the current foreground hook path
-            // so downstream answer routing stays attached to the live session.
-            await wakeOpenClaw(openClawEvent, openClawContext);
-            return;
-          }
-
-          // Other lifecycle hooks remain fire-and-forget to avoid delaying notification return.
-          void wakeOpenClaw(openClawEvent, openClawContext);
-        } catch {
-          // OpenClaw failures must never affect notification dispatch
-        }
-      };
-    }
-
-    if (openClawEvent !== "ask-user-question" && dispatchOpenClawLater) {
-      // Let the non-blocking OpenClaw eligibility/import path overlap the primary
-      // platform dispatch so session-start does not wait on background wake work.
-      void dispatchOpenClawLater();
-    }
-
     const result = await dispatchNotifications(config, event, payload);
     if (result.anySuccess && options.persistScopedReceipts !== false) {
       recordLifecycleNotificationSent(lifecycleStateDir, payload);
       if (event === "session-idle" && sessionIdleTmuxTailAllowed) {
         recordSessionIdleTmuxTailSent(lifecycleStateDir, payload.sessionId, normalizedIdleTmuxTail);
       }
-    }
-
-    if (openClawEvent === "ask-user-question" && dispatchOpenClawLater) {
-      await dispatchOpenClawLater();
     }
 
     if (result.anySuccess && payload.tmuxPaneId && options.persistScopedReceipts !== false) {

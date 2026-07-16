@@ -103,7 +103,7 @@ describe('autopilot skill default Ultragoal contract', () => {
     // carries the validated role via a correlation token, never a prompt label.
     assert.match(ralplanSkill, /When the native surface exposes `agent_type` role routing/i);
     assert.match(ralplanSkill, /role[_ -]?routing[_ -]?unavailable/i);
-    assert.match(ralplanSkill, /omx ralplan role-intent write/i);
+    assert.match(ralplanSkill, /nomx ralplan role-intent write/i);
   });
 
   it('documents ralplan consensus completion in the runtime pipeline contract', () => {

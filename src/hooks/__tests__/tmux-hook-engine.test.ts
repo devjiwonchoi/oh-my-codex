@@ -424,7 +424,7 @@ if [[ "$cmd" == "display-message" ]]; then
     exit 0
   fi
   if [[ "$format" == "#{pane_start_command}" && "$target" == "%2" ]]; then
-    echo "node /pkg/dist/cli/omx.js hud --watch"
+    echo "node /pkg/dist/cli/nomx.js hud --watch"
     exit 0
   fi
   if [[ "$format" == "#S" && "$target" == "%2" ]]; then
@@ -435,7 +435,7 @@ if [[ "$cmd" == "display-message" ]]; then
   exit 1
 fi
 if [[ "$cmd" == "list-panes" ]]; then
-  printf "%%2\tnode\tnode /pkg/dist/cli/omx.js hud --watch\n%%42\tnode\tcodex --model gpt-5\n"
+  printf "%%2\tnode\tnode /pkg/dist/cli/nomx.js hud --watch\n%%42\tnode\tcodex --model gpt-5\n"
   exit 0
 fi
 echo "unsupported" >&2
