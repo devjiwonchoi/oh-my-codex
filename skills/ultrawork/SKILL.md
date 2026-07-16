@@ -11,13 +11,12 @@ Ultrawork is a parallel execution engine for high-throughput task completion. It
 - Multiple independent tasks can run simultaneously
 - User says "ulw", "ultrawork", or explicitly wants parallel execution
 - Task benefits from concurrent execution plus lightweight evidence before wrap-up
-- You need a direct-tool lane plus optional background evidence lanes without entering Team or a durable goal workflow
+- You need a direct-tool lane plus optional native-subagent evidence lanes without entering a durable goal workflow
 </Use_When>
 
 <Do_Not_Use_When>
 - Task needs durable goal tracking, ledger checkpoints, or resume across stories -- use `ultragoal` instead
-- Task needs bounded parallel execution -- use native Codex subagents with explicit scopes and leader-owned integration
-- Task requires a full autonomous pipeline -- use `autopilot` instead (default loop: `deep-interview -> ralplan -> ultragoal`, with `team` only when needed)
+- Task requires a full autonomous pipeline -- use `autopilot` instead (default loop: `deep-interview -> ralplan -> ultragoal -> code-review -> ultraqa`)
 - Task intentionally requires the legacy persistent single-owner completion/verification loop -- use `ralph` explicitly; do not present it as the default durable path
 - There is only one sequential task with no parallelism opportunity -- execute directly, use `ultragoal` for durable tracking, or delegate to a single `executor`
 - The request is still in plan-consensus mode -- keep planning artifacts in `ralplan` until execution is explicitly authorized
@@ -34,10 +33,10 @@ Sequential task execution wastes time when tasks are independent. Ultrawork keep
 - Prefer direct tool work when the task is small, coupled, or blocked on immediate local context. Delegate only when the work is independent enough to benefit from parallel execution.
 - When useful, run a direct-tool lane and one or more background evidence lanes at the same time. Evidence lanes can cover docs, tests, regression mapping, or bounded repo analysis.
 - Fire independent agent calls simultaneously -- never serialize independent work.
-- Always pass the `model` parameter explicitly when delegating.
+- Use the native `spawn_agent` fields that are actually available: a bounded `task_name`, a precise `message`, and `fork_turns` only when controlling inherited context materially helps. Native subagents inherit the current repo/model defaults; do not invent a `model` field.
 - Read `references/agent-tiers.md` before first delegation for agent selection guidance.
 - Auto-delegate `researcher` when official docs, version-aware framework guidance, best practices, or external dependency behavior materially affect task correctness; treat it as an evidence lane, not a replacement primary workflow.
-- Use `run_in_background: true` for operations over ~30 seconds (installs, builds, tests).
+- For operations over ~30 seconds (installs, builds, tests), use the command runner's yielded process session and poll it while independent native subagents continue their lanes. Do not invent a `run_in_background` subagent field.
 - Run quick commands (git status, file reads, simple checks) in the foreground.
 - Apply the shared workflow guidance pattern: outcome-first framing, concise visible updates for speculative/blocked lanes, local overrides for the active workflow branch, evidence-backed validation, explicit stop rules, and continuation of clear safe execution branches instead of restarting or re-asking.
 - If the user says `continue`, continue the active workflow branch rather than restarting discovery or re-asking settled questions.
@@ -76,7 +75,7 @@ Sequential task execution wastes time when tasks are independent. Ultrawork keep
 - Use THOROUGH-tier delegation for complex analysis, architectural review, or risky multi-file changes.
 - Prefer a direct-tool lane when the immediate next step is blocked on local context.
 - Prefer background evidence lanes when you can learn something useful in parallel with implementation.
-- Use `run_in_background: true` for package installs, builds, and test suites.
+- Use yielded command sessions for package installs, builds, and test suites; poll the returned session without blocking other independent lanes.
 - Use foreground execution for quick status checks and file operations.
 </Tool_Usage>
 
@@ -169,15 +168,16 @@ ultrawork (this skill)
 
 ultragoal (durable goal execution)
  \-- owns: goal ledger, checkpoints, resume across stories, final gate discipline
- \-- may use: team for parallel lanes when a story benefits from coordinated workers
+ \-- may use: native Codex subagents for bounded independent lanes
 
 native Codex subagents (bounded coordinated execution)
- \-- owns: worker panes, shared task state, mailbox/dispatch, lifecycle control
+ \-- own: scoped task execution and evidence handoff
+ \-- leader owns: dispatch, integration, lifecycle, and final verification
  \-- can return: checkpoint-ready evidence to an Ultragoal leader
 
 autopilot (strict autonomous delivery loop)
  \-- default flow: deep-interview -> ralplan -> ultragoal -> code-review -> ultraqa
- \-- may use: team only when an Ultragoal story needs parallel execution
+ \-- may use: native Codex subagents when bounded parallel execution materially helps
 
 ralph (supported legacy explicit fallback)
  \-- owns: single-owner persistence loop + architect verification when intentionally selected

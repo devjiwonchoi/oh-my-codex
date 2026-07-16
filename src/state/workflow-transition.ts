@@ -773,20 +773,21 @@ export const TRACKED_WORKFLOW_MODES = [
 ] as const;
 
 export type TrackedWorkflowMode = (typeof TRACKED_WORKFLOW_MODES)[number];
+export type RunnableWorkflowMode = Exclude<TrackedWorkflowMode, 'team'>;
 export type WorkflowTransitionAction = 'activate' | 'start' | 'write';
 export type WorkflowTransitionKind = 'allow' | 'overlap' | 'auto-complete' | 'deny';
 
-const ALLOWED_OVERLAP_PAIRS = new Set([
-  'ralph|team',
-]);
+export const RUNNABLE_WORKFLOW_MODES = TRACKED_WORKFLOW_MODES.filter(
+  (mode): mode is RunnableWorkflowMode => mode !== 'team',
+);
+
+const ALLOWED_OVERLAP_PAIRS = new Set<string>();
 
 const AUTO_COMPLETE_TRANSITIONS = new Set([
   'deep-interview->autopilot',
   'deep-interview->ralph',
-  'deep-interview->team',
   'deep-interview->ultragoal',
   'deep-interview->ultrawork',
-  'ralplan->team',
   'ralplan->ultragoal',
   'ralplan->ralph',
   'ralplan->autopilot',
@@ -804,7 +805,6 @@ const PLANNING_LIKE_MODES = new Set<TrackedWorkflowMode>([
 
 const EXECUTION_LIKE_MODES = new Set<TrackedWorkflowMode>([
   'autopilot',
-  'team',
   'ultragoal',
   'ralph',
   'ultrawork',
@@ -818,7 +818,7 @@ function safeString(value: unknown): string {
 function normalizeTrackedModes(modes: Iterable<string>): TrackedWorkflowMode[] {
   const deduped = new Set<TrackedWorkflowMode>();
   for (const mode of modes) {
-    if (isTrackedWorkflowMode(mode)) {
+    if (isRunnableWorkflowMode(mode)) {
       deduped.add(mode);
     }
   }
@@ -876,11 +876,61 @@ export interface WorkflowTransitionDecision {
   resultingModes: TrackedWorkflowMode[];
   autoCompleteModes: TrackedWorkflowMode[];
   transitionMessage?: string;
-  denialReason?: 'rollback';
+  denialReason?: 'rollback' | 'retired';
 }
 
 export function isTrackedWorkflowMode(mode: string): mode is TrackedWorkflowMode {
   return (TRACKED_WORKFLOW_MODES as readonly string[]).includes(mode);
+}
+
+export function isRunnableWorkflowMode(mode: string): mode is RunnableWorkflowMode {
+  return (RUNNABLE_WORKFLOW_MODES as readonly string[]).includes(mode);
+}
+
+/**
+ * Identify legacy Team detail, run-summary, and canonical state without treating
+ * those files as a runnable workflow. The files remain readable for migration
+ * and explicit clearing, but must not keep status or cancellation loops active.
+ */
+export function isRetiredTeamCompatibilityState(
+  fileMode: string,
+  state: Record<string, unknown>,
+): boolean {
+  if (fileMode === 'team') return true;
+  if (fileMode === 'run') return state.mode === 'team';
+  if (fileMode !== 'skill-active') return false;
+
+  const activeSkillEntries = Array.isArray(state.active_skills)
+    ? state.active_skills.filter((entry): entry is Record<string, unknown> => (
+      Boolean(entry) && typeof entry === 'object' && !Array.isArray(entry)
+    ))
+    : [];
+  const hasSupportedActiveSkill = activeSkillEntries.some((entry) => (
+    entry.active !== false
+    && typeof entry.skill === 'string'
+    && entry.skill !== 'team'
+  ));
+  if (hasSupportedActiveSkill) return false;
+
+  return state.skill === 'team' || activeSkillEntries.some((entry) => (
+    entry.active !== false && entry.skill === 'team'
+  ));
+}
+
+export function buildRetiredWorkflowModeError(
+  mode: TrackedWorkflowMode,
+  action: WorkflowTransitionAction = 'activate',
+): string {
+  return `Cannot ${action} ${mode}: the Team workflow is retired and available only for read-only compatibility. Use native Codex subagents for bounded parallel work.`;
+}
+
+export function assertRunnableWorkflowMode(
+  mode: TrackedWorkflowMode,
+  action: WorkflowTransitionAction = 'activate',
+): asserts mode is RunnableWorkflowMode {
+  if (!isRunnableWorkflowMode(mode)) {
+    throw new Error(buildRetiredWorkflowModeError(mode, action));
+  }
 }
 
 export function evaluateWorkflowTransition(
@@ -888,6 +938,18 @@ export function evaluateWorkflowTransition(
   requestedMode: TrackedWorkflowMode,
 ): WorkflowTransitionDecision {
   const currentModes = normalizeTrackedModes(currentActiveModes);
+
+  if (!isRunnableWorkflowMode(requestedMode)) {
+    return {
+      allowed: false,
+      kind: 'deny',
+      currentModes,
+      requestedMode,
+      resultingModes: currentModes,
+      autoCompleteModes: [],
+      denialReason: 'retired',
+    };
+  }
 
   if (currentModes.includes(requestedMode)) {
     return {
@@ -957,6 +1019,9 @@ export function buildWorkflowTransitionError(
   action: WorkflowTransitionAction = 'activate',
 ): string {
   const decision = evaluateWorkflowTransition(currentActiveModes, requestedMode);
+  if (decision.denialReason === 'retired') {
+    return buildRetiredWorkflowModeError(requestedMode, action);
+  }
   const activeModesMessage = formatActiveModes(decision.currentModes);
   const overlap = [...decision.currentModes, requestedMode].join(' + ');
   if (decision.denialReason === 'rollback') {
@@ -991,7 +1056,7 @@ export async function readActiveWorkflowModes(
 ): Promise<TrackedWorkflowMode[]> {
   const activeModes: TrackedWorkflowMode[] = [];
 
-  for (const mode of TRACKED_WORKFLOW_MODES) {
+  for (const mode of RUNNABLE_WORKFLOW_MODES) {
     const candidatePaths = await getAuthoritativeActiveStatePaths(mode, cwd, sessionId);
     for (const candidatePath of candidatePaths) {
       if (!existsSync(candidatePath)) continue;

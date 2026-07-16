@@ -478,7 +478,14 @@ command = "node"
 			});
 			if (shouldSkipForSpawnPermissions(res.error)) return;
 			assert.equal(res.status, 0, res.stderr || res.stdout);
-			assert.match(res.stdout, /Resolved setup install mode: plugin/);
+			assert.match(
+				res.stdout,
+				/Resolved setup scope: user \(from \.nomx\/setup-scope\.json\)/,
+			);
+			assert.match(
+				res.stdout,
+				/Resolved setup install mode: plugin \(from \.nomx\/setup-scope\.json\)/,
+			);
 			assert.match(res.stdout, /Resolved setup MCP mode: none/);
 			assert.match(
 				res.stdout,

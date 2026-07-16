@@ -46,8 +46,11 @@ import {
   writeSkillActiveStateCopiesForStateDir,
 } from './skill-active.js';
 import {
+  assertRunnableWorkflowMode,
   buildWorkflowTransitionError,
   evaluateWorkflowTransition,
+  isRunnableWorkflowMode,
+  isRetiredTeamCompatibilityState,
   isTrackedWorkflowMode,
   type TrackedWorkflowMode,
 } from './workflow-transition.js';
@@ -117,6 +120,10 @@ export const SUPPORTED_STATE_READ_MODES = [
 ] as const;
 
 export type SupportedStateReadMode = (typeof SUPPORTED_STATE_READ_MODES)[number];
+export type SupportedStateWriteMode = Exclude<SupportedStateReadMode, 'team'>;
+export const SUPPORTED_STATE_WRITE_MODES = SUPPORTED_STATE_READ_MODES.filter(
+  (mode): mode is SupportedStateWriteMode => mode !== 'team',
+);
 export type StateOperationName =
   | 'state_read'
   | 'state_write'
@@ -531,6 +538,13 @@ async function readJsonRecordIfExists(path: string): Promise<Record<string, unkn
   }
 }
 
+async function clearRetiredTeamRunState(path: string): Promise<boolean> {
+  const state = await readJsonRecordIfExists(path);
+  if (!state || !isRetiredTeamCompatibilityState('run', state)) return false;
+  await unlink(path);
+  return true;
+}
+
 function shouldWriteRootRalplanTerminalState(rootState: Record<string, unknown> | null, sessionId: string | undefined): boolean {
   if (!sessionId) return true;
   return optionalSessionId(rootState?.session_id) === sessionId;
@@ -616,19 +630,33 @@ export async function listStateStatuses(
       if (!file.endsWith('-state.json')) continue;
       const currentMode = file.replace('-state.json', '');
       if (!mode && currentMode === SKILL_ACTIVE_STATE_MODE) continue;
+      if (!mode && currentMode === 'team') continue;
       if (mode && currentMode !== mode) continue;
       if (seenModes.has(currentMode)) continue;
       seenModes.add(currentMode);
       try {
         const data = JSON.parse(await readFile(join(stateDir, file), 'utf-8'));
-        statuses[currentMode] = {
-          active: data.active,
-          phase: data.current_phase,
-          path: join(stateDir, file),
-          data,
-        };
+        const isRetiredTeamState = isRetiredTeamCompatibilityState(currentMode, data);
+        if (!mode && isRetiredTeamState) continue;
+        statuses[currentMode] = isRetiredTeamState
+          ? {
+            active: false,
+            retired: true,
+            historical_active: data.active === true,
+            phase: 'retired',
+            path: join(stateDir, file),
+            data,
+          }
+          : {
+            active: data.active,
+            phase: data.current_phase,
+            path: join(stateDir, file),
+            data,
+          };
       } catch {
-        statuses[currentMode] = { error: 'malformed state file' };
+        statuses[currentMode] = currentMode === 'team'
+          ? { active: false, retired: true, error: 'malformed state file' }
+          : { error: 'malformed state file' };
       }
     }
   }
@@ -669,6 +697,7 @@ export async function listActiveStateModes(
   return Object.entries(statuses)
     .filter(([mode, status]) => {
       if (!Boolean((status as { active?: unknown }).active)) return false;
+      if (isTrackedWorkflowMode(mode) && !isRunnableWorkflowMode(mode)) return false;
       if (hasCanonicalVisibility && isTrackedWorkflowMode(mode)) {
         return canonicalActiveModes.has(mode);
       }
@@ -684,7 +713,7 @@ async function readCanonicalActiveWorkflowModes(
   const canonicalState = await readVisibleSkillActiveStateForStateDir(baseStateDir, sessionId);
   const activeModes = listTransitionActiveSkills(canonicalState ?? {}, sessionId)
     .map((entry) => entry.skill)
-    .filter(isTrackedWorkflowMode);
+    .filter(isRunnableWorkflowMode);
   return [...new Set(activeModes)];
 }
 
@@ -752,9 +781,10 @@ export async function executeStateOperation(
       }
 
       case 'state_write': {
+        const mode = validateStateModeSegment(rawArgs.mode);
+        if (isTrackedWorkflowMode(mode)) assertRunnableWorkflowMode(mode, 'write');
         const stateScope = await resolveWritableStateScope(cwd, explicitSessionId);
         const effectiveSessionId = stateScope.sessionId;
-        const mode = validateStateModeSegment(rawArgs.mode);
         const { baseStateDir, rootSource } = getBaseStateDirWithSource(cwd);
         await initializeStateEnvironment(cwd, effectiveSessionId, rootSource);
         const path = getStatePath(mode, cwd, effectiveSessionId);
@@ -1051,6 +1081,12 @@ export async function executeStateOperation(
             await unlink(path);
             removedPaths.push(path);
           }
+          if (mode === 'team') {
+            const runPaths = await getAllScopedStatePaths('run', cwd);
+            for (const runPath of runPaths) {
+              if (await clearRetiredTeamRunState(runPath)) removedPaths.push(runPath);
+            }
+          }
           const canonicalPaths = mode === SKILL_ACTIVE_STATE_MODE
             ? []
             : await getAllScopedStatePaths(SKILL_ACTIVE_STATE_MODE, cwd);
@@ -1089,6 +1125,9 @@ export async function executeStateOperation(
           await writeClearedSessionScopedModeState(path, mode, effectiveSessionId);
         } else if (existsSync(path)) {
           await unlink(path);
+        }
+        if (mode === 'team') {
+          await clearRetiredTeamRunState(getStatePath('run', cwd, effectiveSessionId));
         }
         const nativeStopCleared = effectiveSessionId
           ? await clearSessionNativeStopState(baseStateDir, effectiveSessionId)

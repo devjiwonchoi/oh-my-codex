@@ -7,7 +7,10 @@ import { readFile, writeFile, mkdir, readdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { withModeRuntimeContext } from '../state/mode-state-context.js';
 import {
+  assertRunnableWorkflowMode,
   assertWorkflowTransitionAllowed,
+  isRunnableWorkflowMode,
+  isRetiredTeamCompatibilityState,
   isTrackedWorkflowMode,
   readActiveWorkflowModes,
 } from '../state/workflow-transition.js';
@@ -144,6 +147,7 @@ export async function assertModeStartAllowed(
   mode: ModeName,
   projectRoot?: string,
 ): Promise<void> {
+  assertRunnableWorkflowMode(mode, 'start');
   if (!isTrackedWorkflowMode(mode)) return;
   const scope = await resolveWritableStateScope(projectRoot);
 
@@ -160,6 +164,7 @@ export async function startMode(
   maxIterations: number = 50,
   projectRoot?: string
 ): Promise<ModeState> {
+  assertRunnableWorkflowMode(mode, 'start');
   const scope = await resolveWritableStateScope(projectRoot);
   const dir = stateDir(projectRoot);
   await mkdir(dir, { recursive: true });
@@ -282,6 +287,7 @@ export async function updateModeState(
   explicitSessionId?: string,
   options: UpdateModeStateOptions = {},
 ): Promise<ModeState> {
+  if (isTrackedWorkflowMode(mode)) assertRunnableWorkflowMode(mode, 'write');
   const scope = await resolveWritableStateScope(projectRoot, explicitSessionId);
   const baseStateDir = getBaseStateDir(projectRoot);
   const current = mode === 'ralph' && scope.sessionId
@@ -419,9 +425,11 @@ export async function cancelAllModes(projectRoot?: string): Promise<string[]> {
     for (const f of files) {
       if (!f.endsWith('-state.json')) continue;
       const mode = f.replace('-state.json', '');
+      if (isTrackedWorkflowMode(mode) && !isRunnableWorkflowMode(mode)) continue;
       if (seenModes.has(mode)) continue;
       seenModes.add(mode);
       const state = await readModeState(mode, projectRoot);
+      if (state && isRetiredTeamCompatibilityState(mode, state)) continue;
       if (state?.active) {
         await cancelMode(mode, projectRoot);
         cancelled.push(mode);
@@ -445,9 +453,11 @@ export async function listActiveModes(projectRoot?: string): Promise<Array<{ mod
     for (const f of files) {
       if (!f.endsWith('-state.json')) continue;
       const mode = f.replace('-state.json', '');
+      if (isTrackedWorkflowMode(mode) && !isRunnableWorkflowMode(mode)) continue;
       if (seenModes.has(mode)) continue;
       seenModes.add(mode);
       const state = await readModeState(mode, projectRoot);
+      if (state && isRetiredTeamCompatibilityState(mode, state)) continue;
       if (state?.active) {
         active.push({ mode, state });
       }

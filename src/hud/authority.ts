@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
@@ -76,28 +76,60 @@ async function defaultRunProcess(
     timeoutMs: number;
   },
 ): Promise<void> {
-  const result = spawnSync(nodePath, args, {
+  const child = spawn(nodePath, args, {
     cwd: options.cwd,
     env: options.env,
-    encoding: 'utf-8',
     stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: options.timeoutMs,
     windowsHide: true,
   });
-  if (result.status !== 0) {
-    const output = [result.error?.message, result.stderr, result.stdout]
-      .map((value) => value?.trim() ?? '')
-      .filter(Boolean)
-      .join('\n')
-      .trim();
-    const suffix = result.signal
-      ? `signal ${result.signal}`
-      : `status ${result.status ?? 'unknown'}`;
-    throw new Error(output ? `hud authority tick failed with ${suffix}: ${output}` : `hud authority tick failed with ${suffix}`);
-  }
-  if (result.error) {
-    throw new Error(`hud authority tick failed: ${result.error.message}`);
-  }
+
+  await new Promise<void>((resolve, reject) => {
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    const append = (current: string, chunk: Buffer): string =>
+      `${current}${chunk.toString('utf8')}`.slice(-16_384);
+    child.stdout?.on('data', (chunk: Buffer) => {
+      stdout = append(stdout, chunk);
+    });
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderr = append(stderr, chunk);
+    });
+
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolve();
+    };
+    const timer = setTimeout(() => {
+      child.kill();
+      finish(new Error(`hud authority tick failed after ${options.timeoutMs}ms timeout`));
+    }, options.timeoutMs);
+    timer.unref?.();
+
+    child.once('error', (error) => {
+      finish(new Error(`hud authority tick failed: ${error.message}`));
+    });
+    child.once('close', (status, signal) => {
+      if (status === 0) {
+        finish();
+        return;
+      }
+      const output = [stderr, stdout]
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+      const suffix = signal ? `signal ${signal}` : `status ${status ?? 'unknown'}`;
+      finish(new Error(
+        output
+          ? `hud authority tick failed with ${suffix}: ${output}`
+          : `hud authority tick failed with ${suffix}`,
+      ));
+    });
+  });
 }
 
 function asPositiveNumber(value: string | number | undefined, fallback: number): number {
@@ -352,14 +384,14 @@ export async function runHudAuthorityTick(
   const minIntervalMs = Math.max(
     250,
     asPositiveNumber(
-      options.minIntervalMs ?? options.env?.NOMX_HUD_AUTHORITY_MIN_INTERVAL_MS ?? process.env.NOMX_HUD_AUTHORITY_MIN_INTERVAL_MS,
+      options.minIntervalMs ?? options.env?.NOMX_HUD_FALLBACK_MIN_INTERVAL_MS ?? process.env.NOMX_HUD_FALLBACK_MIN_INTERVAL_MS,
       5_000,
     ),
   );
   const jitterMaxMs = Math.max(
     0,
     asNonNegativeNumber(
-      options.jitterMs ?? options.env?.NOMX_HUD_AUTHORITY_JITTER_MS ?? process.env.NOMX_HUD_AUTHORITY_JITTER_MS,
+      options.jitterMs ?? options.env?.NOMX_HUD_FALLBACK_JITTER_MS ?? process.env.NOMX_HUD_FALLBACK_JITTER_MS,
       250,
     ),
   );
@@ -465,7 +497,7 @@ export async function runHudAuthorityTick(
       [
         watcherScript,
         '--once',
-        '--authority-only',
+        '--fallback-if-primary-idle',
         '--cwd',
         cwd,
         '--notify-script',
@@ -478,9 +510,9 @@ export async function runHudAuthorityTick(
         env: {
           ...process.env,
           ...(options.env ?? {}),
-          NOMX_HUD_AUTHORITY: '1',
-          NOMX_HUD_AUTHORITY_MIN_INTERVAL_MS: String(minIntervalMs),
-          NOMX_HUD_AUTHORITY_JITTER_MS: String(jitterMaxMs),
+          NOMX_HUD_FALLBACK: '1',
+          NOMX_HUD_FALLBACK_MIN_INTERVAL_MS: String(minIntervalMs),
+          NOMX_HUD_FALLBACK_JITTER_MS: String(jitterMaxMs),
         },
         timeoutMs,
       },

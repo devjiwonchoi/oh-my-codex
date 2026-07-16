@@ -74,25 +74,30 @@ describe('agents model table', () => {
     });
   });
 
-  it('builds table rows for summary roles, exact pins, and posture/modelClass-driven recommendations', () => {
-    const table = buildAgentsModelTable({
-      frontierModel: 'gpt-frontier',
-      sparkModel: 'gpt-spark',
-      subagentDefaultModel: 'gpt-standard',
-    });
+  it('builds table rows for summary roles, exact pins, and posture/modelClass-driven recommendations', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'nomx-empty-model-home-'));
+    try {
+      const table = buildAgentsModelTable({
+        frontierModel: 'gpt-frontier',
+        sparkModel: 'gpt-spark',
+        subagentDefaultModel: 'gpt-standard',
+      }, undefined, { codexHomeOverride: codexHome });
 
-    assert.match(table, /\| Frontier \(leader\) \| `gpt-frontier` \| high \|/);
-    assert.match(table, /\| Spark \(explorer\/fast\) \| `gpt-spark` \| low \|/);
-    assert.match(table, /\| Standard \(subagent default\) \| `gpt-standard` \| high \|/);
-    assert.match(table, /\| `explore` \| `gpt-spark` \| low \| Fast codebase search and file\/symbol mapping \(fast-lane, fast\) \|/);
-    assert.match(table, /\| `planner` \| `gpt-5\.5` \| medium \| Task sequencing, execution plans, risk flags \(frontier-orchestrator, frontier\) \|/);
-    assert.match(table, /\| `architect` \| `gpt-5\.5` \| xhigh \| System design, boundaries, interfaces, long-horizon tradeoffs \(frontier-orchestrator, frontier\) \|/);
-    assert.doesNotMatch(table, /\| `security-reviewer` \|/);
-    assert.doesNotMatch(table, /\| `build-fixer` \|/);
-    assert.match(table, /\| `code-reviewer` \| `gpt-5\.5` \| high \| Comprehensive review across all concerns \(frontier-orchestrator, frontier\) \|/);
-    assert.match(table, /\| `critic` \| `gpt-5\.5` \| high \| Plan\/design critical challenge and review \(frontier-orchestrator, frontier\) \|/);
-    assert.match(table, /\| `writer` \| `gpt-standard` \| high \| Documentation, migration notes, user guidance \(fast-lane, standard\) \|/);
-    assert.match(table, /\| `executor` \| `gpt-5\.5` \| medium \| Code implementation, refactoring, feature work \(deep-worker, standard\) \|/);
+      assert.match(table, /\| Frontier \(leader\) \| `gpt-frontier` \| high \|/);
+      assert.match(table, /\| Spark \(explorer\/fast\) \| `gpt-spark` \| low \|/);
+      assert.match(table, /\| Standard \(subagent default\) \| `gpt-standard` \| high \|/);
+      assert.match(table, /\| `explore` \| `gpt-spark` \| low \| Fast codebase search and file\/symbol mapping \(fast-lane, fast\) \|/);
+      assert.match(table, /\| `planner` \| `gpt-5\.6-sol` \| medium \| Task sequencing, execution plans, risk flags \(frontier-orchestrator, frontier\) \|/);
+      assert.match(table, /\| `architect` \| `gpt-5\.6-sol` \| xhigh \| System design, boundaries, interfaces, long-horizon tradeoffs \(frontier-orchestrator, frontier\) \|/);
+      assert.doesNotMatch(table, /\| `security-reviewer` \|/);
+      assert.doesNotMatch(table, /\| `build-fixer` \|/);
+      assert.match(table, /\| `code-reviewer` \| `gpt-frontier` \| high \| Comprehensive review across all concerns \(frontier-orchestrator, frontier\) \|/);
+      assert.match(table, /\| `critic` \| `gpt-frontier` \| high \| Plan\/design critical challenge and review \(frontier-orchestrator, frontier\) \|/);
+      assert.match(table, /\| `writer` \| `gpt-standard` \| high \| Documentation, migration notes, user guidance \(fast-lane, standard\) \|/);
+      assert.match(table, /\| `executor` \| `gpt-frontier` \| medium \| Code implementation, refactoring, feature work \(deep-worker, standard\) \|/);
+    } finally {
+      await rm(codexHome, { recursive: true, force: true });
+    }
   });
 
   it('reflects per-agent model and reasoning overrides', async () => {

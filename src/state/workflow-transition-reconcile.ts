@@ -5,8 +5,8 @@ import { getStatePath } from '../mcp/state-paths.js';
 import {
   buildWorkflowTransitionError,
   evaluateWorkflowTransition,
-  isTrackedWorkflowMode,
-  TRACKED_WORKFLOW_MODES,
+  isRunnableWorkflowMode,
+  RUNNABLE_WORKFLOW_MODES,
   type TrackedWorkflowMode,
   type WorkflowTransitionAction,
   type WorkflowTransitionDecision,
@@ -80,7 +80,7 @@ async function assertAuthoritativeWorkflowStateReadable(
   sessionId?: string,
   baseStateDir?: string,
 ): Promise<void> {
-  for (const mode of TRACKED_WORKFLOW_MODES) {
+  for (const mode of RUNNABLE_WORKFLOW_MODES) {
     const candidatePath = modeStatePathForRoot(mode, cwd, sessionId, baseStateDir);
     await readJsonIfExists(candidatePath, { mode, throwOnParseError: true });
   }
@@ -102,12 +102,12 @@ async function visibleTrackedModes(
     : await readVisibleSkillActiveState(cwd, sessionId);
   const canonicalModes = listTransitionActiveSkills(canonical ?? {}, sessionId)
     .map((entry) => entry.skill)
-    .filter(isTrackedWorkflowMode);
+    .filter(isRunnableWorkflowMode);
 
   if (sessionId) return [...new Set(canonicalModes)];
 
   const activeDetailModes: TrackedWorkflowMode[] = [];
-  for (const mode of TRACKED_WORKFLOW_MODES) {
+  for (const mode of RUNNABLE_WORKFLOW_MODES) {
     const state = await readJsonIfExists(modeStatePathForRoot(mode, cwd, undefined, baseStateDir), {
       mode,
       throwOnParseError: true,
@@ -249,7 +249,7 @@ export async function reconcileWorkflowTransition(
     await assertAuthoritativeWorkflowStateReadable(cwd, sessionId, baseStateDir);
   }
   const currentModes = options.currentModes
-    ? [...options.currentModes].filter(isTrackedWorkflowMode)
+    ? [...options.currentModes].filter(isRunnableWorkflowMode)
     : await visibleTrackedModes(cwd, sessionId, baseStateDir);
   const decision = evaluateWorkflowTransition(currentModes, requestedMode);
 

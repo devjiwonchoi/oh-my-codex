@@ -1,5 +1,6 @@
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { existsSync, lstatSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import {
 	chmod,
@@ -46,6 +47,14 @@ import { createNomxRootMetadata } from "../../identity/schema.js";
 
 
 const packageRoot = process.cwd();
+const RETIRED_TEAM_EXECUTOR_PROMPT = readFileSync(
+	join(packageRoot, "src", "cli", "__tests__", "fixtures", "retired-prompts", "team-executor.md"),
+	"utf8",
+);
+const RETIRED_QA_TESTER_PROMPT = readFileSync(
+	join(packageRoot, "src", "cli", "__tests__", "fixtures", "retired-prompts", "qa-tester.md"),
+	"utf8",
+);
 let previousPathForFakeCodex: string | undefined;
 let fakeCodexBinDir: string | null = null;
 
@@ -968,7 +977,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 
-	it("installs native agent TOML files in plugin mode so agent_type roles are available", async () => {
+	it("installs native agent TOML files in plugin mode for supported native role discovery", async () => {
 		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -996,7 +1005,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 
-	it("keeps legacy-mode next steps describing native agent TOML output", async () => {
+	it("keeps legacy-mode next steps describing native agent TOML output without unsupported spawn fields", async () => {
 		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
@@ -1008,8 +1017,9 @@ describe("nomx setup install mode behavior", () => {
 				assert.match(output, /Next steps:/);
 				assert.match(
 					output,
-					/Native agent role TOML files written to \.codex\/agents\/; use explicit agent_type when spawning NOMX roles/,
+					/Native agent role TOML files written to \.codex\/agents\/ for native role discovery where supported/,
 				);
+				assert.doesNotMatch(output, /use explicit agent_type/i);
 			});
 		} finally {
 			await rm(wd, { recursive: true, force: true });
@@ -1899,7 +1909,7 @@ describe("nomx setup install mode behavior", () => {
 					assert.match(config, /User-installed skills may still live under ~\/.codex\/skills/);
 					assert.match(
 						config,
-						/native agent roles are installed as setup-owned Codex agent TOML files in plugin mode so agent_type routing works/i,
+						/native agent roles are installed as setup-owned Codex agent TOML files in plugin mode for role discovery on native surfaces that support it/i,
 					);
 					assert.match(
 						config,
@@ -1944,7 +1954,7 @@ describe("nomx setup install mode behavior", () => {
 					assert.match(agentsMd, /User-installed skills may still live under `~\/.codex\/skills`/);
 					assert.match(
 						agentsMd,
-						/native agent roles are installed as setup-owned Codex agent TOML files in plugin mode so agent_type routing works/i,
+						/native agent roles are installed as setup-owned Codex agent TOML files in plugin mode for role discovery on native surfaces that support it/i,
 					);
 					assert.doesNotMatch(agentsMd, /Role prompts under `prompts\/\*\.md`/);
 					assert.doesNotMatch(agentsMd, /load the installed prompt\/skill\/agent surfaces from/);
@@ -3863,6 +3873,91 @@ describe("nomx setup install mode behavior", () => {
 						),
 						false,
 					);
+				});
+			});
+		} finally {
+			await rm(wd, { recursive: true, force: true });
+		}
+	});
+
+	it("removes retired NOMX-owned prompts and native agents during ordinary plugin refresh while preserving user assets", async () => {
+		const wd = await mkdtemp(join(tmpdir(), "nomx-plugin-retired-assets-"));
+		try {
+			await withIsolatedUserHome(wd, async (codexHomeDir) => {
+				await withTempCwd(wd, async () => {
+					await setup({ scope: "user", installMode: "legacy" });
+					const promptsDir = join(codexHomeDir, "prompts");
+					const skillsDir = join(codexHomeDir, "skills");
+					const agentsDir = join(codexHomeDir, "agents");
+
+					await writeFile(join(promptsDir, "team-executor.md"), RETIRED_TEAM_EXECUTOR_PROMPT);
+					await writeFile(join(promptsDir, "qa-tester.md"), RETIRED_QA_TESTER_PROMPT);
+					const retiredAgentContent =
+						'# nomx agent: team-executor\nname = "team-executor"\n';
+					await writeFile(
+						join(agentsDir, "team-executor.toml"),
+						retiredAgentContent,
+					);
+					const nativeAgentManifestPath = join(
+						codexHomeDir,
+						".nomx",
+						"native-agents.json",
+					);
+					const nativeAgentManifest = JSON.parse(
+						await readFile(nativeAgentManifestPath, "utf8"),
+					) as { version: 1; files: Record<string, { sha256: string }> };
+					nativeAgentManifest.files["team-executor.toml"] = {
+						sha256: createHash("sha256").update(retiredAgentContent).digest("hex"),
+					};
+					await writeFile(
+						nativeAgentManifestPath,
+						`${JSON.stringify(nativeAgentManifest, null, 2)}\n`,
+					);
+
+					const dryRunOutput = await captureConsoleOutput(async () => {
+						await setup({
+							scope: "user",
+							installMode: "plugin",
+							force: true,
+							dryRun: true,
+							pluginAgentsMdPrompt: async () => false,
+						});
+					});
+					assert.match(dryRunOutput, /native_agents: .*removed=1/);
+					assert.equal(existsSync(join(agentsDir, "team-executor.toml")), true);
+
+					await setup({
+						scope: "user",
+						installMode: "plugin",
+						pluginAgentsMdPrompt: async () => false,
+					});
+
+					for (const promptName of ["team-executor.md", "qa-tester.md"]) {
+						assert.equal(existsSync(join(promptsDir, promptName)), false);
+					}
+					assert.equal(existsSync(join(agentsDir, "team-executor.toml")), false);
+
+					await mkdir(promptsDir, { recursive: true });
+					await mkdir(join(skillsDir, "team"), { recursive: true });
+					await mkdir(join(skillsDir, "worker"), { recursive: true });
+					const userAssets = new Map([
+						[join(promptsDir, "team-executor.md"), `${RETIRED_TEAM_EXECUTOR_PROMPT}# local customization\n`],
+						[join(promptsDir, "qa-tester.md"), `${RETIRED_QA_TESTER_PROMPT}# local customization\n`],
+						[join(skillsDir, "team", "SKILL.md"), "---\nname: team\ndescription: local team skill\n---\n"],
+						[join(skillsDir, "worker", "SKILL.md"), "---\nname: worker\ndescription: local worker skill\n---\n"],
+						[join(agentsDir, "team-executor.toml"), 'name = "team-executor"\n'],
+					]);
+					for (const [path, content] of userAssets) await writeFile(path, content);
+
+					await setup({
+						scope: "user",
+						installMode: "plugin",
+						pluginAgentsMdPrompt: async () => false,
+					});
+
+					for (const [path, content] of userAssets) {
+						assert.equal(await readFile(path, "utf8"), content);
+					}
 				});
 			});
 		} finally {

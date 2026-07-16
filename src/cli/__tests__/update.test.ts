@@ -526,9 +526,11 @@ describe('maybeCheckAndPromptUpdate', () => {
     const originalCodexHome = process.env.CODEX_HOME;
     const codexHome = join(cwd, '.codex');
     const stampPath = join(codexHome, '.nomx', 'install-state.json');
+    const originalMode = process.env.NOMX_AUTO_UPDATE;
     let promptCalls = 0;
     let updateAttempts = 0;
     process.env.CODEX_HOME = codexHome;
+    delete process.env.NOMX_AUTO_UPDATE;
 
     try {
       await mkdir(join(codexHome, '.nomx'), { recursive: true });
@@ -567,14 +569,21 @@ describe('maybeCheckAndPromptUpdate', () => {
       } else {
         delete process.env.CODEX_HOME;
       }
+      if (typeof originalMode === 'string') {
+        process.env.NOMX_AUTO_UPDATE = originalMode;
+      } else {
+        delete process.env.NOMX_AUTO_UPDATE;
+      }
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it('uses the artifact version when it is newer than the stamped dev baseline', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'omx-update-dev-baseline-outrun-'));
+    const originalMode = process.env.NOMX_AUTO_UPDATE;
     let promptCalls = 0;
     let updateAttempts = 0;
+    delete process.env.NOMX_AUTO_UPDATE;
 
     try {
       await withInteractiveTty(async () => {
@@ -606,6 +615,11 @@ describe('maybeCheckAndPromptUpdate', () => {
       assert.equal(promptCalls, 1);
       assert.equal(updateAttempts, 0);
     } finally {
+      if (typeof originalMode === 'string') {
+        process.env.NOMX_AUTO_UPDATE = originalMode;
+      } else {
+        delete process.env.NOMX_AUTO_UPDATE;
+      }
       await rm(cwd, { recursive: true, force: true });
     }
   });
@@ -1070,7 +1084,6 @@ describe('runImmediateUpdate', () => {
             '--plugin',
             '--mcp',
             'none',
-            '--disable-team',
           ]);
           return { ok: true, stderr: '' };
         },
@@ -1411,7 +1424,8 @@ describe('runDeferredGlobalUpdate', () => {
 
       assert.equal(result.ok, true);
       assert.equal(calls.length, 1);
-      assert.match(calls[0].args[1], /'nomx' 'setup' '--scope' 'user' '--plugin' '--mcp' 'none' '--disable-team'/);
+      assert.match(calls[0].args[1], /'nomx' 'setup' '--scope' 'user' '--plugin' '--mcp' 'none'/);
+      assert.doesNotMatch(calls[0].args[1], /--(?:enable|disable)-team/);
       assert.equal((calls[0].options as { env?: NodeJS.ProcessEnv } | undefined)?.env?.NOMX_SKIP_NATIVE_AGENT_REFRESH, '1');
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -1453,7 +1467,8 @@ describe('runDeferredGlobalUpdate', () => {
 
       assert.equal(result.ok, true);
       assert.equal(calls.length, 1);
-      assert.match(calls[0].args[1], /'nomx' 'setup' '--scope' 'user' '--plugin' '--mcp' 'none' '--disable-team'/);
+      assert.match(calls[0].args[1], /'nomx' 'setup' '--scope' 'user' '--plugin' '--mcp' 'none'/);
+      assert.doesNotMatch(calls[0].args[1], /--(?:enable|disable)-team/);
       assert.doesNotMatch(calls[0].args[1], /compat/);
       assert.doesNotMatch(calls[0].args[1], /legacy/);
     } finally {
@@ -1567,7 +1582,7 @@ describe('post-update setup refresh handoff', () => {
         '--plugin',
         '--mcp',
         'none',
-        '--disable-team',
+		'--require-complete',
       ]);
       assert.deepEqual(resolveSetupRefreshArgs(cwd), [
         'setup',
@@ -1576,7 +1591,6 @@ describe('post-update setup refresh handoff', () => {
         '--plugin',
         '--mcp',
         'none',
-        '--disable-team',
       ]);
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -1618,7 +1632,7 @@ describe('persisted merge policy update replay', () => {
       assert.deepEqual(resolveSetupRefreshArgs(cwd), ['setup', '--scope', 'user', '--plugin', '--merge-agents']);
 
       await writeFile(statePath, JSON.stringify({ scope: 'project', mcpMode: 'compat', teamMode: 'disabled', mergeAgents: false }));
-      assert.deepEqual(resolveSetupRefreshArgs(cwd), ['setup', '--scope', 'project', '--mcp', 'compat', '--disable-team', '--no-merge-agents']);
+      assert.deepEqual(resolveSetupRefreshArgs(cwd), ['setup', '--scope', 'project', '--mcp', 'compat', '--no-merge-agents']);
       assert.doesNotMatch(resolveSetupRefreshArgs(cwd).join(' '), /--force/);
     } finally {
       await rm(cwd, { recursive: true, force: true });

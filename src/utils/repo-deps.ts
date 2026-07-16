@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, rmSync, symlinkSync } from 'node:fs';
+import { existsSync, lstatSync, symlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { basename, dirname, join, resolve } from 'node:path';
 
@@ -57,7 +57,6 @@ export function resolveReusableNodeModulesSource(repoRoot: string, gitRunner = s
 
 export interface EnsureReusableNodeModulesOptions {
   gitRunner?: typeof spawnSync;
-  remove?: typeof rmSync;
   symlink?: typeof symlinkSync;
   platformName?: string;
 }
@@ -75,21 +74,16 @@ export function ensureReusableNodeModules(
 ): EnsureReusableNodeModulesResult {
   const {
     gitRunner = spawnSync,
-    remove = rmSync,
     symlink = symlinkSync,
     platformName = process.platform,
   } = options;
 
   const targetNodeModules = join(repoRoot, 'node_modules');
-  if (hasUsableNodeModules(repoRoot)) {
+  if (hasNodeModulesPath(targetNodeModules)) {
     return {
       strategy: 'existing',
       nodeModulesPath: targetNodeModules,
     };
-  }
-
-  if (hasNodeModulesPath(targetNodeModules)) {
-    remove(targetNodeModules, { recursive: true, force: true });
   }
 
   const reusableNodeModules = resolveReusableNodeModulesSource(repoRoot, gitRunner);

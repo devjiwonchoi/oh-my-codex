@@ -309,9 +309,8 @@ export async function resolveSessionOrchestrationMode(
 export async function generateOverlay(
   cwd: string,
   sessionId?: string,
-  options: GenerateOverlayOptions = {},
+  _options: GenerateOverlayOptions = {},
 ): Promise<string> {
-  const orchestrationMode = options.orchestrationMode ?? "default";
   const [
     activeModes,
     notepadPriority,

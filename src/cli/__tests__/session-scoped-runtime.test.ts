@@ -27,7 +27,7 @@ function runOmxWithEnv(cwd: string, env: NodeJS.ProcessEnv, ...args: string[]) {
 }
 
 describe('CLI session-scoped state parity', () => {
-  it('status and cancel include session-scoped states', async () => {
+  it('status and cancel ignore retired session-scoped Team state', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-session-scope-'));
     try {
       await mkdir(join(wd, '.nomx', 'state'), { recursive: true });
@@ -38,20 +38,40 @@ describe('CLI session-scoped state parity', () => {
         active: true,
         current_phase: 'team-exec',
       }));
+      await writeFile(join(scopedDir, 'run-state.json'), JSON.stringify({
+        active: true,
+        mode: 'team',
+        current_phase: 'team-exec',
+      }));
+      await writeFile(join(scopedDir, 'skill-active-state.json'), JSON.stringify({
+        active: true,
+        skill: 'team',
+        active_skills: [{ skill: 'team', phase: 'team-exec', active: true }],
+      }));
 
       const statusResult = runOmx(wd, 'status');
       if (statusResult.error && /(EPERM|EACCES)/i.test(statusResult.error.message)) return;
       assert.equal(statusResult.status, 0, statusResult.stderr || statusResult.stdout);
-      assert.match(statusResult.stdout, /team: ACTIVE/);
+      assert.match(statusResult.stdout, /No active modes\./);
+      assert.doesNotMatch(statusResult.stdout, /team: ACTIVE/);
 
       const cancelResult = runOmx(wd, 'cancel');
       assert.equal(cancelResult.status, 0, cancelResult.stderr || cancelResult.stdout);
-      assert.match(cancelResult.stdout, /Cancelled: team/);
+      assert.match(cancelResult.stdout, /No active modes to cancel\./);
+      assert.doesNotMatch(cancelResult.stdout, /Cancelled: team/);
 
       const updated = JSON.parse(await readFile(join(scopedDir, 'team-state.json'), 'utf-8'));
-      assert.equal(updated.active, false);
-      assert.equal(updated.current_phase, 'cancelled');
-      assert.ok(typeof updated.completed_at === 'string' && updated.completed_at.length > 0);
+      assert.equal(updated.active, true);
+      assert.equal(updated.current_phase, 'team-exec');
+      assert.equal(updated.completed_at, undefined);
+      assert.equal(
+        JSON.parse(await readFile(join(scopedDir, 'run-state.json'), 'utf-8')).active,
+        true,
+      );
+      assert.equal(
+        JSON.parse(await readFile(join(scopedDir, 'skill-active-state.json'), 'utf-8')).active,
+        true,
+      );
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
