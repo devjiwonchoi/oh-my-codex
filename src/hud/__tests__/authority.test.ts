@@ -70,7 +70,7 @@ describe('runHudAuthorityTick', () => {
     }
   });
 
-  it('invokes fallback watcher in authority-only mode with HUD env', async () => {
+  it('invokes the fallback watcher only when the primary watcher is idle', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'nomx-hud-authority-env-'));
     const calls: Array<{
       nodePath: string;
@@ -105,7 +105,7 @@ describe('runHudAuthorityTick', () => {
       assert.equal(typeof call.args[0], 'string');
       assert.equal(call.args[0].endsWith('/dist/scripts/notify-fallback-watcher.js'), true);
       assert.equal(call.args[1], '--once');
-      assert.equal(call.args[2], '--authority-only');
+      assert.equal(call.args[2], '--fallback-if-primary-idle');
       assert.equal(call.args[3], '--cwd');
       assert.equal(call.args[4], cwd);
       assert.equal(call.args[5], '--notify-script');
@@ -114,9 +114,9 @@ describe('runHudAuthorityTick', () => {
       assert.equal(call.args[8], '75');
       assert.equal(call.options.cwd, cwd);
       assert.equal(call.options.timeoutMs, 4321);
-      assert.equal(call.options.env.NOMX_HUD_AUTHORITY, '1');
-      assert.equal(call.options.env.NOMX_HUD_AUTHORITY_MIN_INTERVAL_MS, '5000');
-      assert.equal(call.options.env.NOMX_HUD_AUTHORITY_JITTER_MS, '250');
+      assert.equal(call.options.env.NOMX_HUD_FALLBACK, '1');
+      assert.equal(call.options.env.NOMX_HUD_FALLBACK_MIN_INTERVAL_MS, '5000');
+      assert.equal(call.options.env.NOMX_HUD_FALLBACK_JITTER_MS, '250');
       assert.equal(call.options.env.CUSTOM_ENV, '1');
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -164,7 +164,7 @@ describe('runHudAuthorityTick', () => {
       const canonicalCliRoot = await realpath(cliRoot);
       assert.equal(calls[0]!.args[0], join(canonicalCliRoot, 'dist', 'scripts', 'notify-fallback-watcher.js'));
       assert.equal(calls[0]!.args[6], join(canonicalCliRoot, 'dist', 'scripts', 'notify-hook.js'));
-      assert.equal(calls[0]!.options.env.NOMX_HUD_AUTHORITY, '1');
+      assert.equal(calls[0]!.options.env.NOMX_HUD_FALLBACK, '1');
     } finally {
       await rm(packageRoot, { recursive: true, force: true });
       await rm(cwd, { recursive: true, force: true });
@@ -209,7 +209,7 @@ describe('runHudAuthorityTick', () => {
         },
       );
 
-      assert.equal(calls.length, 1, 'second HUD frame should not respawn an authority-only child');
+      assert.equal(calls.length, 1, 'second HUD frame should not respawn a fallback child');
       const state = JSON.parse(await readFile(join(cwd, '.nomx', 'state', 'notify-fallback-authority-state.json'), 'utf-8'));
       assert.equal(state.last_status, 'skipped');
       assert.equal(state.last_reason, 'rate_limited');

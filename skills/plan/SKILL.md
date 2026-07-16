@@ -96,7 +96,7 @@ Jumping into code without understanding requirements leads to rework, scope cree
    d. Note which improvements were applied in a brief changelog section at the end of the plan
    g. For parallel execution, add explicit native-subagent staffing guidance and a verification path. Ultragoal remains the default durable follow-up and ledger owner; Ralph is only an explicitly requested persistent sequential verification or fix lane.
 7. On Critic approval (with improvements applied): *(--interactive only)* If running with `--interactive`, use `AskUserQuestion` / the structured question UI to present the plan with these options:
-   - **Approve and implement via team** — proceed to implementation via coordinated parallel team agents
+   - **Approve and implement with native subagents** — proceed through bounded parallel lanes with leader-owned integration
    - **Start goal-mode follow-up** — proceed via `$ultragoal`
    - **Request changes** — return to step 1 with user feedback
    - **Reject** — discard the plan entirely
@@ -207,7 +207,7 @@ Why bad: Decision fatigue. Present one option with trade-offs, get reaction, the
 <Escalation_And_Stop_Conditions>
 - Stop interviewing when requirements are clear enough to plan -- do not over-interview
 - In consensus mode, stop after 5 Planner/Architect/Critic iterations and present the best version
-- Consensus mode outputs the plan by default; with `--interactive`, user can approve and hand off to ultragoal/team, with Ralph only as an explicit legacy/persistent single-owner lane
+- Consensus mode outputs the plan by default; with `--interactive`, the user can approve an Ultragoal handoff or leader-owned native-subagent execution, with Ralph only as an explicit legacy/persistent single-owner lane
 - If the user says "just do it" or "skip planning", **MUST** invoke `$ultragoal` to transition to durable goal execution mode by default; use `$ralph` only when the user explicitly asks for that fallback. Do NOT implement directly in the planning agent.
 - Escalate to the user when there are irreconcilable trade-offs that require a business decision
 </Escalation_And_Stop_Conditions>

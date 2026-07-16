@@ -30,6 +30,7 @@ import {
 import {
   buildWorkflowTransitionError,
   evaluateWorkflowTransition,
+  isRunnableWorkflowMode,
   isTrackedWorkflowMode,
   type DownstreamAuthority,
   type TrackedWorkflowMode,
@@ -3438,7 +3439,7 @@ function shouldReusePreviousSkillForContinuation(
   classification: KeywordInputClassification,
 ): boolean {
   const previousSkill = safeString(previous?.skill).trim();
-  if (!previousSkill || previous?.active !== true || !isTrackedWorkflowMode(previousSkill)) {
+  if (!previousSkill || previous?.active !== true || !isRunnableWorkflowMode(previousSkill)) {
     return false;
   }
 
@@ -3678,7 +3679,7 @@ function resolveContinuationKeywordMatch(
   classification: KeywordInputClassification,
 ): KeywordMatch | null {
   const previousSkill = safeString(previous?.skill).trim();
-  if (!previousSkill || previous?.active !== true || !isTrackedWorkflowMode(previousSkill)) {
+  if (!previousSkill || previous?.active !== true || !isRunnableWorkflowMode(previousSkill)) {
     return fallbackMatch;
   }
 
@@ -3900,7 +3901,7 @@ export async function recordSkillActivation(input: RecordSkillActivationInput): 
   const preserveActivatedAt = sameSkill && !matchedModeTerminal && (sameKeyword || sameSkillContinuation);
   const previousEntries = listActiveSkills(previous ?? {});
   const previousWorkflowEntries = previousEntries.filter((entry) => (
-    isTrackedWorkflowMode(entry.skill)
+    isRunnableWorkflowMode(entry.skill)
     && (input.allowSecondaryAutopilot !== false || entry.skill !== 'autopilot' || entry.skill === match.skill)
     && (
       !input.sessionId

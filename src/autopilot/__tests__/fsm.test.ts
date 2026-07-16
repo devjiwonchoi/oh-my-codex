@@ -12,7 +12,7 @@ describe('autopilot supervisor FSM helpers', () => {
   it('normalizes only known Autopilot runtime phases', () => {
     assert.equal(normalizeAutopilotPhase('deep_interview'), 'deep-interview');
     assert.equal(normalizeAutopilotPhase('waiting_for_user'), 'waiting-for-user');
-    assert.equal(normalizeAutopilotPhase('team'), 'team');
+    assert.equal(normalizeAutopilotPhase('team'), 'ultragoal');
     assert.equal(normalizeAutopilotPhase('review_fix'), 'rework');
     assert.equal(normalizeAutopilotPhase('implementation-fix'), 'rework');
     assert.equal(normalizeAutopilotPhase('ralph'), 'ralph');
@@ -54,12 +54,12 @@ describe('autopilot supervisor FSM helpers', () => {
     assert.equal(deriveAutopilotStageLabel(waitingState), 'autopilot:deep-interview');
   });
 
-  it('recognizes documented conditional and legacy supervised phases', () => {
+  it('maps the retired Team phase to the supported Ultragoal continuation lane', () => {
     assert.equal(deriveAutopilotStageLabel({
       mode: 'autopilot',
       active: true,
       current_phase: 'team',
-    }), 'autopilot:team');
+    }), 'autopilot:ultragoal');
     assert.equal(deriveAutopilotStageLabel({
       mode: 'autopilot',
       active: true,

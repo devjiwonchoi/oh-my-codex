@@ -399,7 +399,7 @@ describe('state-server directory initialization', () => {
           name: 'state_write',
           arguments: {
             workingDirectory: wd,
-            mode: 'team',
+            mode: 'ultrawork',
             active: false,
             run_outcome: 'cancelled',
           },
@@ -411,7 +411,7 @@ describe('state-server directory initialization', () => {
           name: 'state_read',
           arguments: {
             workingDirectory: wd,
-            mode: 'team',
+            mode: 'ultrawork',
           },
         },
       });
@@ -536,7 +536,7 @@ describe('state-server directory initialization', () => {
           name: 'state_write',
           arguments: {
             workingDirectory: wd,
-            mode: 'team',
+            mode: 'scratch',
             state: { [`k${i}`]: i },
           },
         },
@@ -547,7 +547,7 @@ describe('state-server directory initialization', () => {
         assert.equal(response.isError, undefined);
       }
 
-      const filePath = join(wd, '.nomx', 'state', 'team-state.json');
+      const filePath = join(wd, '.nomx', 'state', 'scratch-state.json');
       const state = JSON.parse(await readFile(filePath, 'utf-8')) as Record<string, unknown>;
       for (let i = 0; i < 16; i++) {
         assert.equal(state[`k${i}`], i);
@@ -677,25 +677,41 @@ describe('state-server directory initialization', () => {
     }
   });
 
-  it('allows approved overlaps and preserves the remaining canonical state on clear', async () => {
+  it('preserves supported canonical state when clearing historical Team state', async () => {
     process.env.NOMX_STATE_SERVER_DISABLE_AUTO_START = '1';
     const { handleStateToolCall } = await import('../state-server.js');
 
     const wd = await mkdtemp(join(tmpdir(), 'nomx-state-server-overlap-'));
     try {
-      await handleStateToolCall({
-        params: {
-          name: 'state_write',
-          arguments: {
-            workingDirectory: wd,
-            session_id: 'sess-overlap',
-            mode: 'team',
-            active: true,
-            current_phase: 'running',
-          },
-        },
-      });
-      await handleStateToolCall({
+      const sessionDir = join(wd, '.nomx', 'state', 'sessions', 'sess-overlap');
+      await mkdir(sessionDir, { recursive: true });
+      await writeFile(join(sessionDir, 'team-state.json'), JSON.stringify({
+        mode: 'team',
+        active: true,
+        current_phase: 'running',
+        session_id: 'sess-overlap',
+      }, null, 2));
+      await writeFile(join(sessionDir, 'run-state.json'), JSON.stringify({
+        mode: 'team',
+        active: true,
+        current_phase: 'running',
+        session_id: 'sess-overlap',
+      }, null, 2));
+      await writeFile(join(sessionDir, 'skill-active-state.json'), JSON.stringify({
+        version: 1,
+        active: true,
+        skill: 'team',
+        phase: 'running',
+        session_id: 'sess-overlap',
+        active_skills: [{
+          skill: 'team',
+          phase: 'running',
+          active: true,
+          session_id: 'sess-overlap',
+        }],
+      }, null, 2));
+
+      const ralphWrite = await handleStateToolCall({
         params: {
           name: 'state_write',
           arguments: {
@@ -709,6 +725,7 @@ describe('state-server directory initialization', () => {
           },
         },
       });
+      assert.equal(ralphWrite.isError, undefined);
 
       const canonicalPath = join(wd, '.nomx', 'state', 'sessions', 'sess-overlap', 'skill-active-state.json');
       const canonical = JSON.parse(await readFile(canonicalPath, 'utf-8')) as {
@@ -735,18 +752,33 @@ describe('state-server directory initialization', () => {
       assert.equal(clearedCanonical.active, true);
       assert.equal(clearedCanonical.skill, 'ralph');
       assert.deepEqual(clearedCanonical.active_skills?.map((entry) => entry.skill), ['ralph']);
+      assert.equal(existsSync(join(sessionDir, 'run-state.json')), false);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it('denies unsupported overlaps without writing the requested mode state', async () => {
+  it('rejects retired Team writes without mutating a supported workflow', async () => {
     process.env.NOMX_STATE_SERVER_DISABLE_AUTO_START = '1';
     const { handleStateToolCall } = await import('../state-server.js');
 
     const wd = await mkdtemp(join(tmpdir(), 'nomx-state-server-deny-'));
     try {
-      await handleStateToolCall({
+      const autopilot = await handleStateToolCall({
+        params: {
+          name: 'state_write',
+          arguments: {
+            workingDirectory: wd,
+            session_id: 'sess-deny',
+            mode: 'autopilot',
+            active: true,
+            current_phase: 'ralplan',
+          },
+        },
+      });
+      assert.equal(autopilot.isError, undefined);
+
+      const denied = await handleStateToolCall({
         params: {
           name: 'state_write',
           arguments: {
@@ -759,27 +791,14 @@ describe('state-server directory initialization', () => {
         },
       });
 
-      const denied = await handleStateToolCall({
-        params: {
-          name: 'state_write',
-          arguments: {
-            workingDirectory: wd,
-            session_id: 'sess-deny',
-            mode: 'autopilot',
-            active: true,
-            current_phase: 'ralplan',
-          },
-        },
-      });
-
       assert.equal(denied.isError, true);
-      assert.match(denied.content[0]?.text || '', /Unsupported workflow overlap: team \+ autopilot\./);
-      assert.equal(existsSync(join(wd, '.nomx', 'state', 'sessions', 'sess-deny', 'autopilot-state.json')), false);
+      assert.match(denied.content[0]?.text || '', /retired.*read-only compatibility/i);
+      assert.equal(existsSync(join(wd, '.nomx', 'state', 'sessions', 'sess-deny', 'team-state.json')), false);
 
       const canonical = JSON.parse(
         await readFile(join(wd, '.nomx', 'state', 'sessions', 'sess-deny', 'skill-active-state.json'), 'utf-8'),
       ) as { active_skills?: Array<{ skill: string }> };
-      assert.deepEqual(canonical.active_skills?.map((entry) => entry.skill), ['team']);
+      assert.deepEqual(canonical.active_skills?.map((entry) => entry.skill), ['autopilot']);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
@@ -848,17 +867,39 @@ describe('state-server directory initialization', () => {
 
     const wd = await mkdtemp(join(tmpdir(), 'nomx-state-server-canonical-clear-all-'));
     try {
-      await handleStateToolCall({
-        params: {
-          name: 'state_write',
-          arguments: {
-            workingDirectory: wd,
-            mode: 'team',
-            active: true,
-            current_phase: 'running',
-          },
-        },
-      });
+      const stateDir = join(wd, '.nomx', 'state');
+      const sessionDir = join(stateDir, 'sessions', 'sess-retired-team');
+      const legacyTeam = { mode: 'team', active: true, current_phase: 'running' };
+      const legacyCanonical = {
+        version: 1,
+        active: true,
+        skill: 'team',
+        phase: 'running',
+        active_skills: [{ skill: 'team', phase: 'running', active: true }],
+      };
+      await mkdir(sessionDir, { recursive: true });
+      await writeFile(join(stateDir, 'team-state.json'), JSON.stringify(legacyTeam, null, 2));
+      await writeFile(join(stateDir, 'run-state.json'), JSON.stringify({ ...legacyTeam, version: 1 }, null, 2));
+      await writeFile(join(sessionDir, 'team-state.json'), JSON.stringify({
+        ...legacyTeam,
+        session_id: 'sess-retired-team',
+      }, null, 2));
+      await writeFile(join(sessionDir, 'run-state.json'), JSON.stringify({
+        ...legacyTeam,
+        version: 1,
+        session_id: 'sess-retired-team',
+      }, null, 2));
+      await writeFile(join(stateDir, 'skill-active-state.json'), JSON.stringify(legacyCanonical, null, 2));
+      await writeFile(join(sessionDir, 'skill-active-state.json'), JSON.stringify({
+        ...legacyCanonical,
+        session_id: 'sess-retired-team',
+        active_skills: [{
+          skill: 'team',
+          phase: 'running',
+          active: true,
+          session_id: 'sess-retired-team',
+        }],
+      }, null, 2));
 
       await handleStateToolCall({
         params: {
@@ -878,6 +919,10 @@ describe('state-server directory initialization', () => {
       };
       assert.equal(canonical.active, false);
       assert.deepEqual(canonical.active_skills, []);
+      assert.equal(existsSync(join(stateDir, 'team-state.json')), false);
+      assert.equal(existsSync(join(sessionDir, 'team-state.json')), false);
+      assert.equal(existsSync(join(stateDir, 'run-state.json')), false);
+      assert.equal(existsSync(join(sessionDir, 'run-state.json')), false);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
@@ -889,17 +934,20 @@ describe('state-server directory initialization', () => {
 
     const wd = await mkdtemp(join(tmpdir(), 'nomx-state-server-root-clear-propagate-'));
     try {
-      await handleStateToolCall({
-        params: {
-          name: 'state_write',
-          arguments: {
-            workingDirectory: wd,
-            mode: 'team',
-            active: true,
-            current_phase: 'running',
-          },
-        },
-      });
+      const stateDir = join(wd, '.nomx', 'state');
+      await mkdir(stateDir, { recursive: true });
+      await writeFile(join(stateDir, 'team-state.json'), JSON.stringify({
+        mode: 'team',
+        active: true,
+        current_phase: 'running',
+      }, null, 2));
+      await writeFile(join(stateDir, 'skill-active-state.json'), JSON.stringify({
+        version: 1,
+        active: true,
+        skill: 'team',
+        phase: 'running',
+        active_skills: [{ skill: 'team', phase: 'running', active: true }],
+      }, null, 2));
       await handleStateToolCall({
         params: {
           name: 'state_write',
@@ -943,18 +991,20 @@ describe('state-server directory initialization', () => {
 
     const wd = await mkdtemp(join(tmpdir(), 'nomx-state-server-team-ralph-'));
     try {
-      const teamWrite = await handleStateToolCall({
-        params: {
-          name: 'state_write',
-          arguments: {
-            workingDirectory: wd,
-            mode: 'team',
-            active: true,
-            current_phase: 'running',
-          },
-        },
-      });
-      assert.equal(teamWrite.isError, undefined);
+      const stateDir = join(wd, '.nomx', 'state');
+      await mkdir(stateDir, { recursive: true });
+      await writeFile(join(stateDir, 'team-state.json'), JSON.stringify({
+        mode: 'team',
+        active: true,
+        current_phase: 'running',
+      }, null, 2));
+      await writeFile(join(stateDir, 'skill-active-state.json'), JSON.stringify({
+        version: 1,
+        active: true,
+        skill: 'team',
+        phase: 'running',
+        active_skills: [{ skill: 'team', phase: 'running', active: true }],
+      }, null, 2));
 
       const ralphWrite = await handleStateToolCall({
         params: {
@@ -1003,7 +1053,7 @@ describe('state-server directory initialization', () => {
     }
   });
 
-  it('rejects standalone overlaps without mutating canonical state', async () => {
+  it('rejects retired Team activation without mutating canonical state', async () => {
     process.env.NOMX_STATE_SERVER_DISABLE_AUTO_START = '1';
     const { handleStateToolCall } = await import('../state-server.js');
 
@@ -1038,8 +1088,7 @@ describe('state-server directory initialization', () => {
 
       assert.equal(invalidTeamWrite.isError, true);
       const body = JSON.parse(invalidTeamWrite.content[0]?.text || '{}') as { error?: string };
-      assert.match(body.error || '', /nomx state/i);
-      assert.match(body.error || '', /nomx_state\.\*/i);
+      assert.match(body.error || '', /retired.*read-only compatibility/i);
 
       const canonical = JSON.parse(
         await readFile(

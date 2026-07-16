@@ -75,6 +75,36 @@ describe('nomx setup skills overwrite behavior', () => {
     });
   });
 
+  it('preserves unmanaged skills that reuse a retired NOMX skill name', async () => {
+    await withProjectSetup(async (cwd) => {
+      const skillPath = join(cwd, '.codex', 'skills', 'team', 'SKILL.md');
+      const customSkill = '---\nname: team\ndescription: "[NOMX] local user skill"\n---\n';
+      await mkdir(join(cwd, '.codex', 'skills', 'team'), { recursive: true });
+      await writeFile(skillPath, customSkill);
+
+      await setup({ scope: 'project' });
+      await setup({ scope: 'project', force: true });
+
+      assert.equal(await readFile(skillPath, 'utf8'), customSkill);
+    });
+  });
+
+  it('preserves a user-authored skill directory with additional assets', async () => {
+    await withProjectSetup(async (cwd) => {
+      const skillDir = join(cwd, '.codex', 'skills', 'team');
+      const skillPath = join(skillDir, 'SKILL.md');
+      const customSkill = '---\nname: team\ndescription: local user skill\n---\n';
+      await mkdir(skillDir, { recursive: true });
+      await writeFile(skillPath, customSkill);
+      await writeFile(join(skillDir, 'notes.md'), 'user-owned notes\n');
+
+      await setup({ scope: 'project', force: true });
+
+      assert.equal(await readFile(skillPath, 'utf8'), customSkill);
+      assert.equal(await readFile(join(skillDir, 'notes.md'), 'utf8'), 'user-owned notes\n');
+    });
+  });
+
   it('does not stack the NOMX description badge on repeated setup runs', async () => {
     await withProjectSetup(async (cwd) => {
       await setup({ scope: 'project' });

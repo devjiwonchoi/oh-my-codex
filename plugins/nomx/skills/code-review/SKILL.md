@@ -87,14 +87,16 @@ nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"cod
 
 Do not self-review as a fallback. If the `code-reviewer` or `architect` agent path is missing, unavailable, skipped, or fails, emit a clear unavailable-review result and block approval until the independent lane evidence exists.
 
-Respect the user's current model and reasoning/effort selection when launching review lanes. Do not pass `model` or `reasoning_effort` overrides in the review-lane task calls unless the user explicitly asks for review-specific overrides; omitting them lets native subagents inherit the active session settings.
+Native subagents inherit the active session defaults. Launch each review lane with the portable `spawn_agent` contract: `task_name`, `message`, and `fork_turns` only when controlling inherited context materially helps. On an adapted App surface without explicit role routing, `CODEX_THREAD_ID` is the authenticated current leader identity; first run `nomx ralplan role-intent write --role <role> --parent-thread "$CODEX_THREAD_ID" --json`, then use the validated receipt's `spawn_task_name` as the exact `task_name`. The ledger receipt carries role identity, while `message` contains only the bounded review work and output contract. Never fake a role through the prompt.
 
 ```
-task(
-  agent_type="code-reviewer",
-  prompt="CODE REVIEW TASK
+nomx ralplan role-intent write --role code-reviewer --parent-thread "$CODEX_THREAD_ID" --json
+# Read spawn_task_name from the validated code-reviewer receipt.
+spawn_agent({
+  task_name: "<code-reviewer receipt.spawn_task_name>",
+  message: "CODE REVIEW TASK
 
-Review code changes for quality, security, and maintainability.
+Independently review code changes for quality, security, and maintainability.
 
 This is the code/spec/security lane. Do not absorb architectural ownership.
 
@@ -113,13 +115,15 @@ Output: Code review report with:
 - Specific file:line locations
 - Fix recommendations
 - Approval recommendation (APPROVE / REQUEST CHANGES / COMMENT)"
-)
+})
 
-task(
-  agent_type="architect",
-  prompt="ARCHITECTURE / DEVIL'S-ADVOCATE REVIEW TASK
+nomx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json
+# Read spawn_task_name from the validated architect receipt.
+spawn_agent({
+  task_name: "<architect receipt.spawn_task_name>",
+  message: "ARCHITECTURE / DEVIL'S-ADVOCATE REVIEW TASK
 
-Review the same code changes from the architecture/tradeoff perspective.
+Independently review the same code changes for architecture and tradeoff concerns.
 
 Scope: [git diff or specific files]
 
@@ -133,9 +137,9 @@ Output:
 - Architectural Status: CLEAR / WATCH / BLOCK
 - File:line evidence for each concern
 - Concrete tradeoff or design recommendation"
-)
+})
 
-Run both lanes in parallel, then synthesize them with the deterministic rules above.
+Record both validated role intents and start both receipt-backed lanes before waiting for either result, then synthesize them with the deterministic rules above.
 ```
 
 ## External Model Consultation (Preferred)
@@ -281,11 +285,7 @@ The `architect` lane checks:
 
 ## Use with Other Skills
 
-**With Team:**
-```
-/team "review recent auth changes and report findings"
-```
-Includes coordinated review execution across specialized agents.
+**With native Codex subagents:** launch the required `code-reviewer` and `architect` lanes with bounded scopes, then synthesize their independent evidence in the leader.
 
 **With Ralph:**
 ```

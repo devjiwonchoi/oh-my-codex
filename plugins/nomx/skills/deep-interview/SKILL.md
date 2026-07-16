@@ -12,7 +12,7 @@ Deep Interview is an intent-first Socratic clarification loop before planning or
 - The request is broad, ambiguous, or missing concrete acceptance criteria
 - The user says "deep interview", "interview me", "ask me everything", "don't assume", or "ouroboros"
 - The user wants to avoid misaligned implementation from underspecified requirements
-- You need a requirements artifact before handing off to `ralplan`, `autopilot`, `ralph`, or `team`
+- You need a requirements artifact before handing off to `ralplan`, `autopilot`, `ralph`, or leader-owned native subagents
 </Use_When>
 
 <Do_Not_Use_When>
@@ -345,7 +345,7 @@ When threshold is met (or user exits with warning / hard cap):
 
 Spec should include:
 - Metadata (profile, rounds, final ambiguity, threshold, context type)
-- Context snapshot reference/path (for ralplan/team reuse)
+- Context snapshot reference/path (for ralplan and native-subagent reuse)
 - Prompt-safe initial-context summary when oversized context was provided, plus references to any full source documents
 - Clarity breakdown table
 - Intent (why the user wants this)
@@ -440,12 +440,13 @@ Only set `execution_contract_required:true` when the selected downstream workflo
 - **Expected Output:** Iterative execution progress and verification evidence tracked against the clarified criteria
 - **Best When:** The user explicitly asks for Ralph's persistent sequential completion pressure; otherwise use `$ultragoal` for durable goal tracking and completion checkpoints
 
+### 5. **Native Codex subagents (Bounded parallel follow-up)**
 - **Input Artifact:** `.nomx/specs/deep-interview-{slug}.md`
 - **Consumer Behavior:** Treat the spec as shared execution context for coordinated parallel work. Preserve the clarified intent, non-goals, decision boundaries, and acceptance criteria as common lane constraints.
 - **Skipped / Already-Satisfied Stages:** Requirement clarification and early ambiguity reduction
 - **Expected Output:** Coordinated multi-agent execution against the shared spec, with evidence that can later feed Ultragoal checkpoints by default, or an explicit Ralph verification pass only when requested
 - **Best When:** The task is large, multi-lane, or blocker-sensitive enough to justify coordinated parallel execution instead of a single persistent loop
-- **Next Recommended Step:** Follow the team verification path when the coordinated execution phase finishes; checkpoint completion through `$ultragoal` by default, escalating to a separate Ralph loop only when the user explicitly asks for that persistent verification/fix owner
+- **Next Recommended Step:** The leader integrates native-subagent evidence, runs the verification path, and checkpoints completion through `$ultragoal` by default, escalating to a separate Ralph loop only when the user explicitly asks for that persistent verification/fix owner
 
 ### 6. **Refine further**
 - **Input Artifact:** Existing transcript, context snapshot, and current spec draft

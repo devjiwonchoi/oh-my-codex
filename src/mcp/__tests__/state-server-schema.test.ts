@@ -41,4 +41,29 @@ describe("state-server schema validation", () => {
 			);
 		}
 	});
+
+	it("exposes retired Team only on historical read, status, and clear schemas", async () => {
+		process.env.NOMX_STATE_SERVER_DISABLE_AUTO_START = "1";
+		const { buildStateServerTools } = await import("../state-server.js");
+
+		const tools = new Map(
+			buildStateServerTools().map((tool: { name: string; inputSchema?: unknown }) => [
+				tool.name,
+				tool,
+			]),
+		);
+		const modesFor = (name: string): string[] => {
+			const tool = tools.get(name) as {
+				inputSchema?: { properties?: { mode?: { enum?: string[] } } };
+			};
+			return tool.inputSchema?.properties?.mode?.enum ?? [];
+		};
+
+		for (const name of ["state_read", "state_clear", "state_get_status"]) {
+			assert.ok(modesFor(name).includes("team"), `${name} keeps Team compatibility`);
+			assert.equal(modesFor(name).includes("autoresearch"), false);
+		}
+		assert.equal(modesFor("state_write").includes("team"), false);
+		assert.equal(modesFor("state_write").includes("autoresearch"), false);
+	});
 });

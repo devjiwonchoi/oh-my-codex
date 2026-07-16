@@ -1,15 +1,41 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { setup } from '../setup.js';
+
+async function recordManagedNativeAgent(
+  codexDir: string,
+  file: string,
+  content: string,
+): Promise<void> {
+  const manifestPath = join(codexDir, '.nomx', 'native-agents.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as {
+    version: 1;
+    files: Record<string, { sha256: string }>;
+  };
+  manifest.files[file] = {
+    sha256: createHash('sha256').update(content).digest('hex'),
+  };
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
 import { readCatalogManifest } from '../../catalog/reader.js';
 import {
   NON_NATIVE_AGENT_PROMPT_ASSETS,
   getInstallableNativeAgentNames,
 } from '../../agents/policy.js';
+
+const RETIRED_TEAM_EXECUTOR_PROMPT = readFileSync(
+  join(process.cwd(), 'src', 'cli', '__tests__', 'fixtures', 'retired-prompts', 'team-executor.md'),
+  'utf8',
+);
+const RETIRED_QA_TESTER_PROMPT = readFileSync(
+  join(process.cwd(), 'src', 'cli', '__tests__', 'fixtures', 'retired-prompts', 'qa-tester.md'),
+  'utf8',
+);
 
 describe('nomx setup prompt/native-agent overwrite behavior', () => {
   const obsoleteNativeAgentField = ['skill', 'ref'].join('_');
@@ -86,6 +112,84 @@ describe('nomx setup prompt/native-agent overwrite behavior', () => {
     }
   });
 
+  it('ordinary refresh removes retired NOMX prompt and native-agent files while preserving unrelated TOMLs', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-setup-prompts-'));
+    const previousCwd = process.cwd();
+    try {
+      process.chdir(wd);
+      await setup({ scope: 'project' });
+
+      const promptsDir = join(wd, '.codex', 'prompts');
+      const agentsDir = join(wd, '.codex', 'agents');
+      await writeFile(join(promptsDir, 'team-executor.md'), RETIRED_TEAM_EXECUTOR_PROMPT);
+      await writeFile(join(promptsDir, 'qa-tester.md'), RETIRED_QA_TESTER_PROMPT);
+      const retiredAgentContent = '# nomx agent: team-executor\nname = "team-executor"\n';
+      await writeFile(join(agentsDir, 'team-executor.toml'), retiredAgentContent);
+      await recordManagedNativeAgent(join(wd, '.codex'), 'team-executor.toml', retiredAgentContent);
+      const customAgentPath = join(agentsDir, 'my-custom-agent.toml');
+      await writeFile(customAgentPath, 'name = "my-custom-agent"\n');
+
+      await setup({ scope: 'project' });
+
+      assert.equal(existsSync(join(promptsDir, 'team-executor.md')), false);
+      assert.equal(existsSync(join(promptsDir, 'qa-tester.md')), false);
+      assert.equal(existsSync(join(agentsDir, 'team-executor.toml')), false);
+      assert.equal(await readFile(customAgentPath, 'utf8'), 'name = "my-custom-agent"\n');
+    } finally {
+      process.chdir(previousCwd);
+      await rm(wd, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves unmarked user prompts that reuse retired NOMX prompt names, including on force', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-setup-prompts-'));
+    const previousCwd = process.cwd();
+    try {
+      process.chdir(wd);
+      await setup({ scope: 'project' });
+
+      const promptsDir = join(wd, '.codex', 'prompts');
+      const customPrompts = new Map([
+        ['team-executor.md', `${RETIRED_TEAM_EXECUTOR_PROMPT}# local customization\n`],
+        ['qa-tester.md', `${RETIRED_QA_TESTER_PROMPT}# local customization\n`],
+      ]);
+      for (const [file, content] of customPrompts) {
+        await writeFile(join(promptsDir, file), content);
+      }
+
+      await setup({ scope: 'project' });
+      await setup({ scope: 'project', force: true });
+
+      for (const [file, content] of customPrompts) {
+        assert.equal(await readFile(join(promptsDir, file), 'utf8'), content);
+      }
+    } finally {
+      process.chdir(previousCwd);
+      await rm(wd, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves an unmanaged native agent that reuses a retired NOMX agent name', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-setup-prompts-'));
+    const previousCwd = process.cwd();
+    try {
+      process.chdir(wd);
+      await setup({ scope: 'project' });
+
+      const retiredAgentPath = join(wd, '.codex', 'agents', 'team-executor.toml');
+      const customAgent = '# nomx agent: team-executor\nname = "team-executor"\ndeveloper_instructions = "local"\n';
+      await writeFile(retiredAgentPath, customAgent);
+
+      await setup({ scope: 'project' });
+      await setup({ scope: 'project', force: true });
+
+      assert.equal(await readFile(retiredAgentPath, 'utf8'), customAgent);
+    } finally {
+      process.chdir(previousCwd);
+      await rm(wd, { recursive: true, force: true });
+    }
+  });
+
   it('preserves user-customized installable native agent TOMLs during normal setup refresh', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'nomx-setup-prompts-'));
     const previousCwd = process.cwd();
@@ -139,7 +243,7 @@ describe('nomx setup prompt/native-agent overwrite behavior', () => {
     }
   });
 
-  it('skips native agent TOMLs entirely during background update-check setup refreshes', async () => {
+  it('preserves current native agents but removes retired generated agents during background update-check refreshes', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'nomx-setup-prompts-'));
     const previousCwd = process.cwd();
     const previousSkipNativeAgentRefresh = process.env.NOMX_SKIP_NATIVE_AGENT_REFRESH;
@@ -154,11 +258,16 @@ describe('nomx setup prompt/native-agent overwrite behavior', () => {
         .replace(/^model = ".*"$/m, 'model = "gpt-5.5"')
         .replace(/^model_reasoning_effort = ".*"$/m, 'model_reasoning_effort = "low"');
       await writeFile(executorPath, customized);
+      const retiredAgentPath = join(wd, '.codex', 'agents', 'team-executor.toml');
+      const retiredAgentContent = '# nomx agent: team-executor\nname = "team-executor"\n';
+      await writeFile(retiredAgentPath, retiredAgentContent);
+      await recordManagedNativeAgent(join(wd, '.codex'), 'team-executor.toml', retiredAgentContent);
 
       process.env.NOMX_SKIP_NATIVE_AGENT_REFRESH = '1';
-      await setup({ scope: 'project', force: true });
+      await setup({ scope: 'project' });
 
       assert.equal(await readFile(executorPath, 'utf-8'), customized);
+      assert.equal(existsSync(retiredAgentPath), false);
     } finally {
       if (typeof previousSkipNativeAgentRefresh === 'string') process.env.NOMX_SKIP_NATIVE_AGENT_REFRESH = previousSkipNativeAgentRefresh;
       else delete process.env.NOMX_SKIP_NATIVE_AGENT_REFRESH;
@@ -167,7 +276,7 @@ describe('nomx setup prompt/native-agent overwrite behavior', () => {
     }
   });
 
-  it('preserves setup-owned prompt assets and removes unknown prompts on --force', async () => {
+  it('preserves setup-owned prompt assets and unmarked user prompts on --force', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'nomx-setup-prompts-'));
     const previousCwd = process.cwd();
     try {
@@ -189,7 +298,7 @@ describe('nomx setup prompt/native-agent overwrite behavior', () => {
       for (const validPrompt of validPrompts) {
         assert.equal(existsSync(join(wd, '.codex', 'prompts', validPrompt)), true);
       }
-      assert.equal(existsSync(unknownPromptPath), false);
+      assert.equal(await readFile(unknownPromptPath, 'utf8'), '# unclassified local prompt\n');
       assert.equal(existsSync(join(wd, '.codex', 'prompts', 'executor.md')), true);
     } finally {
       process.chdir(previousCwd);
@@ -208,7 +317,9 @@ describe('nomx setup prompt/native-agent overwrite behavior', () => {
       const staleAgents = ['style-reviewer.toml', 'quality-reviewer.toml'];
       for (const staleAgent of staleAgents) {
         const stalePath = join(wd, '.codex', 'agents', staleAgent);
-        await writeFile(stalePath, '# stale native agent\n');
+        const staleContent = '# stale native agent\n';
+        await writeFile(stalePath, staleContent);
+        await recordManagedNativeAgent(join(wd, '.codex'), staleAgent, staleContent);
         assert.equal(existsSync(stalePath), true);
       }
 
@@ -233,16 +344,15 @@ describe('nomx setup prompt/native-agent overwrite behavior', () => {
       await setup({ scope: 'project' });
 
       const stalePath = join(wd, '.codex', 'agents', 'style-reviewer.toml');
-      await writeFile(
-        stalePath,
-        [
+      const staleContent = [
           '# nomx agent: style-reviewer',
           'name = "style-reviewer"',
           'description = "old generated merged role"',
           'developer_instructions = """old"""',
           '',
-        ].join('\n'),
-      );
+        ].join('\n');
+      await writeFile(stalePath, staleContent);
+      await recordManagedNativeAgent(join(wd, '.codex'), 'style-reviewer.toml', staleContent);
       assert.equal(existsSync(stalePath), true);
 
       await setup({ scope: 'project' });

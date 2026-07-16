@@ -10,17 +10,11 @@ import {
 	ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { autoStartStdioMcpServer } from "./bootstrap.js";
-import { executeStateOperation } from "../state/operations.js";
-
-const SUPPORTED_MODES = [
-	"autopilot",
-	"ralph",
-	"ultrawork",
-	"ultraqa",
-	"ralplan",
-	"deep-interview",
-	"skill-active",
-] as const;
+import {
+	executeStateOperation,
+	SUPPORTED_STATE_READ_MODES,
+	SUPPORTED_STATE_WRITE_MODES,
+} from "../state/operations.js";
 
 const STATE_TOOL_NAMES = new Set([
 	"state_read",
@@ -46,7 +40,7 @@ export function buildStateServerTools() {
 				properties: {
 					mode: {
 						type: "string",
-						enum: [...SUPPORTED_MODES],
+						enum: [...SUPPORTED_STATE_READ_MODES],
 						description: "The mode to read state for",
 					},
 					workingDirectory: {
@@ -68,7 +62,7 @@ export function buildStateServerTools() {
 			inputSchema: {
 				type: "object",
 				properties: {
-					mode: { type: "string", enum: [...SUPPORTED_MODES] },
+					mode: { type: "string", enum: [...SUPPORTED_STATE_WRITE_MODES] },
 					active: { type: "boolean" },
 					iteration: { type: "number" },
 					max_iterations: { type: "number" },
@@ -106,7 +100,7 @@ export function buildStateServerTools() {
 			inputSchema: {
 				type: "object",
 				properties: {
-					mode: { type: "string", enum: [...SUPPORTED_MODES] },
+					mode: { type: "string", enum: [...SUPPORTED_STATE_READ_MODES] },
 					workingDirectory: { type: "string" },
 					session_id: {
 						type: "string",
@@ -140,7 +134,7 @@ export function buildStateServerTools() {
 			inputSchema: {
 				type: "object",
 				properties: {
-					mode: { type: "string", enum: [...SUPPORTED_MODES] },
+					mode: { type: "string", enum: [...SUPPORTED_STATE_READ_MODES] },
 					workingDirectory: { type: "string" },
 					session_id: {
 						type: "string",

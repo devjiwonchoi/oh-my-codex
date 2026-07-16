@@ -27,4 +27,35 @@ describe('HUD watch resource cleanup', () => {
 
     assert.equal(unregisterCalls, 1);
   });
+
+  it('does not serialize HUD completion behind a slow authority scan', async () => {
+    let sigintHandler: (() => void) | undefined;
+    const fakeTimer = Symbol('timer') as unknown as ReturnType<typeof setInterval>;
+    let authorityStarted = false;
+
+    await runWatchMode('/tmp/project', { watch: true, json: false }, {
+      isTTY: true,
+      env: {},
+      readHudConfigFn: async () => ({ preset: 'minimal', git: { display: 'repo-branch' }, statusLine: { preset: 'minimal' } }),
+      readAllStateFn: async () => ({ cwd: '/tmp/project', config: {}, state: {}, timestamp: '2026-05-21T00:00:00.000Z' }) as never,
+      renderHudFn: () => {
+        queueMicrotask(() => sigintHandler?.());
+        return 'hud';
+      },
+      runAuthorityTickFn: async () => {
+        authorityStarted = true;
+        await new Promise<void>(() => {});
+      },
+      writeStdout: () => {},
+      writeStderr: () => {},
+      registerSigint: (handler) => {
+        sigintHandler = handler;
+        return () => {};
+      },
+      setIntervalFn: () => fakeTimer,
+      clearIntervalFn: (timer) => assert.equal(timer, fakeTimer),
+    });
+
+    assert.equal(authorityStarted, true);
+  });
 });

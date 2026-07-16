@@ -181,6 +181,7 @@ interface SetupOptions {
 	mcpMode?: SetupMcpMode;
 	scope?: SetupScope;
 	verbose?: boolean;
+	requireComplete?: boolean;
 	agentsOverwritePrompt?: (destinationPath: string) => Promise<boolean>;
 	skipNativeAgentRefresh?: boolean;
 	setupScopePrompt?: (defaultScope: SetupScope) => Promise<SetupScope>;
@@ -264,6 +265,36 @@ const SETUP_ONLY_INSTALLABLE_SKILLS = new Set<string>();
 const DEFAULT_SETUP_MCP_MODE: SetupMcpMode = "none";
 const SKIP_NATIVE_AGENT_REFRESH_ENV = "NOMX_SKIP_NATIVE_AGENT_REFRESH";
 const HARD_DEPRECATED_SKILL_NAMES = new Set(["web-clone"]);
+const RETIRED_NOMX_SKILL_NAMES = new Set(["team", "worker"]);
+const RETIRED_NOMX_NATIVE_AGENT_NAMES = new Set(["team-executor"]);
+const RETIRED_NOMX_SKILL_SHA256 = new Map<string, ReadonlySet<string>>([
+	[
+		"team",
+		new Set([
+			// Shipped source and setup-installed (description-badged) variants.
+			"3088de2e8981f5e2055b13cd31a3c0451235c5c1116dfbc3c24a906dbeb7c7a1",
+			"02cf838c6da7fe889f15155c3dff6b178f47547c876e3018a562c557b37253b2",
+		]),
+	],
+	[
+		"worker",
+		new Set([
+			// Shipped source and setup-installed (description-badged) variants.
+			"486e7685f307e79375fe76dffd7c55c6ec71dcc5fd14c17a803b1ed6b5ae5604",
+			"8b9e4afc90057e269e2a23337e4a26342d2d2f47c61fce500e7d1edc089a801a",
+		]),
+	],
+]);
+const RETIRED_NOMX_PROMPT_SHA256 = new Map<string, string>([
+	[
+		"team-executor",
+		"fa58ef1c64345c9acd96a5ab3cf283f1589ed27b28a08f32c8dd216bf71745f3",
+	],
+	[
+		"qa-tester",
+		"c43a8a390eaf7c9e3780efa2c43489b13145ddc9759cbce22e346714d5b35a34",
+	],
+]);
 
 function isCatalogInstallableStatus(status: string | undefined): boolean {
 	return status === "active" || status === "internal";
@@ -303,14 +334,7 @@ function applyPluginModeWordingToAgentsTemplate(
 			: "`~/.codex/skills`";
 	return scopedContent.replace(
 		/Role prompts under `prompts\/\*\.md` are narrower execution surfaces\. They must follow this file, not override it\.\nWhen NOMX is installed, load the installed prompt\/skill\/agent surfaces from [^\n]+active\)\./,
-		`Registered Codex plugin marketplace surfaces supply NOMX workflows and plugin-scoped companion resources when the plugin is installed. Native agent roles are installed as setup-owned Codex agent TOML files in plugin mode so agent_type routing works. They must follow this file, not override it.\nUser-installed skills may still live under ${userSkillPath}.`,
-		);
-}
-
-function stripNamedXmlSection(content: string, sectionName: string): string {
-	return content.replace(
-		new RegExp(`\\n?<${sectionName}>[\\s\\S]*?<\\/${sectionName}>\\n?`, "g"),
-		"\n",
+		`Registered Codex plugin marketplace surfaces supply NOMX workflows and plugin-scoped companion resources when the plugin is installed. Native agent roles are installed as setup-owned Codex agent TOML files in plugin mode for role discovery on native surfaces that support it. They must follow this file, not override it.\nUser-installed skills may still live under ${userSkillPath}.`,
 	);
 }
 
@@ -330,12 +354,6 @@ interface ResolvedSetupMcpMode {
 }
 
 type PersistedSetupReviewDecision = "keep" | "review" | "reset";
-
-const REQUIRED_TEAM_CLI_API_MARKERS = [
-	"if (subcommand === 'api')",
-	"executeTeamApiOperation",
-	"TEAM_API_OPERATIONS",
-] as const;
 
 const DEFAULT_SETUP_SCOPE: SetupScope = "user";
 const DEFAULT_SETUP_INSTALL_MODE: SetupInstallMode = "legacy";
@@ -2081,6 +2099,45 @@ export function parseSkillFrontmatter(
 	return { name, description };
 }
 
+function isRetiredNomxPromptContent(
+	promptName: string,
+	content: string,
+): boolean {
+	const expectedHash = RETIRED_NOMX_PROMPT_SHA256.get(promptName);
+	return expectedHash !== undefined && hashContent(content) === expectedHash;
+}
+
+async function isRetiredNomxPromptFile(
+	promptName: string,
+	filePath: string,
+): Promise<boolean> {
+	if (!RETIRED_NOMX_PROMPT_SHA256.has(promptName)) return false;
+	const content = await readFile(filePath, "utf-8").catch(() => "");
+	return isRetiredNomxPromptContent(promptName, content);
+}
+
+async function isRetiredNomxManagedSkillDirectory(
+	skillName: string,
+	skillDir: string,
+): Promise<boolean> {
+	const expectedHashes = RETIRED_NOMX_SKILL_SHA256.get(skillName);
+	if (!expectedHashes) return false;
+	try {
+		const entries = await readdir(skillDir, { withFileTypes: true });
+		if (
+			entries.length !== 1 ||
+			entries[0]?.name !== "SKILL.md" ||
+			!entries[0].isFile()
+		) {
+			return false;
+		}
+		const content = await readFile(join(skillDir, "SKILL.md"), "utf-8");
+		return expectedHashes.has(hashContent(content));
+	} catch {
+		return false;
+	}
+}
+
 export async function validateSkillFile(skillMdPath: string): Promise<void> {
 	const content = await readFile(skillMdPath, "utf-8");
 	parseSkillFrontmatter(content, skillMdPath);
@@ -3005,14 +3062,28 @@ async function cleanupPluginModeLegacyPrompts(
 	if (!existsSync(srcDir) || !existsSync(dstDir)) return summary;
 
 	const manifest = tryReadCatalogManifest();
+	const promptFiles = new Set(
+		(await readdir(srcDir)).filter((file) => file.endsWith(".md")),
+	);
+	for (const promptName of RETIRED_NOMX_PROMPT_SHA256.keys()) {
+		promptFiles.add(`${promptName}.md`);
+	}
 
-	for (const file of await readdir(srcDir)) {
-		if (!file.endsWith(".md")) continue;
+	for (const file of promptFiles) {
 		const promptName = file.slice(0, -3);
-		if (manifest && !isSetupPromptAssetName(promptName, manifest)) continue;
+		const retiredPrompt = RETIRED_NOMX_PROMPT_SHA256.has(promptName);
+		if (
+			!retiredPrompt &&
+			manifest &&
+			!isSetupPromptAssetName(promptName, manifest)
+		)
+			continue;
 
 		const dst = join(dstDir, file);
 		if (!existsSync(dst)) continue;
+		if (retiredPrompt && !(await isRetiredNomxPromptFile(promptName, dst))) {
+			continue;
+		}
 
 		if (await ensureBackup(dst, true, backupContext, options)) {
 			summary.backedUp += 1;
@@ -3686,6 +3757,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		mcpMode: requestedMcpMode,
 		scope: requestedScope,
 		verbose = false,
+		requireComplete = false,
 		skipNativeAgentRefresh: requestedSkipNativeAgentRefresh = false,
 		setupScopePrompt,
 		persistedSetupReviewPrompt,
@@ -3878,13 +3950,20 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 			};
 	let pluginAgentsMdPathExists = false;
 	let pluginAgentsMdIsSymlink = false;
+	let pluginAgentsMdIsGenerated = false;
 	try {
 		const pluginAgentsMdStat = await lstat(pluginAgentsMdDst);
 		pluginAgentsMdPathExists = true;
 		pluginAgentsMdIsSymlink = pluginAgentsMdStat.isSymbolicLink();
+		if (!pluginAgentsMdIsSymlink && pluginAgentsMdStat.isFile()) {
+			pluginAgentsMdIsGenerated = isOmxGeneratedAgentsMd(
+				await readFile(pluginAgentsMdDst, "utf-8"),
+			);
+		}
 	} catch {
 		pluginAgentsMdPathExists = false;
 		pluginAgentsMdIsSymlink = false;
+		pluginAgentsMdIsGenerated = false;
 	}
 	const usePluginAgentsMdDefault = isPluginInstallMode
 		? effectiveMergeAgents || pluginAgentsMdIsSymlink
@@ -3893,7 +3972,9 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 				? true
 				: pluginAgentsMdPrompt
 					? await pluginAgentsMdPrompt(pluginAgentsMdDst)
-					: await promptForPluginAgentsMdDefault(pluginAgentsMdDst)
+					: pluginAgentsMdIsGenerated
+						? true
+						: await promptForPluginAgentsMdDefault(pluginAgentsMdDst)
 		: false;
 	const codexHookFeatureSupport = resolveCodexHookFeatureSupportForCli({
 		codexFeaturesProbe: options.codexFeaturesProbe,
@@ -4145,9 +4226,25 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 	// Step 4: Install native agent configs
 	console.log("[4/8] Installing native agent configs...");
 	if (skipNativeAgentRefresh) {
-		summary.nativeAgents = createEmptyCategorySummary();
+		const nativeAgentManifest = await readNativeAgentInstallManifest(
+			scopeDirs.nativeAgentsDir,
+		);
+		summary.nativeAgents = await cleanupRetiredNomxNativeAgents(
+			scopeDirs.nativeAgentsDir,
+			nativeAgentManifest,
+			backupContext,
+			{ dryRun, verbose },
+		);
+		if (!dryRun && summary.nativeAgents.removed > 0) {
+			await writeNativeAgentInstallManifest(
+				scopeDirs.nativeAgentsDir,
+				nativeAgentManifest,
+			);
+		}
 		console.log(
-			"  Native agent refresh skipped for background update-check setup refresh.\n",
+			summary.nativeAgents.removed > 0
+				? `  Native agent refresh skipped; removed ${summary.nativeAgents.removed} retired generated native agent file(s).\n`
+				: "  Native agent refresh skipped for background update-check setup refresh.\n",
 		);
 	} else if (isPluginInstallMode) {
 		summary.nativeAgents = await refreshNativeAgentConfigs(
@@ -4162,7 +4259,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 			},
 		);
 		console.log(
-			`  Native agent role refresh complete (${scopeDirs.nativeAgentsDir}); plugin mode still installs role TOML so agent_type routing works.\n`,
+			`  Native agent role refresh complete (${scopeDirs.nativeAgentsDir}); plugin mode installs role TOML for native role discovery where supported.\n`,
 		);
 	} else {
 		summary.nativeAgents = await refreshNativeAgentConfigs(
@@ -4520,8 +4617,9 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 				{ codexHomeOverride: scopeDirs.codexHomeDir },
 			);
 			let changed = true;
-			let canApplyManagedModelRefresh = false;
+			let canApplyManagedRefresh = false;
 			let canApplyManagedRefreshDuringActiveSession = false;
+			let managedRefreshIsGeneratedContract = false;
 			let managedRefreshContent = "";
 			let canApplyManagedAgentsMerge = false;
 			let mergedAgentsContent = "";
@@ -4544,16 +4642,21 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 				} else {
 					if (hasOmxManagedAgentsSections(existing)) {
 						const existingIsGeneratedAgentsMd = isOmxGeneratedAgentsMd(existing);
-						managedRefreshContent = upsertAgentsModelTable(
-								existing,
-								modelTableContext,
-								modelTableDefinitions,
-								{ codexHomeOverride: scopeDirs.codexHomeDir },
+						const modelOnlyRefreshContent = upsertAgentsModelTable(
+							existing,
+							modelTableContext,
+							modelTableDefinitions,
+							{ codexHomeOverride: scopeDirs.codexHomeDir },
 							);
-						canApplyManagedModelRefresh = managedRefreshContent !== existing;
+						managedRefreshIsGeneratedContract = existingIsGeneratedAgentsMd;
+						managedRefreshContent = existingIsGeneratedAgentsMd
+							? preserveUserOmxPolicyBlocks(existing, rewritten)
+							: modelOnlyRefreshContent;
+						canApplyManagedRefresh = managedRefreshContent !== existing;
 						canApplyManagedRefreshDuringActiveSession =
-							canApplyManagedModelRefresh &&
-							existingIsGeneratedAgentsMd;
+							canApplyManagedRefresh &&
+							existingIsGeneratedAgentsMd &&
+							managedRefreshContent === modelOnlyRefreshContent;
 					}
 				}
 			}
@@ -4562,7 +4665,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 				resolvedScope.scope === "project" &&
 				sessionIsActive &&
 				agentsMdExists &&
-				(changed || canApplyManagedAgentsMerge || canApplyManagedModelRefresh) &&
+				(changed || canApplyManagedAgentsMerge || canApplyManagedRefresh) &&
 				!canApplyManagedRefreshDuringActiveSession
 			) {
 				summary.agentsMd.skipped += 1;
@@ -4600,7 +4703,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 						? "  Merged NOMX-managed AGENTS.md sections into project root."
 						: `  Merged NOMX-managed AGENTS.md sections into ${scopeDirs.codexHomeDir}.`,
 				);
-			} else if (canApplyManagedModelRefresh) {
+			} else if (canApplyManagedRefresh) {
 				await syncManagedContent(
 					managedRefreshContent,
 					agentsMdDst,
@@ -4610,9 +4713,13 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 					`AGENTS model table ${agentsMdDst}`,
 				);
 				console.log(
-					resolvedScope.scope === "project"
-						? "  Refreshed AGENTS.md model capability table in project root."
-						: `  Refreshed AGENTS.md model capability table in ${scopeDirs.codexHomeDir}.`,
+					managedRefreshIsGeneratedContract
+						? resolvedScope.scope === "project"
+							? "  Refreshed generated AGENTS.md contract in project root."
+							: `  Refreshed generated AGENTS.md contract in ${scopeDirs.codexHomeDir}.`
+						: resolvedScope.scope === "project"
+							? "  Refreshed AGENTS.md model capability table in project root."
+							: `  Refreshed AGENTS.md model capability table in ${scopeDirs.codexHomeDir}.`,
 				);
 			} else {
 				const result = await syncManagedAgentsContent(
@@ -4727,6 +4834,12 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		{ dryRun, verbose },
 	);
 
+	if (requireComplete && summary.agentsMd.skipped > 0) {
+		throw new Error(
+			"Setup refresh incomplete: AGENTS.md was not refreshed. Stop the active session or resolve the overwrite conflict, then run nomx setup again.",
+		);
+	}
+
 	console.log('Setup complete! Run "nomx doctor" to verify installation.');
 	console.log("\nNext steps:");
 	console.log("  1. Start Codex CLI in your project directory");
@@ -4739,7 +4852,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 			"  4. Plugin-mode AGENTS.md defaults provide persistent orchestration guidance; developer_instructions is an optional bootstrap",
 		);
 		console.log(
-			"  5. Native agent role TOML files written to .codex/agents/ for agent_type routing",
+			"  5. Native agent role TOML files written to .codex/agents/ for native role discovery where supported",
 		);
 	} else {
 		console.log(
@@ -4752,7 +4865,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 			"  4. The AGENTS.md orchestration brain is loaded automatically",
 		);
 		console.log(
-			"  5. Native agent role TOML files written to .codex/agents/; use explicit agent_type when spawning NOMX roles",
+			"  5. Native agent role TOML files written to .codex/agents/ for native role discovery where supported",
 		);
 	}
 	if (isGitHubCliConfigured()) {
@@ -5052,7 +5165,11 @@ async function syncManagedAgentsContent(
 		return "unchanged";
 	}
 
-	if (destinationExists && !options.force) {
+	if (
+		destinationExists &&
+		!options.force &&
+		!isOmxGeneratedAgentsMd(existing)
+	) {
 		if (options.dryRun) {
 			summary.skipped += 1;
 			if (options.verbose) {
@@ -5153,11 +5270,17 @@ async function installPrompts(
 			if (!file.endsWith(".md")) continue;
 			const promptName = file.slice(0, -3);
 			const status = agentStatusByName?.get(promptName);
-			if (isSetupPromptAssetName(promptName, manifest)) continue;
-			if (!options.force) continue;
+			if (
+				isSetupPromptAssetName(promptName, manifest) &&
+				existsSync(join(srcDir, file))
+			)
+				continue;
 
 			const stalePromptPath = join(dstDir, file);
 			if (!existsSync(stalePromptPath)) continue;
+			if (!(await isRetiredNomxPromptFile(promptName, stalePromptPath))) {
+				continue;
+			}
 
 			if (await ensureBackup(stalePromptPath, true, backupContext, options)) {
 				summary.backedUp += 1;
@@ -5168,8 +5291,8 @@ async function installPrompts(
 			summary.removed += 1;
 			if (options.verbose) {
 				const prefix = options.dryRun
-					? "would remove stale prompt"
-					: "removed stale prompt";
+					? "would remove retired NOMX prompt"
+					: "removed retired NOMX prompt";
 				const label = status ?? "unlisted";
 				console.log(`  ${prefix} ${file} (status: ${label})`);
 			}
@@ -5187,21 +5310,64 @@ function isGeneratedOmxNativeAgentToml(
 	return firstLine === `# NOMX agent: ${agentName}` || firstLine === `# nomx agent: ${agentName}`;
 }
 
-async function cleanupGeneratedNonInstallableNativeAgents(
+async function cleanupRetiredNomxNativeAgents(
 	agentsDir: string,
-	manifest: NonNullable<ReturnType<typeof tryReadCatalogManifest>>,
+	nativeAgentManifest: NativeAgentInstallManifest,
 	backupContext: SetupBackupContext,
 	options: Pick<SetupOptions, "dryRun" | "verbose">,
 ): Promise<SetupCategorySummary> {
 	const summary = createEmptyCategorySummary();
 	if (!existsSync(agentsDir)) return summary;
 
-	const agentStatusByName = getCatalogAgentStatusByName(manifest);
+	for (const agentName of RETIRED_NOMX_NATIVE_AGENT_NAMES) {
+		const file = `${agentName}.toml`;
+		const staleAgentPath = join(agentsDir, file);
+		if (!existsSync(staleAgentPath)) continue;
+		const content = await readFile(staleAgentPath, "utf-8").catch(() => "");
+		const managedHash = nativeAgentManifest.files[file]?.sha256;
+		if (
+			!managedHash ||
+			managedHash !== hashContent(content) ||
+			!isGeneratedOmxNativeAgentToml(content, agentName)
+		) {
+			continue;
+		}
+
+		if (await ensureBackup(staleAgentPath, true, backupContext, options)) {
+			summary.backedUp += 1;
+		}
+		if (!options.dryRun) {
+			await rm(staleAgentPath, { force: true });
+			delete nativeAgentManifest.files[file];
+		}
+		summary.removed += 1;
+		if (options.verbose) {
+			console.log(
+				`  ${options.dryRun ? "would remove" : "removed"} retired generated native agent ${file}`,
+			);
+		}
+	}
+
+	return summary;
+}
+
+async function cleanupGeneratedNonInstallableNativeAgents(
+	agentsDir: string,
+	catalogManifest: NonNullable<ReturnType<typeof tryReadCatalogManifest>>,
+	nativeAgentManifest: NativeAgentInstallManifest,
+	backupContext: SetupBackupContext,
+	options: Pick<SetupOptions, "dryRun" | "verbose">,
+): Promise<SetupCategorySummary> {
+	const summary = createEmptyCategorySummary();
+	if (!existsSync(agentsDir)) return summary;
+
+	const agentStatusByName = getCatalogAgentStatusByName(catalogManifest);
 	const installedFiles = await readdir(agentsDir);
 
 	for (const file of installedFiles) {
 		if (!file.endsWith(".toml")) continue;
 		const agentName = file.slice(0, -5);
+		if (RETIRED_NOMX_NATIVE_AGENT_NAMES.has(agentName)) continue;
 		const agentStatus = agentStatusByName.get(agentName);
 		if (
 			agentStatus === undefined ||
@@ -5218,7 +5384,12 @@ async function cleanupGeneratedNonInstallableNativeAgents(
 			continue;
 		}
 
-		if (!isGeneratedOmxNativeAgentToml(content, agentName)) {
+		const managedHash = nativeAgentManifest.files[file]?.sha256;
+		if (
+			!managedHash ||
+			managedHash !== hashContent(content) ||
+			!isGeneratedOmxNativeAgentToml(content, agentName)
+		) {
 			if (options.verbose) {
 				console.log(
 					`  skipped stale native agent ${file}: not an NOMX-generated native agent`,
@@ -5232,6 +5403,7 @@ async function cleanupGeneratedNonInstallableNativeAgents(
 		}
 		if (!options.dryRun) {
 			await rm(staleAgentPath, { force: true });
+			delete nativeAgentManifest.files[file];
 		}
 		summary.removed += 1;
 		if (options.verbose) {
@@ -5260,6 +5432,14 @@ async function refreshNativeAgentConfigs(
 	}
 
 	const nativeAgentManifest = await readNativeAgentInstallManifest(agentsDir);
+	const retiredCleanup = await cleanupRetiredNomxNativeAgents(
+		agentsDir,
+		nativeAgentManifest,
+		backupContext,
+		options,
+	);
+	summary.backedUp += retiredCleanup.backedUp;
+	summary.removed += retiredCleanup.removed;
 	const manifest = tryReadCatalogManifest();
 	const agentStatusByName = manifest
 		? getCatalogAgentStatusByName(manifest)
@@ -5314,6 +5494,7 @@ async function refreshNativeAgentConfigs(
 		const generatedCleanup = await cleanupGeneratedNonInstallableNativeAgents(
 			agentsDir,
 			manifest,
+			nativeAgentManifest,
 			backupContext,
 			options,
 		);
@@ -5326,17 +5507,28 @@ async function refreshNativeAgentConfigs(
 		for (const file of installedFiles) {
 			if (!file.endsWith(".toml")) continue;
 			const agentName = file.slice(0, -5);
+			if (RETIRED_NOMX_NATIVE_AGENT_NAMES.has(agentName)) continue;
 			const agentStatus = agentStatusByName?.get(agentName);
 			if (isNativeAgentInstallableStatus(agentStatus)) continue;
 			if (!options.force) continue;
 			if (
 				!staleCandidateNativeAgentNames.has(agentName) &&
 				agentStatus === undefined
-			)
-				continue;
+			) {
+				const content = await readFile(join(agentsDir, file), "utf-8").catch(
+					() => "",
+				);
+				if (!isGeneratedOmxNativeAgentToml(content, agentName)) continue;
+			}
 
 			const staleAgentPath = join(agentsDir, file);
 			if (!existsSync(staleAgentPath)) continue;
+			const content = await readFile(staleAgentPath, "utf-8").catch(
+				() => "",
+			);
+			if (nativeAgentManifest.files[file]?.sha256 !== hashContent(content)) {
+				continue;
+			}
 
 			if (await ensureBackup(staleAgentPath, true, backupContext, options)) {
 				summary.backedUp += 1;
@@ -5443,9 +5635,10 @@ export async function installSkills(
 	): boolean =>
 		isCatalogInstallableStatus(status) || installableSkillNames.has(skillName);
 	const entries = await readdir(srcDir, { withFileTypes: true });
-	const staleCandidateSkillNames = new Set(
-		manifest?.skills.map((skill) => skill.name) ?? [],
-	);
+	const staleCandidateSkillNames = new Set([
+		...(manifest?.skills.map((skill) => skill.name) ?? []),
+		...RETIRED_NOMX_SKILL_NAMES,
+	]);
 	for (const entry of entries) {
 		if (!entry.isDirectory()) continue;
 		staleCandidateSkillNames.add(entry.name);
@@ -5520,14 +5713,23 @@ export async function installSkills(
 			const status = skillStatusByName?.get(staleSkill);
 			if (isSetupInstallableSkill(staleSkill, status)) continue;
 			const hardDeprecated = HARD_DEPRECATED_SKILL_NAMES.has(staleSkill);
-			if (!options.force && !hardDeprecated) continue;
 
 			const staleSkillDir = join(dstDir, staleSkill);
 			if (!existsSync(staleSkillDir)) continue;
+			const retiredManaged = await isRetiredNomxManagedSkillDirectory(
+				staleSkill,
+				staleSkillDir,
+			);
+			if (!options.force && !hardDeprecated && !retiredManaged) continue;
+			if (RETIRED_NOMX_SKILL_NAMES.has(staleSkill) && !retiredManaged) continue;
 
-			if (!options.dryRun) {
-				await rm(staleSkillDir, { recursive: true, force: true });
-			}
+			const removed = await removeDirectoryCopyAware(
+				staleSkillDir,
+				backupContext,
+				options,
+			);
+			if (!removed) continue;
+			summary.backedUp += 1;
 			summary.removed += 1;
 			if (options.verbose) {
 				const prefix = options.dryRun
@@ -5620,6 +5822,28 @@ async function cleanupLegacyManagedSkills(
 			result.warnings.push(warning);
 			continue;
 		}
+
+		const removed = await removeDirectoryCopyAware(
+			installedSkillDir,
+			backupContext,
+			options,
+		);
+		if (removed) {
+			result.backedUp += 1;
+			result.removedSkillNames.push(skillName);
+		}
+	}
+
+	for (const skillName of RETIRED_NOMX_SKILL_NAMES) {
+		const installedSkillDir = join(dstDir, skillName);
+		if (
+			!existsSync(installedSkillDir) ||
+			!(await isRetiredNomxManagedSkillDirectory(
+				skillName,
+				installedSkillDir,
+			))
+		)
+			continue;
 
 		const removed = await removeDirectoryCopyAware(
 			installedSkillDir,
@@ -5920,29 +6144,4 @@ async function setupNotifyHook(
 	}
 	// The notify hook is configured in config.toml via mergeConfig
 	if (options.verbose) console.log(`  Notify hook: ${hookScript}`);
-}
-
-async function verifyTeamCliApiInterop(
-	pkgRoot: string,
-): Promise<{ ok: true } | { ok: false; message: string }> {
-	const teamCliPath = join(pkgRoot, "dist", "cli", "team.js");
-	if (!existsSync(teamCliPath)) {
-		return { ok: false, message: `missing ${teamCliPath}` };
-	}
-
-	try {
-		const content = await readFile(teamCliPath, "utf-8");
-		const missing = REQUIRED_TEAM_CLI_API_MARKERS.filter(
-			(marker) => !content.includes(marker),
-		);
-		if (missing.length > 0) {
-			return {
-				ok: false,
-				message: `team CLI interop markers missing: ${missing.join(", ")}`,
-			};
-		}
-		return { ok: true };
-	} catch {
-		return { ok: false, message: `cannot read ${teamCliPath}` };
-	}
 }

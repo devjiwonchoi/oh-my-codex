@@ -103,6 +103,9 @@ describe('autopilot skill default Ultragoal contract', () => {
     assert.match(ralplanSkill, /When the native surface exposes `agent_type` role routing/i);
     assert.match(ralplanSkill, /role[_ -]?routing[_ -]?unavailable/i);
     assert.match(ralplanSkill, /nomx ralplan role-intent write/i);
+    assert.match(ralplanSkill, /CODEX_THREAD_ID.*authenticated current leader identity/i);
+    assert.match(ralplanSkill, /--parent-thread "\$CODEX_THREAD_ID"/i);
+    assert.doesNotMatch(ralplanSkill, /<leader-thread-id>/i);
   });
 
   it('does not preserve the old broad phase lifecycle as primary behavior', () => {

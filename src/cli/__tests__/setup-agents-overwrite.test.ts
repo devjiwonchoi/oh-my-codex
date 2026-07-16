@@ -185,7 +185,7 @@ describe('nomx setup AGENTS refresh behavior', () => {
     }
   });
 
-  it('refreshes the managed model table in non-interactive runs without requiring --force', async () => {
+  it('refreshes a generated AGENTS contract in non-interactive runs without requiring --force', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'nomx-setup-agents-'));
     const restoreTty = setMockTty(false);
     const home = join(wd, 'home');
@@ -213,7 +213,7 @@ describe('nomx setup AGENTS refresh behavior', () => {
         { codexHomeOverride: join(wd, '.codex') },
       );
 
-      assert.match(output, /Refreshed AGENTS\.md model capability table in project root\./);
+      assert.match(output, /Refreshed generated AGENTS\.md contract in project root\./);
       assert.doesNotMatch(output, /Skipped AGENTS\.md overwrite/);
       assert.match(
         agentsContent,
@@ -229,6 +229,76 @@ describe('nomx setup AGENTS refresh behavior', () => {
       );
       assert.doesNotMatch(agentsContent, /legacy-frontier/);
       assert.doesNotMatch(agentsContent, /legacy-spark/);
+    } finally {
+      restoreHome();
+      restoreTty();
+      await rm(wd, { recursive: true, force: true });
+    }
+  });
+
+  it('refreshes the full generated AGENTS contract in non-interactive legacy setup and preserves user policy blocks', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-setup-agents-contract-'));
+    const restoreTty = setMockTty(false);
+    const home = join(wd, 'home');
+    const restoreHome = setMockHome(home);
+    const template = readFileSync(join(process.cwd(), 'templates', 'AGENTS.md'), 'utf-8');
+    const userPolicy = [
+      NOMX_USER_POLICY_START_MARKER,
+      'Keep this local policy.',
+      NOMX_USER_POLICY_END_MARKER,
+    ].join('\n');
+    try {
+      await mkdir(join(wd, '.nomx', 'state'), { recursive: true });
+      const staleGenerated = `${addGeneratedAgentsMarker(template).replace(
+        'Within one Codex session, use Codex native subagents',
+        'Within one Codex session or team pane, use Codex native subagents',
+      ).trimEnd()}\n\n${userPolicy}\n`;
+      await writeFile(join(wd, 'AGENTS.md'), staleGenerated);
+
+      const output = await runSetupWithCapturedLogs(wd, { scope: 'project' });
+      const refreshed = await readFile(join(wd, 'AGENTS.md'), 'utf8');
+
+      assert.match(output, /Refreshed generated AGENTS\.md contract in project root\./);
+      assert.match(refreshed, /Within one Codex session, use Codex native subagents/);
+      assert.doesNotMatch(refreshed, /team pane/);
+      assert.match(refreshed, /Keep this local policy\./);
+    } finally {
+      restoreHome();
+      restoreTty();
+      await rm(wd, { recursive: true, force: true });
+    }
+  });
+
+  it('refreshes an existing generated plugin AGENTS contract without a non-interactive prompt', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-setup-plugin-agents-contract-'));
+    const restoreTty = setMockTty(false);
+    const home = join(wd, 'home');
+    const restoreHome = setMockHome(home);
+    try {
+      await mkdir(join(wd, '.nomx', 'state'), { recursive: true });
+      await runSetupWithCapturedLogs(wd, {
+        scope: 'user',
+        installMode: 'plugin',
+        pluginAgentsMdPrompt: async () => true,
+      });
+      const agentsPath = join(home, '.codex', 'AGENTS.md');
+      const installed = await readFile(agentsPath, 'utf8');
+      const staleGenerated = installed.replace(
+        'Within one Codex session, use Codex native subagents',
+        'Within one Codex session or team pane, use Codex native subagents',
+      );
+      assert.notEqual(staleGenerated, installed);
+      await writeFile(agentsPath, staleGenerated);
+
+      const output = await runSetupWithCapturedLogs(wd, {
+        scope: 'user',
+        installMode: 'plugin',
+      });
+      const refreshed = await readFile(agentsPath, 'utf8');
+
+      assert.match(output, /Generated plugin-mode AGENTS\.md defaults/);
+      assert.match(refreshed, /Within one Codex session, use Codex native subagents/);
+      assert.doesNotMatch(refreshed, /team pane/);
     } finally {
       restoreHome();
       restoreTty();
@@ -861,6 +931,55 @@ describe('nomx setup AGENTS refresh behavior', () => {
         { scope: 'project', mcpMode: 'none', mergeAgents: true },
       );
     } finally {
+      restoreHome();
+      restoreTty();
+      await rm(wd, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects an automatic refresh completion claim when an active session skips AGENTS.md', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-setup-agents-'));
+    const restoreTty = setMockTty(true);
+    const home = join(wd, 'home');
+    const restoreHome = setMockHome(home);
+    const previousCwd = process.cwd();
+    const originalLog = console.log;
+    const existing = '# active session file\n';
+    try {
+      const pidStartTicks = await readCurrentLinuxStartTicks();
+      await mkdir(join(wd, '.nomx', 'state'), { recursive: true });
+      await writeFile(
+        join(wd, '.nomx', 'identity.json'),
+        `${JSON.stringify(createNomxRootMetadata(join(wd, '.nomx')), null, 2)}\n`,
+      );
+      await writeFile(join(wd, 'AGENTS.md'), existing);
+      await writeFile(
+        join(wd, '.nomx', 'state', 'session.json'),
+        JSON.stringify({
+          session_id: 'sess-test',
+          started_at: new Date().toISOString(),
+          cwd: wd,
+          pid: process.pid,
+          pid_start_ticks: pidStartTicks,
+        }, null, 2),
+      );
+      process.chdir(wd);
+      console.log = () => {};
+
+      await assert.rejects(
+        setup({
+          scope: 'project',
+          requireComplete: true,
+          installModePrompt: async (defaultMode) => defaultMode,
+          modelUpgradePrompt: async () => false,
+        }),
+        /Setup refresh incomplete: AGENTS\.md was not refreshed/,
+      );
+
+      assert.equal(await readFile(join(wd, 'AGENTS.md'), 'utf-8'), existing);
+    } finally {
+      console.log = originalLog;
+      process.chdir(previousCwd);
       restoreHome();
       restoreTty();
       await rm(wd, { recursive: true, force: true });

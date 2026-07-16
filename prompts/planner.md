@@ -59,7 +59,7 @@ Leave execution with a right-sized, evidence-grounded plan: scope, steps, accept
 - Codebase facts come from inspection.
 - Plan is saved to `.nomx/plans/{name}.md`.
 - User confirmation is obtained before handoff.
-- Consensus mode includes complete RALPLAN-DR, ADR, an explicit available-agent-types roster, staffing guidance for ultragoal and team follow-up paths, plus explicit Ralph fallback guidance, suggested reasoning levels by lane, launch hints, and a team verification path when needed.
+- Consensus mode includes complete RALPLAN-DR, ADR, an explicit available-agent-types roster, native-subagent staffing guidance for bounded parallel follow-up, Ultragoal guidance for durable execution, explicit Ralph fallback guidance, suggested reasoning levels by lane, launch hints, and a leader-owned verification path.
 </success_criteria>
 
 <tools>

@@ -46,7 +46,6 @@ import {
   getScopedStatePathAtScope,
   readScopedJsonAtScope,
   hasExistingScopedSessionDir,
-  readCurrentSessionId,
   readScopedJsonIfExists,
   getScopedStateDirsForCurrentSession,
   normalizeNotifyState,
@@ -612,29 +611,27 @@ async function main() {
     }
   }
 
-  // 0.5. Track leader + native subagent thread activity (lead session only)
-  if (!isTeamWorker && canWriteLeaderScopedState) {
+  // Turn-complete notifications do not carry trusted root/child provenance.
+  // In particular, App title-generation turns can arrive before the real
+  // conversation and have a different thread id. Never let such an event
+  // create or classify tracker entries. The fallback watcher may only close a
+  // subagent that native lifecycle evidence already established.
+  if (!isTeamWorker && canWriteLeaderScopedState && isNotifyFallbackTaskComplete) {
     try {
       const threadId = safeString(payload['thread-id'] || payload.thread_id || '');
-      const turnId = safeString(payload['turn-id'] || payload.turn_id || '');
-      if (getEffectiveSessionId() && threadId) {
-        const { recordSubagentTurnForSession } = await import('../subagents/tracker.js');
-        await recordSubagentTurnForSession(cwd, {
-          sessionId: getEffectiveSessionId(),
+      const sessionId = getEffectiveSessionId();
+      if (sessionId && threadId) {
+        const { recordKnownSubagentCompletionForSession } = await import('../subagents/tracker.js');
+        await recordKnownSubagentCompletionForSession(cwd, {
+          sessionId,
           threadId,
-          ...(turnId ? { turnId } : {}),
+          turnId: safeString(payload['turn-id'] || payload.turn_id || ''),
+          completionSource: 'notify-fallback-watcher',
           timestamp: new Date().toISOString(),
-          mode: safeString(payload.mode || ''),
-          ...(isNotifyFallbackTaskComplete
-            ? {
-                completed: true,
-                completionSource: 'notify-fallback-watcher',
-              }
-            : {}),
         });
       }
     } catch {
-      // Non-critical: tracking must never block the hook
+      // Non-critical: fallback completion must not block the notify hook.
     }
   }
 

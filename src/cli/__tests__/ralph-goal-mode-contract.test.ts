@@ -1,14 +1,14 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { buildRalphAppendInstructions } from '../ralph.js';
 import {
   LEADER_CONDUCTOR_BLOCK,
   LEADER_CONDUCTOR_GOLDEN_RULE,
   LEADER_CONDUCTOR_REUSE_AND_LEDGER_GUIDANCE,
 } from '../../leader/contract.js';
+import { buildRalphAppendInstructions } from '../ralph.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ralphSkill = readFileSync(join(__dirname, '../../../skills/ralph/SKILL.md'), 'utf-8');
@@ -18,24 +18,29 @@ function escapeRegExp(value: string): string {
 }
 
 describe('ralph goal mode integration contract', () => {
-  it('uses agent_type-based native subagent examples instead of legacy delegate role syntax', () => {
-    assert.match(ralphSkill, /task\(agent_type="executor", reasoning_effort="low"/);
-    assert.match(ralphSkill, /task\(agent_type="executor", reasoning_effort="medium"/);
-    assert.match(ralphSkill, /task\(agent_type="executor", reasoning_effort="xhigh"/);
-    assert.match(ralphSkill, /`LOW` -> `low`/);
-    assert.match(ralphSkill, /`STANDARD` -> `medium`/);
-    assert.match(ralphSkill, /`THOROUGH` -> `xhigh`/);
-    assert.match(ralphSkill, /task\(agent_type="architect", reasoning_effort="medium"/);
-    assert.match(ralphSkill, /When the native surface exposes `agent_type` role routing, set `agent_type` to an installed NOMX role and never omit it for NOMX work/);
-    assert.match(ralphSkill, /role_routing_unavailable/);
-    assert.match(ralphSkill, /do not fabricate `agent_type`/);
-    assert.match(ralphSkill, /NOMX adapted role-pass protocol/);
-    assert.match(ralphSkill, /pre-validated role intent in the NOMX subagent ledger/);
-    assert.match(ralphSkill, /never fake the role via a prompt label/);
+  it('uses receipt-backed native spawn_agent examples instead of unsupported dispatch fields', () => {
+    assert.match(ralphSkill, /native `spawn_agent` contract/i);
+    assert.match(ralphSkill, /`task_name`, a precise `message`, and `fork_turns`/i);
+    assert.match(ralphSkill, /role-intent write --role <role>/i);
+    assert.match(ralphSkill, /role-intent write --role architect/i);
+    assert.match(ralphSkill, /CODEX_THREAD_ID.*authenticated current leader identity/i);
+    assert.match(ralphSkill, /--parent-thread "\$CODEX_THREAD_ID"/i);
+    assert.match(ralphSkill, /receipt's `spawn_task_name` as the exact `task_name`/i);
+    assert.match(ralphSkill, /validated ledger receipt carries role identity/i);
+    assert.match(ralphSkill, /Never replace the receipt with a prompt role label/i);
+    assert.match(
+      ralphSkill,
+      /spawn_agent\(\{task_name: "<receipt\.spawn_task_name>", message:/,
+    );
+    assert.doesNotMatch(ralphSkill, /\btask\(\s*(?:agent_type|subagent_type)\s*=/);
+    assert.doesNotMatch(ralphSkill, /\brun_in_background\s*[:=]/);
+    assert.doesNotMatch(ralphSkill, /\bload_skills\s*[:=]/);
+    assert.doesNotMatch(ralphSkill, /\breasoning_effort\s*[:=]/);
     assert.doesNotMatch(ralphSkill, /delegate\(role=/);
     assert.doesNotMatch(ralphSkill, /delegate\(executor/);
     assert.doesNotMatch(ralphSkill, /tier="/);
-    assert.doesNotMatch(ralphSkill, /Always pass the `model` parameter explicitly/);
+    assert.doesNotMatch(ralphSkill, /(?:^|[,{]\s*)model\s*[:=]/m);
+    assert.doesNotMatch(ralphSkill, /<leader-thread-id>/i);
   });
 
   it('documents Codex goal-mode audit and completion semantics in the Ralph skill', () => {

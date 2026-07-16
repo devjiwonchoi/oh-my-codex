@@ -10,6 +10,7 @@ import {
   __resetSessionPointerTransactionDependenciesForTests,
   __setSessionPointerTransactionDependenciesForTests,
   isSessionPointerLaunchAbort,
+  isSessionStateUsable,
   isSessionStale,
   readSessionPointer,
   readSessionState,
@@ -598,6 +599,21 @@ describe('session lifecycle manager', () => {
 });
 
 describe('isSessionStale', () => {
+  it('treats an EPERM liveness probe as live rather than stale', () => {
+    const originalKill = process.kill;
+    try {
+      process.kill = (() => {
+        throw Object.assign(new Error('permission denied'), { code: 'EPERM' });
+      }) as typeof process.kill;
+      assert.equal(
+        isSessionStateUsable(makeState({ cwd: process.cwd() }), process.cwd(), { platform: 'darwin' }),
+        true,
+      );
+    } finally {
+      process.kill = originalKill;
+    }
+  });
+
   it('returns false for a live Linux process when identity matches', () => {
     const state = makeState({
       pid_start_ticks: 111,
