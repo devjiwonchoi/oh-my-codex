@@ -8690,9 +8690,9 @@ async function buildDeepInterviewProgressStopOutput(
       output: {
         decision: "block",
         stopReason: "deep_interview_progress_required",
-        reason: \`Deep interview response is missing the required progress table fields: \${missing}.\`,
+        reason: `Deep interview response is missing the required progress table fields: ${missing}.`,
         systemMessage:
-          \`Before continuing, restate the current interview progress as a Markdown table with columns \\\`Round\\\`, \\\`Target\\\`, \\\`Ambiguity\\\`, and \\\`Readiness gate\\\`, then ask exactly one next question or state the closure result. Missing fields: \${missing}.\`,
+          `Before continuing, restate the current interview progress as a Markdown table with columns \`Round\`, \`Target\`, \`Ambiguity\`, and \`Readiness gate\`, then ask exactly one next question or state the closure result. Missing fields: ${missing}.`,
       },
     };
   }
