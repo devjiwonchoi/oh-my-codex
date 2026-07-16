@@ -1167,7 +1167,7 @@
       ]
     },
     "skills": {
-      "digest": "d9713d443ddd512c528e67aba73bafed30f7364c1dde13956cf1bfd3c282920c",
+      "digest": "6d657cb6e791d04fa5d0ffb76f65843cd13246cc0c4d1eaed667578d7ed476d8",
       "files": [
         {
           "digest": "239f95eaf0838455d14f94c469c9aa3169c18ea6d7294080fceedc3af027d363",
@@ -1182,7 +1182,7 @@
           "path": "skills/code-review/SKILL.md"
         },
         {
-          "digest": "cfe9cb0c5cee862e5876063cc8330ca9ca3a2d7c232797c8c769e287c8de4a57",
+          "digest": "937d29010aecd41b4b1fad1a19a15bf73ec538295d7d93035e42c1ab37db5b8e",
           "path": "skills/deep-interview/SKILL.md"
         },
         {

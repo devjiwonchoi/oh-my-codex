@@ -218,6 +218,14 @@ export interface DeepInterviewModeState {
   turn_id?: string;
   input_lock?: DeepInterviewInputLock;
   question_enforcement?: DeepInterviewQuestionEnforcementState;
+  interview_progress?: {
+    schema_version: 1;
+    round: number;
+    target: string;
+    ambiguity: number;
+    readiness_gate: string;
+    updated_at: string;
+  };
   downstream_authority?: DownstreamAuthority;
   bypass_planning_gate_until?: string;
   [key: string]: unknown;
@@ -582,6 +590,7 @@ export async function persistDeepInterviewModeState(
         ...configStateFields,
         ...(nextSkill.input_lock ? { input_lock: nextSkill.input_lock } : {}),
         ...(nextQuestionEnforcement ? { question_enforcement: nextQuestionEnforcement } : {}),
+        ...(previousModeState?.interview_progress ? { interview_progress: previousModeState.interview_progress } : {}),
         ...(previousModeState?.downstream_authority ? { downstream_authority: previousModeState.downstream_authority } : {}),
         ...(previousModeState?.bypass_planning_gate_until ? { bypass_planning_gate_until: previousModeState.bypass_planning_gate_until } : {}),
       },
@@ -617,6 +626,7 @@ export async function persistDeepInterviewModeState(
           ),
         }
       : {}),
+    ...(previousModeState?.interview_progress ? { interview_progress: previousModeState.interview_progress } : {}),
     ...(previousModeState?.downstream_authority ? { downstream_authority: previousModeState.downstream_authority } : {}),
     ...(previousModeState?.bypass_planning_gate_until ? { bypass_planning_gate_until: previousModeState.bypass_planning_gate_until } : {}),
   };
@@ -3801,12 +3811,34 @@ export async function recordSkillActivation(input: RecordSkillActivationInput): 
   const previousSession = sessionStatePath ? await readExistingSkillState(sessionStatePath) : null;
   const previous = input.sessionId ? previousSession : previousRoot;
   const teamMode = readTeamModeConfig(sourceCwd);
-  const match = resolveContinuationKeywordMatch(
+  let match = resolveContinuationKeywordMatch(
     input.text,
     previous,
     detectPrimaryKeywordForTeamMode(classification, teamMode.enabled),
     classification,
   );
+  let ordinaryDeepInterviewAnswer = false;
+  if (!match
+    && previous?.active === true
+    && previous.skill === 'deep-interview'
+    && classification.reservedInput === null
+    && !classification.hasExplicitLikeInvocation
+    && classification.matches.length === 0
+    && input.text.trim()) {
+    const modeState = await readJsonStateIfExists(resolveSeedStateFilePath(
+      input.stateDir,
+      'deep-interview',
+      input.sessionId,
+    ).absolutePath);
+    if (modeState?.active === true && !isResettableTerminalModeState(modeState, 'deep-interview')) {
+      match = {
+        keyword: safeString(previous.keyword).trim() || '$deep-interview',
+        skill: 'deep-interview',
+        priority: 0,
+      };
+      ordinaryDeepInterviewAnswer = true;
+    }
+  }
   if (!match) return null;
 
 
@@ -3850,7 +3882,8 @@ export async function recordSkillActivation(input: RecordSkillActivationInput): 
 
   const sameSkill = previous?.active === true && previous.skill === match.skill;
   const sameKeyword = previous?.keyword?.toLowerCase() === match.keyword.toLowerCase();
-  const sameSkillContinuation = sameSkill && shouldReusePreviousSkillForContinuation(input.text, previous, classification);
+  const sameSkillContinuation = sameSkill
+    && (ordinaryDeepInterviewAnswer || shouldReusePreviousSkillForContinuation(input.text, previous, classification));
 
   const matchedSeedConfig = STATEFUL_SKILL_SEED_CONFIG[match.skill as StatefulSkillMode];
   const matchedModeState = matchedSeedConfig
