@@ -4,7 +4,7 @@ import { mkdtemp, rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
-describe('MCP state/team tools path traversal prevention', () => {
+describe('MCP state tools path traversal prevention', () => {
   process.env.NOMX_STATE_SERVER_DISABLE_AUTO_START = '1';
 
   it('rejects invalid workingDirectory inputs containing NUL bytes', async () => {
@@ -12,7 +12,7 @@ describe('MCP state/team tools path traversal prevention', () => {
     const resp = await handleStateToolCall({
       params: {
         name: 'state_read',
-        arguments: { mode: 'team', workingDirectory: 'bad\0path' },
+        arguments: { mode: 'ralph', workingDirectory: 'bad\0path' },
       },
     });
     assert.equal(resp.isError, true);
@@ -63,22 +63,4 @@ describe('MCP state/team tools path traversal prevention', () => {
     }
   });
 
-  it('team_* tools return hard-deprecated CLI-only errors even for traversal payloads', async () => {
-    const { handleStateToolCall } = await import('../state-server.js');
-    const wd = await mkdtemp(join(tmpdir(), 'nomx-traversal-'));
-    try {
-      const resp = await handleStateToolCall({
-        params: {
-          name: 'team_read_config',
-          arguments: { team_name: '../../../etc/passwd', workingDirectory: wd },
-        },
-      });
-      assert.equal(resp.isError, true);
-      const body = JSON.parse(resp.content[0]?.text ?? '{}') as { code?: string; hint?: string };
-      assert.equal(body.code, 'deprecated_cli_only');
-      assert.match(body.hint ?? '', /nomx team api read-config/);
-    } finally {
-      await rm(wd, { recursive: true, force: true });
-    }
-  });
 });

@@ -494,13 +494,6 @@ export function isEventAllowedByVerbosity(
   return VERBOSITY_RANK[verbosity] >= VERBOSITY_RANK[required];
 }
 
-/**
- * Whether the given verbosity level should include tmux tail output.
- */
-export function shouldIncludeTmuxTail(verbosity: VerbosityLevel): boolean {
-  return VERBOSITY_RANK[verbosity] >= VERBOSITY_RANK["session"];
-}
-
 export function isEventEnabled(
   config: FullNotificationConfig,
   event: NotificationEvent,

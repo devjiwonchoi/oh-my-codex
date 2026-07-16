@@ -1,6 +1,0 @@
-NOMX doctor --team
-==================
-
-  [XX] resume_blocker: alpha references missing tmux session nomx-team-alpha
-
-Results: 0 warnings, 1 failed

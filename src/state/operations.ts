@@ -227,8 +227,6 @@ async function initializeStateEnvironment(
     await mkdir(getStateDir(cwd, effectiveSessionId), { recursive: true });
   }
   if (rootSource === 'team-env') return;
-  const { ensureTmuxHookInitialized } = await import('../cli/tmux-hook.js');
-  await ensureTmuxHookInitialized(cwd);
 }
 
 function hasExplicitStateField(

@@ -83,9 +83,7 @@ function shouldScrubRuntimeEnvKey(key: string): boolean {
     key.startsWith('CODEX_') ||
     key === 'USE_NOMX_EXPLORE_CMD' ||
     key === 'USE_OMX_EXPLORE_CMD' ||
-    key === 'SESSION_ID' ||
-    key === 'TMUX' ||
-    key === 'TMUX_PANE'
+    key === 'SESSION_ID'
   );
 }
 
@@ -99,7 +97,6 @@ function buildChildEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
       }
     }
   }
-  childEnv.NOMX_TEST_RELAX_TMUX_TIMEOUT = '1';
   return childEnv;
 }
 

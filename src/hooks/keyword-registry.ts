@@ -40,8 +40,6 @@ export const KEYWORD_TRIGGER_DEFINITIONS: readonly KeywordTriggerDefinition[] = 
 
   { keyword: '$best-practice-research', skill: 'best-practice-research', priority: 8, guidance: 'Activate bounded best-practice research wrapper' },
 
-  { keyword: '$team', skill: 'team', priority: 8, guidance: 'Activate coordinated team mode' },
-  { keyword: 'coordinated team', skill: 'team', priority: 8, guidance: 'Activate coordinated team mode' },
 
   { keyword: '$cancel', skill: 'cancel', priority: 5, guidance: 'Run the NOMX cancellation control path' },
   { keyword: 'stop', skill: 'cancel', priority: 5, guidance: 'Run the NOMX cancellation control path' },

@@ -14,19 +14,16 @@ Produce a cited, reusable best-practice answer or handoff that separates current
 
 ## Terminal By Default
 
-This skill is terminal and read-only by default. It gathers evidence and produces a cited recommendation with a handoff, then stops. Do not write or edit files, create or amend commits, run mutating commands, or otherwise modify repository state under this skill — even when the question has clear implementation implications. When implementation is warranted, stop and hand off rather than continuing: name `$ralplan` for planning and `$ultragoal`, `$team`, or `executor` for execution, and resume only after the user explicitly switches to that workflow.
 
 ## Activate When
 
 - The user asks for best practices, recommended approach, current guidance, official recommendations, standards, or version-aware external behavior.
-- `$ralplan`, `$deep-interview`, `$team`, or another workflow needs current external evidence before planning or execution can be correct.
 - The task involves an already chosen technology and needs authoritative usage guidance, migration notes, API behavior, lifecycle rules, or current safety guidance.
 
 ## Do Not Activate When
 
 - The answer is fully repo-local; use `explore` for codebase facts.
 - The main question is whether to adopt, replace, upgrade, or compare dependencies; use `dependency-expert`.
-- The user only needs implementation against already-grounded requirements; use `executor`, `$ralph`, or `$team` as appropriate.
 - The task can be answered from stable local project conventions without current external lookup.
 
 ## Specialist Routing
@@ -75,7 +72,6 @@ This skill is terminal and read-only by default. It gathers evidence and produce
 <what this research does not decide>
 
 ### Handoff
-<planning/execution/test implications; name the next workflow — `$ralplan` for planning, `$ultragoal`/`$team`/`executor` for execution — and note that this skill stops here unless the user explicitly switches workflows>
 ```
 
 ## Stop Rules

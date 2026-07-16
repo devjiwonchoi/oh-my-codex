@@ -20,7 +20,6 @@ export interface UltragoalDescriptor {
   sessionId?: string;
   ralplanArtifacts: Record<string, unknown>;
   instruction: string;
-  teamCondition: string;
 }
 
 export interface UltragoalInstructionOptions {
@@ -51,7 +50,6 @@ export function createUltragoalStage(): PipelineStage {
         sessionId: ctx.sessionId,
         ralplanArtifacts: ralplanArtifacts ?? {},
         instruction: buildUltragoalInstruction(ctx.task, instructionOptions),
-        teamCondition: 'Launch $team only inside an active Ultragoal story when independent lanes or broad verification make coordinated parallel work useful; Ultragoal remains leader-owned for goal and ledger state.',
       };
 
       return {
@@ -59,7 +57,6 @@ export function createUltragoalStage(): PipelineStage {
         artifacts: {
           stage: 'ultragoal',
           ultragoalDescriptor: descriptor,
-          team_condition: descriptor.teamCondition,
           instruction: descriptor.instruction,
         },
         duration_ms: Date.now() - startTime,

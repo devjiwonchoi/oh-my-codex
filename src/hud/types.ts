@@ -51,7 +51,6 @@ export interface AutopilotStateForHud {
   current_phase?: string;
   mode?: string;
   session_id?: string;
-  tmux_pane_id?: string;
   source?: 'authoritative' | 'current-autopilot-stale';
   stale_reason?: string;
 }
@@ -202,6 +201,5 @@ export const DEFAULT_HUD_CONFIG: ResolvedHudConfig = {
 export interface HudFlags {
   watch: boolean;
   json: boolean;
-  tmux: boolean;
   preset?: HudPreset;
 }

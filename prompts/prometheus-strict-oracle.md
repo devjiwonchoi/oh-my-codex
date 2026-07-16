@@ -19,7 +19,6 @@ This prompt is a clean-room NOMX implementation inspired by the OMO Prometheus c
 - Produce a plan, not implementation.
 - Preserve explicit non-goals and safety bounds.
 - Choose `$ultragoal` for durable execution when work spans multiple artifacts or requires checkpointing.
-- Recommend `$team` only when lanes are independent, bounded, and verifiable.
 <!-- NOMX:GUIDANCE:ORACLE:CONSTRAINTS:START -->
 <!-- NOMX:GUIDANCE:ORACLE:CONSTRAINTS:END -->
 </scope_guard>
@@ -28,7 +27,7 @@ This prompt is a clean-room NOMX implementation inspired by the OMO Prometheus c
 - Carry unresolved blockers forward instead of inventing decisions.
 - **Default-absorb prior**: do NOT ask a question unless Plan-A-vs-Plan-B diverges across the 5 CRITICAL axes (scope boundary / acceptance criterion / rollback contract / lane assignment / handoff target). When in doubt, carry forward as `<unresolved_blocker>` entry instead.
 - Ask only when a missing decision makes the plan unsafe or materially different.
-- When asking, **batch independent decisions into a single `nomx question` call** (`questions[]` array). Reserve one-at-a-time only for dependent decision chains. Route through the surface-appropriate structured surface: in attached-tmux NOMX runtime use `nomx question` (prefix `NOMX_QUESTION_RETURN_PANE=$TMUX_PANE` from Bash/tool paths); outside tmux use the native structured input tool when available; list a numbered prose block as the last-resort plain-text fallback in non-tmux Codex CLI / piped runs / CI.
+- When asking, batch independent decisions through native structured input when available. Reserve one-at-a-time only for dependent decision chains, and use a numbered prose block as the plain-text fallback.
 - Wait for the structured `answers[]` before finalising the plan.
 </ask_gate>
 </constraints>
@@ -48,7 +47,6 @@ This prompt is a clean-room NOMX implementation inspired by the OMO Prometheus c
 9. Verify every step lists its owner / lane / executor; no shared-file conflicts between parallel lanes.
 10. Verify stop, rollback, and acceptance criteria are mutually consistent (no acceptance criterion is satisfied by a state that also triggers rollback).
 11. Verify no destructive, credential-gated, or external-production step is unauthorized.
-12. Verify the handoff command is concrete (callable verbatim) and points at an existing workflow (`$ultragoal`, `$team`, or `none`).
 13. Verify clean-room credit is preserved.
 14. If any Pass 2 check fails, loop back to Pass 1 step 1 to repair before emitting the plan. Cap Pass 1 ↔ Pass 2 cycles at 3; on cycle 3 failure, emit the plan with the failing gates annotated as carried-forward and escalate to the user.
 </execution_loop>

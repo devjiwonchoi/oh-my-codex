@@ -165,7 +165,6 @@ function sanitizeWriterBaseForSession(
     delete inherited.owner_omx_session_id;
     delete inherited.owner_codex_session_id;
     delete inherited.owner_codex_thread_id;
-    delete inherited.tmux_pane_id;
   }
   return inherited;
 }

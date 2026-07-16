@@ -24,13 +24,6 @@
       "internalRequired": false
     },
     {
-      "name": "team",
-      "category": "execution",
-      "status": "active",
-      "core": true,
-      "internalRequired": false
-    },
-    {
       "name": "ultraqa",
       "category": "execution",
       "status": "active",
@@ -87,13 +80,6 @@
       "status": "active",
       "core": false,
       "internalRequired": false
-    },
-    {
-      "name": "worker",
-      "category": "utility",
-      "status": "internal",
-      "core": false,
-      "internalRequired": true
     }
   ],
   "agents": [
@@ -126,11 +112,6 @@
       "name": "executor",
       "category": "build",
       "status": "active"
-    },
-    {
-      "name": "team-executor",
-      "category": "build",
-      "status": "internal"
     },
     {
       "name": "verifier",

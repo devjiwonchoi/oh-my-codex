@@ -824,7 +824,21 @@ test('packed install smoke covers every installed native hook event with minimal
 });
 
 test('packed install smoke covers directive activation and terminal false-activation regressions', () => {
-  assert.deepEqual(PACKED_INSTALL_NATIVE_HOOK_REGRESSION_PROMPTS, [
+  const retiredTeamCases = new Set([
+    'directive-documentation-embedded-token-then-command',
+    'doc-explicit-alias',
+    'doc-fullwidth-oxford',
+    'doc-also-alias-explicit',
+    'doc-embedded-mention',
+    'doc-chain-described',
+    'prefix-list-followup',
+    'mixed-postposed-chain',
+    'implicit-first-doc-chain',
+    'both-mixed-doc-followup',
+    'repeated-postposed-followup',
+    'g1a-ordered-multi-skill',
+  ]);
+  assert.deepEqual(PACKED_INSTALL_NATIVE_HOOK_REGRESSION_PROMPTS, ([
     { name: 'directive-use-ralplan', prompt: 'use $ralplan plan this', expectedSkill: 'ralplan', expectedStopBlock: true },
     { name: 'directive-please-use-ralplan', prompt: 'please use $ralplan plan it', expectedSkill: 'ralplan', expectedStopBlock: true },
     { name: 'directive-run-ralplan', prompt: 'run $ralplan plan this', expectedSkill: 'ralplan', expectedStopBlock: true },
@@ -975,40 +989,7 @@ test('packed install smoke covers directive activation and terminal false-activa
     { name: 'b3-longer-valid-fence', prompt: '```text\n$autopilot build it\n````\n$ralplan plan it', expectedSkill: 'ralplan', expectedStopBlock: true },
     { name: 'b4-shorter-invalid-fence', prompt: '````text\n$autopilot build it\n```\n$ralplan plan it', expectedSkill: null, expectedStopBlock: false },
     { name: 'b5-different-marker-invalid-fence', prompt: '```text\n$autopilot build it\n~~~\n$ralplan plan it', expectedSkill: null, expectedStopBlock: false },
-  ]);
-});
-
-test('packed regression environment clears inherited Team routing state', () => {
-  const environment = buildPackedRegressionEnvironment(
-    { name: 'poisoned-team-case', insideTmux: true },
-    {
-      NOMX_ROOT: '/tmp/poison-root',
-      NOMX_STATE_ROOT: '/tmp/poison-state',
-      NOMX_TEAM_STATE_ROOT: '/tmp/poison-team-state',
-      NOMX_SESSION_ID: 'poison-session',
-      CODEX_SESSION_ID: 'poison-codex-session',
-      SESSION_ID: 'poison-generic-session',
-      NOMX_TEAM_WORKER: 'poison/worker-1',
-      NOMX_TEAM_INTERNAL_WORKER: 'poison/worker-2',
-      NOMX_TEAM_LEADER_CWD: '/tmp/poison-leader',
-      NOMX_TEAM_MODE: 'disabled',
-      NOMX_QUESTION_RETURN_PANE: '%1',
-      NOMX_LEADER_PANE_ID: '%2',
-      NOMX_TMUX_HUD_OWNER: '1',
-      TMUX: '/tmp/poison-tmux',
-      TMUX_PANE: '%9',
-    },
-  );
-
-  assert.equal(environment.NOMX_ROOT, '');
-  assert.equal(environment.NOMX_STATE_ROOT, '');
-  assert.equal(environment.NOMX_TEAM_STATE_ROOT, '');
-  assert.equal(environment.NOMX_TEAM_WORKER, '');
-  assert.equal(environment.NOMX_TEAM_INTERNAL_WORKER, '');
-  assert.equal(environment.NOMX_TEAM_LEADER_CWD, '');
-  assert.equal(environment.NOMX_TEAM_MODE, 'enabled');
-  assert.equal(environment.TMUX, '/tmp/tmux-pr3140-regression');
-  assert.equal(environment.TMUX_PANE, '%3140');
+  ] as const).filter(({ name }) => !retiredTeamCases.has(name)));
 });
 
 test('packed install native hook stdout validation allows empty or JSON output only', () => {

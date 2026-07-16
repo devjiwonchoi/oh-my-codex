@@ -120,7 +120,7 @@ describe('execution-heavy skill guidance contract', () => {
         `${label} skill must keep ultrawork inside lightweight-verification boundaries`,
       );
       assert.match(content, /Escalate to `ultragoal` when the work needs durable goal state/i, `${label} skill must route durable goal state to ultragoal`);
-      assert.match(content, /Escalate to `team` when the work needs coordinated tmux workers/i, `${label} skill must route coordinated worker lifecycle to team`);
+      assert.match(content, /Use additional native Codex subagents when independent bounded lanes materially improve throughput/i, `${label} skill must route parallel work to native subagents`);
       assert.match(
         content,
         /Escalate to explicitly requested `ralph` only for the supported legacy single-owner persistence\/verification fallback/i,

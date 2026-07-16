@@ -248,28 +248,6 @@ export async function writeScopedJsonAtScope(
   await writeFile(targetPath, JSON.stringify(value, null, 2));
 }
 
-export function normalizeTmuxState(raw: any): any {
-  if (!raw || typeof raw !== 'object') {
-    return {
-      total_injections: 0,
-      pane_counts: {},
-      session_counts: {},
-      recent_keys: {},
-      last_injection_ts: 0,
-      last_reason: 'init',
-      last_event_at: '',
-    };
-  }
-  return {
-    total_injections: asNumber(raw.total_injections) ?? 0,
-    pane_counts: raw.pane_counts && typeof raw.pane_counts === 'object' ? raw.pane_counts : {},
-    session_counts: raw.session_counts && typeof raw.session_counts === 'object' ? raw.session_counts : {},
-    recent_keys: raw.recent_keys && typeof raw.recent_keys === 'object' ? raw.recent_keys : {},
-    last_injection_ts: asNumber(raw.last_injection_ts) ?? 0,
-    last_reason: safeString(raw.last_reason),
-    last_event_at: safeString(raw.last_event_at),
-  };
-}
 
 export function normalizeNotifyState(raw: any): any {
   if (!raw || typeof raw !== 'object') {

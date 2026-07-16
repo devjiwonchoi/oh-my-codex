@@ -12,7 +12,7 @@ const ultragoalSkill = readFileSync(join(__dirname, '../../../skills/ultragoal/S
 
 describe('autopilot skill default Ultragoal contract', () => {
   it('makes deep-interview -> ralplan -> ultragoal -> code-review -> ultraqa the recommended/default contract', () => {
-    assert.match(autopilotSkill, /\$deep-interview\s*->\s*\$ralplan\s*->\s*\$ultragoal\s*\(\+ \$team if needed\)\s*->\s*\$code-review\s*->\s*\$ultraqa/);
+    assert.match(autopilotSkill, /\$deep-interview\s*->\s*\$ralplan\s*->\s*\$ultragoal\s*->\s*\$code-review\s*->\s*\$ultraqa/);
     assert.match(autopilotSkill, /recommended\/default contract/i);
     assert.match(autopilotSkill, /Ralph is a legacy\/explicit alternate execution loop only/i);
   });
@@ -64,7 +64,7 @@ describe('autopilot skill default Ultragoal contract', () => {
     assert.doesNotMatch(autopilotSkill, /records an `Architect` approval first/i);
     assert.match(autopilotSkill, /ralplan_consensus_gate/);
     assert.match(autopilotSkill, /missing ralplan consensus evidence/i);
-    assert.match(autopilotSkill, /do not progress to `\$ultragoal`, `\$team`, `\$ralph`, or implementation/i);
+    assert.match(autopilotSkill, /do not progress to `\$ultragoal`, `\$ralph`, or implementation/i);
   });
 
   it('documents dedicated planner routing when Autopilot main is cheap or mini', () => {

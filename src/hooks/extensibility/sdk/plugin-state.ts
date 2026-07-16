@@ -68,5 +68,4 @@ export function createHookPluginStateApi(
 export async function clearHookPluginStateFiles(cwd: string, pluginName: string): Promise<void> {
   const root = hookPluginRootDir(cwd, sanitizeHookPluginName(pluginName));
   await unlink(join(root, 'data.json')).catch(() => {});
-  await unlink(join(root, 'tmux.json')).catch(() => {});
 }

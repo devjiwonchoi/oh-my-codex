@@ -1,7 +1,6 @@
 import { execFileSync } from 'child_process';
 import { basename, dirname } from 'path';
 import { safeString } from './utils.js';
-import { upsertCurrentTaskBaseline } from '../../team/current-task-baseline.js';
 
 const TEST_SEGMENT_PATTERNS = [
   /^npm\s+(?:run\s+)?test\b/i,
@@ -54,7 +53,7 @@ function shellSegments(command: any): string[] {
     .filter(Boolean);
 }
 
-function sanitizeTmuxToken(value: any): string {
+function sanitizeSessionToken(value: any): string {
   const cleaned = safeString(value)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -62,15 +61,15 @@ function sanitizeTmuxToken(value: any): string {
   return cleaned || 'unknown';
 }
 
-function buildTmuxSessionName(cwd: any, sessionId: any): string {
+function buildOperationalSessionLabel(cwd: any, sessionId: any): string {
   const parentDir = basename(dirname(cwd));
   const dirName = basename(cwd);
   const dirToken = parentDir.endsWith('.nomx-worktrees')
-    ? sanitizeTmuxToken(`${parentDir.slice(0, -'.nomx-worktrees'.length)}-${dirName}`)
-    : sanitizeTmuxToken(dirName);
+    ? sanitizeSessionToken(`${parentDir.slice(0, -'.nomx-worktrees'.length)}-${dirName}`)
+    : sanitizeSessionToken(dirName);
   const branch = gitValue(cwd, ['rev-parse', '--abbrev-ref', 'HEAD']);
-  const branchToken = branch ? sanitizeTmuxToken(branch) : 'detached';
-  const sessionToken = sanitizeTmuxToken(safeString(sessionId).replace(/^nomx-/, ''));
+  const branchToken = branch ? sanitizeSessionToken(branch) : 'detached';
+  const sessionToken = sanitizeSessionToken(safeString(sessionId).replace(/^nomx-/, ''));
   const prefix = `nomx-${dirToken}-${branchToken}`;
   const name = `${prefix}-${sessionToken}`;
   if (name.length <= 120) return name;
@@ -83,23 +82,9 @@ export function resolveOperationalSessionName(cwd: any, sessionId = '', sessionN
   const explicit = safeString(sessionName).trim();
   if (explicit) return explicit;
 
-  if (process.env.TMUX) {
-    try {
-      const tmuxSession = execFileSync('tmux', ['display-message', '-p', '#S'], {
-        encoding: 'utf-8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-        timeout: 2000,
-        windowsHide: true,
-      }).trim();
-      if (tmuxSession) return tmuxSession;
-    } catch {
-      // best effort only
-    }
-  }
-
   const normalizedSessionId = safeString(sessionId).trim();
   if (!normalizedSessionId) return undefined;
-  return buildTmuxSessionName(cwd, normalizedSessionId);
+  return buildOperationalSessionLabel(cwd, normalizedSessionId);
 }
 
 export function readRepositoryMetadata(cwd: any): any {
@@ -216,26 +201,6 @@ export function buildOperationalContext({
     ...(prUrl !== undefined ? { pr_url: prUrl } : {}),
   };
   const resolvedSessionName = resolveOperationalSessionName(cwd, sessionId, sessionName);
-
-  if (repoMeta.repo_path && repoMeta.branch) {
-    try {
-      const lifecycleStatus = normalizedEvent === 'pr-merged'
-        ? 'merged'
-        : normalizedEvent === 'pr-closed'
-          ? 'closed'
-          : undefined;
-      upsertCurrentTaskBaseline(repoMeta.repo_path, {
-        branch_name: repoMeta.branch,
-        worktree_path: repoMeta.worktree_path,
-        issue_number: detectedIssue,
-        pr_number: detectedPrInfo.pr_number,
-        pr_url: detectedPrInfo.pr_url,
-        ...(lifecycleStatus ? { status: lifecycleStatus } : {}),
-      });
-    } catch {
-      // best effort only; operational context building must stay non-fatal
-    }
-  }
 
   return {
     normalized_event: normalizedEvent,

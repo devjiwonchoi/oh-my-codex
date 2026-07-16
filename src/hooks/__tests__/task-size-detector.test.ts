@@ -342,17 +342,11 @@ describe('task-size-detector', () => {
       assert.equal(isHeavyMode('autopilot'), true);
     });
 
-    it('returns true for team', () => {
-      assert.equal(isHeavyMode('team'), true);
-    });
 
     it('returns true for ultrawork', () => {
       assert.equal(isHeavyMode('ultrawork'), true);
     });
 
-    it('returns true for swarm', () => {
-      assert.equal(isHeavyMode('swarm'), true);
-    });
 
     it('returns true for ralplan', () => {
       assert.equal(isHeavyMode('ralplan'), true);
@@ -401,7 +395,7 @@ describe('task-size-detector', () => {
 
   describe('HEAVY_MODE_KEYWORDS set', () => {
     it('contains expected heavy modes', () => {
-      const expected = ['ralph', 'autopilot', 'team', 'ultrawork', 'ultragoal', 'swarm', 'ralplan', 'ccg'];
+      const expected = ['ralph', 'autopilot', 'ultrawork', 'ultragoal', 'ralplan', 'ccg'];
       for (const mode of expected) {
         assert.ok(HEAVY_MODE_KEYWORDS.has(mode), `Expected HEAVY_MODE_KEYWORDS to contain "${mode}"`);
       }

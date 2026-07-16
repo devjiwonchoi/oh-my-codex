@@ -10,15 +10,10 @@ import {
 	ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { autoStartStdioMcpServer } from "./bootstrap.js";
-import {
-	LEGACY_TEAM_MCP_TOOLS,
-	buildLegacyTeamDeprecationHint,
-} from "../team/api-interop.js";
 import { executeStateOperation } from "../state/operations.js";
 
 const SUPPORTED_MODES = [
 	"autopilot",
-	"team",
 	"ralph",
 	"ultrawork",
 	"ultraqa",
@@ -34,7 +29,6 @@ const STATE_TOOL_NAMES = new Set([
 	"state_list_active",
 	"state_get_status",
 ]);
-const TEAM_COMM_TOOL_NAMES: Set<string> = new Set([...LEGACY_TEAM_MCP_TOOLS]);
 
 const server = new Server(
 	{ name: "nomx-state", version: "0.1.0" },
@@ -166,26 +160,6 @@ export async function handleStateToolCall(request: {
 	params: { name: string; arguments?: Record<string, unknown> };
 }) {
 	const { name, arguments: args = {} } = request.params;
-
-	if (TEAM_COMM_TOOL_NAMES.has(name)) {
-		const hint = buildLegacyTeamDeprecationHint(
-			name as (typeof LEGACY_TEAM_MCP_TOOLS)[number],
-			args,
-		);
-		return {
-			content: [
-				{
-					type: "text",
-					text: JSON.stringify({
-						error: `MCP tool "${name}" is hard-deprecated. Team mutations now require CLI interop.`,
-						code: "deprecated_cli_only",
-						hint,
-					}),
-				},
-			],
-			isError: true,
-		};
-	}
 
 	if (!STATE_TOOL_NAMES.has(name)) {
 		return {

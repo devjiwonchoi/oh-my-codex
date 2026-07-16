@@ -15,11 +15,9 @@ const CORE_SKILLS = [
   'plan',
   'ralph',
   'ralplan',
-  'team',
   'ultragoal',
   'ultraqa',
   'ultrawork',
-  'worker',
 ] as const;
 
 async function withProjectSetup(

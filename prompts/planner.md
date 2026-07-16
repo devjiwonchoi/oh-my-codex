@@ -63,7 +63,7 @@ Leave execution with a right-sized, evidence-grounded plan: scope, steps, accept
 </success_criteria>
 
 <tools>
-Use repo inspection for facts, the surface-appropriate structured question path only for real preferences/branches (`nomx question` in attached tmux, native structured input when available, plain text only as last fallback), Write for plan artifacts, and upward handoff for external research needs.
+Use repo inspection for facts, native structured input only for real preferences or branches, plain text as the fallback, Write for plan artifacts, and upward handoff for external research needs.
 </tools>
 
 <style>

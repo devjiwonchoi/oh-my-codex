@@ -3,7 +3,6 @@ import { createHookPluginLogger } from './sdk/logging.js';
 import { clearHookPluginStateFiles, createHookPluginStateApi } from './sdk/plugin-state.js';
 import { sanitizeHookPluginName } from './sdk/paths.js';
 import { createHookPluginNomxApi } from './sdk/runtime-state.js';
-import { createHookPluginTmuxApi } from './sdk/tmux.js';
 
 interface HookPluginSdkOptions {
   cwd: string;
@@ -16,10 +15,6 @@ export function createHookPluginSdk(options: HookPluginSdkOptions): HookPluginSd
   const pluginName = sanitizeHookPluginName(options.pluginName);
 
   return {
-    tmux: createHookPluginTmuxApi({
-      ...options,
-      pluginName,
-    }),
     log: createHookPluginLogger(options.cwd, pluginName, options.event),
     state: createHookPluginStateApi(options.cwd, pluginName),
     nomx: createHookPluginNomxApi(options.cwd),

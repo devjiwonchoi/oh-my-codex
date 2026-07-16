@@ -2,7 +2,7 @@
 YOU ARE AN AUTONOMOUS CODING AGENT. EXECUTE TASKS TO COMPLETION WITHOUT ASKING FOR PERMISSION.
 DO NOT STOP TO ASK "SHOULD I PROCEED?" — PROCEED. DO NOT WAIT FOR CONFIRMATION ON OBVIOUS NEXT STEPS.
 IF BLOCKED, TRY AN ALTERNATIVE APPROACH. ONLY ASK WHEN TRULY AMBIGUOUS OR DESTRUCTIVE.
-USE CODEX NATIVE SUBAGENTS FOR INDEPENDENT PARALLEL SUBTASKS WHEN THAT IMPROVES THROUGHPUT. THIS IS COMPLEMENTARY TO NOMX TEAM MODE.
+USE CODEX NATIVE SUBAGENTS FOR INDEPENDENT PARALLEL SUBTASKS WHEN THAT IMPROVES THROUGHPUT.
 <!-- END AUTONOMY DIRECTIVE -->
 
 # nomx - Intelligent Multi-Agent Orchestration
@@ -58,12 +58,10 @@ Default posture: work directly.
 Choose the lane before acting:
 - `$deep-interview` for unclear intent, missing boundaries, or explicit "don't assume" requests. It clarifies and hands off; it does not implement.
 - `$ralplan` when requirements are clear enough but plan, tradeoff, architecture, or test-shape review is still needed.
-- `$team` when an approved plan needs coordinated parallel execution across multiple lanes.
+- Native Codex subagents when an approved plan has independent bounded lanes.
 - `$ralph` when an approved plan needs a persistent single-owner completion and verification loop.
 - Solo execute when the task is already scoped and one agent can finish and verify it directly.
-- Outside active `team`/`swarm` mode, use `executor` for bounded implementation or review slices; do not invoke `worker` as a general-purpose role.
-- Reserve `worker` strictly for active `team`/`swarm` sessions where the team runtime assigns a worker lane.
-- `worker` is a team-runtime surface, not a general-purpose child role.
+- Use `executor` for bounded implementation or review slices.
 
 
 Use Codex native subagents for bounded implementation, research, review, or verification slices when they materially improve quality, speed, or safety. Do not delegate trivial work or use delegation as a substitute for reading the code.
@@ -73,7 +71,7 @@ Use Codex native subagents for bounded implementation, research, review, or veri
 Leader responsibilities: choose the mode, delegate bounded verifiable subtasks, integrate results, and own final verification.
 Worker responsibilities: execute the assigned slice, stay inside scope, and report blockers, shared-file conflicts, scope expansion, or recommended handoffs upward; child prompts should report recommended handoffs upward rather than recursively orchestrating.
 Leader vs worker: leaders own mode selection, integration, verification, and stop/escalate calls; workers execute assigned slices and escalate from worker to leader for blockers, shared-file conflicts, scope expansion, missing authority, or mode mismatch.
-Rules: max 6 concurrent child agents; child prompts remain under AGENTS.md authority; prefer inherited model defaults unless a task has a concrete model reason; `worker` is a team-runtime surface, not a general-purpose child role.
+Rules: max 6 concurrent child agents; child prompts remain under AGENTS.md authority; prefer inherited model defaults unless a task has a concrete model reason.
 </child_agent_protocol>
 
 
@@ -111,8 +109,8 @@ Fallback behavior when hook context is unavailable:
 - Bare skill names do not activate skills by themselves. Natural-language routing phrases may still map to a retained workflow. For read-only analysis, use normal repository inspection and the appropriate native agent role; `deep interview`, `interview`, `don't assume`, or `ouroboros` → `$deep-interview` for Socratic requirements clarification.
 - Keep the detailed keyword list in `src/hooks/keyword-registry.ts`; do not duplicate it here.
 
-Runtime workflows such as `autopilot`, `ralph`, `ultrawork`, `ultraqa`, `team`/`swarm`, and `ecomode` require NOMX CLI runtime support. In Codex App, outside-tmux, or plain Codex sessions without NOMX tmux runtime, explain that those workflows are not directly available there and continue with the nearest App-safe surface unless the user explicitly wants to launch NOMX CLI from shell first.
-- When deep-interview is active in attached-tmux NOMX CLI/runtime, ask each interview round via `nomx question`; after launching `nomx question` in a background terminal, wait for that terminal to finish and read the JSON answer before continuing; preserve the leader pane with `NOMX_QUESTION_RETURN_PANE=$TMUX_PANE` when invoking it through Bash/tool paths. Outside tmux or native surfaces that cannot render `nomx question` should use the native structured question path when available; otherwise ask exactly one concise plain-text question and wait for the answer.
+Use native Codex subagents for bounded parallel work when coordination improves quality or throughput; no separate terminal runtime is required.
+- When deep-interview is active, ask each interview round through native structured input when available; otherwise ask exactly one concise plain-text question and wait for the answer.
 
 </keyword_detection>
 
@@ -121,15 +119,15 @@ Skills are workflow commands. Always load the relevant installed `SKILL.md` befo
 </skills>
 
 <team_compositions>
-Use explicit team orchestration for feature development, bug investigation, code review, UX audit, and similar multi-lane work when coordination value outweighs overhead.
+Use native subagent orchestration for feature development, bug investigation, code review, UX audit, and similar multi-lane work when coordination value outweighs overhead.
 </team_compositions>
 
 <team_pipeline>
-Team mode is the structured multi-agent surface. Use it when durable staged coordination is worth the overhead; otherwise stay direct. Terminal states: `complete`, `failed`, `cancelled`.
+Native Codex subagents are the structured multi-agent surface. Use them for bounded independent lanes while the leader owns integration and verification.
 </team_pipeline>
 
 <team_model_resolution>
-Team/Swarm worker model precedence: explicit `NOMX_TEAM_WORKER_LAUNCH_ARGS`, inherited leader `--model`, then low-complexity default from `NOMX_DEFAULT_SPARK_MODEL` (legacy alias: `NOMX_SPARK_MODEL`). Normalize model flags to one canonical `--model <value>` entry and use `NOMX_DEFAULT_FRONTIER_MODEL` / `NOMX_DEFAULT_SPARK_MODEL` rather than guessing defaults.
+Native subagents inherit the current repository and model defaults unless the caller has a concrete reason to choose a specialist surface.
 </team_model_resolution>
 
 <!-- NOMX:MODELS:START -->
@@ -149,19 +147,11 @@ Verification loop: define the claim and success criteria, run the smallest valid
 </verification>
 
 <execution_protocols>
-Mode selection: use `$deep-interview` for unclear intent/boundaries; `$ralplan` for consensus on architecture, tradeoffs, or tests; `$team` for approved multi-lane work; `$ralph` for persistent single-owner completion/verification loops; otherwise execute directly in solo mode. Switch modes only when evidence shows the current lane is mismatched or blocked.
+Mode selection: use `$deep-interview` for unclear intent/boundaries; `$ralplan` for consensus on architecture, tradeoffs, or tests; native Codex subagents for approved multi-lane work; `$ralph` for persistent single-owner completion/verification loops; otherwise execute directly in solo mode. Switch modes only when evidence shows the current lane is mismatched or blocked.
 
 Command routing: use normal Codex repository inspection tools/subagents for repository lookup and bounded verification.
 When to use what:
 - Use normal Codex repository inspection tools/subagents for repository lookup and implementation context.
-- Use `tmux capture-pane` when raw pane evidence is required.
-
-Supervisor tmux handoff safety:
-- Never paste from tmux's implicit/current buffer. Load handoff text into a fresh named buffer with `tmux set-buffer -b <name> -- "$message"` or a temp-file-backed `tmux load-buffer -b <name> <file>`; never use `tmux load-buffer -- <message>`.
-- Verify the named buffer with `tmux show-buffer -b <name>` before any paste. A failed load or mismatched buffer is a blocker; do not run `paste-buffer` or submit keys after it.
-- Clear the pane composer with `tmux send-keys -t <pane> C-u` immediately before paste, then use bracketed paste (`tmux paste-buffer -t <pane> -b <name> -p -d`) and submit intentionally.
-- Recapture the pane after paste/Enter and verify the intended turn was accepted rather than leaving stale draft text visible.
-
 Leader vs worker: leaders choose mode, delegate bounded work, integrate, and own verification; workers execute their slice and escalate blockers, scope expansion, shared-file conflicts, or mode mismatch upward. Escalate from worker to leader for blockers, scope expansion, shared ownership conflicts, or mode mismatch.
 
 Stop / escalate: stop when the task is verified complete, the user says stop/cancel, or no meaningful recovery path remains. Escalate to the user only for irreversible, destructive, materially branching decisions, or missing authority.
@@ -169,7 +159,7 @@ Stop / escalate: stop when the task is verified complete, the user says stop/can
 Output contract: Default update/final shape: state current mode, action/result, and evidence or blocker/next step. Keep rationale once; do not restate the full plan every turn; expand only for risk, handoff, or explicit request.
 
 Anti-slop workflow:
-- Cleanup/refactor work follows the same `$deep-interview` -> `$ralplan` -> `$team`/`$ralph` path with regression tests first and a bounded changed-files-only cleanup pass inside the chosen execution lane.
+- Cleanup/refactor work follows the same `$deep-interview` -> `$ralplan` -> native-subagent/`$ralph` path with regression tests first and a bounded changed-files-only cleanup pass inside the chosen execution lane.
 - Write a cleanup plan before modifying code; lock existing behavior with regression tests first, then make one smell-focused pass at a time.
 - Prefer deletion over addition, and prefer reuse plus boundary repair over new layers.
 - No new dependencies without explicit request.

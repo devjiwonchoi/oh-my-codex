@@ -1,26 +1,8 @@
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { getStateFilePath, readCurrentSessionId } from '../mcp/state-paths.js';
-import {
-  NomxQuestionError,
-  runNomxQuestion,
-  type NomxQuestionClientOptions,
-  type NomxQuestionSuccessPayload,
-} from './client.js';
-import {
-  getQuestionRecordPath,
-  getQuestionStateDir,
-  readQuestionRecord,
-} from './state.js';
+import { getStateFilePath } from '../mcp/state-paths.js';
 import type { TerminalLifecycleOutcome } from '../runtime/terminal-lifecycle.js';
-import type { QuestionInput, QuestionRecord } from './types.js';
 import type { DownstreamAuthority } from '../state/workflow-transition.js';
-import {
-  AUTOPILOT_DEEP_INTERVIEW_QUESTION_OWNER_ENV,
-  claimAutopilotDeepInterviewQuestionWaiting,
-  readAutopilotDeepInterviewQuestionWaitState,
-  resolveAutopilotDeepInterviewQuestionWaiting,
-} from './autopilot-wait.js';
 
 const DEEP_INTERVIEW_STATE_FILE = 'deep-interview-state.json';
 
@@ -46,13 +28,6 @@ interface DeepInterviewStateRecord {
 
 function safeString(value: unknown): string {
   return typeof value === 'string' ? value : '';
-}
-
-function parseTimestampMs(value: unknown): number | null {
-  const raw = safeString(value).trim();
-  if (!raw) return null;
-  const timestamp = Date.parse(raw);
-  return Number.isFinite(timestamp) ? timestamp : null;
 }
 
 function buildObligationId(now = new Date()): string {
@@ -130,71 +105,6 @@ export function clearDeepInterviewQuestionObligation(
   };
 }
 
-function isSameSessionQuestionRecord(record: QuestionRecord, sessionId: string): boolean {
-  const recordSessionId = safeString(record.session_id).trim();
-  return !recordSessionId || recordSessionId === sessionId;
-}
-
-function isAnsweredDeepInterviewRecordForObligation(
-  record: QuestionRecord | null,
-  sessionId: string,
-  enforcement: DeepInterviewQuestionEnforcementState,
-): record is QuestionRecord {
-  if (!record) return false;
-  if (!isSameSessionQuestionRecord(record, sessionId)) return false;
-  if (safeString(record.source).trim() !== 'deep-interview') return false;
-  if (record.status !== 'answered' || !record.answer) return false;
-
-  const requestedAtMs = parseTimestampMs(enforcement.requested_at);
-  const createdAtMs = parseTimestampMs(record.created_at);
-  if (requestedAtMs !== null && (createdAtMs === null || createdAtMs < requestedAtMs)) {
-    return false;
-  }
-
-  return true;
-}
-
-async function findAnsweredDeepInterviewRecordForObligation(
-  cwd: string,
-  sessionId: string,
-  enforcement: DeepInterviewQuestionEnforcementState,
-): Promise<QuestionRecord | null> {
-  const exactQuestionId = safeString(enforcement.question_id).trim();
-  if (exactQuestionId) {
-    const exactRecord = await readQuestionRecord(
-      getQuestionRecordPath(cwd, exactQuestionId, sessionId),
-    );
-    if (isAnsweredDeepInterviewRecordForObligation(exactRecord, sessionId, enforcement)) {
-      return exactRecord;
-    }
-  }
-
-  let entries: string[];
-  try {
-    entries = await readdir(getQuestionStateDir(cwd, sessionId));
-  } catch {
-    return null;
-  }
-
-  const candidates: QuestionRecord[] = [];
-  for (const entry of entries) {
-    if (!entry.endsWith('.json')) continue;
-    const record = await readQuestionRecord(join(getQuestionStateDir(cwd, sessionId), entry));
-    if (isAnsweredDeepInterviewRecordForObligation(record, sessionId, enforcement)) {
-      candidates.push(record);
-    }
-  }
-
-  candidates.sort((left, right) => {
-    const leftCreatedAt = parseTimestampMs(left.created_at) ?? 0;
-    const rightCreatedAt = parseTimestampMs(right.created_at) ?? 0;
-    if (leftCreatedAt !== rightCreatedAt) return leftCreatedAt - rightCreatedAt;
-    return left.question_id.localeCompare(right.question_id);
-  });
-
-  return candidates[0] ?? null;
-}
-
 export async function updateDeepInterviewQuestionEnforcement(
   cwd: string,
   sessionId: string | undefined,
@@ -234,125 +144,4 @@ export async function updateDeepInterviewQuestionEnforcement(
 
   await writeDeepInterviewState(cwd, nextState, sessionId);
   return nextState;
-}
-
-export async function reconcileDeepInterviewQuestionEnforcementFromAnsweredRecords(
-  cwd: string,
-  sessionId: string | undefined,
-  now = new Date(),
-): Promise<DeepInterviewStateRecord | null> {
-  const normalizedSessionId = safeString(sessionId).trim();
-  if (!normalizedSessionId) return null;
-
-  const state = await readDeepInterviewStateIfExists(cwd, normalizedSessionId);
-  const enforcement = state?.question_enforcement;
-  if (!state || !isPendingDeepInterviewQuestionEnforcement(enforcement)) {
-    return state;
-  }
-
-  const answeredRecord = await findAnsweredDeepInterviewRecordForObligation(
-    cwd,
-    normalizedSessionId,
-    enforcement,
-  );
-  if (!answeredRecord) return state;
-
-  return await updateDeepInterviewQuestionEnforcement(
-    cwd,
-    normalizedSessionId,
-    (current) => (
-      current?.obligation_id === enforcement.obligation_id
-        && isPendingDeepInterviewQuestionEnforcement(current)
-        ? satisfyDeepInterviewQuestionObligation(current, answeredRecord.question_id, now)
-        : current
-    ),
-  );
-}
-
-export async function runDeepInterviewQuestion(
-  input: Partial<QuestionInput> & { question: string },
-  options: NomxQuestionClientOptions = {},
-): Promise<NomxQuestionSuccessPayload> {
-  const cwd = options.cwd ?? process.cwd();
-  const sessionId = safeString(input.session_id).trim() || await readCurrentSessionId(cwd);
-  const obligation = createDeepInterviewQuestionObligation();
-  const existingAutopilotWait = await readAutopilotDeepInterviewQuestionWaitState(cwd, sessionId);
-
-  if (existingAutopilotWait) {
-    throw new NomxQuestionError(
-      'active_execution_mode_blocked',
-      'Autopilot already has a pending deep-interview question.',
-    );
-  }
-
-  const autopilotWaitClaim = await claimAutopilotDeepInterviewQuestionWaiting(cwd, sessionId, obligation);
-  if (autopilotWaitClaim === 'blocked') {
-    throw new NomxQuestionError(
-      'active_execution_mode_blocked',
-      'Autopilot cannot start a new deep-interview question until the existing wait claim is resolved.',
-    );
-  }
-  const autopilotWaitStarted = autopilotWaitClaim === 'started';
-
-  await updateDeepInterviewQuestionEnforcement(
-    cwd,
-    sessionId,
-    () => obligation,
-  );
-
-  try {
-    const result = await runNomxQuestion(
-      {
-        ...input,
-        source: input.source ?? 'deep-interview',
-        ...(sessionId ? { session_id: sessionId } : {}),
-      },
-      autopilotWaitStarted
-        ? {
-            ...options,
-            env: {
-              ...(options.env ?? process.env),
-              [AUTOPILOT_DEEP_INTERVIEW_QUESTION_OWNER_ENV]: obligation.obligation_id,
-            },
-          }
-        : options,
-    );
-
-    await updateDeepInterviewQuestionEnforcement(
-      cwd,
-      sessionId,
-      (current) => (
-        current?.obligation_id === obligation.obligation_id
-          ? satisfyDeepInterviewQuestionObligation(current, result.question_id)
-          : current
-      ),
-    );
-    await resolveAutopilotDeepInterviewQuestionWaiting(
-      cwd,
-      sessionId,
-      obligation.obligation_id,
-      'satisfied',
-      { questionId: result.question_id },
-    );
-
-    return result;
-  } catch (error) {
-    await updateDeepInterviewQuestionEnforcement(
-      cwd,
-      sessionId,
-      (current) => (
-        current?.obligation_id === obligation.obligation_id
-          ? clearDeepInterviewQuestionObligation(current, 'error')
-          : current
-      ),
-    );
-    await resolveAutopilotDeepInterviewQuestionWaiting(
-      cwd,
-      sessionId,
-      obligation.obligation_id,
-      'cleared',
-      { clearReason: 'error' },
-    );
-    throw error;
-  }
 }

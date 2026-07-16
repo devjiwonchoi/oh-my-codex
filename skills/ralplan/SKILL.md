@@ -48,7 +48,7 @@ The consensus workflow:
    - Viable Options (>=2) with bounded pros/cons
    - If only one viable option remains, explicit invalidation rationale for alternatives
    - Deliberate mode only: pre-mortem (3 scenarios) + expanded test plan (unit/integration/e2e/observability)
-2. **User feedback** *(--interactive only)*: If `--interactive` is set, use the structured question UI (`nomx question` in attached tmux; native structured input outside tmux when available) to present the draft plan **plus the Principles / Drivers / Options summary** before review (Proceed to review / Request changes / Skip review). Otherwise, automatically proceed to review.
+2. **User feedback** *(--interactive only)*: If `--interactive` is set, use native structured input when available to present the draft plan **plus the Principles / Drivers / Options summary** before review (Proceed to review / Request changes / Skip review). Otherwise, automatically proceed to review.
 **Native role-routing rule:** When the native surface exposes `agent_type` role routing, set `agent_type` to an installed NOMX role and never omit it for NOMX work. When it does not (`role_routing_unavailable`, for example a Codex App `spawn_agent` surface exposing only `task_name`, `message`, and `fork_turns`), do not fabricate `agent_type`; follow the NOMX adapted role-pass protocol by recording a pre-validated role intent in the NOMX subagent ledger, and never fake the role via a prompt label.
 **Adapted role-intent step:** On a `role_routing_unavailable` surface, before each App Architect or Critic spawn, run `nomx ralplan role-intent write --role <role> --parent-thread <leader-thread-id> --json`; read `spawn_task_name` from its receipt (`nomx_role_intent_<correlation_token>`), the App-compatible `task_name` value (lowercase letters, digits, and underscores only), then spawn the App Architect or Critic with `task_name` set to that exact unmodified value, **not** `agent_nickname`. The recorded validated intent and correlation token are the authoritative role carrier, never a prompt label.
 
@@ -61,9 +61,7 @@ The consensus workflow:
    d. Return to Critic evaluation
    e. Repeat this loop until Critic returns `APPROVE` or 5 iterations are reached
    f. If 5 iterations are reached without `APPROVE`, present the best version to the user
-6. On Critic approval *(--interactive only)*: If `--interactive` is set, use the structured question UI to present the plan with approval options (Approve durable goal execution via ultragoal / Approve and implement via team / Explicit Ralph fallback / Request changes / Reject). Final plan must include ADR (Decision, Drivers, Alternatives considered, Why chosen, Consequences, Follow-ups), an explicit available-agent-types roster, concrete follow-up staffing guidance for `$ultragoal` and `$team`, plus an explicit `$ralph` fallback note when persistent single-owner verification is intentionally selected, suggested reasoning levels by lane, explicit `nomx team` / `$team` launch hints, and a concrete **team verification** path. Recommend `$ultragoal` by default for durable goal-mode follow-up. Otherwise, output the final plan and stop.
-7. *(--interactive only)* User chooses: Approve (`$ultragoal` durable goal execution, `$team`, explicit `$ralph` fallback, or a specialized goal-mode follow-up), Request changes, or Reject
-8. *(--interactive only)* On approval: invoke `$ultragoal` for default durable sequential execution, `$team` for parallel team execution, or `$ralph` only when the user explicitly selects that fallback with the approved plan and matching success/evaluator context -- never implement directly. Preserve the explicit available-agent-types roster, reasoning-by-lane guidance, role/staffing allocation guidance, launch hints, and verification-path guidance from the approved plan.
+6. On Critic approval *(--interactive only)*: If `--interactive` is set, use native structured input to present the plan with approval options (Approve durable goal execution via ultragoal / Approve and implement with native subagents / Explicit Ralph fallback / Request changes / Reject). Final plans include an ADR, available-agent-types roster, native-subagent staffing guidance, suggested reasoning levels, and a verification path. Recommend `$ultragoal` by default for durable goal-mode follow-up. Otherwise, output the final plan and stop.
 
 > **Important:** Steps 3 and 4 MUST run sequentially as role-specific subagents. Do NOT issue both agent calls in the same parallel batch. Always await the subsequent `Architect` result before invoking the subsequent `Critic`; only a completed, role-specific `Critic` approval can satisfy the durable gate.
 
@@ -74,7 +72,6 @@ The consensus workflow:
 The canonical flow is:
 
 ```
-$ralplan -> durable consensus artifact -> explicit execution lane -> $ultragoal | $team | $ralph
 ```
 
 Before any execution lane begins, ralplan must emit terminal planning state (complete, paused, failed, or waiting for input) and the durable handoff record below. Do not continue from consensus planning into direct code edits in the same ralplan session.
@@ -100,7 +97,6 @@ When ralplan outputs a final handoff or asks the user to choose a next lane, inc
 
 - `$ultragoal` — **default goal-mode follow-up** for implementation or general goal-oriented follow-up plans that should become durable Codex/NOMX goals with sequential completion tracking.
 
-Keep `$team` as a first-class execution option and keep `$ralph` available only as an explicit fallback where appropriate: use Ultragoal as the default durable goal-mode follow-up, Team for coordinated parallel implementation, and Ralph only for intentionally selected persistent single-owner completion/verification pressure. For parallelizable durable-goal delivery, recommend `$ultragoal` + `$team` together: Ultragoal remains the leader-owned `.nomx/ultragoal` ledger/Codex-goal wrapper while Team runs parallel lanes and returns checkpoint-ready evidence. Do not present Ralph as the recommended follow-up when durable goal tracking is needed; present Ultragoal as the superseding default, with Team for parallel delivery and Ralph only as an explicit fallback when its narrow persistence loop is specifically desired.
 
 ## Pre-context Intake
 

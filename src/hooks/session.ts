@@ -43,8 +43,6 @@ export interface SessionState {
   platform?: NodeJS.Platform;
   pid_start_ticks?: number;
   pid_cmdline?: string;
-  tmux_session_name?: string;
-  tmux_pane_id?: string;
 }
 
 export interface SessionPointerContext {
@@ -182,7 +180,6 @@ export function resolveSessionPointerContext(cwd: string): SessionPointerContext
 
 function attemptedStateRootSource(): AttemptedStateRootSource {
   try {
-    if (process.env.NOMX_TEAM_STATE_ROOT?.trim()) return 'team-env';
     if (process.env.NOMX_ROOT?.trim()) return 'nomx-root-env';
     if (process.env.NOMX_STATE_ROOT?.trim()) return 'nomx-state-root-env';
     return 'cwd-default';
@@ -284,10 +281,8 @@ export interface SessionStartOptions {
    * process.env.NOMX_SESSION_ID, never from this option.
    */
   ownerNomxSessionId?: string;
-  /** The caller proved the env candidate with actual tmux pane/session tags. */
+  /** The caller proved the environment-provided owner alias. */
   ownerAliasVerified?: boolean;
-  tmuxSessionName?: string;
-  tmuxPaneId?: string;
   context?: SessionPointerContext;
 }
 
@@ -633,8 +628,6 @@ function createSessionState(
     nativeSessionSwitchedAt?: string;
     ownerNomxSessionId?: string;
     startedAt?: string;
-    tmuxSessionName?: string;
-    tmuxPaneId?: string;
   } = {},
 ): SessionState {
   const nowIso = options.nowIso ?? new Date().toISOString();
@@ -642,8 +635,6 @@ function createSessionState(
   const previousNativeSessionId = normalizeNonempty(options.previousNativeSessionId);
   const nativeSessionSwitchedAt = normalizeNonempty(options.nativeSessionSwitchedAt);
   const ownerNomxSessionId = normalizeSessionId(options.ownerNomxSessionId);
-  const tmuxSessionName = normalizeNonempty(options.tmuxSessionName);
-  const tmuxPaneId = normalizeNonempty(options.tmuxPaneId);
   return {
     session_id: sessionId,
     ...(nativeSessionId ? { native_session_id: nativeSessionId } : {}),
@@ -656,8 +647,6 @@ function createSessionState(
     platform,
     ...(linuxIdentity ? { pid_start_ticks: linuxIdentity.startTicks } : {}),
     ...(linuxIdentity?.cmdline ? { pid_cmdline: linuxIdentity.cmdline } : {}),
-    ...(tmuxSessionName ? { tmux_session_name: tmuxSessionName } : {}),
-    ...(tmuxPaneId ? { tmux_pane_id: tmuxPaneId } : {}),
   };
 }
 
@@ -677,11 +666,8 @@ function currentOwnerAlias(state: SessionState): string | undefined {
   return normalizeSessionId(state.owner_omx_session_id);
 }
 
-function verifiedOwnerCandidate(
-  context: SessionPointerContext,
-  options: SessionStartOptions,
-): string | undefined {
-  if (context.rootSource === 'team-env' || options.ownerAliasVerified !== true) return undefined;
+function verifiedOwnerCandidate(options: SessionStartOptions): string | undefined {
+  if (options.ownerAliasVerified !== true) return undefined;
   return normalizeSessionId(process.env.NOMX_SESSION_ID);
 }
 
@@ -1330,7 +1316,7 @@ function startPointerTransition(
     const canonicalSessionId = existing?.session_id ?? requestedSessionId;
     const pid = resolvePid(options);
     const platform = options.platform ?? process.platform;
-    const ownerCandidate = verifiedOwnerCandidate(context, options);
+    const ownerCandidate = verifiedOwnerCandidate(options);
     let ownerNomxSessionId: string | undefined;
     try {
       ownerNomxSessionId = mergeOwnerAlias(
@@ -1352,8 +1338,6 @@ function startPointerTransition(
       previousNativeSessionId: options.previousNativeSessionId ?? existing?.previous_native_session_id,
       nativeSessionSwitchedAt: options.nativeSessionSwitchedAt ?? existing?.native_session_switched_at,
       ...(ownerNomxSessionId ? { ownerNomxSessionId } : {}),
-      tmuxSessionName: options.tmuxSessionName ?? existing?.tmux_session_name,
-      tmuxPaneId: options.tmuxPaneId ?? existing?.tmux_pane_id,
     });
   };
 }
@@ -1404,7 +1388,7 @@ function reconcileNativeTransition(
     const nowIso = new Date().toISOString();
 
     if (!existing) {
-      const ownerCandidate = verifiedOwnerCandidate(context, options);
+      const ownerCandidate = verifiedOwnerCandidate(options);
       const ownerNomxSessionId = ownerCandidate;
       return {
         state: createSessionState(context.cwd, nativeSessionId, pid, platform, linuxIdentity, {
@@ -1440,7 +1424,7 @@ function reconcileNativeTransition(
       };
     }
 
-    const ownerCandidate = verifiedOwnerCandidate(context, options);
+    const ownerCandidate = verifiedOwnerCandidate(options);
     let ownerNomxSessionId: string | undefined;
     try {
       ownerNomxSessionId = mergeOwnerAlias(
@@ -1460,8 +1444,6 @@ function reconcileNativeTransition(
         nativeSessionSwitchedAt: existing.native_session_switched_at,
         ...(ownerNomxSessionId ? { ownerNomxSessionId } : {}),
         startedAt: existing.started_at,
-        tmuxSessionName: existing.tmux_session_name,
-        tmuxPaneId: existing.tmux_pane_id,
       }),
     };
   };

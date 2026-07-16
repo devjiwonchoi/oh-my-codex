@@ -6,29 +6,14 @@
  *   nomx hud --watch      Poll every 1s with terminal clear
  *   nomx hud --json       Output raw state as JSON
  *   nomx hud --preset=X   Use preset: minimal, focused, full
- *   nomx hud --tmux       Open HUD in a tmux split pane (auto-detects orientation)
- *   nomx hud --reconcile-tmux
  */
 
-import { execFileSync } from 'child_process';
 import { readlinkSync, realpathSync } from 'node:fs';
 import { readAllState, readHudConfig } from './state.js';
 import { getHudRenderMaxLines, renderHud } from './render.js';
 import type { HudFlags, HudPreset, HudRenderContext, ResolvedHudConfig } from './types.js';
-import { HUD_TMUX_HEIGHT_LINES } from './constants.js';
 import { sleep } from '../utils/sleep.js';
 import { runHudAuthorityTick } from './authority.js';
-import { resolveNomxCliEntryPath } from '../utils/paths.js';
-import {
-  killTmuxPane,
-  listCurrentWindowHudPaneIds,
-  NOMX_TMUX_HUD_LEADER_PANE_ENV,
-  readActiveTmuxPaneId,
-  registerHudResizeHook,
-  resizeTmuxPane,
-} from './tmux.js';
-import { NOMX_TMUX_HUD_OWNER_ENV, reconcileHudForPromptSubmit } from './reconcile.js';
-import { buildHudRuntimeEnv } from './tmux.js';
 
 export const HUD_USAGE = [
   'Usage:',
@@ -36,8 +21,6 @@ export const HUD_USAGE = [
   '  nomx hud --watch      Poll every 1s with terminal clear',
   '  nomx hud --json       Output raw state as JSON',
   '  nomx hud --preset=X   Use preset: minimal, focused, full',
-  '  nomx hud --tmux       Open HUD in a tmux split pane (auto-detects orientation)',
-  '  nomx hud --reconcile-tmux',
 ].join('\n');
 
 type SleepFn = (ms: number, signal?: AbortSignal) => Promise<void>;
@@ -77,8 +60,6 @@ interface RunWatchModeDependencies {
   readHudConfigFn: (cwd: string) => Promise<ResolvedHudConfig>;
   renderHudFn: (ctx: HudRenderContext, preset: HudPreset, options?: { maxWidth?: number; maxLines?: number }) => string;
   runAuthorityTickFn: (options: { cwd: string }) => Promise<void>;
-  resizeTmuxPaneFn: (paneId: string, heightLines: number) => boolean;
-  registerHudResizeHookFn: (hudPaneId: string, leaderPaneId: string | undefined, heightLines: number) => boolean;
   writeStdout: (text: string) => void;
   writeStderr: (text: string) => void;
   registerSigint: (handler: () => void) => void | (() => void);
@@ -113,7 +94,7 @@ function isDeletedCwdMarkerText(path: string | null): boolean {
 /**
  * Resolve the cwd a long-running HUD watch should read on this frame.
  *
- * tmux launches HUD with both a real cwd and a shell PWD string. If that
+ * A long-running HUD can retain both a real cwd and a shell PWD string. If that
  * directory is later renamed and the original pathname is reused by a fresh
  * NOMX run, the old HUD process can keep reading the reused launch path and
  * display the new run's state. Compare the launch path to the process' live
@@ -147,19 +128,6 @@ export function resolveHudWatchCwd(
   return launchPath;
 }
 
-function reconcileRunningHudPaneHeight(
-  desiredHeight: number,
-  dependencies: Pick<RunWatchModeDependencies, 'env' | 'resizeTmuxPaneFn' | 'registerHudResizeHookFn'>,
-): void {
-  if (!dependencies.env.TMUX || dependencies.env[NOMX_TMUX_HUD_OWNER_ENV] !== '1') return;
-  const hudPaneId = dependencies.env.TMUX_PANE?.trim();
-  if (!hudPaneId?.startsWith('%')) return;
-  const leaderPaneId = dependencies.env[NOMX_TMUX_HUD_LEADER_PANE_ENV]?.trim() || undefined;
-  if (dependencies.resizeTmuxPaneFn(hudPaneId, desiredHeight) && leaderPaneId) {
-    dependencies.registerHudResizeHookFn(hudPaneId, leaderPaneId, desiredHeight);
-  }
-}
-
 /**
  * Backward-compatible watch mode runner used by tests.
  */
@@ -180,8 +148,6 @@ export async function runWatchMode(
     runAuthorityTickFn: deps.runAuthorityTickFn ?? (async ({ cwd: authorityCwd }) => {
       await runHudAuthorityTick({ cwd: authorityCwd });
     }),
-    resizeTmuxPaneFn: deps.resizeTmuxPaneFn ?? resizeTmuxPane,
-    registerHudResizeHookFn: deps.registerHudResizeHookFn ?? registerHudResizeHook,
     writeStdout: deps.writeStdout ?? ((text: string) => process.stdout.write(text)),
     writeStderr: deps.writeStderr ?? ((text: string) => process.stderr.write(text)),
     registerSigint: deps.registerSigint ?? ((handler: () => void) => {
@@ -205,7 +171,6 @@ export async function runWatchMode(
   let queued = false;
   let stopped = false;
   let timer: ReturnType<typeof setInterval> | undefined;
-  let lastDesiredHeight: number | undefined;
   let resolveDone: () => void = () => {};
   const done = new Promise<void>((resolve) => {
     resolveDone = resolve;
@@ -241,10 +206,6 @@ export async function runWatchMode(
       const ctx = await dependencies.readAllStateFn(frameCwd, config);
       const preset = flags.preset ?? config.preset;
       const maxLines = getHudRenderMaxLines(ctx);
-      if (maxLines !== lastDesiredHeight) {
-        reconcileRunningHudPaneHeight(maxLines, dependencies);
-        lastDesiredHeight = maxLines;
-      }
       const line = dependencies.renderHudFn(ctx, preset, {
         maxWidth: process.stdout.columns ?? undefined,
         maxLines,
@@ -291,15 +252,13 @@ function parseHudPreset(value: string | undefined): HudPreset | undefined {
 }
 
 function parseFlags(args: string[]): HudFlags {
-  const flags: HudFlags = { watch: false, json: false, tmux: false };
+  const flags: HudFlags = { watch: false, json: false };
 
   for (const arg of args) {
     if (arg === '--watch' || arg === '-w') {
       flags.watch = true;
     } else if (arg === '--json') {
       flags.json = true;
-    } else if (arg === '--tmux') {
-      flags.tmux = true;
     } else if (arg.startsWith('--preset=')) {
       const preset = parseHudPreset(arg.slice('--preset='.length));
       if (preset) {
@@ -330,10 +289,7 @@ async function renderOnce(cwd: string, flags: HudFlags): Promise<void> {
 
 export async function hudCommand(
   args: string[],
-  deps: {
-    cwd?: string;
-    reconcileHudForPromptSubmit?: typeof reconcileHudForPromptSubmit;
-  } = {},
+  deps: { cwd?: string } = {},
 ): Promise<void> {
   if (args[0] === '--help' || args[0] === '-h') {
     console.log(HUD_USAGE);
@@ -343,134 +299,10 @@ export async function hudCommand(
   const flags = parseFlags(args);
   const cwd = deps.cwd ?? process.cwd();
 
-  if (args.includes('--reconcile-tmux')) {
-    const result = await (deps.reconcileHudForPromptSubmit ?? reconcileHudForPromptSubmit)(cwd);
-    if (result.status === 'failed') {
-      process.exitCode = 1;
-    }
-    return;
-  }
-
-  if (flags.tmux) {
-    await launchTmuxPane(cwd, flags);
-    return;
-  }
-
   if (!flags.watch) {
     await renderOnce(cwd, flags);
     return;
   }
 
   await runWatchMode(cwd, flags);
-}
-
-/** Shell-escape a string using single-quote wrapping (POSIX-safe). */
-export function shellEscape(s: string): string {
-  return "'" + s.replace(/'/g, "'\\''") + "'";
-}
-
-/**
- * Build the argument array for `execFileSync('tmux', args)`.
- *
- * By returning an argv array instead of a shell command string, `cwd` is
- * passed as a literal argument to tmux (no shell expansion).  `nomxBin` is
- * shell-escaped inside the command string that tmux will execute in a shell.
- */
-export function buildTmuxSplitArgs(
-  cwd: string,
-  nomxBin: string,
-  preset?: string,
-  sessionId?: string,
-  nomxRoot?: string,
-  leaderPaneId?: string,
-  heightLines?: number,
-  rootEnv?: Parameters<typeof buildHudRuntimeEnv>[0],
-): string[] {
-  // Defense-in-depth: keep preset constrained even if this helper is reused.
-  const safePreset = parseHudPreset(preset);
-  const presetArg = safePreset ? ` --preset=${safePreset}` : '';
-  const envAssignments = Object.entries(buildHudRuntimeEnv({
-    sessionId,
-    leaderPaneId,
-    nomxRoot,
-    ...(rootEnv ?? { rootSource: 'nomx-root-env' }),
-  }).env).map(([key, value]) => `${key}=${key === NOMX_TMUX_HUD_OWNER_ENV ? value : shellEscape(value)}`);
-  const envPrefix = envAssignments.length > 0 ? `env ${envAssignments.join(' ')} ` : '';
-  const cmd = `exec ${envPrefix}${shellEscape(process.execPath)} ${shellEscape(nomxBin)} hud --watch${presetArg}`;
-  const height = Number.isFinite(heightLines) && (heightLines ?? 0) > 0
-    ? Math.floor(heightLines ?? HUD_TMUX_HEIGHT_LINES)
-    : HUD_TMUX_HEIGHT_LINES;
-  return [
-    'split-window',
-    '-v',
-    '-l',
-    String(height),
-    ...(leaderPaneId ? ['-t', leaderPaneId] : []),
-    '-c',
-    cwd,
-    cmd,
-  ];
-}
-
-async function launchTmuxPane(cwd: string, flags: HudFlags): Promise<void> {
-  // Check if we're inside tmux
-  if (!process.env.TMUX) {
-    console.error('Not inside a tmux session. Start tmux first, then run: nomx hud --tmux');
-    process.exit(1);
-  }
-
-  const nomxBin = resolveNomxCliEntryPath();
-  if (!nomxBin) {
-    console.error('Failed to resolve NOMX launcher path for tmux HUD startup.');
-    process.exit(1);
-  }
-  const envPaneId = process.env.TMUX_PANE?.trim();
-  const currentPaneId = envPaneId || readActiveTmuxPaneId() || undefined;
-  const leaderPaneId = currentPaneId;
-  const sessionId = process.env.NOMX_SESSION_ID?.trim() || undefined;
-  const existingHudPaneIds = leaderPaneId || sessionId
-    ? listCurrentWindowHudPaneIds(leaderPaneId, undefined, leaderPaneId ? { leaderPaneId } : { sessionId })
-    : [];
-  if (existingHudPaneIds.length >= 1) {
-    const [keeperPaneId, ...duplicatePaneIds] = existingHudPaneIds;
-    for (const paneId of duplicatePaneIds) {
-      killTmuxPane(paneId);
-    }
-    const config = await readHudConfig(cwd);
-    const ctx = await readAllState(cwd, config);
-    const desiredHeight = getHudRenderMaxLines(ctx);
-    resizeTmuxPane(keeperPaneId, desiredHeight);
-    if (leaderPaneId) registerHudResizeHook(keeperPaneId, leaderPaneId, desiredHeight);
-    console.log(duplicatePaneIds.length > 0
-      ? 'HUD already running in tmux pane. Removed duplicate HUD panes and reused existing HUD pane.'
-      : 'HUD already running in tmux pane. Reused existing HUD pane.');
-    return;
-  }
-
-  const config = await readHudConfig(cwd);
-  const ctx = await readAllState(cwd, config);
-  const args = buildTmuxSplitArgs(
-    cwd,
-    nomxBin,
-    flags.preset,
-    process.env.NOMX_SESSION_ID,
-    process.env.NOMX_ROOT,
-    currentPaneId,
-    getHudRenderMaxLines(ctx),
-    {
-      nomxStateRoot: process.env.NOMX_STATE_ROOT,
-      nomxTeamStateRoot: process.env.NOMX_TEAM_STATE_ROOT,
-      rootSource: process.env.NOMX_TEAM_STATE_ROOT ? 'team-env' : process.env.NOMX_ROOT ? 'nomx-root-env' : process.env.NOMX_STATE_ROOT ? 'nomx-state-root-env' : 'cwd-default',
-    },
-  );
-
-  try {
-    // Split bottom pane at the shared HUD height, running nomx hud --watch.
-    // execFileSync bypasses the shell – cwd and nomxBin cannot inject commands.
-    execFileSync('tmux', args, { stdio: 'inherit' });
-    console.log('HUD launched in tmux pane below. Close with: Ctrl+C in that pane, or `tmux kill-pane -t bottom`');
-  } catch {
-    console.error('Failed to create tmux split. Ensure tmux is available.');
-    process.exit(1);
-  }
 }

@@ -1352,7 +1352,7 @@ process.stdin.on('end', () => {
       .sort();
 
     assert.deepEqual(actualSkillNames, expectedSkillNames);
-    assert.ok(actualSkillNames.includes('worker'), 'internal setup-installed worker skill should be mirrored');
+    assert.equal(actualSkillNames.includes('worker'), false, 'removed worker runtime skill should not be mirrored');
     assert.ok(actualSkillNames.includes('ultragoal'), 'ultragoal should remain available through setup/plugin skill delivery');
     assert.equal(actualSkillNames.includes('ecomode'), false, 'deprecated skills should not be mirrored');
     assert.equal(actualSkillNames.includes('swarm'), false, 'deprecated skills should not be mirrored');

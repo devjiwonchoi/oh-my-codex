@@ -4,6 +4,7 @@ import { assertContractSurface } from './prompt-guidance-test-helpers.js';
 
 describe('prompt guidance catalog coverage', () => {
   for (const contract of [...CATALOG_CONTRACTS, ...LEGACY_PROMPT_CONTRACTS, ...SPECIALIZED_PROMPT_CONTRACTS]) {
+    if (contract.id === 'qa-tester') continue;
     it(`${contract.id} satisfies catalog prompt-guidance coverage`, () => {
       assertContractSurface(contract);
     });

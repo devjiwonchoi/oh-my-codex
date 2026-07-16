@@ -25,7 +25,6 @@ const SESSION_IDLE_HOOK_STATE_FILE = 'session-idle-hook-state.json';
 interface IdleNotificationState {
   lastSentAt?: string;
   fingerprint?: string;
-  tmuxTailFingerprint?: string;
 }
 
 /**
@@ -99,7 +98,6 @@ function readIdleNotificationState(cooldownPath: string): IdleNotificationState 
     return {
       lastSentAt: typeof data?.lastSentAt === 'string' ? data.lastSentAt : undefined,
       fingerprint: normalizeIdleFingerprint(typeof data?.fingerprint === 'string' ? data.fingerprint : ''),
-      tmuxTailFingerprint: normalizeIdleFingerprint(typeof data?.tmuxTailFingerprint === 'string' ? data.tmuxTailFingerprint : ''),
     };
   } catch {
     return null;
@@ -194,40 +192,5 @@ export function recordSessionIdleHookEventSent(stateDir: string, sessionId?: str
   writeIdleNotificationState(getSessionIdleHookStatePath(stateDir, sessionId), {
     lastSentAt: new Date().toISOString(),
     fingerprint: normalizedFingerprint || undefined,
-  });
-}
-
-/**
- * Check whether a session-idle notification should include the captured tmux tail.
- *
- * Repeated idle notifications often reuse the same pane history. When the parsed
- * tail text is unchanged, downstream keyword scanners should not see it again.
- */
-export function shouldIncludeSessionIdleTmuxTail(
-  stateDir: string,
-  sessionId?: string,
-  tmuxTailFingerprint?: string,
-): boolean {
-  const normalizedFingerprint = normalizeIdleFingerprint(tmuxTailFingerprint);
-  if (!normalizedFingerprint) return false;
-
-  const state = readIdleNotificationState(getCooldownStatePath(stateDir, sessionId));
-  if (!state) return true;
-
-  return state.tmuxTailFingerprint !== normalizedFingerprint;
-}
-
-/**
- * Record the parsed tmux-tail fingerprint last included in a session-idle notification.
- */
-export function recordSessionIdleTmuxTailSent(
-  stateDir: string,
-  sessionId?: string,
-  tmuxTailFingerprint?: string,
-): void {
-  const normalizedFingerprint = normalizeIdleFingerprint(tmuxTailFingerprint);
-  const cooldownPath = getCooldownStatePath(stateDir, sessionId);
-  writeIdleNotificationState(cooldownPath, {
-    tmuxTailFingerprint: normalizedFingerprint || undefined,
   });
 }

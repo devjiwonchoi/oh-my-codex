@@ -10,12 +10,11 @@ import type { NotificationPlatform } from "./types.js";
 /** Template variables available for interpolation in message templates. */
 export type TemplateVariable =
   // Raw payload fields
-  | "event" | "sessionId" | "message" | "timestamp" | "tmuxSession"
+  | "event" | "sessionId" | "message" | "timestamp"
   | "projectPath" | "projectName" | "modesUsed" | "contextSummary"
   | "durationMs" | "agentsSpawned" | "agentsCompleted"
   | "reason" | "activeMode" | "iteration" | "maxIterations"
   | "question" | "incompleteTasks" | "agentName" | "agentType"
-  | "tmuxTail" | "tmuxPaneId"
   // Computed variables (derived from payload, not direct fields)
   | "duration"          // human-readable from durationMs (e.g., "5m 23s")
   | "time"              // locale time string from timestamp
@@ -24,7 +23,6 @@ export type TemplateVariable =
   | "agentDisplay"      // "2/5 completed" or empty string
   | "projectDisplay"    // projectName || basename(projectPath) || "unknown"
   | "footer"            // buildFooter() composite output
-  | "tmuxTailBlock"     // formatted tmux tail with code fence or empty string
   | "reasonDisplay";    // reason || "unknown" (for session-end)
 
 /** Per-platform message template override */

@@ -37,10 +37,10 @@ describe('catalog reader/contract', () => {
     const expected = await readSourceManifestCounts();
     assert.equal(contract.counts.skillCount, expected.skills);
     assert.equal(contract.counts.promptCount, expected.agents);
-    assert.ok(contract.internalHidden.includes('worker'));
+    assert.equal(contract.internalHidden.includes('worker'), false);
     assert.ok(contract.coreSkills.includes('autopilot'));
     assert.ok(contract.coreSkills.includes('ultragoal'));
-    assert.equal(contract.counts.skillCount, 13);
+    assert.equal(contract.counts.skillCount, 11);
     assert.deepEqual(contract.aliases, []);
   });
 

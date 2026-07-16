@@ -1,6 +1,3 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 type CodexHookEventName =
   | "SessionStart"
   | "PreToolUse"
@@ -12,12 +9,10 @@ type CodexHookEventName =
 
 type CodexHookPayload = Record<string, unknown>;
 
-export type CodexLauncherKind = "native" | "cli";
-export type CodexTransportKind = "attached-tmux" | "outside-tmux";
+export type CodexLauncherKind = "native" | "direct";
 
 export interface CodexExecutionSurface {
   launcher: CodexLauncherKind;
-  transport: CodexTransportKind;
 }
 
 function safeString(value: unknown): string {
@@ -49,16 +44,13 @@ export function resolveCodexExecutionSurface(
     nativeSessionId?: string;
   } = {},
 ): CodexExecutionSurface {
-  const transport: CodexTransportKind = safeString(process.env.TMUX).trim()
-    ? "attached-tmux"
-    : "outside-tmux";
   const payloadSessionId = safeString(options.payload?.session_id ?? options.payload?.sessionId).trim();
   const payloadSource = safeString(options.payload?.source).trim().toLowerCase();
   const persistedSession = readPersistedSessionStateSync(cwd);
   const persistedNativeSessionId = safeString(persistedSession?.native_session_id).trim();
-  const explicitCliSource = payloadSource === "cli" || payloadSource === "shell" || payloadSource === "terminal";
+  const explicitDirectSource = payloadSource === "cli" || payloadSource === "shell" || payloadSource === "terminal";
   const explicitNativeSource = payloadSource === "native" || payloadSource === "codex-app" || payloadSource === "app";
-  const launcher: CodexLauncherKind = !explicitCliSource && (
+  const launcher: CodexLauncherKind = !explicitDirectSource && (
     explicitNativeSource
     || (options.hookEventName === "SessionStart" && safeString(options.nativeSessionId).trim() !== "")
     || (!!payloadSessionId && payloadSessionId === persistedNativeSessionId)
@@ -69,7 +61,9 @@ export function resolveCodexExecutionSurface(
     )
   )
     ? "native"
-    : "cli";
+    : "direct";
 
-  return { launcher, transport };
+  return { launcher };
 }
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";

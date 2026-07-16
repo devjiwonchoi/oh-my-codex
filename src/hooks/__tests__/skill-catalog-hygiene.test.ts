@@ -27,11 +27,9 @@ describe('skill catalog hygiene', () => {
       'plan',
       'ralph',
       'ralplan',
-      'team',
       'ultragoal',
       'ultraqa',
       'ultrawork',
-      'worker',
     ]);
   });
 

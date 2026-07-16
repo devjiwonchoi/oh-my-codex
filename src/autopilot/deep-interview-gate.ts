@@ -1,5 +1,3 @@
-import { getQuestionRecordPath, getQuestionRecordPathForStateDir, readQuestionRecord } from '../question/state.js';
-import type { QuestionRecord } from '../question/types.js';
 import type { DeepInterviewQuestionEnforcementState } from '../question/deep-interview.js';
 
 type JsonObject = Record<string, unknown>;
@@ -381,43 +379,6 @@ function hasDeniedClearedQuestion(enforcements: readonly DeepInterviewQuestionEn
   ));
 }
 
-function isSameSessionAnsweredDeepInterviewRecord(
-  record: QuestionRecord | null,
-  sessionId: string | undefined,
-): record is QuestionRecord {
-  if (!record) return false;
-  const recordSession = safeString(record.session_id);
-  if (sessionId && recordSession && recordSession !== sessionId) return false;
-  return record.status === 'answered'
-    && record.source === 'deep-interview'
-    && Boolean(record.answer || record.answers?.length);
-}
-
-async function satisfiedQuestionHasAnsweredRecord(
-  input: AutopilotDeepInterviewRalplanGateInput,
-  enforcement: DeepInterviewQuestionEnforcementState,
-): Promise<boolean> {
-  const questionId = safeString(enforcement.question_id);
-  const satisfiedAt = safeString(enforcement.satisfied_at);
-  if (!questionId || !satisfiedAt) return false;
-  const recordPath = input.baseStateDir
-    ? getQuestionRecordPathForStateDir(input.baseStateDir, questionId, input.sessionId)
-    : getQuestionRecordPath(input.cwd, questionId, input.sessionId);
-  const record = await readQuestionRecord(recordPath);
-  return isSameSessionAnsweredDeepInterviewRecord(record, input.sessionId);
-}
-
-async function allSatisfiedQuestionsHaveAnsweredRecords(
-  input: AutopilotDeepInterviewRalplanGateInput,
-  enforcements: readonly DeepInterviewQuestionEnforcementState[],
-): Promise<boolean> {
-  for (const enforcement of enforcements) {
-    if (normalizeStatus(enforcement.status) !== 'satisfied') continue;
-    if (!await satisfiedQuestionHasAnsweredRecord(input, enforcement)) return false;
-  }
-  return true;
-}
-
 export async function canAdvanceAutopilotDeepInterviewToRalplan(
   input: AutopilotDeepInterviewRalplanGateInput,
 ): Promise<AutopilotDeepInterviewRalplanGateDecision> {
@@ -471,16 +432,9 @@ export async function canAdvanceAutopilotDeepInterviewToRalplan(
     };
   }
 
-  if (!await allSatisfiedQuestionsHaveAnsweredRecords(input, enforcements)) {
-    return {
-      allowed: false,
-      reason: 'satisfied deep-interview question obligation lacks same-session answered nomx question record',
-    };
-  }
-
   return {
     allowed: true,
-    reason: 'record-backed deep-interview completion gate',
+    reason: 'deep-interview completion gate',
     evidence: { gate_status: 'complete' },
   };
 }

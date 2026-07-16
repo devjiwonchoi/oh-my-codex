@@ -6,9 +6,7 @@ import { tmpdir } from 'node:os';
 import {
   buildPlatformCommandSpec,
   classifySpawnError,
-  isRunningUnderCmux,
   resolveCommandPathForPlatform,
-  resolveTmuxBinaryForPlatform,
   spawnPlatformCommandSync,
 } from '../platform-command.js';
 
@@ -44,10 +42,10 @@ describe('buildPlatformCommandSpec', () => {
   it('launches .exe binaries directly on Windows', async () => {
     const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-exe-'));
     try {
-      const exePath = join(fakeBin, 'tmux.exe');
+      const exePath = join(fakeBin, 'helper.exe');
       await writeFile(exePath, '');
       const spec = buildPlatformCommandSpec(
-        'tmux',
+        'helper',
         ['-V'],
         'win32',
         {
@@ -210,11 +208,11 @@ describe('resolveCommandPathForPlatform', () => {
   it('prefers PATHEXT candidates on Windows', async () => {
     const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-path-'));
     try {
-      const exePath = join(fakeBin, 'tmux.exe');
+      const exePath = join(fakeBin, 'helper.exe');
       await writeFile(exePath, '');
       assert.equal(
         resolveCommandPathForPlatform(
-          'tmux',
+          'helper',
           'win32',
           {
             PATH: fakeBin,
@@ -222,37 +220,6 @@ describe('resolveCommandPathForPlatform', () => {
           },
         ),
         exePath,
-      );
-    } finally {
-      await rm(fakeBin, { recursive: true, force: true });
-    }
-  });
-
-  it('falls back to psmux on Windows when tmux is absent', async () => {
-    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-psmux-path-'));
-    try {
-      const psmuxPath = join(fakeBin, 'psmux.exe');
-      await writeFile(psmuxPath, '');
-      assert.equal(
-        resolveCommandPathForPlatform(
-          'tmux',
-          'win32',
-          {
-            PATH: fakeBin,
-            PATHEXT: '.EXE;.CMD',
-          },
-        ),
-        psmuxPath,
-      );
-      assert.equal(
-        resolveTmuxBinaryForPlatform(
-          'win32',
-          {
-            PATH: fakeBin,
-            PATHEXT: '.EXE;.CMD',
-          },
-        ),
-        psmuxPath,
       );
     } finally {
       await rm(fakeBin, { recursive: true, force: true });
@@ -428,7 +395,7 @@ describe('spawnPlatformCommandSync', () => {
   it('does not force verbatim arguments for direct Windows executables', async () => {
     const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-spawn-exe-'));
     try {
-      const exePath = join(fakeBin, 'tmux.exe');
+      const exePath = join(fakeBin, 'helper.exe');
       await writeFile(exePath, '');
       const calls: Array<{
         command: string;
@@ -437,7 +404,7 @@ describe('spawnPlatformCommandSync', () => {
       }> = [];
 
       spawnPlatformCommandSync(
-        'tmux',
+        'helper',
         ['-V'],
         { encoding: 'utf-8' },
         'win32',
@@ -537,36 +504,5 @@ describe('spawnPlatformCommandSync', () => {
     assert.deepEqual(calls[1]?.args, [scriptPath, '--prompt', 'find auth']);
     assert.equal(probed.result.stdout, '# Answer\nReady\n');
     assert.equal(probed.spec.command, process.execPath);
-  });
-});
-
-describe('isRunningUnderCmux', () => {
-  it('detects cmux via CMUX_SOCKET_PATH', () => {
-    assert.equal(
-      isRunningUnderCmux({ CMUX_SOCKET_PATH: '/tmp/cmux.sock' } as NodeJS.ProcessEnv),
-      true,
-    );
-  });
-
-  it('detects cmux via CMUX_SOCKET', () => {
-    assert.equal(
-      isRunningUnderCmux({ CMUX_SOCKET: '/tmp/cmux.sock' } as NodeJS.ProcessEnv),
-      true,
-    );
-  });
-
-  it('returns false outside cmux', () => {
-    assert.equal(isRunningUnderCmux({} as NodeJS.ProcessEnv), false);
-    assert.equal(
-      isRunningUnderCmux({ TMUX: '/tmp/tmux-1000/default,1,0' } as NodeJS.ProcessEnv),
-      false,
-    );
-  });
-
-  it('treats blank cmux socket values as not-cmux', () => {
-    assert.equal(
-      isRunningUnderCmux({ CMUX_SOCKET_PATH: '   ', CMUX_SOCKET: '' } as NodeJS.ProcessEnv),
-      false,
-    );
   });
 });

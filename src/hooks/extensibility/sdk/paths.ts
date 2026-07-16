@@ -10,10 +10,6 @@ export function hookPluginRootDir(cwd: string, pluginName: string): string {
   return join(nomxRoot(cwd), 'state', 'hooks', 'plugins', sanitizeHookPluginName(pluginName));
 }
 
-export function hookPluginTmuxStatePath(cwd: string, pluginName: string): string {
-  return join(hookPluginRootDir(cwd, pluginName), 'tmux.json');
-}
-
 export function hookPluginDataPath(cwd: string, pluginName: string): string {
   return join(hookPluginRootDir(cwd, pluginName), 'data.json');
 }

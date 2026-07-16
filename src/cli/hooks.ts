@@ -15,7 +15,6 @@ Usage:
   nomx hooks test       Dispatch synthetic turn-complete event to plugins
 
 Notes:
-  - This command is additive. Existing \`nomx tmux-hook\` behavior is unchanged.
   - Plugins are enabled by default. Disable with NOMX_HOOK_PLUGINS=0.
 `;
 

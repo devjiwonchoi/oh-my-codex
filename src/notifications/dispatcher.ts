@@ -355,7 +355,6 @@ export async function sendWebhook(
         session_id: payload.sessionId,
         message: payload.message,
         timestamp: payload.timestamp,
-        tmux_session: payload.tmuxSession,
         project_name: payload.projectName,
         project_path: payload.projectPath,
         modes_used: payload.modesUsed,

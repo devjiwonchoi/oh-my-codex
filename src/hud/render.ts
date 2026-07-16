@@ -6,7 +6,7 @@
 
 import type { HudRenderContext, HudPreset } from './types.js';
 import { green, yellow, cyan, dim, bold, magenta, getRalphColor, isColorEnabled, RESET } from './colors.js';
-import { HUD_TMUX_HEIGHT_LINES, HUD_TMUX_MAX_HEIGHT_LINES, HUD_TMUX_ULTRAGOAL_HEIGHT_LINES } from './constants.js';
+import { HUD_DEFAULT_HEIGHT_LINES, HUD_EXPANDED_HEIGHT_LINES, HUD_MAX_HEIGHT_LINES } from './constants.js';
 
 const SEP = dim(' | ');
 const CONTROL_CHARS_RE = /[\u0000-\u001f\u007f-\u009f]/g;
@@ -185,7 +185,7 @@ function truncateDynamicText(value: string, maxLength: number): string {
 }
 
 export function getHudRenderMaxLines(ctx: Pick<HudRenderContext, 'ultragoal'>): number {
-  return ctx.ultragoal?.active ? HUD_TMUX_ULTRAGOAL_HEIGHT_LINES : HUD_TMUX_HEIGHT_LINES;
+  return ctx.ultragoal?.active ? HUD_EXPANDED_HEIGHT_LINES : HUD_DEFAULT_HEIGHT_LINES;
 }
 
 function clampHudMaxLines(ctx: Pick<HudRenderContext, 'ultragoal'>, maxLines: number | undefined): number {
@@ -423,7 +423,7 @@ function wrapHudParts(
     : Infinity;
   const maxLines = Number.isFinite(options.maxLines) && (options.maxLines ?? 0) > 0
     ? Math.max(1, Math.floor(options.maxLines ?? 0))
-    : HUD_TMUX_MAX_HEIGHT_LINES;
+    : HUD_MAX_HEIGHT_LINES;
 
   if (!Number.isFinite(maxWidth)) {
     return `${label} ${parts.join(SEP)}`;

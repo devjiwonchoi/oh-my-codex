@@ -23,7 +23,6 @@ import {
   nomxNotepadPath,
   nomxProjectMemoryPath,
   nomxStateDir,
-  packageRoot,
 } from "../utils/paths.js";
 import {
   isPlanningComplete,
@@ -36,7 +35,6 @@ import {
 } from "../mcp/state-paths.js";
 import { generateCodebaseMap } from "./codebase-map.js";
 import {
-  SKILL_ACTIVE_STATE_FILE,
   listActiveSkills,
   readVisibleSkillActiveStateForStateDir,
 } from "../state/skill-active.js";
@@ -136,7 +134,7 @@ type OverlaySection = {
   optional: boolean;
 };
 
-export type SessionOrchestrationMode = "default" | "team";
+export type SessionOrchestrationMode = "default";
 
 export interface GenerateOverlayOptions {
   orchestrationMode?: SessionOrchestrationMode;
@@ -292,48 +290,15 @@ function getCompactionInstructions(): string {
     "Before context compaction, preserve critical state:",
     "1. Write progress checkpoint via `nomx state write --input '<json>' --json`",
     "2. Save key decisions via `nomx notepad write-working --input '<json>' --json`",
-    "3. Before large Team work near compaction, reload `.nomx/state/team/<team>/preflight-context.json`",
-    "4. If context is >80% full, proactively checkpoint state",
+    "3. If context is >80% full, proactively checkpoint state",
   ].join("\n");
 }
 
-async function readTeamOrchestratorOverlay(): Promise<string> {
-  const overlayPath = join(packageRoot(), "prompts", "team-orchestrator.md");
-  try {
-    return (await readFile(overlayPath, "utf-8")).trim();
-  } catch {
-    return "";
-  }
-}
-
 export async function resolveSessionOrchestrationMode(
-  cwd: string,
-  sessionId?: string,
-  activeSkill?: string,
+  _cwd: string,
+  _sessionId?: string,
+  _activeSkill?: string,
 ): Promise<SessionOrchestrationMode> {
-  if (activeSkill === "team") return "team";
-  if (activeSkill) return "default";
-  if (sessionId && !existsSync(getStateDir(cwd, sessionId))) {
-    return "default";
-  }
-
-  const scopedStateDirs = await getAuthoritativeActiveStateDirs(cwd, sessionId);
-  for (const stateDir of scopedStateDirs) {
-    const statePath = join(stateDir, SKILL_ACTIVE_STATE_FILE);
-    if (!existsSync(statePath)) continue;
-
-    try {
-      const state = JSON.parse(await readFile(statePath, "utf-8")) as {
-        active?: boolean;
-        skill?: string;
-      };
-      if (state.active !== true) return "default";
-      return state.skill === "team" ? "team" : "default";
-    } catch {
-      return "default";
-    }
-  }
-
   return "default";
 }
 
@@ -354,7 +319,6 @@ export async function generateOverlay(
     codebaseMap,
     ralphActive,
     planningArtifacts,
-    teamOverlay,
   ] = await Promise.all([
     readActiveModes(cwd, sessionId),
     readNotepadPriority(cwd),
@@ -362,9 +326,6 @@ export async function generateOverlay(
     generateCodebaseMap(cwd),
     isRalphActive(cwd, sessionId),
     readRalphPlanningArtifacts(cwd),
-    orchestrationMode === "team"
-      ? readTeamOrchestratorOverlay()
-      : Promise.resolve(""),
   ]);
 
   // Build sections with deterministic overflow behavior.
@@ -416,14 +377,6 @@ export async function generateOverlay(
     sections.push({
       key: "project_context",
       text: `**Project Context:**\n${truncate(projectMemory, 1000)}`,
-      optional: true,
-    });
-  }
-
-  if (teamOverlay) {
-    sections.push({
-      key: "team_orchestrator",
-      text: `**Orchestration Mode:** team\n${truncate(teamOverlay, 900)}`,
       optional: true,
     });
   }

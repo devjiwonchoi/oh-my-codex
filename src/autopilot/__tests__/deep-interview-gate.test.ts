@@ -66,7 +66,7 @@ describe('autopilot deep-interview gate execution contract', () => {
     });
 
     assert.equal(decision.allowed, true);
-    assert.equal(decision.reason, 'record-backed deep-interview completion gate');
+    assert.equal(decision.reason, 'deep-interview completion gate');
   });
 
   it('rejects an invalid contract explicitly supplied by nextState before persisted fallback', async () => {
@@ -228,6 +228,6 @@ describe('autopilot deep-interview gate execution contract', () => {
     });
 
     assert.equal(decision.allowed, true);
-    assert.equal(decision.reason, 'record-backed deep-interview completion gate');
+    assert.equal(decision.reason, 'deep-interview completion gate');
   });
 });

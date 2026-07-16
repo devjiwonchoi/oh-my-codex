@@ -230,7 +230,6 @@ export const HEAVY_MODE_KEYWORDS = new Set([
   'team',
   'ultrawork',
   'ultragoal',
-  'swarm',
   'ralplan',
   'ccg',
 ]);

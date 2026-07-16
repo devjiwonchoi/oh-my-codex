@@ -15,7 +15,7 @@ import { access, lstat, mkdir, readFile, readdir, realpath, writeFile } from 'no
 import { withModeRuntimeContext } from '../state/mode-state-context.js';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { classifyTaskSize, isHeavyMode, type TaskSizeResult, type TaskSizeThresholds } from './task-size-detector.js';
-import { isApprovedExecutionFollowupShortcut, type FollowupMode } from '../team/followup-planner.js';
+import { isApprovedExecutionFollowupShortcut, type FollowupMode } from '../agents/followup-planner.js';
 import { isPlanningComplete, readPlanningArtifacts } from '../planning/artifacts.js';
 import { hasDurableRalplanConsensusEvidenceForCwd } from '../ralplan/consensus-gate.js';
 import { getExplicitSkillDefinition, KEYWORD_TRIGGER_DEFINITIONS, compareKeywordMatches } from './keyword-registry.js';
@@ -208,8 +208,6 @@ const STATEFUL_SKILL_SEED_CONFIG: Record<StatefulSkillMode, StatefulSkillSeedCon
 export interface DeepInterviewModeState {
   active: boolean;
   mode: 'deep-interview';
-  tmux_pane_id?: string;
-  tmux_pane_set_at?: string;
   current_phase: string;
   started_at: string;
   updated_at: string;
@@ -571,8 +569,6 @@ export async function persistDeepInterviewModeState(
     const nextState = withModeRuntimeContext<DeepInterviewModeState>(
       previousModeState ?? {},
       {
-        ...(previousModeState?.tmux_pane_id ? { tmux_pane_id: previousModeState.tmux_pane_id } : {}),
-        ...(previousModeState?.tmux_pane_set_at ? { tmux_pane_set_at: previousModeState.tmux_pane_set_at } : {}),
         active: true,
         mode: 'deep-interview',
         current_phase: previousModeState?.active ? previousModeState.current_phase || 'intent-first' : 'intent-first',
@@ -600,8 +596,6 @@ export async function persistDeepInterviewModeState(
   const releasedInputLock = nextSkill?.skill === 'deep-interview' ? nextSkill.input_lock : previousSkill?.input_lock;
   const questionExitReason = nextSkill?.skill === 'deep-interview' && nextSkill.active === false ? 'abort' : 'handoff';
   const nextState: DeepInterviewModeState = {
-    ...(previousModeState?.tmux_pane_id ? { tmux_pane_id: previousModeState.tmux_pane_id } : {}),
-    ...(previousModeState?.tmux_pane_set_at ? { tmux_pane_set_at: previousModeState.tmux_pane_set_at } : {}),
     active: false,
     mode: 'deep-interview',
     current_phase: preserveCompletedDeepInterviewPhase(previousModeState) || 'completing',
@@ -708,8 +702,6 @@ async function persistStatefulSkillSeedState(
     (preserveExistingModeState ? existingModeState : {}) ?? {},
     {
       ...(preserveExistingModeState ? existingModeState : {}),
-      ...(existingModeState?.tmux_pane_id ? { tmux_pane_id: existingModeState.tmux_pane_id } : {}),
-      ...(existingModeState?.tmux_pane_set_at ? { tmux_pane_set_at: existingModeState.tmux_pane_set_at } : {}),
       active: true,
       mode: config.mode,
       current_phase: preserveExistingModeState
@@ -3328,10 +3320,6 @@ function detectImplicitKeywords(
   });
 }
 
-function hasNomxQuestionAnsweredPrefix(text: string): boolean {
-  return /^\s*\[nomx question answered\]/i.test(text);
-}
-
 function hasIntentContextForKeyword(text: string, keyword: string): boolean {
   const k = keyword.toLowerCase();
   if (k === 'deep interview' || k === 'interview') {
@@ -3374,13 +3362,8 @@ export function classifyKeywordInput(text: string): KeywordInputClassification {
     });
   }
 
-  const markedQuestionAnswer = hasNomxQuestionAnsweredPrefix(normalizedText);
   const directPromptsInvocation = hasDirectPromptsInvocation(normalizedText, collectInertRangeIndexes(normalizedText), referenceIndex);
-  const reservedInput: KeywordReservedInput = markedQuestionAnswer
-    ? 'nomx-question-answered'
-    : directPromptsInvocation
-      ? 'prompts'
-      : null;
+  const reservedInput: KeywordReservedInput = directPromptsInvocation ? 'prompts' : null;
   const hasExplicitLikeInvocation = candidates.length > 0;
   const hasActiveExplicitLike = hasActiveExplicitLikeInvocation(candidates, documentationRanges, postposedNegations);
   const finalMatches = reservedInput

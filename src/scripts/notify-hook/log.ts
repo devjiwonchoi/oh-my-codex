@@ -13,14 +13,6 @@ async function safeAppend(file: string, line: string): Promise<void> {
   }
 }
 
-export async function logTmuxHookEvent(
-  logsDir: string,
-  event: Record<string, unknown>,
-): Promise<void> {
-  const file = join(logsDir, `tmux-hook-${new Date().toISOString().split('T')[0]}.jsonl`);
-  await safeAppend(file, JSON.stringify(event) + '\n');
-}
-
 export async function logNotifyHookEvent(
   logsDir: string,
   event: Record<string, unknown>,

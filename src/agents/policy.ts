@@ -7,7 +7,6 @@ import type {
 export const NON_NATIVE_AGENT_PROMPT_ASSETS = new Set([
   "explore-harness",
   "sisyphus-lite",
-  "team-orchestrator",
 ]);
 
 export function isNativeAgentInstallableStatus(

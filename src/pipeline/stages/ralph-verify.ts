@@ -9,7 +9,7 @@ import type { PipelineStage, StageContext, StageResult } from '../types.js';
 import {
   buildFollowupStaffingPlan,
   resolveAvailableAgentTypes,
-} from '../../team/followup-planner.js';
+} from '../../agents/followup-planner.js';
 
 export interface RalphVerifyStageOptions {
   /** Stage name. Explicit legacy Ralph paths use 'ralph'; legacy pipeline adapters use 'ralph-verify'. */
@@ -17,7 +17,7 @@ export interface RalphVerifyStageOptions {
 
   /**
    * Ordered artifact keys used as Ralph execution input.
-   * Legacy ralph-verify keeps reading prior ralph/team-exec output; explicit legacy
+   * Legacy ralph-verify keeps reading prior Ralph output; explicit legacy
    * Ralph execution reads ralplan first so implementation starts from approved planning.
    */
   executionArtifactKeys?: readonly string[];
@@ -50,7 +50,7 @@ export function createRalphVerifyStage(options: RalphVerifyStageOptions = {}): P
 
       try {
         // Extract execution context from previous stage.
-        const executionArtifactKeys = options.executionArtifactKeys ?? ['ralph', 'team-exec'];
+        const executionArtifactKeys = options.executionArtifactKeys ?? ['ralph'];
         const executionArtifacts = pickFirstArtifact(ctx.artifacts, executionArtifactKeys);
         const availableAgentTypes = await resolveAvailableAgentTypes(ctx.cwd);
         const staffingPlan = buildFollowupStaffingPlan('ralph', ctx.task, availableAgentTypes, {
@@ -134,6 +134,6 @@ export function createRalphStage(options: RalphVerifyStageOptions = {}): Pipelin
   return createRalphVerifyStage({
     ...options,
     stageName: 'ralph',
-    executionArtifactKeys: options.executionArtifactKeys ?? ['ralplan', 'team-exec'],
+    executionArtifactKeys: options.executionArtifactKeys ?? ['ralplan'],
   });
 }

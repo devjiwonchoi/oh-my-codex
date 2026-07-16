@@ -8,7 +8,7 @@ describe('HUD watch resource cleanup', () => {
     let unregisterCalls = 0;
     const fakeTimer = Symbol('timer') as unknown as ReturnType<typeof setInterval>;
 
-    await runWatchMode('/tmp/project', { watch: true, json: false, tmux: false }, {
+    await runWatchMode('/tmp/project', { watch: true, json: false }, {
       isTTY: true,
       env: {},
       readHudConfigFn: async () => ({ preset: 'minimal', git: { display: 'repo-branch' }, statusLine: { preset: 'minimal' } }),

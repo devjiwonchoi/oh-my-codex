@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -48,7 +48,6 @@ function runCompatTarget(cwd: string, argv: string[], envOverrides: Record<strin
   for (const key of [
     'OMX_ROOT',
     'OMX_STATE_ROOT',
-    'OMX_TEAM_STATE_ROOT',
     'OMX_SESSION_ID',
     'CODEX_SESSION_ID',
     'USE_OMX_EXPLORE_CMD',
@@ -114,28 +113,6 @@ describe('compat doctor contract', () => {
       assert.equal(normalizeInstallDoctorOutput(result.stdout, home, wd), readFixture('install-onboarding.stdout.txt'));
       assert.ok(result.stdout.includes(SAFE_DOCTOR_RECOVERY) || result.stdout.includes(SAFE_DOCTOR_FAILURE));
       assert.doesNotMatch(result.stdout, /^Review (?:warnings|failed checks) above\.[^\n]*--force/m);
-    } finally {
-      await rm(wd, { recursive: true, force: true });
-    }
-  });
-
-  it('matches doctor --team resume_blocker behavior', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-compat-doctor-team-'));
-    try {
-      const teamRoot = join(wd, '.nomx', 'state', 'team', 'alpha');
-      await mkdir(join(teamRoot, 'workers', 'worker-1'), { recursive: true });
-      await writeFile(join(teamRoot, 'config.json'), JSON.stringify({ name: 'alpha', tmux_session: 'nomx-team-alpha' }));
-      const fakeBin = join(wd, 'bin');
-      await mkdir(fakeBin, { recursive: true });
-      const tmuxPath = join(fakeBin, 'tmux');
-      await writeFile(tmuxPath, '#!/bin/sh\n# list-sessions success with no sessions\nexit 0\n');
-      await chmod(tmuxPath, 0o755);
-
-      const result = runCompatTarget(wd, ['doctor', '--team'], { PATH: `${fakeBin}:${process.env.PATH || ''}` });
-      if (shouldSkipForSpawnPermissions(result.error)) return;
-      assert.equal(result.status, Number.parseInt(readFixture('team-resume-blocker.exitcode.txt').trim(), 10), result.stderr || result.stdout);
-      assert.equal(result.stderr, '');
-      assert.equal(result.stdout.replace(/\\/g, '/'), readFixture('team-resume-blocker.stdout.txt'));
     } finally {
       await rm(wd, { recursive: true, force: true });
     }

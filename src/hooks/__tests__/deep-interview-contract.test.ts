@@ -90,18 +90,14 @@ describe("deep-interview Ouroboros contract", () => {
 		);
 	});
 
-	it("routes facts before judgment without changing the deep-interview question source", () => {
+	it("routes facts before judgment", () => {
 		assert.match(deepInterviewSkill, /Route facts before judgment/i);
 		assert.match(deepInterviewSkill, /\[from-code\]\[auto-confirmed\]/i);
 		assert.match(deepInterviewSkill, /\[from-code\]/i);
 		assert.match(deepInterviewSkill, /\[from-research\]/i);
 		assert.match(deepInterviewSkill, /\[from-user\]/i);
 		assert.match(deepInterviewSkill, /transcript\/spec labels only/i);
-		assert.match(deepInterviewSkill, /never use them as `nomx question` `source` values/i);
-		assert.match(deepInterviewSkill, /runtime `source: "deep-interview"` contract/i);
 		assert.match(deepInterviewSkill, /not interview rounds/i);
-		assert.match(deepInterviewSkill, /do not call `nomx question`/i);
-		assert.match(deepInterviewSkill, /do not create a pending deep-interview question obligation/i);
 		assert.match(deepInterviewSkill, /Auto-confirm only descriptive facts/i);
 		assert.match(deepInterviewSkill, /decision-bearing question to the user as `\[from-user\]`/i);
 	});
@@ -181,10 +177,6 @@ describe("deep-interview Ouroboros contract", () => {
 		);
 		assert.match(
 			deepInterviewSkill,
-			/Do not score ambiguity, do not run readiness gates, and do not hand off to `\$ultragoal`, `\$ralplan`, `\$autopilot`, `\$ralph`, or `\$team` until that summary answer is captured/i,
-		);
-		assert.match(
-			deepInterviewSkill,
 			/Durable docs\/ADR\/memory updates, if any, were explicitly opted into and public-safe/i,
 		);
 	});
@@ -214,7 +206,6 @@ describe("deep-interview Ouroboros contract", () => {
 		assert.match(deepInterviewSkill, /\$ralplan/i);
 		assert.match(deepInterviewSkill, /\$autopilot/i);
 		assert.match(deepInterviewSkill, /\$ralph/i);
-		assert.match(deepInterviewSkill, /\$team/i);
 		assert.match(deepInterviewSkill, /Input Artifact/i);
 		assert.match(deepInterviewSkill, /Invocation/i);
 		assert.match(deepInterviewSkill, /Consumer Behavior/i);
@@ -243,137 +234,12 @@ describe("deep-interview Ouroboros contract", () => {
 		assert.match(pluginDeepInterviewSkill, /Optional execution contract foundation/i);
 	});
 
-	it("documents surface-aware nomx question handling and fallback boundaries", () => {
-		assert.match(deepInterviewSkill, /nomx question/i);
-		assert.match(
-			deepInterviewSkill,
-			/required structured-question equivalent/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/attached-tmux Codex CLI, deep-interview uses `nomx question`/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/NOMX_QUESTION_RETURN_PANE=\$TMUX_PANE/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/outside tmux and cannot render `nomx question`, use (the )?native structured (question tool|input) when available/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/ask exactly one concise plain-text question and wait for the answer/i,
-		);
-		assert.doesNotMatch(
-			deepInterviewSkill,
-			/else, use `request_user_input` to present concise multiple-choice options/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/wait for that background terminal to finish and read its JSON answer before scoring ambiguity, asking another round, or handing off/i,
-		);
-	});
-
-	it("teaches canonical single-choice vs multi-answerable nomx question payloads", () => {
-		assert.match(
-			deepInterviewSkill,
-			/Use canonical `type` values instead of authoring raw `multi_select` flags by hand/i,
-		);
-		assert.match(deepInterviewSkill, /type: "single-answerable"/i);
-		assert.match(deepInterviewSkill, /type: "multi-answerable"/i);
-		assert.match(
-			deepInterviewSkill,
-			/Use `single-answerable` when exactly one answer should drive the next branch/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/Use `multi-answerable` when multiple options may all be true at once/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/If one selected option would immediately require a follow-up question to disambiguate the others, prefer a `single-answerable` round now/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/Keep interview options bounded and concrete\./i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/Canonical bounded single-choice payload:/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/Which execution lane should own this once the interview is complete\?/i,
-		);
-		assert.match(deepInterviewSkill, /"value": "ralplan"/i);
-		assert.match(deepInterviewSkill, /"value": "autopilot"/i);
-		assert.match(deepInterviewSkill, /"value": "refine"/i);
-		assert.match(
-			deepInterviewSkill,
-			/Canonical bounded multi-select payload:/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/Which non-goals must stay out of scope for the first pass\?/i,
-		);
-		assert.match(deepInterviewSkill, /"value": "no-ui-redesign"/i);
-		assert.match(deepInterviewSkill, /"value": "no-new-dependencies"/i);
-		assert.match(deepInterviewSkill, /"value": "no-api-contract-changes"/i);
-	});
-
-	it("locks canonical nomx question answer shapes for single and multi rounds", () => {
-		assert.match(deepInterviewSkill, /Canonical answer-shape reminders:/i);
-		assert.match(deepInterviewSkill, /"kind": "option"/i);
-		assert.match(deepInterviewSkill, /"value": "ralplan"/i);
-		assert.match(deepInterviewSkill, /"selected_values": \["ralplan"\]/i);
-		assert.match(deepInterviewSkill, /"kind": "multi"/i);
-		assert.match(
-			deepInterviewSkill,
-			/"value": \["no-new-dependencies", "no-api-contract-changes"\]/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/"selected_values": \["no-new-dependencies", "no-api-contract-changes"\]/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/For `multi-answerable`, treat the selected-values field inside `answers\[0\]\.answer` as the source of truth/i,
-		);
-	});
-
 	it("preserves clarified intent and boundary constraints across execution handoff", () => {
 		assert.match(
 			deepInterviewSkill,
 			/preserve intent, non-goals, decision boundaries, acceptance criteria/i,
 		);
 		assert.match(deepInterviewSkill, /binding context/i);
-		assert.match(deepInterviewSkill, /team verification path/i);
-	});
-
-	it("suggests Ultragoal as the default durable follow-up with team and explicit Ralph fallback lanes", () => {
-		assert.match(deepInterviewSkill, /Goal-mode follow-ups/i);
-		assert.match(deepInterviewSkill, /\$ultragoal[\s\S]*general goal-oriented follow-up/i);
-		assert.match(deepInterviewSkill, /Recommend `\$ultragoal`[\s\S]*default durable goal-mode follow-up/i);
-		assert.match(deepInterviewSkill, /keep `\$ralph` only as an explicit fallback/i);
-		assert.match(deepInterviewSkill, /supersedes Ralph for goal tracking/i);
-		assert.match(deepInterviewSkill, /`\$ultragoal` \(Default durable execution follow-up\)/i);
-		assert.match(
-			deepInterviewSkill,
-			/Invocation:[\s\S]*`\$ultragoal create-goals --brief-file <spec-path>`[\s\S]*`\$ultragoal complete-goals`/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/Expected Output:[\s\S]*\.nomx\/ultragoal\/brief\.md[\s\S]*\.nomx\/ultragoal\/goals\.json[\s\S]*\.nomx\/ultragoal\/ledger\.jsonl/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/Skipped \/ Already-Satisfied Stages:[\s\S]*doc\/context preflight/i,
-		);
-		assert.match(
-			deepInterviewSkill,
-			/Handoff options provided \(`\$ultragoal`, `\$ralplan`, `\$autopilot`, `\$ralph`, `\$team`\)/i,
-		);
 	});
 
 	it("uses NOMX-native output paths", () => {
@@ -387,7 +253,6 @@ describe("deep-interview Ouroboros contract", () => {
 		assert.match(deepInterviewSkill, /do not paste or forward the raw payload/i);
 		assert.match(deepInterviewSkill, /wait for the concise summary before ambiguity scoring, crystallizing artifacts, or any downstream execution handoff/i);
 		assert.match(deepInterviewSkill, /The oversized initial-context summary gate is blocking/i);
-		assert.match(deepInterviewSkill, /Do not score ambiguity, do not run readiness gates, and do not hand off to `\$ultragoal`, `\$ralplan`, `\$autopilot`, `\$ralph`, or `\$team` until that summary answer is captured/i);
 		assert.match(deepInterviewSkill, /goals, constraints, success criteria, non-goals, decision boundaries/i);
 	});
 
@@ -430,11 +295,4 @@ describe("cross-skill and AGENTS coherence for deep-interview", () => {
 		assert.match(templateAgents, /Socratic requirements clarification/i);
 	});
 
-	it("makes template AGENTS explicit about surface-aware deep-interview questioning", () => {
-		assert.match(templateAgents, /deep-interview is active in attached-tmux NOMX CLI\/runtime.*`nomx question`/i);
-		assert.match(templateAgents, /after launching `nomx question` in a background terminal, wait for that terminal to finish and read the JSON answer before continuing/i);
-		assert.match(templateAgents, /NOMX_QUESTION_RETURN_PANE=\$TMUX_PANE/i);
-		assert.match(templateAgents, /Outside tmux or native surfaces that cannot render `nomx question` should use the native structured question path when available/i);
-		assert.match(templateAgents, /ask exactly one concise plain-text question and wait for the answer/i);
-	});
 });

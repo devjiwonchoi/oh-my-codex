@@ -19,8 +19,8 @@ export type NotificationEvent =
  *
  * - verbose: all text/tool call output
  * - agent:   per-agent-call events (includes ask-user-question)
- * - session: start/idle/stop/end + tmux tail snippet [DEFAULT]
- * - minimal: start/stop/end only, no idle, no tmux tail
+ * - session: start/idle/stop/end [DEFAULT]
+ * - minimal: start/stop/end only, no idle
  */
 export type VerbosityLevel = "verbose" | "agent" | "session" | "minimal";
 
@@ -149,8 +149,6 @@ export interface FullNotificationPayload {
   message: string;
   /** ISO timestamp */
   timestamp: string;
-  /** Current tmux session name (if in tmux) */
-  tmuxSession?: string;
   /** Project directory path */
   projectPath?: string;
   /** Basename of the project directory */
@@ -177,12 +175,6 @@ export interface FullNotificationPayload {
   question?: string;
   /** Incomplete task count */
   incompleteTasks?: number;
-  /** tmux pane ID for reply injection target */
-  tmuxPaneId?: string;
-  /** Captured tmux pane output (tail lines) for session-level notifications */
-  tmuxTail?: string;
-  /** Whether the tmux tail came from a session/pane proven live at capture time */
-  tmuxTailLive?: boolean;
   /** Agent name (populated by extensibility plugins, not set by core Codex CLI hooks) */
   agentName?: string;
   /** Agent type (populated by extensibility plugins, not set by core Codex CLI hooks) */
@@ -226,17 +218,12 @@ export interface NotificationsBlock extends FullNotificationConfig {
   profiles?: Record<string, FullNotificationConfig>;
 }
 
-/** Reply injection configuration */
+/** @deprecated Reply listeners are no longer started by NOMX. */
 export interface ReplyConfig {
   enabled: boolean;
-  /** Polling interval in milliseconds (default: 3000) */
   pollIntervalMs: number;
-  /** Maximum message length (default: 500) */
   maxMessageLength: number;
-  /** Rate limit: max messages per minute (default: 10) */
   rateLimitPerMinute: number;
-  /** Include visual prefix like [reply:discord] (default: true) */
   includePrefix: boolean;
-  /** Authorized Discord user IDs (REQUIRED for Discord, empty = Discord disabled) */
   authorizedDiscordUserIds: string[];
 }

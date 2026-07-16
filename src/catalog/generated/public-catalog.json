@@ -1,17 +1,16 @@
 {
-  "generatedAt": "2026-07-16T13:23:10.843Z",
+  "generatedAt": "2026-07-16T19:39:44.281Z",
   "version": "2026.02.28.1",
   "counts": {
-    "skillCount": 13,
-    "promptCount": 34,
-    "activeSkillCount": 12,
+    "skillCount": 11,
+    "promptCount": 33,
+    "activeSkillCount": 11,
     "activeAgentCount": 20
   },
   "coreSkills": [
     "autopilot",
     "ralph",
     "ultrawork",
-    "team",
     "ultragoal",
     "ralplan"
   ],
@@ -32,13 +31,6 @@
     },
     {
       "name": "ultrawork",
-      "category": "execution",
-      "status": "active",
-      "core": true,
-      "internalRequired": false
-    },
-    {
-      "name": "team",
       "category": "execution",
       "status": "active",
       "core": true,
@@ -101,13 +93,6 @@
       "status": "active",
       "core": false,
       "internalRequired": false
-    },
-    {
-      "name": "worker",
-      "category": "utility",
-      "status": "internal",
-      "core": false,
-      "internalRequired": true
     }
   ],
   "agents": [
@@ -140,11 +125,6 @@
       "name": "executor",
       "category": "build",
       "status": "active"
-    },
-    {
-      "name": "team-executor",
-      "category": "build",
-      "status": "internal"
     },
     {
       "name": "verifier",
@@ -293,7 +273,5 @@
     }
   ],
   "aliases": [],
-  "internalHidden": [
-    "worker"
-  ]
+  "internalHidden": []
 }

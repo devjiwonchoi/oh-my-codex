@@ -1,81 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-
-async function withAmbientTmuxEnv<T>(env: NodeJS.ProcessEnv, run: () => Promise<T>): Promise<T> {
-  const previousTmux = process.env.TMUX;
-  const previousTmuxPane = process.env.TMUX_PANE;
-  const previousPath = process.env.PATH;
-
-  if (typeof env.TMUX === 'string') process.env.TMUX = env.TMUX;
-  else delete process.env.TMUX;
-  if (typeof env.TMUX_PANE === 'string') process.env.TMUX_PANE = env.TMUX_PANE;
-  else delete process.env.TMUX_PANE;
-  if (typeof env.PATH === 'string') process.env.PATH = env.PATH;
-  else if ('PATH' in env) delete process.env.PATH;
-
-  try {
-    return await run();
-  } finally {
-    if (typeof previousTmux === 'string') process.env.TMUX = previousTmux;
-    else delete process.env.TMUX;
-    if (typeof previousTmuxPane === 'string') process.env.TMUX_PANE = previousTmuxPane;
-    else delete process.env.TMUX_PANE;
-    if (typeof previousPath === 'string') process.env.PATH = previousPath;
-    else delete process.env.PATH;
-  }
-}
-
-async function createFakeTmuxBin(wd: string): Promise<string> {
-  const fakeBin = join(wd, 'bin');
-  await mkdir(fakeBin, { recursive: true });
-  const tmuxPath = join(fakeBin, 'tmux');
-  await writeFile(
-    tmuxPath,
-    `#!/usr/bin/env bash
-set -eu
-cmd="\${1:-}"
-shift || true
-if [[ "$cmd" == "display-message" ]]; then
-  target=""
-  format=""
-  while (($#)); do
-    case "$1" in
-      -p) shift ;;
-      -t) target="$2"; shift 2 ;;
-      *) format="$1"; shift ;;
-    esac
-  done
-  if [[ -z "$target" && "$format" == "#{pane_id}" ]]; then
-    echo "%777"
-    exit 0
-  fi
-  if [[ -z "$target" && "$format" == "#S" ]]; then
-    echo "maintainer-default"
-    exit 0
-  fi
-  if [[ "$target" == "%777" && "$format" == "#{pane_id}" ]]; then
-    echo "%777"
-    exit 0
-  fi
-  if [[ "$target" == "%777" && "$format" == "#S" ]]; then
-    echo "maintainer-default"
-    exit 0
-  fi
-fi
-if [[ "$cmd" == "list-sessions" ]]; then
-  echo "maintainer-default"
-  exit 0
-fi
-exit 1
-`,
-  );
-  await chmod(tmuxPath, 0o755);
-  return fakeBin;
-}
 
 describe('state-server directory initialization', () => {
   it('keeps read-only state tools side-effect-free without setup', async () => {
@@ -134,7 +62,7 @@ describe('state-server directory initialization', () => {
 
       assert.equal(response.isError, undefined);
       assert.equal(existsSync(join(box, '.nomx', 'state', 'ralph-state.json')), true);
-      assert.equal(existsSync(join(box, '.nomx', 'tmux-hook.json')), true);
+      assert.equal(existsSync(join(box, '.nomx', 'tmux-hook.json')), false);
       assert.equal(existsSync(join(wd, '.nomx', 'state')), false);
       assert.equal(existsSync(join(wd, '.nomx', 'tmux-hook.json')), false);
     } finally {
@@ -361,47 +289,6 @@ describe('state-server directory initialization', () => {
         JSON.parse(response.content[0]?.text || '{}'),
         { statuses: {} },
       );
-    } finally {
-      await rm(wd, { recursive: true, force: true });
-    }
-  });
-
-  it('bootstraps state-tool tmux-hook from the current tmux pane for mutating tools', async () => {
-    process.env.NOMX_STATE_SERVER_DISABLE_AUTO_START = '1';
-    const { handleStateToolCall } = await import('../state-server.js');
-
-    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-server-test-live-'));
-    try {
-      const tmuxHookConfig = join(wd, '.nomx', 'tmux-hook.json');
-      const fakeBin = await createFakeTmuxBin(wd);
-
-      await withAmbientTmuxEnv(
-        {
-          TMUX: '/tmp/maintainer-default,123,0',
-          TMUX_PANE: '%777',
-          PATH: `${fakeBin}:${process.env.PATH || ''}`,
-        },
-        async () => {
-          const response = await handleStateToolCall({
-            params: {
-              name: 'state_write',
-              arguments: {
-                workingDirectory: wd,
-                mode: 'deep-interview',
-                active: true,
-                current_phase: 'deep-interview',
-              },
-            },
-          });
-          const payload = JSON.parse(response.content[0]?.text || '{}');
-          assert.equal(payload.success, true);
-        },
-      );
-
-      const tmuxConfig = JSON.parse(await readFile(tmuxHookConfig, 'utf-8')) as {
-        target?: { type?: string; value?: string };
-      };
-      assert.deepEqual(tmuxConfig.target, { type: 'pane', value: '%777' });
     } finally {
       await rm(wd, { recursive: true, force: true });
     }

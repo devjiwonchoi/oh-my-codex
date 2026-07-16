@@ -31,7 +31,7 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
       delete process.env.SESSION_ID;
       const nativeSessionId = 'codex-native-fresh-app';
 
-      // 1. Fresh App/outside-tmux turn start: no session.json, no tracker yet.
+      // 1. Fresh native App turn start: no session.json, no tracker yet.
       await dispatchCodexNativeHook(
         { hook_event_name: 'SessionStart', cwd, session_id: nativeSessionId },
         { cwd, sessionOwnerPid: process.pid },

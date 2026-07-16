@@ -62,26 +62,6 @@ export interface HookPluginLogContext {
   [key: string]: unknown;
 }
 
-export interface HookPluginTmuxSendKeysOptions {
-  paneId?: string;
-  sessionName?: string;
-  text: string;
-  submit?: boolean;
-  cooldownMs?: number;
-}
-
-export interface HookPluginTmuxSendKeysResult {
-  ok: boolean;
-  reason: string;
-  target?: string;
-  paneId?: string;
-  error?: string;
-}
-
-// Backward-compatible aliases
-export type HookPluginSendKeysOptions = HookPluginTmuxSendKeysOptions;
-export type HookPluginSendKeysResult = HookPluginTmuxSendKeysResult;
-
 export interface HookPluginNomxSessionState {
   session_id: string;
   native_session_id?: string;
@@ -140,9 +120,6 @@ export interface HookPluginNomxSdk {
 }
 
 export interface HookPluginSdk {
-  tmux: {
-    sendKeys: (options: HookPluginTmuxSendKeysOptions) => Promise<HookPluginTmuxSendKeysResult>;
-  };
   log: {
     info: (message: string, meta?: Record<string, unknown>) => Promise<void>;
     warn: (message: string, meta?: Record<string, unknown>) => Promise<void>;

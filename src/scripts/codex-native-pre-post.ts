@@ -3,7 +3,6 @@ import {
   isLoreCommitGuardEnabled,
   readConfiguredLoreCommitGuardValue,
 } from "../config/commit-lore-guard.js";
-import { resolveCodexExecutionSurface } from "./codex-execution-surface.js";
 
 type CodexHookPayload = Record<string, unknown>;
 
@@ -50,16 +49,6 @@ function safeObject(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : null;
-}
-
-function isNativeOutsideTmuxSurface(payload: CodexHookPayload): boolean {
-  const cwd = safeString(payload.cwd).trim() || process.cwd();
-  const surface = resolveCodexExecutionSurface(cwd, {
-    hookEventName: "PreToolUse",
-    payload,
-    nativeSessionId: safeString(payload.session_id ?? payload.sessionId).trim(),
-  });
-  return surface.launcher === "native" && surface.transport === "outside-tmux";
 }
 
 function tryParseJsonString(value: unknown): Record<string, unknown> | null {
@@ -1123,157 +1112,6 @@ function removeHereDocBodies(command: string): string {
   return retained.join("\n");
 }
 
-function commandInvokesOmxQuestion(command: string): boolean {
-  const tokens = tokenizeShellCommandWithBoundaries(removeHereDocBodies(command))
-    ?.map((token) => ({ ...token, value: token.value.toLowerCase() }))
-    ?? [];
-
-  for (let commandStart = 0; commandStart < tokens.length; commandStart = nextCommandStart(tokens, commandStart)) {
-    const commandEnd = nextCommandStart(tokens, commandStart);
-    let index = commandStart;
-
-    while (index < commandEnd && isInlineShellEnvAssignment(tokens[index]?.value ?? "")) {
-      index += 1;
-    }
-
-    while (index < commandEnd && isEnvExecutableToken(tokens[index]?.value ?? "")) {
-      index += 1;
-      while (index < commandEnd) {
-        const token = tokens[index]?.value ?? "";
-        if (token === "--") {
-          index += 1;
-          break;
-        }
-        if (isInlineShellEnvAssignment(token)) {
-          index += 1;
-          continue;
-        }
-        if (token === "-i" || token === "--ignore-environment" || token.startsWith("--unset=")) {
-          index += 1;
-          continue;
-        }
-        if (token.startsWith("-")) {
-          index += envOptionConsumesNextValue(token) ? 2 : 1;
-          continue;
-        }
-        break;
-      }
-    }
-
-    const rawToken = tokens[index]?.value || "";
-    const token = rawToken.replace(/\\/g, "/").split("/").pop() || "";
-    if ((token === "nomx" || token === "nomx.js") && tokens[index + 1]?.value === "question") return true;
-    if (
-      (token === "node" || token === "node.exe")
-      && /(?:^|\/)nomx\.js$/.test(tokens[index + 1]?.value || "")
-      && tokens[index + 2]?.value === "question"
-    ) return true;
-  }
-
-  return false;
-}
-
-function isQuestionReturnPaneAssignment(token: string): boolean {
-  const equalsIndex = token.indexOf('=');
-  if (equalsIndex <= 0) return false;
-  const name = token.slice(0, equalsIndex);
-  if (!['NOMX_QUESTION_RETURN_PANE', 'NOMX_LEADER_PANE_ID', 'TMUX_PANE'].includes(name)) return false;
-  const value = token.slice(equalsIndex + 1);
-  return /^%\d+$/.test(value) || /^\$\{?TMUX_PANE\}?$/.test(value);
-}
-
-function hasInheritedQuestionReturnPaneBridge(): boolean {
-  // Intentionally trust only the explicit bridge envs that question renderer
-  // already accepts outside tmux; TMUX_PANE alone is not stable across all
-  // Bash/background-terminal tool paths that this enforcement protects.
-  const explicitPane = safeString(
-    process.env.NOMX_QUESTION_RETURN_PANE || process.env.NOMX_LEADER_PANE_ID,
-  ).trim();
-  return /^%\d+$/.test(explicitPane);
-}
-
-function commandHasPowerShellQuestionReturnPane(command: string): boolean {
-  return /\$env:(?:NOMX_QUESTION_RETURN_PANE|NOMX_LEADER_PANE_ID)\s*=\s*(?:['"]?%\d+['"]?|\$env:TMUX_PANE)\b/i.test(command)
-    || /\$env:TMUX_PANE\s*=\s*['"]?%\d+['"]?/i.test(command);
-}
-
-function commandHasQuestionReturnPane(command: string): boolean {
-  if (hasInheritedQuestionReturnPaneBridge()) return true;
-  if (commandHasPowerShellQuestionReturnPane(command)) return true;
-  return (tokenizeShellCommand(command) ?? []).some(isQuestionReturnPaneAssignment);
-}
-
-function commandInvokesOmxTeam(command: string): boolean {
-  const tokens = tokenizeShellCommand(command)?.map((token) => token.toLowerCase()) ?? [];
-  for (let index = 0; index < tokens.length; index += 1) {
-    const rawToken = tokens[index] || '';
-    const token = rawToken.replace(/\\/g, '/').split('/').pop() || '';
-    if ((token === 'nomx' || token === 'nomx.js') && tokens[index + 1] === 'team') return true;
-    if ((token === 'node' || token === 'node.exe') && /(?:^|\/)nomx\.js$/.test(tokens[index + 1] || '') && tokens[index + 2] === 'team') return true;
-  }
-  return /\bomx\s+team\b/i.test(command) || /\bomx\.js['"]?\s+team\b/i.test(command);
-}
-
-function commandInvokesOmxHud(command: string): boolean {
-  const tokens = tokenizeShellCommand(command)?.map((token) => token.toLowerCase()) ?? [];
-  for (let index = 0; index < tokens.length; index += 1) {
-    const rawToken = tokens[index] || '';
-    const token = rawToken.replace(/\\/g, '/').split('/').pop() || '';
-    if ((token === 'nomx' || token === 'nomx.js') && tokens[index + 1] === 'hud') return true;
-    if ((token === 'node' || token === 'node.exe') && /(?:^|\/)nomx\.js$/.test(tokens[index + 1] || '') && tokens[index + 2] === 'hud') return true;
-  }
-  return /\bomx\s+hud\b/i.test(command) || /\bomx\.js['"]?\s+hud\b/i.test(command);
-}
-
-function buildNativeOmxHudPreToolUseEnforcementOutput(
-  command: string,
-  payload: CodexHookPayload,
-): Record<string, unknown> | null {
-  if (!isNativeOutsideTmuxSurface(payload) || !commandInvokesOmxHud(command)) return null;
-
-  return {
-    decision: "block",
-    reason: "nomx hud cannot be launched directly from Codex App/native outside-tmux Bash sessions.",
-    systemMessage: "nomx hud is blocked from Bash in Codex App/native outside-tmux sessions; use SessionStart/HUD context instead, or launch NOMX CLI from an attached tmux shell first for the tmux HUD runtime.",
-  };
-}
-
-function buildNativeOmxTeamPreToolUseEnforcementOutput(
-  command: string,
-  payload: CodexHookPayload,
-): Record<string, unknown> | null {
-  if (!isNativeOutsideTmuxSurface(payload) || !commandInvokesOmxTeam(command)) return null;
-
-  return {
-    decision: "block",
-    reason: "nomx team cannot be launched directly from Codex App/native outside-tmux Bash sessions.",
-    systemMessage: `nomx team is blocked from Bash in Codex App/native outside-tmux sessions; launch NOMX CLI from an attached tmux shell first. Original command: ${command}`,
-  };
-}
-
-function buildOmxQuestionPreToolUseEnforcementOutput(
-  command: string,
-  payload: CodexHookPayload,
-): Record<string, unknown> | null {
-  if (!commandInvokesOmxQuestion(command)) return null;
-
-  if (isNativeOutsideTmuxSurface(payload)) {
-    return {
-      decision: "block",
-      reason: "nomx question cannot be launched directly from Codex App/native outside-tmux Bash sessions.",
-      systemMessage: `nomx question is blocked from Codex App/native outside-tmux Bash because no attached tmux pane is available. Use the native structured question tool when available, or ask exactly one concise plain-text question. Original command: ${command}`,
-    };
-  }
-
-  if (commandHasQuestionReturnPane(command)) return null;
-
-  return {
-    decision: "block",
-    reason: "nomx question Bash invocations must preserve the leader pane return target.",
-    systemMessage: `nomx question is blocked from Bash until the command preserves the leader pane with \`NOMX_QUESTION_RETURN_PANE=$TMUX_PANE\` or an explicit \`%pane\` value. Original command: ${command}`,
-  };
-}
-
 export function buildNativePreToolUseOutput(
   payload: CodexHookPayload,
 ): Record<string, unknown> | null {
@@ -1281,12 +1119,6 @@ export function buildNativePreToolUseOutput(
   if (!normalized.isBash) return null;
   const gitCommitEnforcement = buildGitCommitEnforcementOutput(normalized.normalizedCommand);
   if (gitCommitEnforcement) return gitCommitEnforcement;
-  const hudEnforcement = buildNativeOmxHudPreToolUseEnforcementOutput(normalized.normalizedCommand, payload);
-  if (hudEnforcement) return hudEnforcement;
-  const teamEnforcement = buildNativeOmxTeamPreToolUseEnforcementOutput(normalized.normalizedCommand, payload);
-  if (teamEnforcement) return teamEnforcement;
-  const questionEnforcement = buildOmxQuestionPreToolUseEnforcementOutput(normalized.normalizedCommand, payload);
-  if (questionEnforcement) return questionEnforcement;
   const sloppyFallbackWarning = buildSloppyFallbackPreToolUseOutput(normalized.normalizedCommand);
   if (sloppyFallbackWarning) return sloppyFallbackWarning;
   if (!matchesDestructiveFixture(normalized.normalizedCommand)) return null;
@@ -1405,7 +1237,7 @@ export function buildNativePostToolUseOutput(
       hookSpecificOutput: {
         hookEventName: "PostToolUse",
         additionalContext:
-          `Clear MCP transport-death signal detected. Preserve current team/runtime state. ${fallbackText} NOMX MCP servers are plain Node stdio processes, so they still shut down when stdin/transport closes. If this happened during team runtime, inspect first with \`nomx team status <team>\` or \`nomx team api read-stall-state --input '{"team_name":"<team>"}' --json\`, and only force cleanup after capturing needed state. For root-cause debugging, rerun with \`NOMX_MCP_TRANSPORT_DEBUG=1\` to log why the stdio transport closed.`,
+          `Clear MCP transport-death signal detected. Preserve current runtime state. ${fallbackText} NOMX MCP servers are plain Node stdio processes, so they still shut down when stdin/transport closes. Inspect the active workflow state before cleanup. For root-cause debugging, rerun with \`NOMX_MCP_TRANSPORT_DEBUG=1\` to log why the stdio transport closed.`,
       },
     };
   }

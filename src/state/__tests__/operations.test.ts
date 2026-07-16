@@ -597,39 +597,6 @@ describe('state operations directory initialization', () => {
     }
   });
 
-  it('bootstraps tmux-hook from the current tmux pane for mutating state operations', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-live-'));
-    try {
-      const tmuxHookConfig = join(wd, '.nomx', 'tmux-hook.json');
-      const fakeBin = await createFakeTmuxBin(wd);
-
-      await withAmbientTmuxEnv(
-        {
-          TMUX: '/tmp/maintainer-default,123,0',
-          TMUX_PANE: '%777',
-          PATH: `${fakeBin}:${process.env.PATH || ''}`,
-        },
-        async () => {
-          const response = await executeStateOperation('state_write', {
-            workingDirectory: wd,
-            mode: 'deep-interview',
-            active: true,
-            current_phase: 'deep-interview',
-          });
-          assert.equal(response.isError, undefined);
-          assert.equal((response.payload as { success?: boolean }).success, true);
-        },
-      );
-
-      const tmuxConfig = JSON.parse(await readFile(tmuxHookConfig, 'utf-8')) as {
-        target?: { type?: string; value?: string };
-      };
-      assert.deepEqual(tmuxConfig.target, { type: 'pane', value: '%777' });
-    } finally {
-      await rm(wd, { recursive: true, force: true });
-    }
-  });
-
   it('writes and reads deep-interview state', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-readwrite-'));
     try {
@@ -3336,56 +3303,6 @@ describe('state operations directory initialization', () => {
           await readFile(join(sessionDir, 'autopilot-state.json'), 'utf-8'),
         ) as Record<string, unknown>;
         assert.equal(state.current_phase, 'ralplan');
-      });
-    } finally {
-      await rm(wd, { recursive: true, force: true });
-    }
-  });
-
-  it('denies Autopilot satisfied nested question handoff without a record-backed question id', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-satisfied-question-deny-'));
-    try {
-      await withOmxRootEnv(wd, async () => {
-        const sessionId = 'sess-autopilot-satisfied-question-deny';
-        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
-        await mkdir(sessionDir, { recursive: true });
-        await writeFile(
-          join(sessionDir, 'autopilot-state.json'),
-          JSON.stringify({
-            active: true,
-            mode: 'autopilot',
-            current_phase: 'deep-interview',
-            state: {
-              deep_interview_question: {
-                status: 'satisfied',
-                source: 'nomx-question',
-                obligation_id: 'obligation-no-record',
-                previous_phase: 'deep-interview',
-                requested_at: '2026-05-28T00:00:00.000Z',
-                satisfied_at: '2026-05-28T00:01:00.000Z',
-              },
-              deep_interview_gate: {
-                status: 'complete',
-                rationale: 'Question satisfaction must be backed by an answered record.',
-              },
-            },
-          }, null, 2),
-        );
-
-        const response = await executeStateOperation('state_write', {
-          workingDirectory: wd,
-          session_id: sessionId,
-          mode: 'autopilot',
-          active: true,
-          current_phase: 'ralplan',
-        });
-
-        assert.equal(response.isError, true);
-        assert.match(String((response.payload as { error?: string }).error || ''), /lacks same-session answered nomx question record/i);
-        const state = JSON.parse(
-          await readFile(join(sessionDir, 'autopilot-state.json'), 'utf-8'),
-        ) as Record<string, unknown>;
-        assert.equal(state.current_phase, 'deep-interview');
       });
     } finally {
       await rm(wd, { recursive: true, force: true });

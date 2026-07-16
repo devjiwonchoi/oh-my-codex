@@ -10,7 +10,6 @@ import { join, basename } from 'path';
 import { findGitLayout, readGitLayoutFile } from '../utils/git-layout.js';
 import { resolveNomxDisplayVersionSync } from '../utils/version.js';
 import { getBaseStateDir, getStateFilePath, readCurrentSessionId, resolveRuntimeStateScope } from '../mcp/state-paths.js';
-import { teamReadPhase as readTeamPhase } from '../team/team-ops.js';
 
 import { listActiveSkills, readVisibleSkillActiveStateForStateDir } from '../state/skill-active.js';
 import {
@@ -515,10 +514,9 @@ function mergePhase<T extends { active?: boolean; current_phase?: string }>(
 }
 
 async function readCanonicalTeamPhase(cwd: string, teamDetail: TeamStateForHud | null): Promise<string | undefined> {
-  const teamName = sanitizeOptionalString(teamDetail?.team_name);
-  if (!teamName) return undefined;
-  const phaseState = await readTeamPhase(teamName, cwd).catch(() => null);
-  return sanitizeOptionalString(phaseState?.current_phase);
+  void cwd;
+  void teamDetail;
+  return undefined;
 }
 
 function mergeTeamPhase(
@@ -542,8 +540,7 @@ function activeAutopilotPhase(autopilot: AutopilotStateForHud | null): string | 
 function isReportableCurrentAutopilotState(autopilot: AutopilotStateForHud | null): boolean {
   if (autopilot?.active !== true) return false;
   return sanitizeOptionalString(autopilot.current_phase) !== undefined
-    || sanitizeOptionalString(autopilot.session_id) !== undefined
-    || sanitizeOptionalString(autopilot.tmux_pane_id) !== undefined;
+    || sanitizeOptionalString(autopilot.session_id) !== undefined;
 }
 
 function buildStaleCurrentAutopilotState(autopilot: AutopilotStateForHud | null): AutopilotStateForHud | null {

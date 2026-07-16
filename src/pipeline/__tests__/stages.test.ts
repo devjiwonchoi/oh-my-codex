@@ -8,12 +8,11 @@ import { existsSync } from 'fs';
 import type { StageContext } from '../types.js';
 import { createDeepInterviewStage, buildDeepInterviewInstruction } from '../stages/deep-interview.js';
 import { createRalplanStage } from '../stages/ralplan.js';
-import { createTeamExecStage, buildTeamInstruction } from '../stages/team-exec.js';
 import { createRalphVerifyStage, createRalphStage, buildRalphInstruction } from '../stages/ralph-verify.js';
 import { createCodeReviewStage, buildCodeReviewInstruction } from '../stages/code-review.js';
 import { createUltragoalStage, buildUltragoalInstruction } from '../stages/ultragoal.js';
 import { createUltraqaStage, buildUltraqaInstruction } from '../stages/ultraqa.js';
-import { buildFollowupStaffingPlan } from '../../team/followup-planner.js';
+import { buildFollowupStaffingPlan } from '../../agents/followup-planner.js';
 import { packageRoot } from '../../utils/paths.js';
 import { subagentTrackingPath } from '../../subagents/tracker.js';
 import { LEADER_CONDUCTOR_BLOCK, buildUnsupportedNativeSubagentGuidance } from '../../leader/contract.js';
@@ -948,10 +947,7 @@ describe('RALPLAN Stage', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Team exec stage tests
-// ---------------------------------------------------------------------------
-
+/* Team exec stage coverage removed with the tmux Team runtime.
 describe('Team Exec Stage', () => {
   beforeEach(async () => { await setup(); });
   afterEach(async () => { await cleanup(); });
@@ -1791,7 +1787,7 @@ describe('Team Exec Stage', () => {
       });
     });
   });
-});
+}); */
 
 // ---------------------------------------------------------------------------
 // Ralph verify stage tests
@@ -1821,35 +1817,6 @@ describe('Ralph Verify Stage', () => {
 
     const arts = result.artifacts as Record<string, unknown>;
     assert.equal(arts.maxIterations, 25);
-  });
-
-  it('includes team-exec artifacts in verification context', async () => {
-    const stage = createRalphVerifyStage();
-    const ctx = makeCtx({
-      artifacts: {
-        'team-exec': { teamDescriptor: { task: 'completed work' } },
-      },
-    });
-    const result = await stage.run(ctx);
-
-    const descriptor = (result.artifacts as Record<string, unknown>).verifyDescriptor as Record<string, unknown>;
-    const execArtifacts = descriptor.executionArtifacts as Record<string, unknown>;
-    assert.ok(execArtifacts.teamDescriptor);
-    assert.ok(Array.isArray(descriptor.availableAgentTypes));
-    assert.equal(typeof (descriptor.staffingPlan as Record<string, unknown>).staffingSummary, 'string');
-  });
-
-  it('preserves legacy verification context precedence over ralplan artifacts', async () => {
-    const stage = createRalphVerifyStage();
-    const result = await stage.run(makeCtx({
-      artifacts: {
-        ralplan: { plan: 'approved plan' },
-        'team-exec': { teamDescriptor: { task: 'completed work' } },
-      },
-    }));
-
-    const descriptor = (result.artifacts as Record<string, unknown>).verifyDescriptor as Record<string, unknown>;
-    assert.deepEqual(descriptor.executionArtifacts, { teamDescriptor: { task: 'completed work' } });
   });
 
   describe('buildRalphInstruction', () => {
@@ -1930,7 +1897,7 @@ describe('Default Autopilot Ultragoal Stage Adapters', () => {
     assert.match(buildDeepInterviewInstruction('clarify me'), /^\$deep-interview /);
   });
 
-  it('creates an ultragoal descriptor with explicit team condition', async () => {
+  it('creates an ultragoal descriptor for native execution', async () => {
     const stage = createUltragoalStage();
     assert.equal(stage.name, 'ultragoal');
     const result = await stage.run(makeCtx({ artifacts: { ralplan: { plan: 'approved' } } }));
@@ -1938,7 +1905,7 @@ describe('Default Autopilot Ultragoal Stage Adapters', () => {
     const descriptor = artifacts.ultragoalDescriptor as Record<string, unknown>;
     assert.equal(artifacts.stage, 'ultragoal');
     assert.deepEqual(descriptor.ralplanArtifacts, { plan: 'approved' });
-    assert.match(artifacts.team_condition as string, /Launch \$team only inside an active Ultragoal story/);
+    assert.equal(artifacts.team_condition, undefined);
     assert.match(buildUltragoalInstruction('execute me'), /^\$ultragoal /);
     assert.match(buildUltragoalInstruction('execute me'), new RegExp(escapeRegExp(LEADER_CONDUCTOR_BLOCK)));
     assert.doesNotMatch(buildUltragoalInstruction('execute me'), /Native subagent support is unavailable/);

@@ -33,7 +33,7 @@ const antiSlopWorkingAgreementPatterns = [
 
 const antiSlopWorkflowPatterns = [
   /^Anti-slop workflow:$/m,
-  /^- Cleanup\/refactor work follows the same `\$deep-interview` -> `\$ralplan` -> `\$team`\/`\$ralph` path with regression tests first and a bounded changed-files-only cleanup pass inside the chosen execution lane\.$/m,
+  /^- Cleanup\/refactor work follows the same `\$deep-interview` -> `\$ralplan` -> native-subagent\/`\$ralph` path with regression tests first and a bounded changed-files-only cleanup pass inside the chosen execution lane\.$/m,
   /^- Write a cleanup plan before modifying code; lock existing behavior with regression tests first, then make one smell-focused pass at a time\.$/m,
   /^- Prefer deletion over addition, and prefer reuse plus boundary repair over new layers\.$/m,
   /^- No new dependencies without explicit request\.$/m,

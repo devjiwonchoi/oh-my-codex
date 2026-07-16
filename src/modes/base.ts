@@ -56,8 +56,8 @@ export interface UpdateModeStateOptions {
 }
 
 const DEPRECATED_MODES: Record<DeprecatedModeName, string> = {
-  ultrapilot: 'Use "team" instead. ultrapilot has been merged into team mode.',
-  pipeline: 'Use "team" instead. pipeline has been merged into team mode.',
+  ultrapilot: 'Use "autopilot" instead.',
+  pipeline: 'Use "autopilot" instead.',
   ecomode: 'Use "ultrawork" instead. ecomode has been merged into ultrawork mode.',
 };
 

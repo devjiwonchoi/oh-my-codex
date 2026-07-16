@@ -6,40 +6,32 @@ import { spawn, type ChildProcess } from 'child_process';
 import { dirname, join, resolve } from 'path';
 import { homedir } from 'os';
 import { StringDecoder } from 'string_decoder';
-import { spawnPlatformCommandSync } from '../utils/platform-command.js';
-import { drainPendingTeamDispatch } from './notify-hook/team-dispatch.js';
-import {
-  maybeAutoNudge,
-  isDeepInterviewInputLockActive,
-  isDeepInterviewStateActive,
-  loadAutoNudgeConfig,
-  normalizeAutoNudgeSignatureText,
-  resolveAutoNudgeSignature,
-} from './notify-hook/auto-nudge.js';
 import {
   readScopedJsonIfExists,
 } from './notify-hook/state-io.js';
-import { checkPaneReadyForTeamSendKeys } from './notify-hook/team-tmux-guard.js';
-import {
-  checkWorkerPanesAlive,
-  isLeaderStale,
-  maybeNudgeTeamLeader,
-  resolveLeaderStalenessThresholdMs,
-} from './notify-hook/team-leader-nudge.js';
-import { resolveManagedPaneFromAnchor, resolveManagedSessionPane } from './notify-hook/managed-tmux.js';
-import { DEFAULT_MARKER } from './tmux-hook-engine.js';
 import { isTerminalPhase } from './notify-hook/utils.js';
 import { isSessionStale, isSessionStateAuthoritativeForCwd, readSessionState } from '../hooks/session.js';
 import {
   DEFAULT_SUBAGENT_ACTIVE_WINDOW_MS,
   readSubagentSessionSummary,
 } from '../subagents/tracker.js';
-import { listNotifyCanonicalActiveTeams } from './notify-hook/active-team.js';
 import { sameFilePath } from '../utils/paths.js';
 import { validateSessionId } from '../mcp/state-paths.js';
-import { TEAM_NAME_SAFE_PATTERN } from '../team/contracts.js';
 import { shouldContinueRun } from '../runtime/run-loop.js';
 import { deliverNotifyFallback, compactNotifyFallbackDeliveries, NOTIFY_FALLBACK_LEASE_MS } from './notify-fallback-delivery.js';
+
+// Legacy interactive-control helpers are intentionally inert. The fallback
+// watcher now only delivers completed rollout events to the notify hook.
+const resolveLeaderStalenessThresholdMs = () => 0;
+const isLeaderStale: (...args: any[]) => Promise<any> = async () => false;
+const maybeNudgeTeamLeader: (...args: any[]) => Promise<any> = async () => undefined;
+const drainPendingTeamDispatch: (...args: any[]) => Promise<any> = async () => ({ processed: 0 });
+const maybeAutoNudge: (...args: any[]) => Promise<any> = async () => ({ nudged: false });
+const isDeepInterviewInputLockActive: (...args: any[]) => Promise<any> = async () => false;
+const isDeepInterviewStateActive: (...args: any[]) => Promise<any> = async () => false;
+const loadAutoNudgeConfig: (...args: any[]) => Promise<any> = async () => ({ enabled: false });
+const normalizeAutoNudgeSignatureText = (value: unknown) => safeString(value);
+const resolveAutoNudgeSignature: (...args: any[]) => any = () => '';
 
 function argValue(name: string, fallback = ''): string {
   const idx = process.argv.indexOf(name);
@@ -67,8 +59,7 @@ function normalizeValidSessionId(value: unknown): string {
 }
 
 function normalizeValidTeamName(value: unknown): string {
-  const trimmed = safeString(value).trim();
-  return TEAM_NAME_SAFE_PATTERN.test(trimmed) ? trimmed : '';
+  return safeString(value).trim();
 }
 
 function parsePositivePid(value: unknown): number | null {
@@ -244,15 +235,6 @@ interface AuthorityBackoffState {
   primary_last_tick_at: string;
   freshness_ms: number | null;
   threshold_ms: number | null;
-}
-
-interface ActiveTeamResult {
-  active: boolean;
-  reason: string;
-  path: string;
-  state: Record<string, unknown> | null;
-  team_name: string;
-  pane_count: number;
 }
 
 interface FallbackAutoNudgeState {
@@ -646,152 +628,6 @@ async function resolveActiveRalphState(): Promise<ActiveModeResult> {
   return resolveActiveModeState('ralph');
 }
 
-async function resolveActiveTeamState(): Promise<ActiveTeamResult> {
-  const candidateDirs: string[] = [];
-  let currentSessionId = '';
-  let currentSessionIsLive = false;
-  const session = await readSessionState(cwd);
-  if (session?.session_id) {
-    currentSessionId = normalizeValidSessionId(session.session_id);
-    currentSessionIsLive = currentSessionId !== '' && !isSessionStale(session);
-    if (currentSessionId && currentSessionIsLive) {
-      candidateDirs.push(join(stateDir, 'sessions', currentSessionId));
-    }
-  }
-  if (!candidateDirs.includes(stateDir)) candidateDirs.push(stateDir);
-
-  for (const dir of candidateDirs) {
-    if (dir === stateDir && currentSessionId) {
-      continue;
-    }
-
-    const path = join(dir, 'team-state.json');
-    if (!existsSync(path)) continue;
-    const parsed = await readFile(path, 'utf-8')
-      .then((content) => JSON.parse(content) as Record<string, unknown>)
-      .catch(() => null);
-    if (!parsed || typeof parsed !== 'object' || parsed.active !== true) continue;
-
-    const teamName = normalizeValidTeamName(parsed.team_name);
-    if (!teamName) continue;
-
-    const teamConfigDir = join(stateDir, 'team', teamName);
-    const phasePath = join(teamConfigDir, 'phase.json');
-    const phaseState = existsSync(phasePath)
-      ? await readFile(phasePath, 'utf-8')
-        .then((content) => JSON.parse(content) as Record<string, unknown>)
-        .catch(() => null)
-      : null;
-    const phase = safeString(phaseState?.current_phase).trim();
-    if (phase && isTerminalPhase(phase)) continue;
-
-    const manifestPath = join(teamConfigDir, 'manifest.v2.json');
-    const configPath = join(teamConfigDir, 'config.json');
-    const teamConfigPath = existsSync(manifestPath) ? manifestPath : configPath;
-    const teamConfig = existsSync(teamConfigPath)
-      ? await readFile(teamConfigPath, 'utf-8')
-        .then((content) => JSON.parse(content) as Record<string, unknown>)
-        .catch(() => null)
-      : null;
-    const tmuxSession = safeString(teamConfig?.tmux_session).trim();
-    if (!tmuxSession) continue;
-
-    const workers = Array.isArray(teamConfig?.workers) ? teamConfig.workers as Array<Record<string, unknown>> : [];
-    const workerPaneIds: string[] = workers
-      .map((worker) => safeString(worker?.pane_id).trim())
-      .filter(Boolean);
-    const paneStatus = await checkWorkerPanesAlive(tmuxSession, workerPaneIds as any);
-    if (!paneStatus.alive) continue;
-
-    return {
-      active: true,
-      reason: 'active',
-      path,
-      state: parsed,
-      team_name: teamName,
-      pane_count: paneStatus.paneCount,
-    };
-  }
-
-  const canonicalFallbackTeams = await listNotifyCanonicalActiveTeams(cwd, currentSessionId).catch(() => []);
-  for (const team of canonicalFallbackTeams) {
-    const teamName = normalizeValidTeamName(team.teamName);
-    if (!teamName) continue;
-    const teamConfigDir = join(stateDir, 'team', teamName);
-    const manifestPath = join(teamConfigDir, 'manifest.v2.json');
-    const configPath = join(teamConfigDir, 'config.json');
-    const teamConfigPath = existsSync(manifestPath) ? manifestPath : configPath;
-    const teamConfig = existsSync(teamConfigPath)
-      ? await readFile(teamConfigPath, 'utf-8')
-        .then((content) => JSON.parse(content) as Record<string, unknown>)
-        .catch(() => null)
-      : null;
-    const tmuxSession = safeString(teamConfig?.tmux_session).trim();
-    if (!tmuxSession) continue;
-
-    const workers = Array.isArray(teamConfig?.workers) ? teamConfig.workers as Array<Record<string, unknown>> : [];
-    const workerPaneIds: string[] = workers
-      .map((worker) => safeString(worker?.pane_id).trim())
-      .filter(Boolean);
-    const paneStatus = await checkWorkerPanesAlive(tmuxSession, workerPaneIds as any);
-    if (!paneStatus.alive) continue;
-
-    return {
-      active: true,
-      reason: team.source,
-      path: team.path,
-      state: {
-        active: true,
-        team_name: teamName,
-        current_phase: team.phase,
-      },
-      team_name: teamName,
-      pane_count: paneStatus.paneCount,
-    };
-  }
-
-  if (currentSessionId) {
-    return {
-      active: false,
-      reason: currentSessionIsLive ? 'blocked_by_current_session' : 'stale_current_session',
-      path: '',
-      state: null,
-      team_name: '',
-      pane_count: 0,
-    };
-  }
-
-  return {
-    active: false,
-    reason: 'cleared',
-    path: '',
-    state: null,
-    team_name: '',
-    pane_count: 0,
-  };
-}
-
-async function emitRalphContinueSteer(paneId: string, message: string): Promise<void> {
-  const markedText = `${message} ${DEFAULT_MARKER}`;
-  await new Promise<void>((resolve) => {
-    const { result: typed } = spawnPlatformCommandSync('tmux', ['send-keys', '-t', paneId, '-l', markedText], { encoding: 'utf-8' });
-    if (typed.error) throw new Error(typed.error.message);
-    if (typed.status !== 0) throw new Error((typed.stderr || typed.stdout || '').trim() || 'tmux send-keys failed');
-    setTimeout(resolve, 100);
-  });
-  await new Promise<void>((resolve) => {
-    const { result: submitA } = spawnPlatformCommandSync('tmux', ['send-keys', '-t', paneId, 'C-m'], { encoding: 'utf-8' });
-    if (submitA.error) throw new Error(submitA.error.message);
-    if (submitA.status !== 0) throw new Error((submitA.stderr || submitA.stdout || '').trim() || 'tmux send-keys C-m failed');
-    setTimeout(resolve, 100);
-  });
-  const { result: submitB } = spawnPlatformCommandSync('tmux', ['send-keys', '-t', paneId, 'C-m'], { encoding: 'utf-8' });
-  if (submitB.error) throw new Error(submitB.error.message);
-  if (submitB.status !== 0) {
-    throw new Error((submitB.stderr || submitB.stdout || '').trim() || 'tmux send-keys C-m failed');
-  }
-}
-
 async function readRalphSteerTimestamp(): Promise<string> {
   return readFile(ralphSteerTimestampPath, 'utf-8')
     .then((content) => safeString(content).trim())
@@ -1081,205 +917,6 @@ async function buildWatcherManagedPayload(): Promise<Record<string, string> | nu
   return { session_id: sessionId };
 }
 
-async function persistReboundRalphPaneState(
-  statePath: string,
-  state: Record<string, unknown> | null,
-  paneId: string,
-  nowIso: string,
-): Promise<Record<string, unknown>> {
-  const latestState = await readFile(statePath, 'utf-8')
-    .then((content) => JSON.parse(content) as Record<string, unknown>)
-    .catch(() => null);
-  const nextState = {
-    ...((latestState && typeof latestState === 'object') ? latestState : (state || {})),
-    tmux_pane_id: paneId,
-    tmux_pane_set_at: nowIso,
-  };
-  const tmpPath = `${statePath}.tmp.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}`;
-  await writeFile(tmpPath, JSON.stringify(nextState, null, 2));
-  try {
-    await rename(tmpPath, statePath);
-  } catch (error) {
-    await unlink(tmpPath).catch(() => {});
-    throw error;
-  }
-  return nextState;
-}
-
-async function resolveRalphContinuePaneTarget(
-  activeRalph: ActiveModeResult,
-  nowIso: string,
-): Promise<{ paneId: string; state: Record<string, unknown> | null; reboundFrom: string }> {
-  const currentState = activeRalph.state && typeof activeRalph.state === 'object'
-    ? activeRalph.state as Record<string, unknown>
-    : null;
-  const anchorPaneId = safeString(currentState?.tmux_pane_id).trim();
-  if (!anchorPaneId) {
-    return {
-      paneId: '',
-      state: currentState,
-      reboundFrom: '',
-    };
-  }
-
-  const managedPayload = await buildWatcherManagedPayload();
-  if (!managedPayload) {
-    return {
-      paneId: anchorPaneId,
-      state: currentState,
-      reboundFrom: '',
-    };
-  }
-
-  let resolvedPaneId = await resolveManagedPaneFromAnchor(anchorPaneId, cwd, managedPayload, { allowTeamWorker: false });
-  if (!resolvedPaneId) {
-    resolvedPaneId = await resolveManagedSessionPane(cwd, managedPayload);
-  }
-  if (!resolvedPaneId) {
-    return {
-      paneId: '',
-      state: currentState,
-      reboundFrom: '',
-    };
-  }
-  if (resolvedPaneId === anchorPaneId) {
-    return {
-      paneId: resolvedPaneId,
-      state: currentState,
-      reboundFrom: '',
-    };
-  }
-
-  const updatedState = await persistReboundRalphPaneState(activeRalph.path, currentState, resolvedPaneId, nowIso);
-  return {
-    paneId: resolvedPaneId,
-    state: updatedState,
-    reboundFrom: anchorPaneId,
-  };
-}
-
-async function runRalphContinueSteerTick(): Promise<void> {
-  const now = Date.now();
-  const nowIso = new Date(now).toISOString();
-  const activeRalph = await resolveActiveRalphState();
-  const activePaneId = safeString(activeRalph.state?.tmux_pane_id).trim();
-  lastRalphContinueSteer = {
-    ...lastRalphContinueSteer,
-    active: activeRalph.active,
-    current_phase: safeString(activeRalph.state?.current_phase),
-    last_state_check_at: nowIso,
-    last_reason: activeRalph.reason,
-    last_error: null,
-    state_path: activeRalph.path,
-    pane_id: activePaneId,
-    pane_current_command: '',
-    subagent_session_id: safeString(activeRalph.state?.owner_codex_session_id).trim(),
-    active_subagent_thread_ids: [],
-    shared_timestamp_path: ralphSteerTimestampPath,
-    singleton_lock_path: ralphSteerLockPath,
-  };
-
-  if (!activeRalph.active) {
-    if (activeRalph.reason === 'starting_stale') {
-      lastRalphContinueSteer.last_reason = 'starting_stale';
-    }
-    return;
-  }
-
-  const sharedBeforeLock = await readRalphSteerTimestamp();
-  lastRalphContinueSteer.shared_last_sent_at = sharedBeforeLock;
-  const initialCooldown = shouldSkipRalphContinue(now, sharedBeforeLock);
-  if (initialCooldown.skip) {
-    lastRalphContinueSteer.last_reason = initialCooldown.reason;
-    if (!sharedBeforeLock && initialCooldown.reason === 'startup_cooldown') {
-      lastRalphContinueSteer.cooldown_anchor_at = initialCooldown.anchorIso;
-    }
-    return;
-  }
-
-  const outcome = await withRalphSteerLock(async () => {
-    const sharedLastSentAt = await readRalphSteerTimestamp();
-    lastRalphContinueSteer.shared_last_sent_at = sharedLastSentAt;
-    const cooldown = shouldSkipRalphContinue(Date.now(), sharedLastSentAt);
-    if (cooldown.skip) {
-      lastRalphContinueSteer.last_reason = cooldown.reason;
-      if (!sharedLastSentAt && cooldown.reason === 'startup_cooldown') {
-        lastRalphContinueSteer.cooldown_anchor_at = cooldown.anchorIso;
-      }
-      return { sent: false, skipped: true };
-    }
-
-    const progressGate = await readRalphProgressGate(activeRalph.state, Date.now());
-    if (!progressGate.allow) {
-      lastRalphContinueSteer.last_reason = progressGate.reason;
-      lastRalphContinueSteer.subagent_session_id = progressGate.subagent_session_id ?? lastRalphContinueSteer.subagent_session_id;
-      lastRalphContinueSteer.active_subagent_thread_ids = progressGate.active_subagent_thread_ids ?? [];
-      return { sent: false, skipped: true };
-    }
-
-    const resolvedPane = await resolveRalphContinuePaneTarget(activeRalph, nowIso);
-    activeRalph.state = resolvedPane.state;
-    const paneId = resolvedPane.paneId;
-    if (!paneId) {
-      lastRalphContinueSteer.last_reason = 'pane_missing';
-      lastRalphContinueSteer.pane_id = '';
-      return { sent: false, skipped: true };
-    }
-
-    const paneGuard = await checkPaneReadyForTeamSendKeys(paneId);
-    lastRalphContinueSteer.pane_id = paneId;
-    lastRalphContinueSteer.pane_current_command = paneGuard.paneCurrentCommand || '';
-    if (!paneGuard.ok) {
-      lastRalphContinueSteer.last_reason = paneGuard.reason || 'pane_guard_blocked';
-      return { sent: false, skipped: true };
-    }
-
-    await emitRalphContinueSteer(paneId, RALPH_CONTINUE_TEXT);
-    await writeRalphSteerTimestamp(nowIso);
-    lastRalphContinueSteer.last_sent_at = nowIso;
-    lastRalphContinueSteer.shared_last_sent_at = nowIso;
-    lastRalphContinueSteer.cooldown_anchor_at = nowIso;
-    lastRalphContinueSteer.last_reason = 'sent';
-    await eventLog({
-      type: 'ralph_continue_steer',
-      reason: 'sent',
-      pane_id: paneId,
-      rebound_from: resolvedPane.reboundFrom || null,
-      state_path: activeRalph.path,
-      current_phase: safeString(activeRalph.state?.current_phase) || null,
-      cadence_ms: RALPH_CONTINUE_CADENCE_MS,
-      message: RALPH_CONTINUE_TEXT,
-      shared_timestamp_path: ralphSteerTimestampPath,
-    });
-    return { sent: true, skipped: false };
-  });
-
-  if (outcome === null) {
-    lastRalphContinueSteer.shared_last_sent_at = await readRalphSteerTimestamp();
-  }
-}
-
-async function runRalphWatcherBehaviorTick(): Promise<void> {
-  try {
-    await runRalphContinueSteerTick();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : safeString(error);
-    lastRalphContinueSteer = {
-      ...lastRalphContinueSteer,
-      last_reason: 'send_failed',
-      last_error: message || 'unknown_error',
-    };
-    await eventLog({
-      type: 'ralph_continue_steer',
-      reason: 'send_failed',
-      pane_id: lastRalphContinueSteer.pane_id || null,
-      state_path: lastRalphContinueSteer.state_path || null,
-      current_phase: lastRalphContinueSteer.current_phase || null,
-      error: lastRalphContinueSteer.last_error,
-    });
-  }
-}
-
 async function registerPidFile(): Promise<void> {
   if (runOnce) return;
   await mkdir(dirname(pidFilePath), { recursive: true }).catch(() => {});
@@ -1550,36 +1187,6 @@ async function enforceLifecycleGuards(): Promise<boolean> {
           reason: nextParentGuard.reason,
           state_path: nextParentGuard.state_path,
           current_phase: currentPhase || null,
-        });
-        lastParentGuard = nextParentGuard;
-      }
-      return false;
-    }
-
-    const activeTeam = await resolveActiveTeamState();
-    if (activeTeam.active) {
-      const currentPhase = safeString(activeTeam.state?.current_phase);
-      const nextParentGuard: ParentGuardState = {
-        reason: 'parent_gone_deferred_for_active_team',
-        state_path: activeTeam.path,
-        current_phase: currentPhase,
-        team_name: activeTeam.team_name,
-        pane_count: activeTeam.pane_count,
-      };
-      if (
-        lastParentGuard.reason !== nextParentGuard.reason
-        || lastParentGuard.state_path !== nextParentGuard.state_path
-        || lastParentGuard.current_phase !== nextParentGuard.current_phase
-        || lastParentGuard.team_name !== nextParentGuard.team_name
-        || lastParentGuard.pane_count !== nextParentGuard.pane_count
-      ) {
-        await eventLog({
-          type: 'watcher_parent_guard',
-          reason: nextParentGuard.reason,
-          state_path: nextParentGuard.state_path,
-          current_phase: currentPhase || null,
-          team_name: activeTeam.team_name,
-          pane_count: activeTeam.pane_count,
         });
         lastParentGuard = nextParentGuard;
       }
@@ -2023,18 +1630,9 @@ async function runWatcherCycle(): Promise<number> {
     await ensureTrackedFiles();
     processedRolloutCount = await pollFiles();
   }
-  const controlPlaneSummary = await pumpTeamControlPlaneTick();
-  if (!authorityOnly && !(await shouldSuppressInteractiveFallbackTicks())) {
-    await runRalphWatcherBehaviorTick();
-  }
-  const ralphActive = lastRalphContinueSteer.last_reason === 'sent';
   const summary: CycleActivitySummary = processedRolloutCount > 0
     ? { active: true, reason: 'rollout_event' }
-    : controlPlaneSummary.active
-      ? controlPlaneSummary
-      : ralphActive
-        ? { active: true, reason: 'ralph_continue_steer' }
-        : { active: false, reason: controlPlaneSummary.reason || lastRalphContinueSteer.last_reason || 'idle' };
+    : { active: false, reason: 'idle' };
   const nextDelayMs = updateAdaptivePollState(summary);
   await writeState({ last_cycle_activity: summary.reason });
   return nextDelayMs;

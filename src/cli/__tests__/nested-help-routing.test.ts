@@ -24,7 +24,6 @@ function runOmx(cwd: string, argv: string[]) {
 
 describe('nested help routing', () => {
   for (const [argv, expectedUsage] of [
-    [['question', '--help'], /nomx question - NOMX-owned blocking user question entrypoint/i],
     [['hud', '--help'], /Usage:\s*\n\s*nomx hud\s+Show current HUD state/i],
     [['hooks', '--help'], /Usage:\s*\n\s*nomx hooks init/i],
     [['state', '--help'], /Usage:\s*nomx state <read\|write\|clear\|list-active\|get-status>/i],
@@ -33,7 +32,6 @@ describe('nested help routing', () => {
     [['trace', '--help'], /Usage:\s*nomx trace <tool-name>[\s\S]*Available tools:[\s\S]*trace_timeline/i],
     [['code-intel', '--help'], /Usage:\s*nomx code-intel <tool-name>[\s\S]*Available tools:[\s\S]*lsp_diagnostics/i],
     [['mcp-serve', '--help'], /Usage:\s*nomx mcp-serve <target>/i],
-    [['tmux-hook', '--help'], /Usage:\s*\n\s*nomx tmux-hook init/i],
     [['ralph', '--help'], /nomx ralph - Launch Codex with ralph persistence mode active/i],
   ] satisfies Array<[string[], RegExp]>) {
     it(`routes ${argv.join(' ')} to command-local help`, async () => {

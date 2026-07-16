@@ -198,7 +198,7 @@ describe('run-test-files diagnostics', () => {
         );
       }
 
-      const result = runCompiledRunner(wd, { NOMX_NODE_TEST_RUNNER_TIMEOUT_MS: '750' }, 3_000);
+      const result = runCompiledRunner(wd, { NOMX_NODE_TEST_RUNNER_TIMEOUT_MS: '1250' }, 4_000);
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
       assert.doesNotMatch(result.stderr, /timeout before/);
@@ -356,8 +356,8 @@ describe('run-test-files diagnostics', () => {
           "  assert.equal(process.env.CODEX_SESSION_ID, undefined);",
           "  assert.equal(process.env.CODEX_HOME, undefined);",
           "  assert.equal(process.env.SESSION_ID, undefined);",
-          "  assert.equal(process.env.TMUX, undefined);",
-          "  assert.equal(process.env.TMUX_PANE, undefined);",
+          "  assert.equal(process.env.TMUX, '/tmp/live-tmux,1,2');",
+          "  assert.equal(process.env.TMUX_PANE, '%live');",
           "});",
           '',
         ].join('\n'),

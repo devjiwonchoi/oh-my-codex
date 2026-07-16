@@ -393,7 +393,7 @@ type LaunchHintSelection =
 type LaunchHintMatchFilter = (match: RegExpMatchArray, task: string) => boolean;
 
 const TEAM_LAUNCH_HINT_PATTERN_SOURCE =
-  String.raw`(?<command>(?:nomx\s+team|\$team)\s+(?<ralph>ralph\s+)?(?<count>\d+)(?::(?<role>[a-z][a-z0-9-]*))?\s+(?<task>"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))`;
+  String.raw`(?!)`;
 const RALPH_LAUNCH_HINT_PATTERN_SOURCE =
   String.raw`(?<command>(?:nomx\s+ralph|\$ralph)\s+(?<task>"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))`;
 
@@ -426,7 +426,7 @@ function normalizeLaunchHintCommandFromMatch(
       return null;
     }
     const roleToken = groups.role?.trim();
-    const prefix = /^\$team\b/i.test(rawCommand) ? '$team' : 'nomx team';
+    const prefix = 'native subagents';
     const countWithRole = roleToken ? `${countToken}:${roleToken}` : countToken;
     const parts = [prefix];
     if (groups.ralph?.trim()) {

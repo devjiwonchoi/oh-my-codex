@@ -11,16 +11,12 @@ import {
 import { autoStartStdioMcpServer } from "./bootstrap.js";
 import {
   hermesListArtifacts,
-  hermesListQuestionEvents,
-  hermesListQuestions,
   hermesListSessions,
   hermesReadArtifact,
   hermesReadStatus,
   hermesReadTail,
   hermesReportStatus,
   hermesSendPrompt,
-  hermesSubmitQuestionAnswer,
-  hermesStartSession,
 } from "./hermes-bridge.js";
 
 const server = new Server(
@@ -40,20 +36,6 @@ export function buildHermesServerTools() {
       name: "hermes_list_sessions",
       description: "List known NOMX session state for a bounded worktree without reading terminal UI.",
       inputSchema: { type: "object", properties: { workingDirectory } },
-    },
-    {
-      name: "hermes_start_session",
-      description: "Start a new isolated NOMX tmux session in disposable worktree mode for one bounded prompt.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          workingDirectory,
-          prompt: { type: "string" },
-          worktreeName: { type: "string" },
-          allow_mutation: allowMutation,
-        },
-        required: ["workingDirectory", "prompt", "allow_mutation"],
-      },
     },
     {
       name: "hermes_send_prompt",
@@ -77,42 +59,8 @@ export function buildHermesServerTools() {
     },
     {
       name: "hermes_read_tail",
-      description: "Read the bounded NOMX session history log tail, not tmux scrollback.",
+      description: "Read the bounded NOMX session history log tail.",
       inputSchema: { type: "object", properties: { workingDirectory, lines: { type: "number" } } },
-    },
-    {
-      name: "hermes_list_question_events",
-      description: "Read structured question lifecycle events for coordinator bridge correlation.",
-      inputSchema: { type: "object", properties: { workingDirectory, limit: { type: "number" } } },
-    },
-    {
-      name: "hermes_list_questions",
-      description: "List bounded structured question records without reading terminal UI.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          workingDirectory,
-          session_id: sessionId,
-          status: { type: "string", enum: ["open", "pending", "prompting", "answered", "aborted", "error"] },
-          limit: { type: "number" },
-        },
-      },
-    },
-    {
-      name: "hermes_submit_question_answer",
-      description: "Submit a bounded structured answer by question id; never proxies arbitrary terminal input.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          workingDirectory,
-          session_id: sessionId,
-          question_id: { type: "string" },
-          answer: { type: "object" },
-          answers: { type: "array", items: { type: "object" } },
-          allow_mutation: allowMutation,
-        },
-        required: ["question_id", "allow_mutation"],
-      },
     },
     {
       name: "hermes_list_artifacts",
@@ -150,11 +98,7 @@ export function buildHermesServerTools() {
 
 const TOOL_HANDLERS: Record<string, (args: Record<string, unknown>) => Promise<unknown>> = {
   hermes_list_sessions: hermesListSessions,
-  hermes_start_session: hermesStartSession,
   hermes_send_prompt: hermesSendPrompt,
-  hermes_list_question_events: hermesListQuestionEvents,
-  hermes_list_questions: hermesListQuestions,
-  hermes_submit_question_answer: hermesSubmitQuestionAnswer,
   hermes_read_status: hermesReadStatus,
   hermes_read_tail: hermesReadTail,
   hermes_list_artifacts: hermesListArtifacts,

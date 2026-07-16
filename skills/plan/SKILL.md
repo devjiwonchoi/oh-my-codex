@@ -53,7 +53,7 @@ Jumping into code without understanding requirements leads to rework, scope cree
 ### Interview Mode (broad/vague requests)
 
 1. **Classify the request**: Broad (vague verbs, no specific files, touches 3+ areas) triggers interview mode
-2. **Ask one focused question** using the surface-appropriate structured question path for preferences, scope, and constraints: in attached-tmux NOMX runtime use `nomx question`; outside tmux use native structured input when available; use plain text only as a last fallback
+2. **Ask one focused question** using native structured input when available; use plain text as the fallback
 3. **Gather codebase facts first**: Before asking "what patterns does your code use?", spawn an `explore` agent to find out, then ask informed follow-up questions
 4. **Build on answers**: Each question builds on the previous answer
 5. **Consult Analyst** (THOROUGH tier) for hidden requirements, edge cases, and risks
@@ -75,7 +75,7 @@ Jumping into code without understanding requirements leads to rework, scope cree
    - **Viable Options** (>=2) with bounded pros/cons for each option
    - If only one viable option remains, an explicit **invalidation rationale** for the alternatives that were rejected
    - In **deliberate mode**: a **pre-mortem** (3 failure scenarios) and an **expanded test plan** covering **unit / integration / e2e / observability**
-2. **User feedback** *(--interactive only)*: If running with `--interactive`, **MUST** use `AskUserQuestion` / the structured question UI (`nomx question` in attached tmux; native structured input outside tmux when available) to present the draft plan **plus the RALPLAN-DR Principles / Decision Drivers / Options summary for early direction alignment** with these options:
+2. **User feedback** *(--interactive only)*: If running with `--interactive`, **MUST** use native structured input when available to present the draft plan **plus the RALPLAN-DR Principles / Decision Drivers / Options summary for early direction alignment** with these options:
    - **Proceed to review** — send to Architect and Critic for evaluation
    - **Request changes** — return to step 1 with user feedback incorporated
    - **Skip review** — go directly to final approval (step 7)
@@ -94,11 +94,8 @@ Jumping into code without understanding requirements leads to rework, scope cree
    b. Deduplicate and categorize the suggestions
    c. Update the plan file in `.nomx/plans/` with the accepted improvements (add missing details, refine steps, strengthen acceptance criteria, ADR updates, etc.)
    d. Note which improvements were applied in a brief changelog section at the end of the plan
-   e. Before any execution handoff, derive an explicit **available-agent-types roster** from the known prompt catalog and add concrete **follow-up staffing guidance** for `$ultragoal` and `$team` (recommended roles, counts, suggested reasoning levels by lane, and why each lane exists), plus an explicit `$ralph` fallback note only when persistent single-owner verification is intentionally selected
-   f. Add a product-facing **Goal-Mode Follow-up Suggestions** section: recommend `$ultragoal` by default, keep `$team` for parallel execution, and cite `$best-practice-research` evidence when current external guidance matters.
-   g. For the `$team` path, add an explicit launch-hint block with concrete `nomx team` / `$team` commands and a **team verification path** (what Team proves before shutdown and what Ultragoal checkpoints as durable completion evidence). Distinguish Team + Ultragoal from any explicit Ralph fallback: Team handles coordinated parallel lanes; Ultragoal is the default durable follow-up/ledger owner, and Ralph is only an explicitly requested legacy-style persistent sequential verification/fix lane when needed.
+   g. For parallel execution, add explicit native-subagent staffing guidance and a verification path. Ultragoal remains the default durable follow-up and ledger owner; Ralph is only an explicitly requested persistent sequential verification or fix lane.
 7. On Critic approval (with improvements applied): *(--interactive only)* If running with `--interactive`, use `AskUserQuestion` / the structured question UI to present the plan with these options:
-   - **Approve durable goal execution** — proceed via `$ultragoal` by default (optionally with `$team` for parallel lanes)
    - **Approve and implement via team** — proceed to implementation via coordinated parallel team agents
    - **Start goal-mode follow-up** — proceed via `$ultragoal`
    - **Request changes** — return to step 1 with user feedback
@@ -106,8 +103,7 @@ Jumping into code without understanding requirements leads to rework, scope cree
    If NOT running with `--interactive`, output the final approved plan and stop. Do NOT auto-execute.
 8. *(--interactive only)* User chooses via the structured question UI (never ask for approval in plain text when a structured surface is available)
 9. On user approval (--interactive only):
-   - **Approve durable goal execution**: **MUST** invoke `$ultragoal` with the approved plan path from `.nomx/plans/` as context **plus the explicit available-agent-types roster, suggested reasoning levels, concrete role allocation guidance, and direct launch hints for Ultragoal follow-up work**. Use `$team` alongside Ultragoal when parallel lanes are warranted. Do NOT implement directly. Do NOT edit source code files in the planning agent. Ralph is not the default follow-up; only invoke `$ralph` when the user explicitly selects a legacy/persistent single-owner execution lane.
-   - **Approve and implement via team**: **MUST** invoke `$team` with the approved plan path from `.nomx/plans/` as context **plus the explicit available-agent-types roster, suggested reasoning levels, concrete staffing / worker-role allocation guidance, explicit `nomx team` / `$team` launch hints, and the team verification path**. Do NOT implement directly. The team skill coordinates parallel agents across the staged pipeline for faster execution on large tasks.
+   - **Approve and implement with native subagents**: use the approved plan path from `.nomx/plans/` as context plus the available-agent-types roster, suggested reasoning levels, concrete staffing guidance, and verification path.
    - **Start goal-mode follow-up**: **MUST** invoke `$ultragoal` with the approved plan path and success context. Do NOT implement directly in the planning agent.
 
 ### Review Mode (`--review`)
@@ -130,7 +126,7 @@ Every plan includes:
 - Verification Steps
 - For consensus/ralplan: **RALPLAN-DR summary** (Principles, Decision Drivers, Options)
 - For consensus/ralplan final output: **ADR** (Decision, Drivers, Alternatives considered, Why chosen, Consequences, Follow-ups)
-- For consensus/ralplan execution handoff: **Available-Agent-Types Roster**, **Follow-up Staffing Guidance**, `$ultragoal` follow-up guidance, explicit `nomx team` / `$team` **Launch Hints**, and **Team Verification Path**
+- For consensus/ralplan execution handoff: **Available-Agent-Types Roster**, **Native Subagent Staffing Guidance**, `$ultragoal` follow-up guidance, and a **Leader-Owned Verification Path**
 - For deliberate consensus mode: **Pre-mortem (3 scenarios)** and **Expanded Test Plan** (unit/integration/e2e/observability)
 
 Plans are saved to `.nomx/plans/`. Drafts go to `.nomx/drafts/`.
@@ -147,8 +143,7 @@ Plans are saved to `.nomx/plans/`. Drafts go to `.nomx/drafts/`.
 - **CRITICAL — Consensus mode agent calls MUST be sequential, never parallel.** Always await the subsequent role-specific `Architect` result before issuing the subsequent role-specific `Critic` call.
 - In consensus mode, default to RALPLAN-DR short mode; enable deliberate mode on `--deliberate` or explicit high-risk signals (auth/security, migrations, destructive changes, production incidents, compliance/PII, public API breakage)
 - In consensus mode with `--interactive`: use `AskUserQuestion` / the structured question UI for the user feedback step (step 2) and the final approval step (step 7) -- never ask for approval in plain text when a structured surface is available. Without `--interactive`, auto-proceed through planning steps without pausing. Output the final plan without execution.
-- In consensus mode with `--interactive`, on user approval **MUST** invoke the selected retained lane (`$ultragoal`, `$team`, or explicit `$ralph` fallback) -- never implement directly in the planning agent.
-- In consensus mode, execution handoff **MUST** include an explicit available-agent-types roster, concrete staffing guidance, `$ultragoal` follow-up guidance, explicit `nomx team` / `$team` launch hints, and a team verification path.
+- In consensus mode, execution handoff **MUST** include an explicit available-agent-types roster, concrete native-subagent staffing guidance, `$ultragoal` follow-up guidance, and a leader-owned verification path.
 </Tool_Usage>
 
 ## Scenario Examples
@@ -258,7 +253,7 @@ Before asking any interview question, classify it:
 | Type | Examples | Action |
 |------|----------|--------|
 | Codebase Fact | "What patterns exist?", "Where is X?" | Explore first, do not ask user |
-| User Preference | "Priority?", "Timeline?" | Ask user via the structured question path (`nomx question` in attached tmux; native structured input where available) |
+| User Preference | "Priority?", "Timeline?" | Ask user through native structured input where available |
 | Scope Decision | "Include feature Y?" | Ask user |
 | Requirement | "Performance constraints?" | Ask user |
 

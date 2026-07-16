@@ -145,7 +145,7 @@ UltraQA must stay inside these safety bounds:
 | **Cycle 5 Reached** | Exit with diagnosis: `ULTRAQA STOPPED: Max cycles` plus failures, fixes attempted, residual risks, and evidence |
 | **Same Failure 3x** | Exit early: `ULTRAQA STOPPED: Same failure detected 3 times` plus root cause, safety notes, and next owner |
 | **Safety Boundary** | Exit: `ULTRAQA BLOCKED: [destructive/credentialed/external-production/unbounded action]` plus safe substitute evidence |
-| **Environment Error** | Exit: `ULTRAQA ERROR: [tmux/port/dependency/hung command issue]` plus cleanup status |
+| **Environment Error** | Exit: `ULTRAQA ERROR: [port/dependency/hung command issue]` plus cleanup status |
 
 ## Structured Report
 

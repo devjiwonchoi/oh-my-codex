@@ -303,11 +303,6 @@ describe("agents/native-config", () => {
       "metadata should remain final non-policy bookkeeping for exact-model roles",
     );
 
-    const teamExecutorToml = generateAgentToml(
-      AGENT_DEFINITIONS["team-executor"],
-      "team-executor prompt",
-    );
-    assert.match(teamExecutorToml, /<native_subagent_leaf_guard>/);
   });
 
   it("keeps executor native agents as leaf implementation lanes", () => {

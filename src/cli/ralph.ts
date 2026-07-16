@@ -8,7 +8,7 @@ import { resolveCodexHomeForLaunch } from './codex-home.js';
 import {
   buildFollowupStaffingPlan,
   resolveAvailableAgentTypes,
-} from '../team/followup-planner.js';
+} from '../agents/followup-planner.js';
 import {
   LEADER_CONDUCTOR_BLOCK,
   LEADER_CONDUCTOR_REUSE_AND_LEDGER_GUIDANCE,

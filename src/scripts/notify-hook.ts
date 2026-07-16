@@ -11,11 +11,8 @@
  *   state-io.js        – state file I/O and normalization
  *   process-runner.js  – child-process helper
  *   log.js             – structured event logging
- *   auto-nudge.js      – stall-pattern detection and auto-nudge
- *   tmux-injection.js  – tmux prompt injection
- *   team-dispatch.js   – durable team dispatch queue consumer
- *   team-leader-nudge.js – leader mailbox nudge
- *   team-worker.js     – worker heartbeat and idle notification
+ *   extensibility      – native hook event dispatch
+ *   notifications     – outbound lifecycle notifications
  */
 
 import { writeFile, appendFile, mkdir, readFile } from 'fs/promises';
@@ -36,7 +33,6 @@ import {
   preflightSelectedTargetOwner,
   type ResolvedPromptTurnContext,
 } from '../hooks/prompt-session-provenance.js';
-import { readTeamModeConfig } from '../config/team-mode.js';
 
 import { safeString, asNumber } from './notify-hook/utils.js';
 import {
@@ -58,34 +54,13 @@ import {
   readdir,
   type NotifyStateScope,
 } from './notify-hook/state-io.js';
-import { isLeaderStale, resolveLeaderStalenessThresholdMs, maybeNudgeTeamLeader } from './notify-hook/team-leader-nudge.js';
-import { drainPendingTeamDispatch } from './notify-hook/team-dispatch.js';
-import { handleTmuxInjection } from './notify-hook/tmux-injection.js';
-import {
-  maybeAutoNudge,
-  resolveNudgePaneTarget,
-  isDeepInterviewStateActive,
-  isDeepInterviewInputLockActive,
-  syncSkillStateFromTurn,
-} from './notify-hook/auto-nudge.js';
-import { isManagedOmxSessionAtPromptContext } from './notify-hook/managed-tmux.js';
 import { logNotifyHookEvent } from './notify-hook/log.js';
-import { reconcileRalphSessionResume } from './notify-hook/ralph-session-resume.js';
-import { sendPaneInput } from './notify-hook/team-tmux-guard.js';
 import {
   buildOperationalContext,
   deriveAssistantSignalEvents,
   readRepositoryMetadata,
   resolveOperationalSessionName,
 } from './notify-hook/operational-events.js';
-import {
-  parseTeamWorkerEnv,
-  resolveTeamStateDirForWorker,
-  updateWorkerHeartbeat,
-  maybeNotifyLeaderAllWorkersIdle,
-  maybeNotifyLeaderWorkerIdle,
-} from './notify-hook/team-worker.js';
-import { DEFAULT_MARKER } from './tmux-hook-engine.js';
 import { sameFilePath } from '../utils/paths.js';
 import {
   MAX_NOTIFY_ARGV_JSON_BYTES,
@@ -414,10 +389,7 @@ export async function recordNotifySkillActivation(
   dependencies: NotifySkillActivationDependencies = {},
 ): Promise<SkillActiveState | null> {
   const classification = (dependencies.classifyKeywordInput ?? classifyKeywordInput)(input.text);
-  const teamEnabled = readTeamModeConfig(input.sourceCwd).enabled;
-  const runtimeMatches = teamEnabled
-    ? classification.matches
-    : classification.matches.filter((match) => match.skill !== 'team');
+  const runtimeMatches = classification.matches.filter((match) => match.skill !== 'team');
   const terminalAutopilotReplay = await shouldSuppressAutopilotTerminalReplayActivation(
     input.stateDir,
     input.payload,
@@ -578,16 +550,8 @@ async function main() {
   const isTurnComplete = isTurnCompletePayload(payload);
   const isNotifyFallbackTaskComplete = isNotifyFallbackTaskCompletePayload(payload);
 
-  // Team worker detection via environment variable
-  const teamWorkerEnv = process.env.NOMX_TEAM_INTERNAL_WORKER || process.env.NOMX_TEAM_WORKER; // e.g., "fix-ts/worker-1"
-  const parsedTeamWorker = parseTeamWorkerEnv(teamWorkerEnv);
-  const isTeamWorker = !!parsedTeamWorker;
-
-  const resolvedWorkerStateDir = (isTeamWorker && parsedTeamWorker)
-    ? await resolveTeamStateDirForWorker(cwd, parsedTeamWorker)
-    : null;
-  const workerStateRootResolved = !isTeamWorker || !!resolvedWorkerStateDir;
-  const stateDir = resolvedWorkerStateDir || getBaseStateDir(cwd);
+  const isTeamWorker = false;
+  const stateDir = getBaseStateDir(cwd);
   const logsDir = join(cwd, '.nomx', 'logs');
   const nomxDir = join(cwd, '.nomx');
   const leaderWriteDecision = isTeamWorker
@@ -612,16 +576,12 @@ async function main() {
 
   // Ensure directories exist
   await mkdir(logsDir, { recursive: true }).catch(() => {});
-  if (isTeamWorker && workerStateRootResolved) {
-    await mkdir(stateDir, { recursive: true }).catch(() => {});
-    currentOmxSessionId = await readCurrentSessionId(stateDir).catch(() => '') || '';
-  }
+  await mkdir(stateDir, { recursive: true }).catch(() => {});
 
   // Turn-level dedupe prevents double-processing when native notify and fallback
   // watcher both emit the same completed turn.
   if (isTeamWorker || canWriteLeaderScopedState) {
     try {
-      if (!workerStateRootResolved) throw new Error('worker_state_root_unresolved');
       const turnId = safeString(payload['turn-id'] || payload.turn_id || '');
       if (turnId) {
         const now = Date.now();
@@ -701,74 +661,6 @@ async function main() {
 
   if (!isTurnComplete) {
     return;
-  }
-
-  if (isTeamWorker && !workerStateRootResolved) {
-    await logNotifyHookEvent(logsDir, {
-      timestamp: new Date().toISOString(),
-      level: 'warn',
-      type: 'team_worker_state_root_unresolved',
-      team_worker: teamWorkerEnv || null,
-      reason: 'skip_team_worker_state_mutations',
-    }).catch(() => {});
-
-    // Keep the fail-closed worker state-root behavior for normal team-worker
-    // mutations, but allow the narrow auto-nudge path to use an explicitly
-    // supplied, already-existing worker state root. Auto-nudge only needs the
-    // worker-scoped state files/pane anchor and should not fall back to creating
-    // local `.nomx/state` when identity resolution failed.
-    const explicitWorkerStateRoot = safeString(process.env.NOMX_TEAM_STATE_ROOT || '').trim();
-    const autoNudgeStateDir = explicitWorkerStateRoot ? resolve(cwd, explicitWorkerStateRoot) : '';
-    if (autoNudgeStateDir && existsSync(autoNudgeStateDir)) {
-      try {
-        await maybeAutoNudge({ cwd, stateDir: autoNudgeStateDir, logsDir, payload });
-      } catch {
-        // Non-critical
-      }
-    }
-    return;
-  }
-
-  // Reconcile Ralph ownership for same-Codex-session continuation before
-  // lifecycle counters or injection read the active scope.
-  if (!isTeamWorker && canWriteLeaderScopedState) {
-    try {
-      const resumeResult = await reconcileRalphSessionResume({
-        stateDir,
-        authorization: leaderAuthorization!,
-        env: {
-          ...process.env,
-          NOMX_SESSION_ID: leaderAuthorization!.targetSessionId,
-          CODEX_SESSION_ID: '',
-          SESSION_ID: '',
-        },
-        payloadThreadId,
-      });
-      if (resumeResult.currentOmxSessionId && resumeResult.currentOmxSessionId === leaderAuthorization!.targetSessionId) {
-        currentOmxSessionId = resumeResult.currentOmxSessionId;
-      }
-      if (resumeResult.resumed || resumeResult.updatedCurrentOwner) {
-        await logNotifyHookEvent(logsDir, {
-          timestamp: new Date().toISOString(),
-          type: 'ralph_session_resume',
-          reason: resumeResult.reason,
-          current_omx_session_id: resumeResult.currentOmxSessionId || null,
-          payload_codex_session_id: payloadSessionId || null,
-          source_path: resumeResult.sourcePath || null,
-          target_path: resumeResult.targetPath || null,
-          owner_updated: resumeResult.updatedCurrentOwner,
-          resumed: resumeResult.resumed,
-        });
-      }
-    } catch (error) {
-      await logNotifyHookEvent(logsDir, {
-        timestamp: new Date().toISOString(),
-        level: 'warn',
-        type: 'ralph_session_resume_failure',
-        payload_codex_session_id: payloadSessionId || null,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
   }
 
   // 2. Update active mode state (increment iteration)
@@ -892,17 +784,6 @@ async function main() {
     }
   }
 
-  // 3.5. Pre-compute leader staleness BEFORE updating HUD state (used by nudge in step 6)
-  let preComputedLeaderStale = false;
-  if (!isTeamWorker) {
-    try {
-      const stalenessMs = resolveLeaderStalenessThresholdMs();
-      preComputedLeaderStale = await isLeaderStale(stateDir, stalenessMs, Date.now());
-    } catch {
-      // Non-critical
-    }
-  }
-
   // 4. Write HUD state summary for `nomx hud` (lead session only)
   if (!isTeamWorker && canWriteLeaderScopedState) {
     try {
@@ -926,21 +807,7 @@ async function main() {
     }
   }
 
-  // 4.5. Update team worker heartbeat (if applicable)
-  if (isTeamWorker) {
-    try {
-      if (parsedTeamWorker) {
-        const { teamName: twTeamName, workerName: twWorkerName } = parsedTeamWorker;
-        await updateWorkerHeartbeat(stateDir, twTeamName, twWorkerName);
-      }
-    } catch {
-      // Non-critical: heartbeat write failure should never block the hook
-    }
-  }
-
-  let skillSyncResult: Awaited<ReturnType<typeof syncSkillStateFromTurn>> | null = null;
-
-  // 4.45. Skill activation tracking: update skill-active-state.json before any nudge logic.
+  // Skill activation tracking.
   if (isTeamWorker || canWriteLeaderScopedState) {
     if (latestUserInput) {
       await recordNotifySkillActivationNonFatal({
@@ -962,69 +829,6 @@ async function main() {
           } : {}),
         }),
       });
-    }
-
-    try {
-      skillSyncResult = await syncSkillStateFromTurn(
-        stateDir,
-        payload,
-        !isTeamWorker && leaderAuthorization ? leaderAuthorization.targetSessionId : '',
-        !isTeamWorker ? leaderAuthorization : null,
-      );
-    } catch {
-      // Non-fatal: lifecycle sync should not block the hook
-    }
-  }
-
-  const effectiveSessionId = getEffectiveSessionId();
-  const deepInterviewStateActive = effectiveSessionId
-    ? await isDeepInterviewStateActive(stateDir, effectiveSessionId)
-    : await isDeepInterviewStateActive(stateDir, undefined);
-  const deepInterviewInputLockActive = await isDeepInterviewInputLockActive(stateDir, effectiveSessionId);
-
-  // 4.55. Notify leader when individual worker transitions to idle (worker session only)
-  if (isTeamWorker && parsedTeamWorker && !deepInterviewStateActive) {
-    try {
-      await maybeNotifyLeaderWorkerIdle({ cwd, stateDir, logsDir, parsedTeamWorker });
-    } catch {
-      // Non-critical
-    }
-  }
-
-  // 4.6. Notify leader when all workers are idle (worker session only)
-  if (isTeamWorker && parsedTeamWorker && !deepInterviewStateActive) {
-    try {
-      await maybeNotifyLeaderAllWorkersIdle({ cwd, stateDir, logsDir, parsedTeamWorker });
-    } catch {
-      // Non-critical
-    }
-  }
-
-  // 5. Optional tmux prompt injection workaround (non-fatal, opt-in)
-  // Skip for team workers - only the lead should inject prompts
-  if (!isTeamWorker && canWriteLeaderScopedState) {
-    try {
-      await handleTmuxInjection({ payload, cwd, stateDir, logsDir, context: leaderWriteDecision!.context });
-    } catch {
-      // Non-critical
-    }
-  }
-
-  // 5.5. Opportunistic team dispatch drain (leader session only).
-  if (!isTeamWorker && canWriteLeaderScopedState) {
-    try {
-      await drainPendingTeamDispatch({ cwd, stateDir, logsDir, maxPerTick: 5 } as any);
-    } catch {
-      // Non-critical
-    }
-  }
-
-  // 6. Team leader nudge (lead session only): remind the leader to check teammate/mailbox state.
-  if (!isTeamWorker && canWriteLeaderScopedState && !deepInterviewStateActive) {
-    try {
-      await maybeNudgeTeamLeader({ cwd, stateDir, logsDir, preComputedLeaderStale });
-    } catch {
-      // Non-critical
     }
   }
 
@@ -1152,23 +956,6 @@ async function main() {
     }
   }
 
-  // 9. Auto-nudge: detect Codex stall patterns and automatically send a continuation prompt.
-  //    Works for both leader and worker contexts.
-  if ((isTeamWorker || canWriteLeaderScopedState) && (!deepInterviewStateActive || deepInterviewInputLockActive)) {
-    try {
-      await maybeAutoNudge({
-        cwd,
-        stateDir,
-        logsDir,
-        payload,
-        context: isTeamWorker ? null : leaderWriteDecision!.context,
-        syncResult: skillSyncResult,
-      });
-    } catch {
-      // Non-critical
-    }
-  }
-
   // 10.5. Visual verdict persistence (non-fatal, observable – issue #421)
   if (!isTeamWorker) {
     try {
@@ -1204,37 +991,13 @@ async function main() {
       const { processCodeSimplifier } = await import('../hooks/code-simplifier/index.js');
       const csResult = processCodeSimplifier(cwd, stateDir);
       if (csResult.triggered) {
-        const managedSession = await isManagedOmxSessionAtPromptContext(cwd, leaderWriteDecision!.context, { allowTeamWorker: false });
-        if (!managedSession) {
-          const { logTmuxHookEvent } = await import('./notify-hook/log.js');
-          await logTmuxHookEvent(logsDir, {
-            timestamp: new Date().toISOString(),
-            type: 'code_simplifier_skipped',
-            reason: 'unmanaged_session',
-          });
-        } else {
-          const csPaneId = await resolveNudgePaneTarget(stateDir, cwd, payload, leaderWriteDecision!.context);
-          if (csPaneId) {
-            const csText = `${csResult.message} ${DEFAULT_MARKER}`;
-            const sendResult = await sendPaneInput({
-              paneTarget: csPaneId,
-              prompt: csText,
-              submitKeyPresses: 2,
-              submitDelayMs: 100,
-            });
-            if (!sendResult.ok) {
-              throw new Error(sendResult.error || sendResult.reason || 'send_failed');
-            }
-
-            const { logTmuxHookEvent } = await import('./notify-hook/log.js');
-            await logTmuxHookEvent(logsDir, {
-              timestamp: new Date().toISOString(),
-              type: 'code_simplifier_triggered',
-              pane_id: csPaneId,
-              file_count: csResult.message.split('\n').filter(l => l.trimStart().startsWith('- ')).length,
-            });
-          }
-        }
+        const { injectExecFollowup } = await import('../exec/followup.js');
+        await injectExecFollowup({
+          cwd,
+          sessionId: getEffectiveSessionId(),
+          prompt: csResult.message,
+          actor: 'code-simplifier',
+        });
       }
     } catch {
       // Non-critical: code-simplifier module may not be built yet

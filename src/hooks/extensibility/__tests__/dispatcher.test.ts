@@ -194,33 +194,6 @@ export async function onHookEvent() {}
     }
   });
 
-  it('disables side effects for team workers by default', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'nomx-dispatch-'));
-    try {
-      const dir = join(cwd, '.nomx', 'hooks');
-      await mkdir(dir, { recursive: true });
-      await writeFile(
-        join(dir, 'se-test.mjs'),
-        `export async function onHookEvent(event, sdk) {
-          const result = await sdk.tmux.sendKeys({ text: 'hello' });
-          await sdk.state.write('send_result', result.reason);
-        }`,
-      );
-
-      const event = buildHookEvent('session-start');
-      const result = await dispatchHookEvent(event, {
-        cwd,
-        env: { ...process.env, NOMX_HOOK_PLUGINS: '1', NOMX_TEAM_WORKER: 'worker-1' },
-      });
-
-      assert.equal(result.enabled, true);
-      assert.equal(result.results.length, 1);
-      assert.equal(result.results[0].ok, true);
-    } finally {
-      await rm(cwd, { recursive: true, force: true });
-    }
-  });
-
   it('returns timeout promptly when plugin ignores SIGTERM', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'nomx-dispatch-'));
     try {

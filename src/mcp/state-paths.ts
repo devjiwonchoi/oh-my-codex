@@ -30,8 +30,6 @@ export interface ResolvedSessionMetadata {
   ownerNomxSessionId?: string;
   ownerCodexSessionId?: string;
   ownerCodexThreadId?: string;
-  leaderPaneId?: string;
-  tmuxSessionName?: string;
   displayName?: string;
   raw?: SessionState;
   sourcePath?: string;
@@ -347,12 +345,6 @@ function normalizeSessionMetadata(state: SessionState | null, sourcePath?: strin
   const ownerCodexThreadId = typeof raw.owner_codex_thread_id === 'string' && raw.owner_codex_thread_id.trim()
     ? raw.owner_codex_thread_id.trim()
     : undefined;
-  const leaderPaneId = typeof raw.tmux_pane_id === 'string' && raw.tmux_pane_id.trim()
-    ? raw.tmux_pane_id.trim()
-    : undefined;
-  const tmuxSessionName = typeof raw.tmux_session_name === 'string' && raw.tmux_session_name.trim()
-    ? raw.tmux_session_name.trim()
-    : undefined;
   const displayName = typeof raw.display_name === 'string' && raw.display_name.trim()
     ? raw.display_name.trim()
     : undefined;
@@ -363,8 +355,6 @@ function normalizeSessionMetadata(state: SessionState | null, sourcePath?: strin
     ...(ownerNomxSessionId ? { ownerNomxSessionId } : {}),
     ...(ownerCodexSessionId ? { ownerCodexSessionId } : {}),
     ...(ownerCodexThreadId ? { ownerCodexThreadId } : {}),
-    ...(leaderPaneId ? { leaderPaneId } : {}),
-    ...(tmuxSessionName ? { tmuxSessionName } : {}),
     ...(displayName ? { displayName } : {}),
     raw: state,
     ...(sourcePath ? { sourcePath } : {}),
@@ -409,8 +399,7 @@ function isKnownSessionAlias(sessionId: string, metadata: ResolvedSessionMetadat
  * Writable scope precedence:
  * - explicit session_id preserves explicit fork writes;
  * - a usable session.json supplies the only implicit session scope;
- * - NOMX_SESSION_ID may bind a known alias only when the live tmux pane proves
- *   the canonical session tag;
+ * - NOMX_SESSION_ID may bind a known persisted session alias;
  * - root writes are allowed only when session.json is absent.
  */
 export async function resolveWritableStateScope(

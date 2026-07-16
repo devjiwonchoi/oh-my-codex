@@ -125,14 +125,6 @@
           "path": "prompts/style-reviewer.md"
         },
         {
-          "digest": "0e13c0e5a755881756476bc48ba5f38c6e02506d8db4d96cf543c96343336b62",
-          "path": "prompts/team-executor.md"
-        },
-        {
-          "digest": "86dd2852fd5364cec32882409d1837bab239468754e360a84fd8325eb93c7d2a",
-          "path": "prompts/team-orchestrator.md"
-        },
-        {
           "digest": "14744da0ded006eec494e2069eaeb2a51f69fbc474fd3a8b1e701e3a9edaf80f",
           "path": "prompts/test-engineer.md"
         },
@@ -562,7 +554,7 @@
           "server": "hermes"
         },
         {
-          "description": "Read the bounded NOMX session history log tail, not tmux scrollback.",
+          "description": "Read the bounded NOMX session history log tail.",
           "enabled": true,
           "inputSchema": {
             "properties": {
@@ -656,36 +648,6 @@
             "type": "object"
           },
           "name": "hermes_send_prompt",
-          "server": "hermes"
-        },
-        {
-          "description": "Start a new isolated NOMX tmux session in disposable worktree mode for one bounded prompt.",
-          "enabled": true,
-          "inputSchema": {
-            "properties": {
-              "allow_mutation": {
-                "description": "Must be true for mutating operations; read tools ignore it.",
-                "type": "boolean"
-              },
-              "prompt": {
-                "type": "string"
-              },
-              "workingDirectory": {
-                "description": "Bounded NOMX project/worktree directory",
-                "type": "string"
-              },
-              "worktreeName": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "workingDirectory",
-              "prompt",
-              "allow_mutation"
-            ],
-            "type": "object"
-          },
-          "name": "hermes_start_session",
           "server": "hermes"
         },
         {
@@ -1471,7 +1433,6 @@
             "hermes_read_tail",
             "hermes_report_status",
             "hermes_send_prompt",
-            "hermes_start_session",
             "hermes_submit_question_answer",
             "lsp_diagnostics",
             "lsp_diagnostics_directory",
@@ -1524,7 +1485,6 @@
             "hermes_read_tail",
             "hermes_report_status",
             "hermes_send_prompt",
-            "hermes_start_session",
             "hermes_submit_question_answer",
             "lsp_diagnostics",
             "lsp_diagnostics_directory",
@@ -1713,16 +1673,8 @@
           "path": "skills/skill/SKILL.md"
         },
         {
-          "digest": "9806ce3dff32a149edc61bc62ee20ecadc1cce6fdc9f997f3abc5ec4cc1633d4",
-          "path": "skills/swarm/SKILL.md"
-        },
-        {
           "digest": "b94bc25930af9f996be7f892b161b53ef9f8cf951784d31806548f5ad45e142c",
           "path": "skills/tdd/SKILL.md"
-        },
-        {
-          "digest": "2163d2df462e21a9c5734dfbd764044195814937866cfe037b5a860a2f803397",
-          "path": "skills/team/SKILL.md"
         },
         {
           "digest": "c39af0c40fddb921bff9f6e34bc8c85f736265c2935e664709de7b33e2ea94bb",
@@ -1755,10 +1707,6 @@
         {
           "digest": "94c4715d92451a6ae4281bc1690564a659ad68cb58b0938004a49b1079a14241",
           "path": "skills/wiki/SKILL.md"
-        },
-        {
-          "digest": "d0d46a07b7675ac854d993be56565bc96d0f3c8c0776ec38a58955df3003fe51",
-          "path": "skills/worker/SKILL.md"
         }
       ]
     }

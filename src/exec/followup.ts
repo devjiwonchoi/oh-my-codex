@@ -350,7 +350,7 @@ export function formatInjectExecFollowupSuccess(result: InjectExecFollowupResult
   return [
     `Queued exec follow-up ${result.queued.id} for session ${result.queued.session_id}.`,
     `Queue: ${result.queuePath}`,
-    "Delivery: next Stop hook checkpoint; no tmux pane input was sent.",
+    "Delivery: next Stop hook checkpoint.",
   ].join("\n");
 }
 

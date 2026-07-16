@@ -23,7 +23,6 @@ export type {
   SlackNotificationConfig,
   WebhookNotificationConfig,
   EventNotificationConfig,
-  ReplyConfig,
   NotificationProfilesConfig,
   NotificationsBlock,
   VerbosityLevel,
@@ -46,43 +45,15 @@ export {
   formatAskUserQuestion,
 } from "./formatter.js";
 export {
-  getCurrentTmuxSession,
-  getCurrentTmuxPaneId,
-  getTeamTmuxSessions,
-  formatTmuxInfo,
-  captureTmuxPane,
-  sanitizeTmuxAlertText,
-} from "./tmux.js";
-export {
   getNotificationConfig,
   isEventEnabled,
   getEnabledPlatforms,
-  getReplyConfig,
-  getReplyListenerPlatformConfig,
   resolveProfileConfig,
   listProfiles,
   getActiveProfileName,
   getVerbosity,
   isEventAllowedByVerbosity,
-  shouldIncludeTmuxTail,
 } from "./config.js";
-export {
-  registerMessage,
-  loadAllMappings,
-  lookupByMessageId,
-  removeSession,
-  removeMessagesByPane,
-  pruneStale,
-} from "./session-registry.js";
-export type { SessionMapping } from "./session-registry.js";
-export {
-  startReplyListener,
-  stopReplyListener,
-  getReplyListenerStatus,
-  isDaemonRunning,
-  sanitizeReplyInput,
-} from "./reply-listener.js";
-
 // Re-export the legacy notifier for backward compatibility
 export { notify, loadNotificationConfig } from "./notifier.js";
 export type { NotificationConfig, NotificationPayload } from "./notifier.js";
@@ -128,21 +99,15 @@ import type {
   FullNotificationPayload,
   DispatchResult,
 } from "./types.js";
-import { getNotificationConfig, isEventEnabled, getVerbosity, shouldIncludeTmuxTail, getActiveProfileName } from "./config.js";
+import { getNotificationConfig, isEventEnabled, getActiveProfileName } from "./config.js";
 import { formatNotification } from "./formatter.js";
 import { dispatchNotifications } from "./dispatcher.js";
-import { getCurrentTmuxSession, sanitizeTmuxAlertText } from "./tmux.js";
 import { basename } from "path";
 import { nomxStateDir } from "../utils/paths.js";
 import {
   shouldSendLifecycleNotification,
   recordLifecycleNotificationSent,
 } from "./lifecycle-dedupe.js";
-import { parseTmuxTail } from "./formatter.js";
-import {
-  shouldIncludeSessionIdleTmuxTail,
-  recordSessionIdleTmuxTailSent,
-} from "./idle-cooldown.js";
 
 // Suppress unused import — used by callers via re-export
 void getActiveProfileName;
@@ -169,15 +134,11 @@ export async function notifyLifecycle(
       return null;
     }
 
-    const { getCurrentTmuxPaneId } = await import("./tmux.js");
-
     const payload: FullNotificationPayload = {
       event,
       sessionId: data.sessionId,
       message: "",
       timestamp: data.timestamp || new Date().toISOString(),
-      tmuxSession: data.tmuxSession ?? getCurrentTmuxSession() ?? undefined,
-      tmuxPaneId: data.tmuxPaneId ?? getCurrentTmuxPaneId() ?? undefined,
       projectPath: data.projectPath,
       projectName:
         data.projectName ||
@@ -195,37 +156,7 @@ export async function notifyLifecycle(
       incompleteTasks: data.incompleteTasks,
     };
 
-    // Auto-capture tmux tail only for live idle events. Stop/end lifecycle dispatches
-    // happen after the relevant session is stopping or has already completed, so
-    // blind capture-pane reads can replay historical pane lines into follow-up
-    // alerts. Explicitly supplied tmuxTail still passes through unchanged.
-    const verbosity = getVerbosity(config);
-    if (
-      shouldIncludeTmuxTail(verbosity)
-      && !data.tmuxTail
-      && event === "session-idle"
-    ) {
-      const { captureTmuxPaneWithLiveness } = await import("./tmux.js");
-      const tmuxCapture = captureTmuxPaneWithLiveness(payload.tmuxPaneId);
-      payload.tmuxTail = sanitizeTmuxAlertText(tmuxCapture.content);
-      payload.tmuxTailLive = tmuxCapture.live;
-    } else {
-      payload.tmuxTail = sanitizeTmuxAlertText(data.tmuxTail);
-      payload.tmuxTailLive = data.tmuxTailLive;
-    }
-
     const lifecycleStateDir = payload.projectPath ? nomxStateDir(payload.projectPath) : "";
-    const normalizedIdleTmuxTail = event === "session-idle" ? parseTmuxTail(payload.tmuxTail || "") : "";
-    const sessionIdleTmuxTailAllowed = event !== "session-idle"
-      || shouldIncludeSessionIdleTmuxTail(lifecycleStateDir, payload.sessionId, normalizedIdleTmuxTail);
-
-    if (
-      event === "session-idle"
-      && !sessionIdleTmuxTailAllowed
-    ) {
-      payload.tmuxTail = undefined;
-      payload.tmuxTailLive = undefined;
-    }
 
     payload.message = data.message || formatNotification(payload);
 
@@ -240,35 +171,6 @@ export async function notifyLifecycle(
     const result = await dispatchNotifications(config, event, payload);
     if (result.anySuccess && options.persistScopedReceipts !== false) {
       recordLifecycleNotificationSent(lifecycleStateDir, payload);
-      if (event === "session-idle" && sessionIdleTmuxTailAllowed) {
-        recordSessionIdleTmuxTailSent(lifecycleStateDir, payload.sessionId, normalizedIdleTmuxTail);
-      }
-    }
-
-    if (result.anySuccess && payload.tmuxPaneId && options.persistScopedReceipts !== false) {
-      try {
-        const { registerMessage } = await import("./session-registry.js");
-        for (const r of result.results) {
-          if (
-            r.success &&
-            r.messageId &&
-            (r.platform === "discord-bot" || r.platform === "telegram")
-          ) {
-            registerMessage({
-              platform: r.platform,
-              messageId: r.messageId,
-              sessionId: payload.sessionId,
-              tmuxPaneId: payload.tmuxPaneId,
-              tmuxSessionName: payload.tmuxSession || "",
-              event: payload.event,
-              createdAt: new Date().toISOString(),
-              projectPath: payload.projectPath,
-            });
-          }
-        }
-      } catch {
-        // Non-fatal: reply correlation is best-effort
-      }
     }
 
     return result;

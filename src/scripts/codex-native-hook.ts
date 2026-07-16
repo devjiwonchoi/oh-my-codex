@@ -3,7 +3,7 @@ import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, s
 import { appendFile, mkdir, readFile, readdir, stat, writeFile } from "fs/promises";
 import { extname, isAbsolute, join, relative, resolve } from "path";
 import { pathToFileURL } from "url";
-import { readModeStateForActiveDecision, readModeStateForSession, updateModeState } from "../modes/base.js";
+import { readModeStateForActiveDecision } from "../modes/base.js";
 import { redactAuthSecrets } from "../utils/redact.js";
 import {
   SKILL_ACTIVE_STATE_FILE,
@@ -33,7 +33,6 @@ import {
   recoverAdaptedRoleBindings,
 } from "../subagents/adapted-role-binding.js";
 import { readRoleRoutingMarker, writeRoleRoutingMarker } from "../subagents/role-routing-marker.js";
-import { resolveCanonicalTeamStateRoot, resolveWorkerNotifyTeamStateRootPath } from "../team/state-root.js";
 import { inferTerminalLifecycleOutcome } from "../runtime/run-outcome.js";
 import {
   appendPromptSessionProvenanceRejection,
@@ -57,20 +56,12 @@ import {
   type ResolvedPromptTurnContext,
 } from "../hooks/prompt-session-provenance.js";
 import {
-  appendTeamEvent,
-  readTeamLeaderAttention,
-  readTeamConfig,
-  readTeamManifestV2,
-  readTeamPhase,
-  writeTeamLeaderAttention,
-  writeTeamPhase,
-} from "../team/state.js";
-import {
   canonicalizeComparablePath,
   nomxNotepadPath,
   resolveProjectMemoryPath,
 } from "../utils/paths.js";
 import { findGitLayout } from "../utils/git-layout.js";
+
 import {
   getAuthoritativeActiveStatePaths,
   getBaseStateDir,
@@ -86,14 +77,6 @@ import {
   type SkillActiveState,
 } from "../hooks/keyword-detector.js";
 import { buildDeepInterviewConfigInstruction } from "../hooks/deep-interview-config-instruction.js";
-import { readTeamModeConfig } from "../config/team-mode.js";
-import {
-  detectNativeStopStallPattern,
-  loadAutoNudgeConfig,
-  normalizeAutoNudgeSignatureText,
-  resolveEffectiveAutoNudgeResponse,
-} from "./notify-hook/auto-nudge.js";
-import { probeActualTmuxInstanceEvidence, tmuxEvidenceBindsCandidate } from "./notify-hook/managed-tmux.js";
 import {
   SLOPPY_FALLBACK_GROUNDING_PATTERNS,
   SLOPPY_FALLBACK_IMPLEMENTATION_CONTEXT_PATTERNS,
@@ -101,15 +84,11 @@ import {
   buildNativePostToolUseOutput,
   buildNativePreToolUseOutput,
   commandInvokesApplyPatch,
-  detectMcpTransportFailure,
   hasAnyPattern,
 } from "./codex-native-pre-post.js";
-import { handleTeamWorkerPostToolUseSuccess } from "./notify-hook/team-worker-posttooluse.js";
-import { maybeNudgeLeaderForAllowedWorkerStop } from "./notify-hook/team-worker-stop.js";
 import {
   resolveCodexExecutionSurface,
   type CodexLauncherKind,
-  type CodexTransportKind,
 } from "./codex-execution-surface.js";
 import {
   buildNativeHookEvent,
@@ -118,7 +97,6 @@ import type { HookEventEnvelope } from "../hooks/extensibility/types.js";
 import { isTrackedWorkflowMode } from "../state/workflow-transition.js";
 import { dispatchHookEventRuntime } from "../hooks/extensibility/runtime.js";
 import { getNotificationConfig, getVerbosity } from "../notifications/config.js";
-import { reconcileHudForPromptSubmit } from "../hud/reconcile.js";
 import { deriveAutopilotChildPhase, normalizeAutopilotPhase } from "../autopilot/fsm.js";
 import {
   CONDUCTOR_ORCHESTRATION_METADATA_PREFIXES,
@@ -157,11 +135,7 @@ import {
   promptSignature,
   type TriageStateFile,
 } from "../hooks/triage-state.js";
-import {
-  isPendingDeepInterviewQuestionEnforcement,
-  reconcileDeepInterviewQuestionEnforcementFromAnsweredRecords,
-} from "../question/deep-interview.js";
-import { readAutopilotDeepInterviewQuestionWaitState } from "../question/autopilot-wait.js";
+import { isPendingDeepInterviewQuestionEnforcement } from "../question/deep-interview.js";
 import { buildExecFollowupStopOutput } from "../exec/followup.js";
 import {
   MAX_NATIVE_STDIN_JSON_BYTES,
@@ -182,7 +156,6 @@ type CodexHookPayload = Record<string, unknown>;
 interface NativeHookDispatchOptions {
   cwd?: string;
   sessionOwnerPid?: number;
-  reconcileHudForPromptSubmitFn?: typeof reconcileHudForPromptSubmit;
 }
 
 export interface NativeHookDispatchResult {
@@ -194,8 +167,6 @@ export interface NativeHookDispatchResult {
 
 const TERMINAL_MODE_PHASES = new Set(["complete", "completed", "failed", "cancelled"]);
 const SKILL_STOP_BLOCKERS = new Set(["ralplan"]);
-const TEAM_STOP_BLOCKING_TASK_STATUSES = new Set(["pending", "in_progress", "blocked"]);
-const TEAM_WORKER_TERMINAL_RUN_STATES = new Set(["done", "complete", "completed", "failed", "stopped", "cancelled"]);
 const LEADER_CONDUCTOR_GOLDEN_RULE = "Main-root Conductor golden rule: delegate implementation work; do not self-execute source or plan edits.";
 const NATIVE_STOP_STATE_FILE = "native-stop-state.json";
 const NATIVE_SUBAGENT_CAPACITY_BLOCKER_FILE = "native-subagent-capacity-blocker.json";
@@ -204,15 +175,6 @@ const ORDINARY_STOP_NO_PROGRESS_DEFAULT_MAX_REPEATS = 8;
 const RALPH_ORPHANED_STARTING_STALE_MS = 15 * 60_000;
 const ORDINARY_STOP_NO_PROGRESS_DEFAULT_IDLE_MS = 10 * 60_000;
 const ORDINARY_STOP_NO_PROGRESS_MAX_MESSAGE_LENGTH = 240;
-const NOMX_OWNER_SESSION_ID_PATTERN = /^nomx-[A-Za-z0-9_-]{1,60}$/;
-const STABLE_FINAL_RECOMMENDATION_PATTERNS = [
-  /^\s*(?:launch|release|ship)-?ready\s*:\s*(?:yes|no)\b[^\n\r]*/im,
-  /^\s*ready to release\s*:\s*(?:yes|no)\b[^\n\r]*/im,
-  /^\s*(?:final\s+)?recommendation\s*:\s*(?:yes|no|ship|hold|release|do not release|proceed|do not proceed)\b[^\n\r]*/im,
-  /^\s*decision\s*:\s*(?:yes|no|ship|hold|release|do not release|proceed|do not proceed)\b[^\n\r]*/im,
-] as const;
-const RELEASE_READINESS_FINALIZE_SYSTEM_MESSAGE =
-  "NOMX release-readiness detected a stable final recommendation with no active worker tasks; emit one concise final decision summary and finalize.";
 const EXECUTION_HANDOFF_PATTERNS = [
   /^(?:好|好的|行|可以|那就|那现在)?[，,\s]*(?:开始|继续|直接)\s*(?:执行|优化|实现|修改|修复)(?=$|\s|[，,。.!！?？])/u,
   /(?:按照|按|基于)(?:这个|上述|当前)?\s*(?:plan|计划|方案).{0,16}(?:开始|继续|直接)?\s*(?:执行|优化|实现|修改|修复)/u,
@@ -262,11 +224,12 @@ function safeString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+function normalizeStopSignatureText(value: unknown): string {
+  return safeString(value).trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 async function resolveVerifiedOwnerOmxSessionId(): Promise<string | undefined> {
-  const candidate = normalizeSessionId(process.env.NOMX_SESSION_ID);
-  if (!candidate) return undefined;
-  const evidence = await probeActualTmuxInstanceEvidence(process.env.TMUX_PANE);
-  return tmuxEvidenceBindsCandidate(evidence, candidate) ? candidate : undefined;
+  return normalizeSessionId(process.env.NOMX_SESSION_ID);
 }
 
 function isImplicitWritableScopeFailure(error: unknown): boolean {
@@ -279,35 +242,6 @@ function safeObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
 
-
-function resolveHudReconcileSessionId(
-  currentSessionState: SessionState | null,
-  canonicalSessionId: string | null,
-  sessionIdForState: string | null,
-): string | undefined {
-  const ownerOmxSessionId = safeString(currentSessionState?.owner_omx_session_id).trim();
-  if (NOMX_OWNER_SESSION_ID_PATTERN.test(ownerOmxSessionId)) return ownerOmxSessionId;
-  return canonicalSessionId || sessionIdForState || undefined;
-}
-
-function resolveHudReconcileSessionIds(
-  currentSessionState: SessionState | null,
-  canonicalSessionId: string | null,
-  sessionIdForState: string | null,
-  nativeSessionId: string | null,
-): string[] {
-  const ownerOmxSessionId = safeString(currentSessionState?.owner_omx_session_id).trim();
-  return uniqueNonEmpty([
-    resolveHudReconcileSessionId(currentSessionState, canonicalSessionId, sessionIdForState),
-    canonicalSessionId ?? undefined,
-    sessionIdForState ?? undefined,
-    nativeSessionId ?? undefined,
-    safeString(currentSessionState?.session_id),
-    safeString(currentSessionState?.native_session_id),
-    NOMX_OWNER_SESSION_ID_PATTERN.test(ownerOmxSessionId) ? ownerOmxSessionId : undefined,
-    safeString(currentSessionState?.owner_codex_session_id),
-  ]);
-}
 
 function safeContextSnippet(value: unknown, maxLength = 300): string {
   const text = safeString(value).replace(/\s+/g, " ").trim();
@@ -1031,7 +965,6 @@ interface RalphStopOwnershipContext {
   payloadSessionId: string;
   threadId: string;
   currentNativeSessionId: string;
-  tmuxPaneId: string;
   payload?: CodexHookPayload;
 }
 
@@ -1062,7 +995,6 @@ function hasRalphOwnerHint(state: Record<string, unknown>): boolean {
     state.owner_codex_session_id,
     state.owner_codex_thread_id,
     state.thread_id,
-    state.tmux_pane_id,
     state.task_slug,
   ].some((value) => safeString(value).trim() !== "");
 }
@@ -1112,8 +1044,7 @@ function hasPositiveRalphStopOwnerMatch(
   const stateThreadId = safeString(state.owner_codex_thread_id ?? state.thread_id).trim();
   if (stateThreadId && context.threadId && stateThreadId === context.threadId) return true;
 
-  const statePaneId = safeString(state.tmux_pane_id).trim();
-  return statePaneId !== "" && context.tmuxPaneId !== "" && statePaneId === context.tmuxPaneId;
+  return false;
 }
 
 function textMatchesAny(text: string, patterns: readonly RegExp[]): boolean {
@@ -1247,11 +1178,6 @@ function activeRalphStateMatchesStopOwner(
     return false;
   }
 
-  const statePaneId = safeString(state.tmux_pane_id).trim();
-  if (statePaneId && context.tmuxPaneId && statePaneId !== context.tmuxPaneId) {
-    return false;
-  }
-
   return true;
 }
 
@@ -1323,7 +1249,6 @@ function shouldRetireShadowedRalphStartingSeed(
     payloadSessionId?: string;
     threadId?: string;
     currentNativeSessionId?: string;
-    tmuxPaneId?: string;
   },
 ): boolean {
   if (!isShadowableRalphStartingSeed(seedState)) return false;
@@ -1338,7 +1263,6 @@ function shouldRetireShadowedRalphStartingSeed(
       payloadSessionId: safeString(ownerContext?.payloadSessionId).trim(),
       threadId: safeString(ownerContext?.threadId).trim(),
       currentNativeSessionId: safeString(ownerContext?.currentNativeSessionId).trim(),
-      tmuxPaneId: safeString(ownerContext?.tmuxPaneId).trim(),
     })
   ) {
     return false;
@@ -1350,13 +1274,6 @@ function shouldRetireShadowedRalphStartingSeed(
   if (seedThreadId && completedThreadId && seedThreadId !== completedThreadId) return false;
   if (seedThreadId && stopThreadId && seedThreadId !== stopThreadId) return false;
   if (completedThreadId && stopThreadId && completedThreadId !== stopThreadId) return false;
-
-  const seedPaneId = safeString(seedState.tmux_pane_id).trim();
-  const completedPaneId = safeString(completedState?.tmux_pane_id).trim();
-  const stopPaneId = safeString(ownerContext?.tmuxPaneId).trim();
-  if (seedPaneId && completedPaneId && seedPaneId !== completedPaneId) return false;
-  if (seedPaneId && stopPaneId && seedPaneId !== stopPaneId) return false;
-  if (completedPaneId && stopPaneId && completedPaneId !== stopPaneId) return false;
 
   const seedStartedAt = parseTimestampMs(seedState.started_at ?? seedState.startedAt);
   const completedAt = parseTimestampMs(completedState?.completed_at ?? completedState?.completedAt);
@@ -1421,14 +1338,12 @@ async function readRalphCompletionAuditBlockState(
   ownerContext?: {
     payloadSessionId?: string;
     threadId?: string;
-    tmuxPaneId?: string;
   },
 ): Promise<RalphCompletionAuditBlockState | null> {
   const [rawSessionInfo, usableSessionInfo] = await Promise.all([
     readSessionState(cwd),
     readUsableSessionState(cwd),
   ]);
-  const currentOmxSessionId = safeString(usableSessionInfo?.session_id).trim();
   const currentNativeSessionId = safeString(usableSessionInfo?.native_session_id).trim();
   const staleCurrentSessionId = rawSessionInfo && !isSessionStateUsable(rawSessionInfo, cwd)
     ? safeString(rawSessionInfo.session_id).trim()
@@ -1447,7 +1362,6 @@ async function readRalphCompletionAuditBlockState(
       payloadSessionId: safeString(ownerContext?.payloadSessionId).trim(),
       threadId: safeString(ownerContext?.threadId).trim(),
       currentNativeSessionId,
-      tmuxPaneId: safeString(ownerContext?.tmuxPaneId).trim(),
     }) !== true) return null;
     const audit = evaluateRalphCompletionAuditEvidence(state, cwd);
     return audit.complete ? null : { state, path, reason: audit.reason };
@@ -1486,7 +1400,6 @@ async function readActiveRalphState(
   ownerContext?: {
     payloadSessionId?: string;
     threadId?: string;
-    tmuxPaneId?: string;
     payload?: CodexHookPayload;
   },
 ): Promise<ActiveRalphStopState | null> {
@@ -1533,7 +1446,6 @@ async function readActiveRalphState(
           payloadSessionId: safeString(ownerContext?.payloadSessionId).trim(),
           threadId: safeString(ownerContext?.threadId).trim(),
           currentNativeSessionId,
-          tmuxPaneId: safeString(ownerContext?.tmuxPaneId).trim(),
         })
       ) {
         await retireShadowedRalphStartingSeed(
@@ -1563,7 +1475,6 @@ async function readActiveRalphState(
         payloadSessionId: safeString(ownerContext?.payloadSessionId).trim(),
         threadId: safeString(ownerContext?.threadId).trim(),
         currentNativeSessionId,
-        tmuxPaneId: safeString(ownerContext?.tmuxPaneId).trim(),
       })
       && await hasConsistentRalphSkillActivation(stateDir, sessionId)
     ) {
@@ -1583,7 +1494,6 @@ async function readActiveRalphState(
       payloadSessionId: safeString(ownerContext?.payloadSessionId).trim(),
       threadId: safeString(ownerContext?.threadId).trim(),
       currentNativeSessionId,
-      tmuxPaneId: safeString(ownerContext?.tmuxPaneId).trim(),
       payload: ownerContext?.payload,
     })
   ) {
@@ -2090,20 +2000,9 @@ async function buildSessionStartContext(
   }
 
   const modeSummaries: string[] = [];
-  for (const mode of ["ralph", "autopilot", "ultrawork", "ultraqa", "ralplan", "deep-interview", "team"] as const) {
+  for (const mode of ["ralph", "autopilot", "ultrawork", "ultraqa", "ralplan", "deep-interview"] as const) {
     const state = await readJsonIfExists(getStatePath(mode, cwd, sessionId));
     if (state?.active !== true || !isNonTerminalPhase(state.current_phase)) continue;
-    if (mode === "team") {
-      const teamName = safeString(state.team_name).trim();
-      if (teamName) {
-        const phase = await readTeamPhase(teamName, cwd);
-        const canonicalPhase = phase?.current_phase ?? state.current_phase;
-        if (isNonTerminalPhase(canonicalPhase)) {
-          modeSummaries.push(`- team (${teamName}) phase: ${formatPhase(canonicalPhase)}`);
-        }
-        continue;
-      }
-    }
     modeSummaries.push(`- ${mode} phase: ${formatPhase(state.current_phase)}`);
   }
   if (modeSummaries.length > 0) {
@@ -2181,20 +2080,14 @@ async function buildSessionStartContext(
 }
 
 type ExecutionEnvironmentKind =
-  | "attached-tmux-runtime"
-  | "outside-tmux-with-bridge"
-  | "native-outside-tmux"
-  | "direct-cli-outside-tmux";
+  | "native";
 
 interface ExecutionEnvironmentInfo {
   kind: ExecutionEnvironmentKind;
   launcher: CodexLauncherKind;
-  transport: CodexTransportKind;
   surface: string;
-  tmuxWorkflowGuidance: string;
+  parallelWorkGuidance: string;
   questionGuidance: string;
-  teamRuntimeInstruction: string;
-  teamHelpInstruction: string;
   deepInterviewInstruction: string;
   leaderPaneHint: string;
 }
@@ -2209,68 +2102,13 @@ function resolveExecutionEnvironment(
   } = {},
 ): ExecutionEnvironmentInfo {
   const executionSurface = resolveCodexExecutionSurface(cwd, options);
-  const leaderPaneHint = resolveQuestionLeaderPaneHint(cwd, options.payload);
-  const questionBridgeHint = leaderPaneHint
-    ? `tmux return bridge recorded at ${leaderPaneHint}, but this process is not attached to tmux; prefer native/user-input fallback unless running from an attached tmux pane`
-    : "not available from this outside-tmux surface; use native structured input when available or ask one concise plain-text question";
-
-  if (executionSurface.transport === "attached-tmux") {
-    return {
-      kind: "attached-tmux-runtime",
-      launcher: executionSurface.launcher,
-      transport: executionSurface.transport,
-      surface: "attached tmux runtime - tmux",
-      tmuxWorkflowGuidance: "nomx team, nomx hud, and nomx question are directly usable in this session",
-      questionGuidance: "visible temporary renderer available from the current pane; primary success JSON is answers[]",
-      teamRuntimeInstruction: "Use the durable NOMX team runtime via `nomx team ...` for coordinated execution; do not replace it with in-process fanout.",
-      teamHelpInstruction: "If you need runtime syntax, run `nomx team --help` yourself.",
-      deepInterviewInstruction: "Deep-interview must ask each interview round via `nomx question`; do not fall back to `request_user_input` or plain-text questioning. This session is already attached to tmux, so `nomx question` can open its temporary renderer directly over the leader pane. After starting `nomx question` in a background terminal, wait for that terminal to finish and read the JSON answer before continuing the interview. Prefer `answers[0].answer` / `answers[]`; use legacy `answer` only as fallback. Deep-interview remains one question per round, so do not batch multiple interview rounds into one `questions[]` form. Stop remains blocked while a deep-interview question obligation is pending.",
-      leaderPaneHint,
-    };
-  }
-
-  if (leaderPaneHint) {
-    const isNativeOutsideTmux = executionSurface.launcher === "native";
-    return {
-      kind: "outside-tmux-with-bridge",
-      launcher: executionSurface.launcher,
-      transport: executionSurface.transport,
-      surface: isNativeOutsideTmux
-        ? "native-hook / Codex App outside tmux with tmux return bridge"
-        : "direct CLI outside tmux with tmux return bridge",
-      tmuxWorkflowGuidance: "nomx team and nomx hud need an attached tmux NOMX CLI shell from this surface; nomx question can use the detected bridge",
-      questionGuidance: questionBridgeHint,
-      teamRuntimeInstruction: isNativeOutsideTmux
-        ? "This session is native-hook / Codex App outside tmux; `nomx team` is a CLI/tmux runtime surface, not directly available here. Launch NOMX CLI from an attached tmux shell first; do not replace it with in-process fanout."
-        : "This session is direct CLI outside tmux with a tmux return bridge for `nomx question`; prompt-side `$team` does not auto-start the durable tmux team runtime here. If you intentionally want the runtime, run `nomx team ...` yourself from shell instead of replacing it with in-process fanout.",
-      teamHelpInstruction: isNativeOutsideTmux
-        ? "If you need runtime syntax, run `nomx team --help` from an attached tmux NOMX CLI shell."
-        : "If you need runtime syntax, run `nomx team --help` yourself from shell.",
-      deepInterviewInstruction: `Deep-interview is active, but this session is not attached to tmux. Do not invoke \`nomx question\`, \`nomx hud\`, or \`nomx team\` from this surface. Ask each interview round through the native structured question tool when available; otherwise ask exactly one concise plain-text question and wait for the answer. A tmux return bridge (${leaderPaneHint}) is recorded for explicit attached-tmux recovery only, not for default Codex App/native fallback.`,
-      leaderPaneHint,
-    };
-  }
-
-  const isNativeOutsideTmux = executionSurface.launcher === "native" && executionSurface.transport === "outside-tmux";
-  const surface = isNativeOutsideTmux
-    ? "native-hook / Codex App outside tmux"
-    : "direct CLI outside tmux";
-  const teamRuntimeInstruction = isNativeOutsideTmux
-    ? "This session is native-hook / Codex App outside tmux; `nomx team` is a CLI/tmux runtime surface, not directly available here. Launch NOMX CLI from an attached tmux shell first; do not replace it with in-process fanout."
-    : "This session is direct CLI outside tmux; prompt-side `$team` does not auto-start the durable tmux team runtime here. If you intentionally want the runtime, run `nomx team ...` yourself from shell instead of replacing it with in-process fanout.";
-  const teamHelpInstruction = isNativeOutsideTmux
-    ? "If you need runtime syntax, run `nomx team --help` from an attached tmux NOMX CLI shell rather than from Codex App/native outside-tmux context."
-    : "If you need runtime syntax, run `nomx team --help` yourself from shell.";
   return {
-    kind: isNativeOutsideTmux ? "native-outside-tmux" : "direct-cli-outside-tmux",
+    kind: "native",
     launcher: executionSurface.launcher,
-    transport: executionSurface.transport,
-    surface,
-    tmuxWorkflowGuidance: "nomx team, nomx hud, and nomx question need an attached tmux NOMX CLI shell or preserved question bridge from this surface",
-    questionGuidance: questionBridgeHint,
-    teamRuntimeInstruction,
-    teamHelpInstruction,
-    deepInterviewInstruction: "Deep-interview is active, but this session is not attached to tmux. Do not invoke `nomx question`, `nomx hud`, or `nomx team` from this surface. Ask each interview round through the native structured question tool when available; otherwise ask exactly one concise plain-text question and wait for the answer. Stop gating still applies to the interview, but no tmux question obligation should be created outside tmux.",
+    surface: executionSurface.launcher === "native" ? "native-hook / Codex App" : "direct Codex CLI",
+    parallelWorkGuidance: "use native Codex subagents for independent bounded work",
+    questionGuidance: "use native structured input when available; otherwise ask one concise plain-text question",
+    deepInterviewInstruction: "Ask each deep-interview round through native structured input when available; otherwise ask exactly one concise plain-text question and wait for the answer.",
     leaderPaneHint: "",
   };
 }
@@ -2288,35 +2126,9 @@ function buildExecutionEnvironmentSection(
   return [
     "[Execution environment]",
     `- surface: ${environment.surface}`,
-    `- nomx runtime surfaces: ${environment.tmuxWorkflowGuidance}`,
-    `- nomx question: ${environment.questionGuidance}`,
+    `- parallel work: ${environment.parallelWorkGuidance}`,
+    `- user input: ${environment.questionGuidance}`,
   ].join("\n");
-}
-
-function resolveQuestionLeaderPaneHint(cwd: string, payload?: CodexHookPayload): string {
-  const payloadSessionId = safeString(payload?.session_id).trim();
-  const envSessionId = safeString(process.env.NOMX_SESSION_ID || process.env.CODEX_SESSION_ID || process.env.SESSION_ID).trim();
-  const sessionId = payloadSessionId || envSessionId;
-  const candidatePaths = [
-    ...(sessionId ? [getStatePath('deep-interview', cwd, sessionId), getStatePath('ralplan', cwd, sessionId), getStatePath('ralph', cwd, sessionId)] : []),
-    getStatePath('deep-interview', cwd),
-    getStatePath('ralplan', cwd),
-    getStatePath('ralph', cwd),
-  ];
-
-  for (const path of candidatePaths) {
-    try {
-      if (!existsSync(path)) continue;
-      const parsed = JSON.parse(readFileSync(path, 'utf-8')) as Record<string, unknown>;
-      const pane = safeString(parsed?.tmux_pane_id).trim();
-      if (/^%\d+$/.test(pane)) return pane;
-    } catch {
-      // best effort only
-    }
-  }
-
-  const envPane = safeString(process.env.TMUX_PANE).trim();
-  return /^%\d+$/.test(envPane) ? envPane : '';
 }
 
 function buildDeepInterviewQuestionBridgeInstruction(cwd: string, payload?: CodexHookPayload): string {
@@ -2325,64 +2137,6 @@ function buildDeepInterviewQuestionBridgeInstruction(cwd: string, payload?: Code
     payload,
     nativeSessionId: safeString(payload?.session_id ?? payload?.sessionId).trim(),
   }).deepInterviewInstruction;
-}
-
-function buildTeamRuntimeInstruction(cwd: string, payload?: CodexHookPayload): string {
-  return resolveExecutionEnvironment(cwd, {
-    hookEventName: "UserPromptSubmit",
-    payload,
-    nativeSessionId: safeString(payload?.session_id ?? payload?.sessionId).trim(),
-  }).teamRuntimeInstruction;
-}
-
-function buildTeamHelpInstruction(cwd: string, payload?: CodexHookPayload): string {
-  return resolveExecutionEnvironment(cwd, {
-    hookEventName: "UserPromptSubmit",
-    payload,
-    nativeSessionId: safeString(payload?.session_id ?? payload?.sessionId).trim(),
-  }).teamHelpInstruction;
-}
-
-function isNativeOutsideTmuxUserPrompt(cwd: string, payload: CodexHookPayload, sessionId?: string): boolean {
-  const environment = resolveExecutionEnvironment(cwd, {
-    hookEventName: "UserPromptSubmit",
-    payload,
-    canonicalSessionId: sessionId ?? "",
-    nativeSessionId: safeString(payload.session_id ?? payload.sessionId).trim(),
-  });
-  return environment.launcher === "native" && environment.transport === "outside-tmux";
-}
-
-function buildNativeOutsideTmuxTeamPromptBlockState(
-  classification: KeywordInputClassification,
-  cwd: string,
-  payload: CodexHookPayload,
-  sessionId?: string,
-  threadId?: string,
-  turnId?: string,
-): SkillActiveState | null {
-  const teamMode = readTeamModeConfig(cwd);
-  const match = classification.matches.filter((entry) => teamMode.enabled || entry.skill !== "team")[0] ?? null;
-  if (match?.skill !== "team") return null;
-
-  if (!isNativeOutsideTmuxUserPrompt(cwd, payload, sessionId)) return null;
-
-  const nowIso = new Date().toISOString();
-  return {
-    version: 1,
-    active: false,
-    skill: "team",
-    keyword: match.keyword,
-    phase: "planning",
-    activated_at: nowIso,
-    updated_at: nowIso,
-    source: "keyword-detector",
-    session_id: sessionId,
-    thread_id: threadId,
-    turn_id: turnId,
-    active_skills: [],
-    transition_error: "Codex App/native outside-tmux sessions cannot activate the tmux-only `team` workflow directly. Launch NOMX CLI from an attached tmux shell first, then run `nomx team ...` there.",
-  };
 }
 
 function buildSkillStateCliInstruction(mode: string, statePath: string): string {
@@ -2394,9 +2148,6 @@ function buildAutopilotPromptActivationNote(
   options: { markedQuestionAnswer?: boolean; cwd?: string; payload?: CodexHookPayload; sessionId?: string } = {},
 ): string | null {
   if (skillState?.initialized_mode !== "autopilot") return null;
-  const teamHandoff = readTeamModeConfig(options.cwd).enabled
-    ? " (+ $team if needed)"
-    : "";
   const stateDir = getBaseStateDir(options.cwd);
   const nativeSubagentSupport = resolveNativeSubagentSupportStatus({
     payload: options.payload,
@@ -2415,11 +2166,11 @@ function buildAutopilotPromptActivationNote(
       ? buildRoleRoutingUnavailableGuidance(nativeSubagentSupport)
       : `${LEADER_CONDUCTOR_BLOCK} ${LEADER_CONDUCTOR_REUSE_AND_LEDGER_GUIDANCE}`;
   return [
-    `Autopilot protocol: the durable default chain is $deep-interview -> $ralplan -> $ultragoal${teamHandoff} -> $code-review -> $ultraqa (deep-interview -> ralplan -> ultragoal -> code-review -> ultraqa).`,
+    "Autopilot protocol: the durable default chain is $deep-interview -> $ralplan -> $ultragoal -> $code-review -> $ultraqa (deep-interview -> ralplan -> ultragoal -> code-review -> ultraqa).",
     "Start/resume at current_phase=deep-interview unless the task is clear and bounded; if deep-interview is intentionally skipped, persist and state an explicit deep_interview_gate.skip_reason before moving to ralplan.",
-    "Deep-interview is a structured question chain, not a one-question gate: after an nomx question answer, re-score ambiguity against the active threshold, treat max_rounds as a cap, and crystallize once ambiguity is at or below threshold and readiness gates pass.",
+    "Deep-interview is a structured question chain, not a one-question gate: after each user answer, re-score ambiguity against the active threshold, treat max_rounds as a cap, and crystallize once ambiguity is at or below threshold and readiness gates pass.",
     options.markedQuestionAnswer
-      ? "This turn is a marked nomx question answer. Treat ordinary selected option/freeform answer text as interview input, then re-score. Do not close merely because the first question was answered; if ambiguity is at or below threshold and readiness gates pass, write interview_complete evidence and hand off. Ask another deep-interview follow-up only when a readiness gate remains unresolved and the answer would materially change execution."
+      ? "This turn contains an interview answer. Treat selected option or freeform answer text as interview input, then re-score. Do not close merely because the first question was answered; if ambiguity is at or below threshold and readiness gates pass, write interview_complete evidence and hand off. Ask another deep-interview follow-up only when a readiness gate remains unresolved and the answer would materially change execution."
       : null,
     "Do not advance from deep-interview to ralplan merely because the first question was answered; persist explicit interview_complete evidence before setting current_phase=ralplan, and do advance when threshold plus readiness gates are satisfied.",
     "The ralplan phase is not complete until Planner output has been reviewed sequentially by Architect and then Critic; do not hand off to Ultragoal or implementation until the ralplan state/artifact records both ralplan_architect_review and ralplan_critic_review with approval or an explicit blocker.",
@@ -2429,10 +2180,8 @@ function buildAutopilotPromptActivationNote(
   ].filter(Boolean).join(" ");
 }
 
-function formatExecutionHandoffList(cwd: string): string {
-  return readTeamModeConfig(cwd).enabled
-    ? "`$ultragoal`, `$team`, or `$ralph`"
-    : "`$ultragoal` or `$ralph`";
+function formatExecutionHandoffList(_cwd: string): string {
+  return "`$ultragoal` or `$ralph`";
 }
 
 function buildAdditionalContextMessage(
@@ -2447,8 +2196,8 @@ function buildAdditionalContextMessage(
   if (payload && isTypedAgentRolePayload(payload)) {
     return promptPriorityMessage;
   }
-  const teamMode = readTeamModeConfig(cwd);
-  const matches = classification.matches.filter((entry) => teamMode.enabled || entry.skill !== "team");
+  const supportedSkills = new Set(["autopilot", "deep-interview", "ralplan", "ralph", "ultragoal", "ultrawork", "ultraqa", "code-review"]);
+  const matches = classification.matches.filter((entry) => supportedSkills.has(entry.skill));
   const match = matches[0] ?? null;
   if (!match) {
     const markedQuestionAnswer = classification.reservedInput === "nomx-question-answered";
@@ -2468,7 +2217,7 @@ function buildAdditionalContextMessage(
     const autopilotPromptActivationNote = buildAutopilotPromptActivationNote(skillState, { markedQuestionAnswer, cwd, payload, sessionId: safeString(skillState?.session_id).trim() });
     return [
       markedQuestionAnswer
-        ? `NOMX native UserPromptSubmit continued active workflow skill "${continuedSkill}"; workflow-like tokens inside the marked nomx question answer are treated as answer text, not a new workflow activation.`
+        ? `NOMX native UserPromptSubmit continued active workflow skill "${continuedSkill}"; workflow-like tokens inside the marked interview answer are treated as answer text, not a new workflow activation.`
         : `NOMX native UserPromptSubmit continued active workflow skill "${continuedSkill}".`,
       promptPriorityMessage,
       skillState?.initialized_mode && skillState.initialized_state_path
@@ -2489,7 +2238,6 @@ function buildAdditionalContextMessage(
   const deferredSkills = Array.isArray(skillState?.deferred_skills)
     ? skillState.deferred_skills
     : [];
-  const teamDetected = activeSkills.includes("team");
   const ralphPromptActivationNote = skillState?.initialized_mode === "ralph"
     ? "Prompt-side `$ralph` activation seeds Ralph workflow state only; it does not invoke `nomx ralph`. Use `nomx ralph --prd ...` only when you explicitly want the PRD-gated CLI startup path."
     : null;
@@ -2536,35 +2284,8 @@ function buildAdditionalContextMessage(
       skillState.initialized_mode && skillState.initialized_state_path
         ? buildSkillStateCliInstruction(skillState.initialized_mode, skillState.initialized_state_path)
         : null,
-      teamDetected
-        ? buildTeamRuntimeInstruction(cwd, payload)
-        : null,
-      teamDetected ? buildTeamHelpInstruction(cwd, payload) : null,
       'Follow AGENTS.md routing and preserve workflow transition and planning-safety rules.',
     ].filter(Boolean).join(' ');
-  }
-
-  if (teamDetected) {
-    const initializedStateMessage = skillState?.initialized_mode && skillState.initialized_state_path
-      ? buildSkillStateCliInstruction(skillState.initialized_mode, skillState.initialized_state_path)
-      : null;
-    return [
-      detectedKeywordMessage,
-      activeSkills.length > 1 ? `active skills: ${activeSkills.join(", ")}.` : null,
-      deferredSkills.length > 0
-        ? `planning preserved over simultaneous execution follow-up; deferred skills: ${deferredSkills.join(", ")}.`
-        : null,
-      promptPriorityMessage,
-      initializedStateMessage,
-      deepInterviewPromptActivationNote,
-      deepInterviewConfigPromptActivationNote,
-      ultraworkPromptActivationNote,
-      ultragoalPromptActivationNote,
-      autopilotPromptActivationNote,
-      buildTeamRuntimeInstruction(cwd, payload),
-      buildTeamHelpInstruction(cwd, payload),
-      "Follow AGENTS.md routing and preserve workflow transition and planning-safety rules.",
-    ].filter(Boolean).join(" ");
   }
 
   if (skillState?.initialized_mode && skillState.initialized_state_path) {
@@ -2587,191 +2308,6 @@ function buildAdditionalContextMessage(
   }
 
   return [detectedKeywordMessage, promptPriorityMessage, ultragoalPromptActivationNote, autopilotPromptActivationNote, "Follow AGENTS.md routing and preserve workflow transition and planning-safety rules."].filter(Boolean).join(" ");
-}
-
-function parseTeamWorkerEnv(rawValue: string): { teamName: string; workerName: string } | null {
-  const match = /^([a-z0-9][a-z0-9-]{0,29})\/(worker-\d+)$/.exec(rawValue.trim());
-  if (!match) return null;
-  return {
-    teamName: match[1] || "",
-    workerName: match[2] || "",
-  };
-}
-
-function hasTeamWorkerEnvironment(): boolean {
-  return parseTeamWorkerEnv(safeString(process.env.NOMX_TEAM_INTERNAL_WORKER))
-    !== null
-    || parseTeamWorkerEnv(safeString(process.env.NOMX_TEAM_WORKER)) !== null;
-}
-
-async function resolveTeamStateDirForWorkerContext(
-  cwd: string,
-  workerContext: { teamName: string; workerName: string },
-): Promise<string | null> {
-  const resolved = await resolveWorkerNotifyTeamStateRootPath(cwd, workerContext, process.env).catch(() => null);
-  if (resolved) return resolved;
-  const explicit = safeString(process.env.NOMX_TEAM_STATE_ROOT).trim();
-  if (explicit) {
-    const candidate = resolve(cwd, explicit);
-    const workerRoot = join(candidate, "team", workerContext.teamName, "workers", workerContext.workerName);
-    if (existsSync(workerRoot)) return candidate;
-    return candidate;
-  }
-  return null;
-}
-
-async function isConfirmedTeamWorkerPromptSubmitPane(cwd: string): Promise<boolean> {
-  const workerContext =
-    parseTeamWorkerEnv(safeString(process.env.NOMX_TEAM_INTERNAL_WORKER))
-    || parseTeamWorkerEnv(safeString(process.env.NOMX_TEAM_WORKER));
-  if (!workerContext) return false;
-
-  const currentPaneId = safeString(process.env.TMUX_PANE).trim();
-  if (!currentPaneId) return false;
-
-  const config = await readTeamConfig(workerContext.teamName, cwd).catch(() => null);
-  if (!config) return false;
-
-  const leaderPaneId = safeString(config.leader_pane_id).trim();
-  if (leaderPaneId && leaderPaneId === currentPaneId) return false;
-
-  const workerPaneId = safeString(
-    config.workers.find((worker) => worker.name === workerContext.workerName)?.pane_id,
-  ).trim();
-  return workerPaneId !== "" && workerPaneId === currentPaneId;
-}
-
-
-type TeamWorkerStopDecision =
-  | {
-      kind: "blocked";
-      stateDir: string;
-      workerContext: { teamName: string; workerName: string };
-      output: Record<string, unknown>;
-      allowRepeatDuringStopHook: boolean;
-    }
-  | {
-      kind: "allowed";
-      stateDir: string;
-      workerContext: { teamName: string; workerName: string };
-    }
-  | {
-      kind: "unresolved";
-      reason: string;
-    };
-
-async function resolveTeamWorkerStopDecision(
-  cwd: string,
-): Promise<TeamWorkerStopDecision> {
-  const workerContext =
-    parseTeamWorkerEnv(safeString(process.env.NOMX_TEAM_INTERNAL_WORKER))
-    || parseTeamWorkerEnv(safeString(process.env.NOMX_TEAM_WORKER));
-  if (!workerContext) return { kind: "unresolved", reason: "missing_worker_context" };
-
-  const blockWorkerStop = (
-    reasonCode: string,
-    detail: string,
-    stateDirForDecision = getBaseStateDir(cwd),
-  ): TeamWorkerStopDecision => ({
-    kind: "blocked",
-    stateDir: stateDirForDecision,
-    workerContext,
-    allowRepeatDuringStopHook: false,
-    output: {
-      decision: "block",
-      reason:
-        `NOMX team worker ${workerContext.workerName} Stop cannot be allowed for ${reasonCode}: ${detail}. ` +
-        "Continue the assigned task, repair worker state, or report a concrete blocker before stopping.",
-      stopReason: `team_worker_${workerContext.workerName}_${reasonCode}`,
-      systemMessage:
-        `NOMX team worker ${workerContext.workerName} Stop lacks completed task evidence (${reasonCode}).`,
-    },
-  });
-
-  const stateDir = await resolveTeamStateDirForWorkerContext(cwd, workerContext);
-  if (!stateDir) {
-    return blockWorkerStop("missing_state_dir", "team state root could not be resolved");
-  }
-  const workerRoot = join(stateDir, "team", workerContext.teamName, "workers", workerContext.workerName);
-  const [identity, status] = await Promise.all([
-    readJsonIfExists(join(workerRoot, "identity.json")),
-    readJsonIfExists(join(workerRoot, "status.json")),
-  ]);
-  const workerRunState = safeString(status?.state).trim().toLowerCase();
-  const workerRunStateIsTerminal = TEAM_WORKER_TERMINAL_RUN_STATES.has(workerRunState);
-  if (!identity && !status && !existsSync(workerRoot)) {
-    return blockWorkerStop("missing_worker_state", "worker identity/status state is missing", stateDir);
-  }
-
-  const candidateTaskIds = new Set<string>();
-  const currentTaskId = safeString(status?.current_task_id).trim();
-  if (currentTaskId) candidateTaskIds.add(currentTaskId);
-  const assignedTasks = Array.isArray(identity?.assigned_tasks) ? identity?.assigned_tasks : [];
-  for (const taskId of assignedTasks) {
-    const normalized = safeString(taskId).trim();
-    if (normalized) candidateTaskIds.add(normalized);
-  }
-
-  const tasksDir = join(stateDir, "team", workerContext.teamName, "tasks");
-  if (existsSync(tasksDir)) {
-    const taskFiles = await readdir(tasksDir).catch(() => []);
-    for (const entry of taskFiles) {
-      if (!/^task-\d+\.json$/.test(entry)) continue;
-      const task = await readJsonIfExists(join(tasksDir, entry));
-      const taskOwner = safeString(task?.owner).trim();
-      const taskClaimOwner = safeString(safeObject(task?.claim).owner).trim();
-      if (taskOwner !== workerContext.workerName && taskClaimOwner !== workerContext.workerName) continue;
-      const idFromFile = /^task-(\d+)\.json$/.exec(entry)?.[1] ?? "";
-      const taskId = safeString(task?.id).trim() || idFromFile;
-      if (taskId) candidateTaskIds.add(taskId);
-    }
-  }
-
-  if (candidateTaskIds.size === 0) {
-    return blockWorkerStop("missing_task_assignment", "no current_task_id or assigned_tasks are recorded", stateDir);
-  }
-
-  let completedTaskCount = 0;
-  for (const taskId of candidateTaskIds) {
-    const task = await readJsonIfExists(
-      join(stateDir, "team", workerContext.teamName, "tasks", `task-${taskId}.json`),
-    );
-    const statusValue = safeString(task?.status).trim().toLowerCase();
-    if (!statusValue) {
-      return blockWorkerStop(`missing_task_state_${taskId}`, `task ${taskId} has no readable status`, stateDir);
-    }
-    if (statusValue === "completed") {
-      completedTaskCount += 1;
-      continue;
-    }
-    if (!TEAM_STOP_BLOCKING_TASK_STATUSES.has(statusValue)) {
-      return blockWorkerStop(
-        `non_completed_task_${taskId}_${statusValue}`,
-        `task ${taskId} is ${statusValue}, not completed`,
-        stateDir,
-      );
-    }
-    return {
-      kind: "blocked",
-      stateDir,
-      workerContext,
-      allowRepeatDuringStopHook: !workerRunStateIsTerminal,
-      output: {
-        decision: "block",
-        reason:
-          `NOMX team worker ${workerContext.workerName} is still assigned non-terminal task ${taskId} (${statusValue}); continue the current assigned task or report a concrete blocker before stopping.`,
-        stopReason: `team_worker_${workerContext.workerName}_${taskId}_${statusValue}`,
-        systemMessage:
-          `NOMX team worker ${workerContext.workerName} is still assigned task ${taskId} (${statusValue}).`,
-      },
-    };
-  }
-
-  if (completedTaskCount === candidateTaskIds.size) {
-    return { kind: "allowed", stateDir, workerContext };
-  }
-
-  return blockWorkerStop("missing_completed_task_evidence", "no referenced worker task is completed", stateDir);
 }
 
 function isStopExempt(payload: CodexHookPayload): boolean {
@@ -2869,9 +2405,6 @@ async function buildModeBasedStopOutput(
   sessionId?: string,
 ): Promise<Record<string, unknown> | null> {
   if (await readCanonicalTerminalRunStateForStop(cwd, sessionId, mode)) {
-    return null;
-  }
-  if (mode === "autopilot" && await readAutopilotDeepInterviewQuestionWaitState(cwd, sessionId)) {
     return null;
   }
   const sourcedState = await readModeStateWithStopSource(mode, cwd, sessionId);
@@ -3164,138 +2697,6 @@ async function buildGoalWorkflowReconciliationStopOutput(
     stopReason: `${requirement.workflow}_codex_goal_snapshot_required`,
     systemMessage,
   };
-}
-
-interface TeamModeStateForStop {
-  state: Record<string, unknown>;
-  scope: "session" | "root";
-}
-
-function teamStateMatchesThreadForStop(
-  state: Record<string, unknown>,
-  threadId?: string,
-  options: { requireOwnerThread?: boolean } = {},
-): boolean {
-  const normalizedThreadId = safeString(threadId).trim();
-  if (!normalizedThreadId) return true;
-
-  const ownerThreadId = safeString(state.owner_codex_thread_id ?? state.thread_id).trim();
-  if (!ownerThreadId) return options.requireOwnerThread !== true;
-  return ownerThreadId === normalizedThreadId;
-}
-
-async function readTeamModeStateForStop(
-  cwd: string,
-  stateDir: string,
-  sessionId?: string,
-  threadId?: string,
-): Promise<TeamModeStateForStop | null> {
-  const normalizedSessionId = safeString(sessionId).trim();
-  if (!normalizedSessionId) return null;
-
-  const scopedState = await readStopSessionPinnedState("team-state.json", cwd, normalizedSessionId, stateDir);
-  if (scopedState) {
-    return teamStateMatchesThreadForStop(scopedState, threadId)
-      ? { state: scopedState, scope: "session" }
-      : null;
-  }
-
-  const rootState = await readJsonIfExists(join(stateDir, "team-state.json"));
-  if (rootState?.active !== true) return null;
-
-  const teamName = safeString(rootState.team_name).trim();
-  if (!teamName) return null;
-
-  const ownerSessionId = safeString(rootState.session_id).trim();
-  if (!ownerSessionId || ownerSessionId !== normalizedSessionId) return null;
-  if (!teamStateMatchesThreadForStop(rootState, threadId, { requireOwnerThread: true })) return null;
-
-  return { state: rootState, scope: "root" };
-}
-
-async function buildTeamStopOutput(cwd: string, sessionId?: string, threadId?: string): Promise<Record<string, unknown> | null> {
-  if (await readCanonicalTerminalRunStateForStop(cwd, sessionId, "team")) {
-    return null;
-  }
-  const teamStateForStop = await readTeamModeStateForStop(cwd, getBaseStateDir(cwd), sessionId, threadId);
-  if (!teamStateForStop || teamStateForStop.state.active !== true) return null;
-  const teamState = teamStateForStop.state;
-  const teamName = safeString(teamState.team_name).trim();
-  if (teamName) {
-    const canonicalTeamDir = join(resolveCanonicalTeamStateRoot(cwd), "team", teamName);
-    if (!existsSync(canonicalTeamDir)) {
-      return null;
-    }
-  }
-  const coarsePhase = teamState.current_phase;
-  const canonicalPhaseState = teamName ? await readTeamPhase(teamName, cwd) : null;
-  if (teamStateForStop.scope === "root" && !canonicalPhaseState) return null;
-  const canonicalPhase = canonicalPhaseState?.current_phase ?? coarsePhase;
-  if (!isNonTerminalPhase(canonicalPhase)) return null;
-  return buildTeamStopOutputForPhase(teamName, formatPhase(canonicalPhase));
-}
-
-function buildTeamStopReason(teamName: string, phase: string): string {
-  const teamContext = teamName ? ` (${teamName})` : "";
-  return `NOMX team pipeline is still active${teamContext} at phase ${phase}; continue coordinating until the team reaches a terminal phase. If system-generated worker auto-checkpoint commits exist, rewrite them into Lore-format final commits before merge/finalization.`;
-}
-
-function buildTeamStopOutputForPhase(teamName: string, phase: string): Record<string, unknown> {
-  return {
-    decision: "block",
-    reason: buildTeamStopReason(teamName, phase),
-    stopReason: `team_${phase}`,
-    systemMessage: `NOMX team pipeline is still active at phase ${phase}.`,
-  };
-}
-
-function extractStableFinalRecommendationSummary(message: string): string {
-  for (const pattern of STABLE_FINAL_RECOMMENDATION_PATTERNS) {
-    const match = pattern.exec(message);
-    if (!match) continue;
-    const summary = match[0]?.trim().replace(/\s+/g, " ");
-    if (!summary) continue;
-    return /[.!?]$/.test(summary) ? summary : `${summary}.`;
-  }
-  return "";
-}
-
-function buildStableFinalRecommendationStopSignature(
-  payload: CodexHookPayload,
-  teamName: string,
-  summary: string,
-): string {
-  const sessionId = readPayloadSessionId(payload) || "no-session";
-  const threadId = readPayloadThreadId(payload) || "no-thread";
-  const normalizedSummary = normalizeAutoNudgeSignatureText(summary) || summary.toLowerCase();
-  return ["release-readiness-finalize", sessionId, threadId, teamName, normalizedSummary].join("|");
-}
-
-function hasReleaseReadinessMode(payload: CodexHookPayload): boolean {
-  const mode = safeString(payload.mode).trim().toLowerCase();
-  return mode === "release-readiness";
-}
-
-async function hasReleaseReadinessStopMarker(
-  cwd: string,
-  stateDir: string,
-  sessionId: string,
-  teamName: string,
-): Promise<boolean> {
-  if (!sessionId) return false;
-
-  const markerState = await readStopSessionPinnedState("release-readiness-state.json", cwd, sessionId, stateDir);
-  if (markerState?.active !== true || markerState.stable_final_recommendation_emitted !== true) {
-    return false;
-  }
-
-  const markerTeamName = safeString(markerState.team_name).trim();
-  if (markerTeamName && markerTeamName !== teamName) return false;
-
-  const markerSessionId = safeString(markerState.session_id).trim();
-  if (markerSessionId && markerSessionId !== sessionId) return false;
-
-  return true;
 }
 
 function readPayloadSessionId(payload: CodexHookPayload): string {
@@ -3756,7 +3157,6 @@ const RALPLAN_EXECUTION_HANDOFF_SKILLS = new Set([
   // Autopilot is intentionally excluded: it supervises planning phases such as
   // ralplan/replan and is not by itself an execution authorization.
   "ralph",
-  "team",
   "ultragoal",
   "ultrawork",
   "ultraqa",
@@ -7691,7 +7091,6 @@ async function hasTrustedTypedSubagentProvenanceForPreToolUse(
   sessionId: string,
   options: { allowUntypedProvenance?: boolean } = {},
 ): Promise<boolean> {
-  if (hasTeamWorkerEnvironment()) return true;
   const trackingState = await readSubagentTrackingState(cwd).catch(() => null);
   const session = trackingState?.sessions?.[sessionId];
   if (!session) return false;
@@ -7838,16 +7237,6 @@ async function readActiveMainRootConductorStateForPreToolUse(
     const state = await readStopSessionPinnedState("ultragoal-state.json", cwd, sessionId, stateDir);
     if (isActiveConductorModeState(state, "ultragoal", sessionId)) {
       return { mode: "ultragoal", phase: safeString(state?.current_phase ?? state?.currentPhase) || "active" };
-    }
-  }
-
-  if (hasActiveSkill("team") && !hasTeamWorkerEnvironment()) {
-    const teamStateForStop = await readTeamModeStateForStop(cwd, stateDir, sessionId, threadId);
-    const state = teamStateForStop?.state ?? null;
-    if (isActiveConductorModeState(state, "team", sessionId)) {
-      const teamName = safeString(state?.team_name).trim();
-      const phase = teamName ? (await readTeamPhase(teamName, cwd).catch(() => null))?.current_phase ?? state?.current_phase : state?.current_phase;
-      if (isNonTerminalPhase(phase)) return { mode: "team", phase: safeString(phase) || "active" };
     }
   }
 
@@ -9215,58 +8604,12 @@ function buildRalplanContinuationStatus(
   };
 }
 
-async function readStopAutoNudgePhase(
-  cwd: string,
-  stateDir: string,
-  sessionId: string,
-  threadId: string,
-): Promise<string> {
-  const normalizedSessionId = sessionId.trim();
-  if (normalizedSessionId) {
-    const scopedModeState = await readStopSessionPinnedState("deep-interview-state.json", cwd, normalizedSessionId, stateDir);
-    if (
-      scopedModeState?.active === true
-      && safeString(scopedModeState.current_phase).trim().toLowerCase() === "intent-first"
-    ) {
-      return "planning";
-    }
-  } else {
-    const rootModeState = await readJsonIfExists(join(stateDir, "deep-interview-state.json"));
-    if (
-      rootModeState?.active === true
-      && safeString(rootModeState.current_phase).trim().toLowerCase() === "intent-first"
-    ) {
-      return "planning";
-    }
-  }
-
-  if (!normalizedSessionId) return "";
-
-  const canonicalState = await readVisibleSkillActiveStateForStateDir(stateDir, normalizedSessionId);
-  const visibleEntries = canonicalState ? listActiveSkills(canonicalState) : [];
-  const deepInterview = visibleEntries.find((entry) => (
-    entry.skill === "deep-interview"
-    && matchesSkillStopContext(entry, canonicalState ?? {}, normalizedSessionId, threadId)
-  ));
-  if (!deepInterview) return "";
-
-  const modeState = await readStopSessionPinnedState("deep-interview-state.json", cwd, normalizedSessionId, stateDir);
-  if (!modeState || modeState.active !== true) return "";
-
-  const modePhase = safeString(modeState.current_phase).trim().toLowerCase();
-  return modePhase === "intent-first" ? "planning" : "";
-}
-
 async function buildDeepInterviewQuestionStopOutput(
   cwd: string,
   stateDir: string,
   sessionId: string,
   threadId: string,
 ): Promise<{ output: Record<string, unknown>; obligationId: string } | null> {
-  await reconcileDeepInterviewQuestionEnforcementFromAnsweredRecords(cwd, sessionId);
-  if (await readAutopilotDeepInterviewQuestionWaitState(cwd, sessionId)) {
-    return null;
-  }
   const modeState = await readStopSessionPinnedState("deep-interview-state.json", cwd, sessionId, stateDir);
   if (!modeState) return null;
 
@@ -9296,14 +8639,14 @@ async function buildDeepInterviewQuestionStopOutput(
   if (!obligationId) return null;
 
   const systemMessage =
-    `NOMX deep-interview is still active (phase: ${phase}) and requires a structured question via nomx question before stopping; read the returned answers[] JSON before continuing.`;
+    `NOMX deep-interview is still active (phase: ${phase}) and requires a native structured question before stopping.`;
 
   return {
     obligationId,
     output: {
       decision: "block",
       reason:
-        `Deep interview is still active (phase: ${phase}) and has a pending structured question obligation; use \`nomx question\` before stopping.`,
+        `Deep interview is still active (phase: ${phase}) and has a pending native structured question obligation.`,
       stopReason: "deep_interview_question_required",
       systemMessage,
     },
@@ -9318,10 +8661,6 @@ function resolveRepeatableStopSessionId(
   return canonicalSessionId?.trim() || readPayloadSessionId(payload) || inheritedSessionId || "";
 }
 
-function isStateLevelStopSignatureKind(kind: string): boolean {
-  return kind === "team-worker-stop" || kind === "team-stop";
-}
-
 function buildRepeatableStopSignature(
   payload: CodexHookPayload,
   kind: string,
@@ -9330,13 +8669,10 @@ function buildRepeatableStopSignature(
 ): string {
   const sessionId = resolveRepeatableStopSessionId(payload, canonicalSessionId) || "no-session";
   const threadId = readPayloadThreadId(payload) || "no-thread";
-  const normalizedDetail = normalizeAutoNudgeSignatureText(detail) || safeString(detail).trim().toLowerCase();
-  if (isStateLevelStopSignatureKind(kind)) {
-    return [kind, sessionId, threadId, normalizedDetail || "no-detail"].join("|");
-  }
+  const normalizedDetail = normalizeStopSignatureText(detail) || safeString(detail).trim().toLowerCase();
   const turnId = readPayloadTurnId(payload);
   const transcriptPath = safeString(payload.transcript_path ?? payload.transcriptPath).trim() || "no-transcript";
-  const lastAssistantMessage = normalizeAutoNudgeSignatureText(
+  const lastAssistantMessage = normalizeStopSignatureText(
     payload.last_assistant_message ?? payload.lastAssistantMessage,
   ) || "no-message";
   if (turnId) {
@@ -9553,111 +8889,6 @@ async function returnPersistentStopBlock(
   );
 }
 
-async function findCanonicalActiveTeamForSession(
-  cwd: string,
-  sessionId: string,
-  threadId?: string,
-): Promise<{ teamName: string; phase: string } | null> {
-  const requestedSessionId = sessionId.trim();
-  if (!requestedSessionId) return null;
-  const selectedSessionId = safeString((await readUsableSessionState(cwd))?.session_id).trim();
-  const teamsRoot = join(resolveCanonicalTeamStateRoot(cwd), "team");
-  if (!existsSync(teamsRoot)) return null;
-
-  const entries = await readdir(teamsRoot, { withFileTypes: true }).catch(() => []);
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const teamName = entry.name.trim();
-    if (!teamName) continue;
-
-    const [manifest, phaseState] = await Promise.all([
-      readTeamManifestV2(teamName, cwd),
-      readTeamPhase(teamName, cwd),
-    ]);
-    if (!manifest || !phaseState) continue;
-    const ownerSessionId = (manifest.leader?.session_id ?? "").trim();
-    if (ownerSessionId) {
-      if (ownerSessionId !== requestedSessionId) continue;
-    } else if (selectedSessionId !== requestedSessionId) {
-      // Ownerless manifests are a legacy compatibility fallback. They may only
-      // govern the selected session, never a concurrently tracked sibling.
-      continue;
-    }
-    if (!teamStateMatchesThreadForStop(manifest.leader as unknown as Record<string, unknown>, threadId)) continue;
-    if (!isNonTerminalPhase(phaseState.current_phase)) continue;
-
-    return {
-      teamName,
-      phase: formatPhase(phaseState.current_phase),
-    };
-  }
-
-  return null;
-}
-
-async function resolveActiveTeamNameForStop(
-  cwd: string,
-  stateDir: string,
-  sessionId: string,
-  threadId?: string,
-): Promise<string> {
-  const directState = await readTeamModeStateForStop(cwd, stateDir, sessionId, threadId);
-  const directTeamName = safeString(directState?.state.team_name).trim();
-  if (directState?.state.active === true && directTeamName) return directTeamName;
-
-  const canonicalTeam = await findCanonicalActiveTeamForSession(cwd, sessionId, threadId);
-  return canonicalTeam?.teamName ?? "";
-}
-
-async function maybeBuildReleaseReadinessFinalizeStopOutput(
-  payload: CodexHookPayload,
-  cwd: string,
-  stateDir: string,
-  sessionId: string,
-): Promise<{ matched: boolean; output: Record<string, unknown> | null }> {
-  if (!sessionId) return { matched: false, output: null };
-
-  const teamName = await resolveActiveTeamNameForStop(cwd, stateDir, sessionId, readPayloadThreadId(payload));
-  if (!teamName) return { matched: false, output: null };
-
-  const explicitReleaseReadinessContext =
-    hasReleaseReadinessMode(payload)
-    || await hasReleaseReadinessStopMarker(cwd, stateDir, sessionId, teamName);
-  if (!explicitReleaseReadinessContext) {
-    return { matched: false, output: null };
-  }
-
-  const summary = extractStableFinalRecommendationSummary(
-    safeString(payload.last_assistant_message ?? payload.lastAssistantMessage),
-  );
-  if (!summary) return { matched: false, output: null };
-
-  const leaderAttention = await readTeamLeaderAttention(teamName, cwd);
-  if (
-    !leaderAttention
-    || leaderAttention.leader_decision_state !== "done_waiting_on_leader"
-    || leaderAttention.work_remaining !== false
-  ) {
-    return { matched: false, output: null };
-  }
-
-  const signature = buildStableFinalRecommendationStopSignature(payload, teamName, summary);
-  const output = await maybeReturnRepeatableStopOutput(
-    payload,
-    stateDir,
-    signature,
-    {
-      decision: "block",
-      reason:
-        `Stable final recommendation already reached with no active worker tasks. Emit exactly one concise final decision summary aligned to "${summary}" with no filler or residual acknowledgements (for example "yes"), then stop.`,
-      stopReason: "release_readiness_auto_finalize",
-      systemMessage: RELEASE_READINESS_FINALIZE_SYSTEM_MESSAGE,
-    },
-    sessionId,
-  );
-  return { matched: true, output };
-}
-
 async function buildSkillStopOutput(
   cwd: string,
   stateDir: string,
@@ -9692,111 +8923,6 @@ async function buildSkillStopOutput(
   };
 }
 
-async function findActiveTeamForTransportFailure(
-  cwd: string,
-  sessionId: string,
-): Promise<{ teamName: string; phase: string } | null> {
-  const teamState = await readModeStateForSession("team", sessionId, cwd);
-  if (teamState?.active === true) {
-    const teamName = safeString(teamState.team_name).trim();
-    const coarsePhase = formatPhase(teamState.current_phase);
-    if (teamName) {
-      const canonicalPhase = (await readTeamPhase(teamName, cwd))?.current_phase ?? coarsePhase;
-      if (isNonTerminalPhase(canonicalPhase)) {
-        return { teamName, phase: formatPhase(canonicalPhase) };
-      }
-    }
-  }
-
-  return await findCanonicalActiveTeamForSession(cwd, sessionId);
-}
-
-async function markTeamTransportFailure(
-  cwd: string,
-  payload: CodexHookPayload,
-): Promise<void> {
-  const canonicalSessionId = await resolveInternalSessionIdForPayload(cwd, readPayloadSessionId(payload));
-  const activeTeam = await findActiveTeamForTransportFailure(cwd, canonicalSessionId);
-  if (!activeTeam) return;
-
-  const nowIso = new Date().toISOString();
-  const existingPhase = await readTeamPhase(activeTeam.teamName, cwd);
-  const currentPhase = existingPhase?.current_phase ?? activeTeam.phase;
-  if (!isNonTerminalPhase(currentPhase)) return;
-
-  await writeTeamPhase(
-    activeTeam.teamName,
-    {
-      current_phase: "failed",
-      max_fix_attempts: existingPhase?.max_fix_attempts ?? 3,
-      current_fix_attempt: existingPhase?.current_fix_attempt ?? 0,
-      transitions: [
-        ...(existingPhase?.transitions ?? []),
-        {
-          from: formatPhase(currentPhase),
-          to: "failed",
-          at: nowIso,
-          reason: "mcp_transport_dead",
-        },
-      ],
-      updated_at: nowIso,
-    },
-    cwd,
-  );
-
-  const existingAttention = await readTeamLeaderAttention(activeTeam.teamName, cwd);
-  await writeTeamLeaderAttention(
-    activeTeam.teamName,
-    {
-      team_name: activeTeam.teamName,
-      updated_at: nowIso,
-      source: "notify_hook",
-      leader_decision_state: existingAttention?.leader_decision_state ?? "still_actionable",
-      leader_attention_pending: true,
-      leader_attention_reason: "mcp_transport_dead",
-      attention_reasons: [
-        ...new Set([...(existingAttention?.attention_reasons ?? []), "mcp_transport_dead"]),
-      ],
-      leader_stale: existingAttention?.leader_stale ?? false,
-      leader_session_active: existingAttention?.leader_session_active ?? true,
-      leader_session_id: existingAttention?.leader_session_id ?? (canonicalSessionId || null),
-      leader_session_stopped_at: existingAttention?.leader_session_stopped_at ?? null,
-      unread_leader_message_count: existingAttention?.unread_leader_message_count ?? 0,
-      work_remaining: existingAttention?.work_remaining ?? true,
-      stalled_for_ms: existingAttention?.stalled_for_ms ?? null,
-    },
-    cwd,
-  );
-
-  await appendTeamEvent(
-    activeTeam.teamName,
-    {
-      type: "leader_attention",
-      worker: "leader-fixed",
-      reason: "mcp_transport_dead",
-      metadata: {
-        phase_before: formatPhase(currentPhase),
-      },
-    },
-    cwd,
-  ).catch(() => {});
-
-  try {
-    await updateModeState(
-      "team",
-      {
-        current_phase: "failed",
-        error: "mcp_transport_dead",
-        last_turn_at: nowIso,
-      },
-      cwd,
-      canonicalSessionId || undefined,
-    );
-  } catch {
-    // Canonical team state already carries the preserved failure for coarse-state-missing sessions.
-  }
-}
-
 async function buildStopHookOutput(
   payload: CodexHookPayload,
   cwd: string,
@@ -9826,7 +8952,6 @@ async function buildStopHookOutput(
   const ralphOwnerContext = {
     payloadSessionId: sessionId,
     threadId,
-    tmuxPaneId: safeString(process.env.TMUX_PANE).trim(),
     payload,
   };
   const ralphCompletionAuditBlock = options.skipRalphStopBlock === true
@@ -9862,31 +8987,6 @@ async function buildStopHookOutput(
     ? null
     : await readActiveRalphState(cwd, stateDir, canonicalSessionId, ralphOwnerContext);
   if (!ralphState) {
-    const teamWorkerDecision = await resolveTeamWorkerStopDecision(cwd);
-    if (teamWorkerDecision.kind === "blocked") {
-      return await returnPersistentStopBlock(
-        payload,
-        stateDir,
-        "team-worker-stop",
-        safeString(teamWorkerDecision.output.stopReason),
-        teamWorkerDecision.output,
-        canonicalSessionId,
-        { allowRepeatDuringStopHook: teamWorkerDecision.allowRepeatDuringStopHook },
-      );
-    }
-    if (teamWorkerDecision.kind === "allowed") {
-      try {
-        await maybeNudgeLeaderForAllowedWorkerStop({
-          stateDir: teamWorkerDecision.stateDir,
-          logsDir: join(cwd, ".nomx", "logs"),
-          workerContext: teamWorkerDecision.workerContext,
-        });
-      } catch (err) {
-        void err;
-      }
-      return null;
-    }
-
     const autopilotOutput = await buildModeBasedStopOutput("autopilot", cwd, canonicalSessionId);
     if (autopilotOutput) {
       return await returnPersistentStopBlock(
@@ -9925,26 +9025,6 @@ async function buildStopHookOutput(
       );
     }
 
-    const releaseReadinessFinalizeResult = await maybeBuildReleaseReadinessFinalizeStopOutput(
-      payload,
-      cwd,
-      stateDir,
-      canonicalSessionId,
-    );
-    if (releaseReadinessFinalizeResult.matched) return releaseReadinessFinalizeResult.output;
-
-    const teamOutput = await buildTeamStopOutput(cwd, canonicalSessionId, threadId);
-    if (teamOutput) {
-      return await returnPersistentStopBlock(
-        payload,
-        stateDir,
-        "team-stop",
-        safeString(teamOutput.stopReason),
-        teamOutput,
-        canonicalSessionId,
-      );
-    }
-
     if (canonicalSessionId) {
       const deepInterviewQuestionOutput = await buildDeepInterviewQuestionStopOutput(
         cwd,
@@ -9963,25 +9043,6 @@ async function buildStopHookOutput(
         );
       }
 
-      const canonicalTeam = await readCanonicalTerminalRunStateForStop(cwd, canonicalSessionId, "team")
-        ? null
-        : await findCanonicalActiveTeamForSession(cwd, canonicalSessionId, threadId);
-      if (canonicalTeam) {
-        const canonicalTeamOutput = buildTeamStopOutputForPhase(
-          canonicalTeam.teamName,
-          canonicalTeam.phase,
-        );
-        const repeatedCanonicalTeamOutput = await returnPersistentStopBlock(
-          payload,
-          stateDir,
-          "team-stop",
-          `${canonicalTeam.teamName}|${canonicalTeam.phase}`,
-          canonicalTeamOutput,
-          canonicalSessionId,
-        );
-        if (repeatedCanonicalTeamOutput) return repeatedCanonicalTeamOutput;
-      }
-
       const skillOutput = await buildSkillStopOutput(cwd, stateDir, canonicalSessionId, threadId);
       if (skillOutput) {
         return await returnPersistentStopBlock(
@@ -9996,9 +9057,6 @@ async function buildStopHookOutput(
     }
 
 
-    const lastAssistantMessage = safeString(
-      payload.last_assistant_message ?? payload.lastAssistantMessage,
-    );
     const goalWorkflowStopOutput = await buildGoalWorkflowReconciliationStopOutput(payload, cwd);
     if (goalWorkflowStopOutput) {
       return await returnPersistentStopBlock(
@@ -10017,31 +9075,6 @@ async function buildStopHookOutput(
       canonicalSessionId,
     );
     if (ordinaryNoProgressOutput) return ordinaryNoProgressOutput;
-
-    const autoNudgeConfig = await loadAutoNudgeConfig();
-    const autoNudgePhase = await readStopAutoNudgePhase(cwd, stateDir, canonicalSessionId, threadId);
-
-    if (
-      options.skipAutoNudge !== true
-      && autoNudgeConfig.enabled
-      && detectNativeStopStallPattern(lastAssistantMessage, autoNudgeConfig.patterns, autoNudgePhase)
-    ) {
-      const effectiveResponse = resolveEffectiveAutoNudgeResponse(autoNudgeConfig.response);
-      return await returnPersistentStopBlock(
-        payload,
-        stateDir,
-        "auto-nudge",
-        lastAssistantMessage,
-        {
-          decision: "block",
-          reason: effectiveResponse,
-          stopReason: "auto_nudge",
-          systemMessage:
-            "NOMX native Stop detected a stall/permission-style handoff and continued the turn automatically.",
-        },
-        canonicalSessionId,
-      );
-    }
 
     const sloppyFallbackDiffFindings = findSloppyFallbackDiffFindings(cwd);
     const sloppyFallbackDiffOutput = buildSloppyFallbackDiffStopOutput(sloppyFallbackDiffFindings);
@@ -10391,19 +9424,11 @@ export async function dispatchCodexNativeHook(
       }
     }
     if (prompt && promptClassification && !isSubagentPromptSubmit && !suppressActivationSeeding) {
-      skillState = buildNativeOutsideTmuxTeamPromptBlockState(
-        promptClassification,
-        cwd,
-        payload,
-        sessionIdForState || undefined,
-        threadId || undefined,
-        turnId || undefined,
-      ) ?? await recordSkillActivation({
+      skillState = await recordSkillActivation({
         stateDir,
         sourceCwd: cwd,
         text: prompt,
         classification: promptClassification,
-        allowSecondaryTeam: !isNativeOutsideTmuxUserPrompt(cwd, payload, sessionIdForState || undefined),
         sessionId: sessionIdForState || undefined,
         threadId,
         turnId,
@@ -10495,24 +9520,6 @@ export async function dispatchCodexNativeHook(
         triageAdditionalContext = null;
       }
     }
-    const skipHudReconcileForDoctorSmoke = process.env.NOMX_NATIVE_HOOK_DOCTOR_SMOKE === "1";
-    const skipHudReconcileForTeamWorkerPane = !isSubagentPromptSubmit
-      && await isConfirmedTeamWorkerPromptSubmitPane(cwd).catch(() => false);
-    if (allowImplicitSessionSideEffects && allowPromptGlobalSideEffects && !skipHudReconcileForDoctorSmoke && !skipHudReconcileForTeamWorkerPane) {
-      const reconcileHudForPromptSubmitFn = options.reconcileHudForPromptSubmitFn ?? reconcileHudForPromptSubmit;
-      const hudSessionId = resolveHudReconcileSessionId(
-        currentSessionState,
-        canonicalSessionId,
-        sessionIdForState,
-      );
-      const hudSessionIds = resolveHudReconcileSessionIds(
-        currentSessionState,
-        canonicalSessionId,
-        sessionIdForState,
-        nativeSessionId,
-      );
-      await reconcileHudForPromptSubmitFn(cwd, { sessionId: hudSessionId, sessionIds: hudSessionIds }).catch(() => {});
-    }
   }
 
   if (nomxEventName && allowImplicitSessionSideEffects && allowPromptGlobalSideEffects && !skipCanonicalSessionStartContext && !suppressNoisySubagentLifecycleDispatch) {
@@ -10537,7 +9544,6 @@ export async function dispatchCodexNativeHook(
     await dispatchHookEventRuntime({
       event,
       cwd,
-      allowTeamWorkerSideEffects: false,
     });
   }
 
@@ -10573,7 +9579,7 @@ export async function dispatchCodexNativeHook(
     }
   } else if (hookEventName === "PreToolUse") {
     // #3181 Phase-1 (PreToolUse): this hook fires before the shell tool call that runs
-    // the first in-turn `nomx ralplan role-intent write`. On a fresh App/outside-tmux
+    // the first in-turn `nomx ralplan role-intent write`. On a fresh App session
     // turn where SessionStart did not establish the pointer, reconcile the canonical
     // pointer and attest the leader here so the first command can bootstrap. Strictly
     // gated to a fresh (absent-pointer) LEADER turn: no canonical session yet, a present
@@ -10631,10 +9637,6 @@ export async function dispatchCodexNativeHook(
     if (allowImplicitSessionSideEffects) {
       await recordNativeSubagentCapacityBlocker(cwd, stateDir, payload).catch(() => {});
       await recordNativeSubagentSupportBlocker(cwd, stateDir, payload).catch(() => {});
-      if (detectMcpTransportFailure(payload)) {
-        await markTeamTransportFailure(cwd, payload);
-      }
-      await handleTeamWorkerPostToolUseSuccess(payload, cwd);
     }
     outputJson = buildNativePostToolUseOutput(payload);
   } else if (hookEventName === "Stop") {
@@ -10675,13 +9677,7 @@ function hasNativeStopRuntimeSurface(cwd: string): boolean {
   if (stateRoot && existsSync(stateRoot)) return true;
   return [
     process.env.NOMX_SESSION_ID,
-    process.env.NOMX_TEAM_INTERNAL_WORKER,
-    process.env.NOMX_TEAM_WORKER,
-    process.env.NOMX_TEAM_STATE_ROOT,
-    process.env.NOMX_TEAM_LEADER_CWD,
     process.env.NOMX_NOTIFY_HOOK_TRUSTED_MANAGED_CWD,
-    process.env.NOMX_TMUX_HUD_OWNER,
-    process.env.NOMX_TMUX_HUD_LEADER_PANE,
   ].some((value) => safeString(value).trim() !== "");
 }
 

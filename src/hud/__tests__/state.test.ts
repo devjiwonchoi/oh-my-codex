@@ -793,40 +793,6 @@ describe('readAllState canonical skill precedence', () => {
     });
   });
 
-  it('prefers canonical team phase over stale team detail current_phase', async () => {
-    await withTempRepo('nomx-hud-canonical-team-phase-', async (cwd) => {
-      const rootStateDir = join(cwd, '.nomx', 'state');
-      const sessionId = 'sess-team-phase';
-      const sessionDir = join(rootStateDir, 'sessions', sessionId);
-      const teamDir = join(rootStateDir, 'team', 'alpha');
-      await mkdir(sessionDir, { recursive: true });
-      await mkdir(teamDir, { recursive: true });
-      await writeFile(join(rootStateDir, 'session.json'), JSON.stringify({ session_id: sessionId }));
-      await writeFile(join(sessionDir, 'skill-active-state.json'), JSON.stringify({
-        active: true,
-        skill: 'team',
-        phase: 'starting',
-        session_id: sessionId,
-        active_skills: [{ skill: 'team', phase: 'starting', active: true, session_id: sessionId }],
-      }));
-      await writeFile(join(sessionDir, 'team-state.json'), JSON.stringify({
-        active: true,
-        team_name: 'alpha',
-        current_phase: 'starting',
-      }));
-      await writeFile(join(teamDir, 'phase.json'), JSON.stringify({
-        current_phase: 'team-exec',
-        max_fix_attempts: 3,
-        current_fix_attempt: 0,
-        transitions: [],
-        updated_at: new Date().toISOString(),
-      }));
-
-      const state = await readAllState(cwd);
-      assert.deepEqual(state.team, { active: true, team_name: 'alpha', current_phase: 'team-exec' });
-    });
-  });
-
   it('keeps session-scoped ralplan phase authoritative over stale canonical autopilot phase', async () => {
     await withTempRepo('nomx-hud-ralplan-session-authority-', async (cwd) => {
       const rootStateDir = join(cwd, '.nomx', 'state');
@@ -1181,53 +1147,6 @@ describe('readAllState canonical skill precedence', () => {
     });
   });
 
-  it('collects active ultragoal plan with canonical team state for combined rendering', async () => {
-    await withTempRepo('nomx-hud-ultragoal-team-combined-', async (cwd) => {
-      const rootStateDir = join(cwd, '.nomx', 'state');
-      const sessionId = 'sess-ultragoal-team';
-      const sessionDir = join(rootStateDir, 'sessions', sessionId);
-      const ultragoalDir = join(cwd, '.nomx', 'ultragoal');
-      await mkdir(sessionDir, { recursive: true });
-      await mkdir(ultragoalDir, { recursive: true });
-      await writeFile(join(rootStateDir, 'session.json'), JSON.stringify({ session_id: sessionId }));
-      await writeFile(join(sessionDir, 'skill-active-state.json'), JSON.stringify({
-        active: true,
-        skill: 'ultragoal',
-        phase: 'running',
-        session_id: sessionId,
-        active_skills: [
-          { skill: 'ultragoal', phase: 'running', active: true, session_id: sessionId },
-          { skill: 'team', phase: 'team-exec', active: true, session_id: sessionId },
-        ],
-      }));
-      await writeFile(join(sessionDir, 'team-state.json'), JSON.stringify({
-        active: true,
-        team_name: 'hud-fix',
-        agent_count: 3,
-      }));
-      await writeFile(join(ultragoalDir, 'goals.json'), JSON.stringify({
-        version: 1,
-        activeGoalId: 'G002-team-hud',
-        goals: [
-          { id: 'G001-inspect', title: 'Inspect HUD', objective: 'Inspect combined state', status: 'complete' },
-          { id: 'G002-team-hud', title: 'Patch team HUD', objective: 'Fix duplicate team and ultragoal summaries', status: 'in_progress' },
-        ],
-      }));
-
-      const state = await readAllState(cwd);
-
-      assert.deepEqual(state.team, {
-        active: true,
-        team_name: 'hud-fix',
-        agent_count: 3,
-        current_phase: 'team-exec',
-      });
-      assert.equal(state.ultragoal?.active, true);
-      assert.equal(state.ultragoal?.activeGoal?.id, 'G002-team-hud');
-      assert.equal(state.ultragoal?.complete, 1);
-    });
-  });
-
   it('does not surface root autopilot detail when a session exists but has no session canonical or detail state', async () => {
     await withTempRepo('nomx-hud-root-mirror-autopilot-session-missing-', async (cwd) => {
       const rootStateDir = join(cwd, '.nomx', 'state');
@@ -1323,7 +1242,6 @@ describe('readAllState canonical skill precedence', () => {
         active: true,
         current_phase: 'complete',
         session_id: sessionId,
-        tmux_pane_id: '%10',
       }));
 
       const state = await readAllState(cwd);
@@ -1334,7 +1252,6 @@ describe('readAllState canonical skill precedence', () => {
       assert.equal(state.staleAutopilot?.source, 'current-autopilot-stale');
       assert.equal(state.staleAutopilot?.current_phase, 'complete');
       assert.equal(state.staleAutopilot?.session_id, sessionId);
-      assert.equal(state.staleAutopilot?.tmux_pane_id, '%10');
       assert.match(rendered, /autopilot:stale:complete/);
       assert.doesNotMatch(rendered, /No active modes/);
     });
@@ -1364,7 +1281,6 @@ describe('readAllState canonical skill precedence', () => {
         active: true,
         current_phase: 'complete',
         session_id: sessionId,
-        tmux_pane_id: '%10',
       }));
 
       const state = await readAllState(cwd);

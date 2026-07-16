@@ -36,9 +36,6 @@ const WINDOWS_DIRECT_EXTENSIONS = new Set(['.com', '.exe']);
 const WINDOWS_CMD_EXTENSIONS = new Set(['.bat', '.cmd']);
 const WINDOWS_EXTENSION_PRIORITY = ['.exe', '.com', '.cmd', '.bat', '.ps1'];
 const NODE_HOSTED_SCRIPT_EXTENSIONS = new Set(['.js', '.mjs', '.cjs']);
-const WINDOWS_COMPATIBLE_COMMAND_ALIASES: Record<string, string[]> = {
-  tmux: ['tmux', 'psmux'],
-};
 const WINDOWS_NODE_HOSTED_COMMANDS: Record<string, string[]> = {
   codex: ['node_modules', '@openai', 'codex', 'bin', 'codex.js'],
 };
@@ -80,10 +77,7 @@ function normalizeWindowsCommandName(command: string): string {
 
 function resolveWindowsCommandVariants(command: string): string[] {
   if (isWindowsPathLike(command)) return [command];
-  const extension = extname(command);
-  const aliases = WINDOWS_COMPATIBLE_COMMAND_ALIASES[normalizeWindowsCommandName(command)];
-  if (!aliases || aliases.length === 0) return [command];
-  return [...new Set(aliases.map((alias) => `${alias}${extension}`))];
+  return [command];
 }
 
 function resolveWindowsNodeHostedCommandPath(
@@ -216,31 +210,6 @@ export function resolveCommandPathForPlatform(
     return resolveWindowsCommandPath(command, env, existsImpl);
   }
   return resolvePosixCommandPath(command, env, existsImpl);
-}
-
-export function resolveTmuxBinaryForPlatform(
-  platform: NodeJS.Platform = process.platform,
-  env: NodeJS.ProcessEnv = process.env,
-  existsImpl: ExistsSyncLike = existsFileSync,
-): string | null {
-  return resolveCommandPathForPlatform('tmux', platform, env, existsImpl);
-}
-
-const CMUX_RUNTIME_ENV_SIGNALS = ['CMUX_SOCKET_PATH', 'CMUX_SOCKET'] as const;
-
-/**
- * Detects whether NOMX is running under cmux, whose `tmux` binary is a shim
- * (`~/.cmuxterm/.../tmux` -> `cmux __tmux-compat`) that does not implement
- * tmux's `split-window -e KEY=VALUE` environment option. Under cmux the `-e`
- * flags leak into the spawned pane's shell command, so pane-spawn callers must
- * deliver env vars without relying on `-e`. cmux exports these socket env vars
- * for every session it manages, which is a stable runtime marker.
- */
-export function isRunningUnderCmux(env: NodeJS.ProcessEnv = process.env): boolean {
-  return CMUX_RUNTIME_ENV_SIGNALS.some((key) => {
-    const value = env[key];
-    return typeof value === 'string' && value.trim() !== '';
-  });
 }
 
 export function buildPlatformCommandSpec(

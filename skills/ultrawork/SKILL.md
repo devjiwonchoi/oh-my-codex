@@ -4,7 +4,7 @@ description: Parallel execution engine for high-throughput task completion
 ---
 
 <Purpose>
-Ultrawork is a parallel execution engine for high-throughput task completion. It is a component, not a standalone persistence or verification mode: it provides parallelism, context discipline, and smart delegation guidance, but not durable goal tracking, Team's tmux worker lifecycle, Ralph's legacy persistence loop, architect sign-off, or long-running completion guarantees.
+Ultrawork is a parallel execution engine for high-throughput task completion. It provides native-subagent parallelism, context discipline, and smart delegation guidance, but not durable goal tracking, Ralph's legacy persistence loop, architect sign-off, or long-running completion guarantees.
 </Purpose>
 
 <Use_When>
@@ -16,7 +16,7 @@ Ultrawork is a parallel execution engine for high-throughput task completion. It
 
 <Do_Not_Use_When>
 - Task needs durable goal tracking, ledger checkpoints, or resume across stories -- use `ultragoal` instead
-- Task needs coordinated tmux workers, shared task state, mailbox/dispatch coordination, or long-running parallel execution -- use `team` instead
+- Task needs bounded parallel execution -- use native Codex subagents with explicit scopes and leader-owned integration
 - Task requires a full autonomous pipeline -- use `autopilot` instead (default loop: `deep-interview -> ralplan -> ultragoal`, with `team` only when needed)
 - Task intentionally requires the legacy persistent single-owner completion/verification loop -- use `ralph` explicitly; do not present it as the default durable path
 - There is only one sequential task with no parallelism opportunity -- execute directly, use `ultragoal` for durable tracking, or delegate to a single `executor`
@@ -142,7 +142,7 @@ Why bad: No verification output, no acceptance evidence, and no manual QA note w
 - When ultrawork is invoked directly, apply lightweight verification only -- build/typecheck passes when relevant, affected tests pass, and manual QA notes are captured when needed.
 - Ultrawork does not own persistence, durable ledgers, architect verification, deslop, full QA, or the full verified-completion promise. Do not claim those guarantees from direct ultrawork alone.
 - Escalate to `ultragoal` when the work needs durable goal state, story checkpoints, or resume across implementation steps.
-- Escalate to `team` when the work needs coordinated tmux workers, shared task state, or durable multi-worker lifecycle control.
+- Use additional native Codex subagents when independent bounded lanes materially improve throughput.
 - Escalate to explicitly requested `ralph` only for the supported legacy single-owner persistence/verification fallback.
 - Ralph owns persistence, architect verification, deslop, and the full verified-completion promise only when explicitly selected as the supported legacy fallback; direct ultrawork does not own those guarantees.
 - If a task fails repeatedly across retries, report the issue rather than retrying indefinitely.
@@ -171,7 +171,7 @@ ultragoal (durable goal execution)
  \-- owns: goal ledger, checkpoints, resume across stories, final gate discipline
  \-- may use: team for parallel lanes when a story benefits from coordinated workers
 
-team (tmux coordinated execution)
+native Codex subagents (bounded coordinated execution)
  \-- owns: worker panes, shared task state, mailbox/dispatch, lifecycle control
  \-- can return: checkpoint-ready evidence to an Ultragoal leader
 
@@ -186,5 +186,5 @@ ecomode (deprecated compatibility-only)
  \-- do not route users there from ultrawork; it is not the current model-selection path
 ```
 
-Ultrawork is the parallelism and execution-discipline layer. Ultragoal is the current default durable goal/ledger follow-up. Team is the coordinated tmux parallel runtime, often nested under an Ultragoal story when durable work needs multiple lanes. Autopilot orchestrates the full default lifecycle through deep-interview, ralplan, ultragoal, code-review, and ultraqa. Ralph remains active as an explicit legacy fallback for persistent single-owner verification, but it is not the recommended default durable path. Ecomode is deprecated compatibility-only and should not be advertised as the ultrawork model-selection route.
+Ultrawork is the parallelism and execution-discipline layer, using native Codex subagents for bounded lanes. Ultragoal is the current default durable goal/ledger follow-up. Autopilot orchestrates the full default lifecycle through deep-interview, ralplan, ultragoal, code-review, and ultraqa. Ralph remains active as an explicit legacy fallback for persistent single-owner verification, but it is not the recommended default durable path. Ecomode is deprecated compatibility-only and should not be advertised as the ultrawork model-selection route.
 </Advanced>
