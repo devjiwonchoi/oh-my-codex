@@ -173,6 +173,20 @@ async function resolveDoctorScope(cwd: string): Promise<DoctorScopeResolution> {
 		};
 	}
 
+	const userHome = homedir();
+	if (cwd !== userHome) {
+		const userPersisted = await readPersistedSetupPreferences(userHome);
+		if (userPersisted?.scope === "user") {
+			const inferred = await inferPluginInstallModeFromConfigForScope(cwd, "user");
+			return {
+				scope: "user",
+				source: "persisted",
+				installMode: userPersisted.installMode ?? inferred?.installMode,
+				mcpMode: userPersisted.mcpMode ?? inferred?.mcpMode ?? "none",
+			};
+		}
+	}
+
 	const inferredUser = await inferPluginInstallModeFromConfigForScope(cwd, "user");
 	if (inferredUser) return inferredUser;
 

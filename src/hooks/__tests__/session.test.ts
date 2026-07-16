@@ -605,7 +605,10 @@ describe('isSessionStale', () => {
       process.kill = (() => {
         throw Object.assign(new Error('permission denied'), { code: 'EPERM' });
       }) as typeof process.kill;
-      assert.equal(isSessionStateUsable(makeState({ cwd: process.cwd(), platform: 'darwin' }), process.cwd()), true);
+      assert.equal(
+        isSessionStateUsable(makeState({ cwd: process.cwd() }), process.cwd(), { platform: 'darwin' }),
+        true,
+      );
     } finally {
       process.kill = originalKill;
     }
