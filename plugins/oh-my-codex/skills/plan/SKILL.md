@@ -95,12 +95,12 @@ Jumping into code without understanding requirements leads to rework, scope cree
    c. Update the plan file in `.omx/plans/` with the accepted improvements (add missing details, refine steps, strengthen acceptance criteria, ADR updates, etc.)
    d. Note which improvements were applied in a brief changelog section at the end of the plan
    e. Before any execution handoff, derive an explicit **available-agent-types roster** from the known prompt catalog and add concrete **follow-up staffing guidance** for `$ultragoal` and `$team` (recommended roles, counts, suggested reasoning levels by lane, and why each lane exists), plus an explicit `$ralph` fallback note only when persistent single-owner verification is intentionally selected
-   f. Add a product-facing **Goal-Mode Follow-up Suggestions** section: recommend `$ultragoal` by default for general goal-oriented follow-up, `$autoresearch-goal` only when the context is a research project with a research deliverable/evaluator, and `$performance-goal` when the context is an optimization or performance project. Keep these suggestions alongside the Team path and any explicit Ralph fallback rather than replacing implementation-delivery guidance. For ordinary pre-planning external docs or best-practice lookup, cite `$best-practice-research` evidence and synthesize it into the plan instead of recommending Autoresearch as a final architecture component. For durable-goal work that is also parallelizable, explicitly recommend **Team + Ultragoal**: Ultragoal remains leader-owned goal/ledger state and Team returns checkpoint-ready execution evidence.
+   f. Add a product-facing **Goal-Mode Follow-up Suggestions** section: recommend `$ultragoal` by default, keep `$team` for parallel execution, and cite `$best-practice-research` evidence when current external guidance matters.
    g. For the `$team` path, add an explicit launch-hint block with concrete `omx team` / `$team` commands and a **team verification path** (what Team proves before shutdown and what Ultragoal checkpoints as durable completion evidence). Distinguish Team + Ultragoal from any explicit Ralph fallback: Team handles coordinated parallel lanes; Ultragoal is the default durable follow-up/ledger owner, and Ralph is only an explicitly requested legacy-style persistent sequential verification/fix lane when needed.
 7. On Critic approval (with improvements applied): *(--interactive only)* If running with `--interactive`, use `AskUserQuestion` / the structured question UI to present the plan with these options:
    - **Approve durable goal execution** — proceed via `$ultragoal` by default (optionally with `$team` for parallel lanes)
    - **Approve and implement via team** — proceed to implementation via coordinated parallel team agents
-   - **Start goal-mode follow-up** — proceed via `$ultragoal` by default, or `$autoresearch-goal` / `$performance-goal` when the approved plan specifically fits research validation or measurable optimization
+   - **Start goal-mode follow-up** — proceed via `$ultragoal`
    - **Request changes** — return to step 1 with user feedback
    - **Reject** — discard the plan entirely
    If NOT running with `--interactive`, output the final approved plan and stop. Do NOT auto-execute.
@@ -108,7 +108,7 @@ Jumping into code without understanding requirements leads to rework, scope cree
 9. On user approval (--interactive only):
    - **Approve durable goal execution**: **MUST** invoke `$ultragoal` with the approved plan path from `.omx/plans/` as context **plus the explicit available-agent-types roster, suggested reasoning levels, concrete role allocation guidance, and direct launch hints for Ultragoal follow-up work**. Use `$team` alongside Ultragoal when parallel lanes are warranted. Do NOT implement directly. Do NOT edit source code files in the planning agent. Ralph is not the default follow-up; only invoke `$ralph` when the user explicitly selects a legacy/persistent single-owner execution lane.
    - **Approve and implement via team**: **MUST** invoke `$team` with the approved plan path from `.omx/plans/` as context **plus the explicit available-agent-types roster, suggested reasoning levels, concrete staffing / worker-role allocation guidance, explicit `omx team` / `$team` launch hints, and the team verification path**. Do NOT implement directly. The team skill coordinates parallel agents across the staged pipeline for faster execution on large tasks.
-   - **Start goal-mode follow-up**: **MUST** invoke the selected goal workflow with the approved plan path and appropriate success context: `$ultragoal` as the default goal-mode path, `$autoresearch-goal` for research projects, or `$performance-goal` for optimization/performance projects with measurable evaluator criteria. Do NOT implement directly in the planning agent.
+   - **Start goal-mode follow-up**: **MUST** invoke `$ultragoal` with the approved plan path and success context. Do NOT implement directly in the planning agent.
 
 ### Review Mode (`--review`)
 
@@ -130,7 +130,7 @@ Every plan includes:
 - Verification Steps
 - For consensus/ralplan: **RALPLAN-DR summary** (Principles, Decision Drivers, Options)
 - For consensus/ralplan final output: **ADR** (Decision, Drivers, Alternatives considered, Why chosen, Consequences, Follow-ups)
-- For consensus/ralplan execution handoff: **Available-Agent-Types Roster**, **Follow-up Staffing Guidance** (including suggested reasoning levels by lane), product-facing **Goal-Mode Follow-up Suggestions** (`$ultragoal`, `$autoresearch-goal`, `$performance-goal` when contextually appropriate), explicit `omx team` / `$team` **Launch Hints**, and **Team Verification Path**
+- For consensus/ralplan execution handoff: **Available-Agent-Types Roster**, **Follow-up Staffing Guidance**, `$ultragoal` follow-up guidance, explicit `omx team` / `$team` **Launch Hints**, and **Team Verification Path**
 - For deliberate consensus mode: **Pre-mortem (3 scenarios)** and **Expanded Test Plan** (unit/integration/e2e/observability)
 
 Plans are saved to `.omx/plans/`. Drafts go to `.omx/drafts/`.
@@ -147,8 +147,8 @@ Plans are saved to `.omx/plans/`. Drafts go to `.omx/drafts/`.
 - **CRITICAL — Consensus mode agent calls MUST be sequential, never parallel.** Always await the subsequent role-specific `Architect` result before issuing the subsequent role-specific `Critic` call.
 - In consensus mode, default to RALPLAN-DR short mode; enable deliberate mode on `--deliberate` or explicit high-risk signals (auth/security, migrations, destructive changes, production incidents, compliance/PII, public API breakage)
 - In consensus mode with `--interactive`: use `AskUserQuestion` / the structured question UI for the user feedback step (step 2) and the final approval step (step 7) -- never ask for approval in plain text when a structured surface is available. Without `--interactive`, auto-proceed through planning steps without pausing. Output the final plan without execution.
-- In consensus mode with `--interactive`, on user approval **MUST** invoke the selected follow-up lane from step 9 (`$ultragoal`, `$team`, `$autoresearch-goal`, `$performance-goal`, or explicit `$ralph` fallback) -- never implement directly in the planning agent
-- In consensus mode, execution follow-up handoff **MUST** include an explicit available-agent-types roster plus concrete staffing / role-allocation guidance grounded in that roster, suggested reasoning levels by lane, product-facing goal-mode follow-up suggestions (`$ultragoal` by default, `$autoresearch-goal` for research projects, `$performance-goal` for optimization/performance projects), explicit `omx team` / `$team` launch hints, and a team verification path. For parallelizable durable-goal plans, recommend Team + Ultragoal with leader-owned checkpointing from Team evidence; reserve Ralph for persistent sequential single-owner verification/fix follow-up.
+- In consensus mode with `--interactive`, on user approval **MUST** invoke the selected retained lane (`$ultragoal`, `$team`, or explicit `$ralph` fallback) -- never implement directly in the planning agent.
+- In consensus mode, execution handoff **MUST** include an explicit available-agent-types roster, concrete staffing guidance, `$ultragoal` follow-up guidance, explicit `omx team` / `$team` launch hints, and a team verification path.
 </Tool_Usage>
 
 ## Scenario Examples

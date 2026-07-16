@@ -115,11 +115,9 @@ Workers do not own ultragoal goal state, do not create worker ultragoal ledgers,
 The final ultragoal story is not complete until the active agent has run the final quality gate:
 
 1. Run targeted verification for the story.
-2. Run `ai-slop-cleaner` on changed files only; if there are no relevant edits, the cleaner still runs and records a passed/no-op report.
-3. Rerun verification after the cleaner pass.
-4. Run the architecture-invariant audit: derive non-negotiable architecture/domain invariants from the brief/spec/interview/accepted steering/goal artifacts, list the source artifacts, and prove each required invariant with implementation, test, and independent review evidence.
-5. Run `$code-review` through the independent review path. Clean means `codeReview.recommendation: "APPROVE"`, `codeReview.architectStatus: "CLEAR"`, `codeReview.independentReview` contains distinct completed `code-reviewer` and `architect` subagent evidence, and `architectureInvariantGate.status: "passed"` proves every required invariant. `COMMENT`, `WATCH`, `REQUEST CHANGES`, `BLOCK`, missing subagent evidence, unavailable delegation, same-lane/self-review, and unproved architecture invariants are non-clean.
-6. If review or invariant proof is non-clean, do **not** call `update_goal`. Record durable blocker work instead:
+2. Run the architecture-invariant audit: derive non-negotiable architecture/domain invariants from the brief/spec/interview/accepted steering/goal artifacts, list the source artifacts, and prove each required invariant with implementation, test, and independent review evidence.
+3. Run `$code-review` through the independent review path. Clean means `codeReview.recommendation: "APPROVE"`, `codeReview.architectStatus: "CLEAR"`, `codeReview.independentReview` contains distinct completed `code-reviewer` and `architect` subagent evidence, and `architectureInvariantGate.status: "passed"` proves every required invariant. `COMMENT`, `WATCH`, `REQUEST CHANGES`, `BLOCK`, missing subagent evidence, unavailable delegation, same-lane/self-review, and unproved architecture invariants are non-clean.
+4. If review or invariant proof is non-clean, do **not** call `update_goal`. Record durable blocker work instead:
 
 
    ```sh
@@ -128,7 +126,7 @@ The final ultragoal story is not complete until the active agent has run the fin
 
    This marks the current story `review_blocked`, appends a pending blocker-resolution story, keeps the Codex goal active, and lets `omx ultragoal complete-goals` start the blocker next. In legacy per-story mode, the blocker may need an available Codex goal context because the old per-story Codex goal remains active/incomplete.
 
-7. If review and invariant proof are clean, call `update_goal({status: "complete"})`, call `get_goal`, and checkpoint with a structured final gate:
+5. If review and invariant proof are clean, call `update_goal({status: "complete"})`, call `get_goal`, and checkpoint with a structured final gate:
 
 
    ```sh
@@ -139,8 +137,7 @@ The final ultragoal story is not complete until the active agent has run the fin
 
 ```json
 {
-  "aiSlopCleaner": { "status": "passed", "evidence": "cleaner report" },
-  "verification": { "status": "passed", "commands": ["npm test"], "evidence": "post-cleaner verification" },
+  "verification": { "status": "passed", "commands": ["npm test"], "evidence": "final verification" },
   "codeReview": {
     "recommendation": "APPROVE",
     "architectStatus": "CLEAR",

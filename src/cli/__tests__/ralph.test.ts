@@ -7,7 +7,6 @@ import {
   RALPH_HELP,
   assertRequiredRalphPrdJson,
   buildRalphAppendInstructions,
-  buildRalphChangedFilesSeedContents,
   extractRalphTaskDescription,
   filterRalphCodexArgs,
   isRalphPrdMode,
@@ -252,40 +251,9 @@ describe('assertRequiredRalphPrdJson', () => {
   });
 });
 
-describe('ralph deslop launch wiring', () => {
-  it('consumes --no-deslop so it is not forwarded to codex', () => {
-    assert.deepEqual(filterRalphCodexArgs(['--no-deslop', '--model', 'gpt-5', 'fix', 'it']), ['--model', 'gpt-5', 'fix', 'it']);
-  });
-
-  it('documents changed-files-only deslop guidance by default', () => {
-    const instructions = buildRalphAppendInstructions('fix issue 920', {
-      changedFilesPath: '.omx/ralph/changed-files.txt',
-      noDeslop: false,
-      approvedHint: null,
-    });
-    assert.match(instructions, /ai-slop-cleaner/i);
-    assert.match(instructions, /changed files only/i);
-    assert.match(instructions, /\.omx\/ralph\/changed-files\.txt/);
-    assert.match(instructions, /standard mode/i);
-    assert.match(instructions, /rerun the current tests\/build\/lint verification/i);
-  });
-
-  it('documents the --no-deslop opt-out when enabled', () => {
-    const instructions = buildRalphAppendInstructions('fix issue 920', {
-      changedFilesPath: '.omx/ralph/changed-files.txt',
-      noDeslop: true,
-      approvedHint: null,
-    });
-    assert.match(instructions, /--no-deslop/);
-    assert.match(instructions, /skip the mandatory ai-slop-cleaner final pass/i);
-    assert.match(instructions, /latest successful pre-deslop verification evidence/i);
-  });
+describe('ralph launch wiring', () => {
   it('requires conditional native subagent routing guidance', () => {
-    const instructions = buildRalphAppendInstructions('fix issue 920', {
-      changedFilesPath: '.omx/ralph/changed-files.txt',
-      noDeslop: false,
-      approvedHint: null,
-    });
+    const instructions = buildRalphAppendInstructions('fix issue 920', { approvedHint: null });
     assert.match(instructions, /When the native surface exposes `agent_type` role routing, every Codex native subagent dispatch MUST set `agent_type` to an installed OMX role/);
     assert.match(instructions, /never omit `agent_type` for generic OMX work/);
     assert.match(instructions, /role_routing_unavailable/);
@@ -298,13 +266,5 @@ describe('ralph deslop launch wiring', () => {
     assert.match(instructions, /STANDARD -> `medium`/);
     assert.match(instructions, /THOROUGH -> `xhigh`/);
     assert.match(instructions, /<ralph_native_subagents>/);
-  });
-
-
-  it('seeds the changed-files artifact with bounded-scope guidance', () => {
-    const seed = buildRalphChangedFilesSeedContents();
-    assert.match(seed, /mandatory final ai-slop-cleaner pass/i);
-    assert.match(seed, /one repo-relative path per line/i);
-    assert.match(seed, /strictly scoped/i);
   });
 });

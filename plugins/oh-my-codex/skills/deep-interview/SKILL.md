@@ -30,15 +30,11 @@ Execution quality is usually bottlenecked by intent clarity, not just missing im
 - **Quick (`--quick`)**: fast pre-PRD pass; target threshold `<= 0.30`; max rounds 5
 - **Standard (`--standard`, default)**: full requirement interview; target threshold `<= 0.20`; max rounds 12
 - **Deep (`--deep`)**: high-rigor exploration; target threshold `<= 0.15`; max rounds 20
-- **Autoresearch (`--autoresearch`)**: same interview rigor as Standard, but specialized for `$autoresearch` mission readiness and `.omx/specs/` artifact handoff
 
 Profile `max rounds` is a hard cap, not a target. Do not continue only to reach a numbered round count. Extra Socratic rigor does not override the active threshold unless the profile/config changes.
 
 If no flag is provided, use **Standard**.
 
-<Mode_Flags>
-- **`--autoresearch`**: switch the interview into autoresearch-intake mode for `$autoresearch` handoff. In this mode, the interview should converge on a validator-ready research mission, write canonical artifacts under `.omx/specs/`, and preserve the explicit `refine further` vs `launch` boundary for downstream skill intake.
-</Mode_Flags>
 </Depth_Profiles>
 
 <Execution_Policy>
@@ -365,30 +361,6 @@ Spec should include:
 - Technical context findings
 - Full or condensed transcript
 
-### Autoresearch specialization
-
-When the clarified task is specifically about `$autoresearch`, or the skill is invoked with `--autoresearch`, keep the interview domain-specific and emit skill-consumable artifacts without skipping clarification.
-
-- **Accepted seed inputs:** `topic`, `evaluator`, `keep-policy`, `slug`, existing mission draft text, and prior evaluator examples/templates
-- **Required interview focus:** mission clarity, evaluator readiness, keep policy, slug/session naming, and whether the draft is ready to launch now or should refine further
-- **Canonical artifact path:** `.omx/specs/deep-interview-autoresearch-{slug}.md`
-- **Launch artifact bundle:** `.omx/specs/autoresearch-{slug}/mission.md`, `.omx/specs/autoresearch-{slug}/sandbox.md`, and `.omx/specs/autoresearch-{slug}/result.json`
-- **Launch artifact directory:** `.omx/specs/autoresearch-{slug}/`
-- **Required artifact sections:**
-  - `Mission Draft`
-  - `Evaluator Draft`
-  - `Launch Readiness`
-  - `Seed Inputs`
-  - `Confirmation Bridge`
-- **Required launch artifacts under `.omx/specs/autoresearch-{slug}/`:**
-  - `mission.md`
-  - `sandbox.md`
-  - `result.json`
-- **Launch-readiness rule:** mark the draft as **not launch-ready** while the evaluator command still contains placeholder markers such as `<...>`, `TODO`, `TBD`, `REPLACE_ME`, `CHANGEME`, or `your-command-here`
-- **Structured result contract:** `result.json` should point to the draft + mission/sandbox artifacts and carry the finalized `topic`, `evaluatorCommand`, `keepPolicy`, `slug`, `launchReady`, and `blockedReasons` fields so `$autoresearch` can consume it directly
-- **Confirmation bridge:** after artifact generation, offer at least `refine further` and `launch`; do not run direct CLI launch or detached/split tmux launch, and only hand off to `$autoresearch` after explicit confirmation
-- **Handoff rule:** downstream execution must preserve the clarified mission intent, evaluator expectations, decision boundaries, and launch-readiness status from this artifact rather than bypassing the draft review step
-
 ## Phase 5: Execution Bridge
 
 Present execution options after artifact generation using explicit handoff contracts. Treat the deep-interview spec as the current requirements source of truth and preserve intent, non-goals, decision boundaries, acceptance criteria, docs/terminology grounding, and any residual-risk warnings across the handoff.
@@ -432,8 +404,6 @@ Only set `execution_contract_required:true` when the selected downstream workflo
 Include these product-facing suggestions when they fit the clarified spec, without removing the existing `$ultragoal`, `$ralplan`, `$autopilot`, `$ralph`, and `$team` handoff options:
 
 - **`$ultragoal`** — default goal-mode follow-up for implementation or general goal-oriented follow-up specs that should be converted into durable Codex/OMX goals with sequential completion tracking.
-- **`$autoresearch-goal`** — use when the clarified context is a research project: a research question, reference/literature gathering, evaluator-backed analysis, or professor/critic-style deliverable.
-- **`$performance-goal`** — use when the clarified context is an optimization or performance project with measurable speed, latency, throughput, memory, benchmark, or evaluator criteria.
 
 Recommend `$ultragoal` as the default durable goal-mode follow-up because it supersedes Ralph for goal tracking. Preserve `$team` for coordinated parallel implementation and keep `$ralph` only as an explicit fallback for persistent single-owner execution/verification when the user specifically selects it.
 
@@ -453,7 +423,7 @@ Recommend `$ultragoal` as the default durable goal-mode follow-up because it sup
 - **Skipped / Already-Satisfied Stages:** Requirements discovery, ambiguity clarification, and early intent-boundary elicitation
 - **Expected Output:** Canonical planning artifacts under `.omx/plans/`, especially `prd-*.md` and `test-spec-*.md`
 - **Best When:** Requirements are clear enough to stop interviewing, but architectural validation / consensus planning is still desirable
-- **Next Recommended Step:** Use the approved planning artifacts with `$ultragoal` as the default durable goal-mode follow-up (optionally with `$team` for parallel lanes); choose `$autoresearch-goal` for research validation or `$performance-goal` for measurable optimization, and use `$ralph` only as an explicit fallback when a narrow single-owner persistence loop is requested
+- **Next Recommended Step:** Use the approved planning artifacts with `$ultragoal` as the default durable goal-mode follow-up, optionally with `$team` for parallel lanes; use `$ralph` only as an explicit single-owner fallback.
 
 ### 3. **`$autopilot`**
 - **Input Artifact:** `.omx/specs/deep-interview-{slug}.md`
@@ -534,7 +504,7 @@ Recommend `$ultragoal` as the default durable goal-mode follow-up because it sup
 - [ ] Fuzzy or conflicting terminology was challenged against repo language/current code behavior when applicable
 - [ ] Scenario-based edge-case grilling was used when boundary ambiguity would materially affect implementation
 - [ ] Durable docs/ADR/memory updates, if any, were explicitly opted into and public-safe
-- [ ] Handoff options provided (`$ultragoal`, `$ralplan`, `$autopilot`, `$ralph`, `$team`) plus context-sensitive goal-mode suggestions (`$autoresearch-goal`, `$performance-goal`) when applicable
+- [ ] Handoff options provided (`$ultragoal`, `$ralplan`, `$autopilot`, `$ralph`, `$team`)
 - [ ] No direct implementation performed in this mode
 </Final_Checklist>
 

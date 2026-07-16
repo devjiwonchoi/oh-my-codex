@@ -145,7 +145,7 @@ Required fields:
 - **On clean review + passed/skipped QA**: set `active:false`, `current_phase:"complete"`, persist `review_verdict:{recommendation:"APPROVE", architectural_status:"CLEAR", clean:true}`, `qa_verdict:{clean:true, skipped:<boolean>, reason:<string|null>}`, and `completed_at` only when both gates have durable source evidence. Required evidence is either (a) actual `$code-review`/`$ultraqa` stage or native-subagent/thread/tool records, or (b) for QA only, an explicit persisted skip reason for a documented docs-only/trivially non-runtime condition. If that evidence is missing, keep the active phase at `code-review` or `ultraqa` and record a blocker instead of self-attesting a clean gate.
 - **On non-clean review requiring plan changes or failed QA**: increment `iteration` and `review_cycle`, set `current_phase:"ralplan"`, persist `review_verdict` or `qa_verdict`, persist the phase handoff, and set `return_to_ralplan_reason` to a concise findings-driven reason.
 - **Legacy Ralph state**: if a user explicitly selected the legacy Ralph execution lane, phase names and handoff keys may include `ralph`; preserve and resume them rather than rewriting history to Ultragoal.
-- **On cancellation**: run `$cancel`; preserve progress for resume rather than deleting handoff artifacts.
+- **On cancellation**: run `omx cancel`; preserve progress for resume rather than deleting handoff artifacts.
 </State_Management>
 
 <Continuation_And_Resume>
@@ -176,7 +176,7 @@ Pipeline state should use `current_phase` values that match the same phase names
 <Escalation_And_Stop_Conditions>
 - Stop and report a blocker when required credentials/authority are missing.
 - Stop and report when the same review or QA failure recurs across 3 review cycles with no meaningful new plan.
-- Stop when the user says "stop", "cancel", or "abort" and run `$cancel`.
+- Stop when the user says "stop", "cancel", or "abort" and run `omx cancel`.
 - Otherwise, continue the loop until `$code-review` is clean and `$ultraqa` has passed or been explicitly skipped with evidence.
 </Escalation_And_Stop_Conditions>
 

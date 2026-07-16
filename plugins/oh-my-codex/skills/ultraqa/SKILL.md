@@ -252,7 +252,7 @@ User can cancel with `/cancel`, which clears UltraQA state. Cancellation itself 
 
 ## STATE CLEANUP ON COMPLETION
 
-When goal is met OR max cycles reached OR exiting early, run `$cancel` or call:
+When goal is met OR max cycles reached OR exiting early, run `omx cancel` or call:
 
 `omx state clear --input '{"mode":"ultraqa"}' --json`
 

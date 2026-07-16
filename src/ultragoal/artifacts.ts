@@ -256,10 +256,6 @@ export interface CodexGoalInstructionOptions {
 }
 
 export interface UltragoalQualityGate {
-  aiSlopCleaner: {
-    status: 'passed';
-    evidence: string;
-  };
   verification: {
     status: 'passed';
     commands: string[];
@@ -1485,17 +1481,11 @@ function validateArchitectureInvariantGate(gate: Partial<UltragoalQualityGate>, 
 
 function validateQualityGate(value: unknown, requiredInvariants: readonly RequiredArchitectureInvariant[] = []): UltragoalQualityGate {
   if (!value || typeof value !== 'object') {
-    throw new UltragoalError('Final ultragoal completion requires --quality-gate-json with ai-slop-cleaner, verification, code-review, and architecture-invariant evidence.');
+    throw new UltragoalError('Final ultragoal completion requires --quality-gate-json with verification, code-review, and architecture-invariant evidence.');
   }
   const gate = value as Partial<UltragoalQualityGate>;
-  const cleaner = gate.aiSlopCleaner;
   const verification = gate.verification;
   const review = gate.codeReview;
-  if (!cleaner || typeof cleaner !== 'object') throw new UltragoalError('Final quality gate is missing aiSlopCleaner evidence.');
-  if (cleaner.status !== 'passed') {
-    throw new UltragoalError('Final quality gate requires aiSlopCleaner.status="passed"; run ai-slop-cleaner even when it is a no-op.');
-  }
-  assertNonEmpty(cleaner.evidence, 'aiSlopCleaner.evidence');
   if (!verification || typeof verification !== 'object') throw new UltragoalError('Final quality gate is missing verification evidence.');
   if (verification.status !== 'passed') throw new UltragoalError('Final quality gate requires verification.status="passed".');
   if (!Array.isArray(verification.commands) || verification.commands.length === 0 || verification.commands.some((command) => typeof command !== 'string' || command.trim() === '')) {
@@ -1955,8 +1945,8 @@ function buildPerStoryCodexGoalInstruction(goal: UltragoalItem, plan: UltragoalP
     `- To preserve the durable ledger before switching threads, record the non-terminal blocker without failing this goal: omx ultragoal checkpoint --goal-id ${goal.id} --status blocked --evidence "<completed legacy Codex goal blocks create_goal in this thread>" --codex-goal-json "<get_goal JSON or path>"`,
     '- Work only this goal until its completion audit passes.',
     finalStory
-      ? '- Final mandatory quality gate: run ai-slop-cleaner on changed files even when it is a no-op, rerun verification, then run $code-review.'
-      : '- This is not the final ultragoal story; do not run the final ai-slop-cleaner/$code-review gate yet.',
+      ? '- Final mandatory quality gate: run verification, then run $code-review.'
+      : '- This is not the final ultragoal story; do not run the final $code-review gate yet.',
     finalStory
       ? '- Final $code-review is clean only when it is APPROVE with architect status CLEAR and includes independentReview evidence from both code-reviewer and architect subagents.'
       : null,
@@ -2009,7 +1999,7 @@ function buildAggregateCodexGoalInstruction(goal: UltragoalItem, plan: Ultragoal
     '- If a different active or incomplete Codex goal exists, finish/checkpoint that goal before starting this ultragoal; do not replace hidden Codex state from the shell.',
     '- Ultragoal does not call /goal clear. After a completed aggregate run, manually run /goal clear in the Codex UI before starting another ultragoal run in the same session/thread.',
     finalStory
-      ? '- This is the final pending story: run the mandatory final ai-slop-cleaner pass, rerun verification, and run $code-review before any update_goal call.'
+      ? '- This is the final pending story: run final verification and $code-review before any update_goal call.'
       : '- This is not the final story: do not call update_goal yet; the aggregate Codex goal must remain active while later OMX stories remain.',
     finalStory
       ? '- Final $code-review is clean only when it is APPROVE with architect status CLEAR and includes independentReview evidence from both code-reviewer and architect subagents.'

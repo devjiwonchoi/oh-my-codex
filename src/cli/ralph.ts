@@ -25,7 +25,6 @@ Options:
   --help, -h           Show this help message
   --prd <task text>    PRD mode shortcut: mark the task text explicitly
   --prd=<task text>    Same as --prd "<task text>"
-  --no-deslop         Skip the final ai-slop-cleaner pass
 
 PRD mode:
   Ralph initializes persistence artifacts in .omx/ so PRD and progress
@@ -42,7 +41,7 @@ Common patterns:
 `;
 
 const VALUE_TAKING_FLAGS = new Set(['--model', '--provider', '--config', '-c', '-i', '--images-dir']);
-const RALPH_OMX_FLAGS = new Set(['--prd', '--no-deslop']);
+const RALPH_OMX_FLAGS = new Set(['--prd']);
 const RALPH_APPEND_ENV = 'OMX_RALPH_APPEND_INSTRUCTIONS_FILE';
 const REQUIRED_RALPH_PRD_JSON_PATH = '.omx/prd.json';
 const COMPLETED_RALPH_STORY_STATUSES = new Set(['passed', 'complete', 'completed']);
@@ -227,20 +226,16 @@ export function filterRalphCodexArgs(args: readonly string[]): string[] {
 
 interface RalphSessionFiles {
   instructionsPath: string;
-  changedFilesPath: string;
 }
 
+/** @deprecated Retained as a no-op compatibility export for callers upgrading from deslop-enabled Ralph. */
 export function buildRalphChangedFilesSeedContents(): string {
-  return [
-    '# Ralph changed files for the mandatory final ai-slop-cleaner pass',
-    '# Add one repo-relative path per line as Ralph edits files during the session.',
-    '# Step 7.5 must keep ai-slop-cleaner strictly scoped to the paths listed here.',
-  ].join('\n');
+  return '# Ralph changed files tracking is no longer required';
 }
 
 export function buildRalphAppendInstructions(
   task: string,
-  options: { changedFilesPath: string; noDeslop: boolean; approvedHint?: ApprovedExecutionLaunchHint | null },
+  options: { changedFilesPath?: string; noDeslop?: boolean; approvedHint?: ApprovedExecutionLaunchHint | null },
 ): string {
   return [
     '<ralph_native_subagents>',
@@ -265,16 +260,8 @@ export function buildRalphAppendInstructions(
     '- Before completion, build a prompt-to-artifact checklist, inspect real evidence for every requirement, and continue working if any item is missing, incomplete, weakly verified, or uncovered.',
     '- Record Ralph completion evidence in state before final Stop/cleanup: `completion_audit.passed=true`, a non-empty `completion_audit.prompt_to_artifact_checklist`, and non-empty `completion_audit.verification_evidence` (or point `completion_audit_path`/`completion_audit_evidence_path` at a repo-relative JSON artifact with those fields).',
     '- Call `update_goal({status: "complete"})` only after that audit proves the active objective is fully achieved; then report final elapsed time and token-budget usage when provided.',
-    'Final deslop guidance:',
-    options.noDeslop
-      ? '- `--no-deslop` is active for this Ralph run, so skip the mandatory ai-slop-cleaner final pass and use the latest successful pre-deslop verification evidence.'
-      : `- Step 7.5 must run oh-my-codex:ai-slop-cleaner in standard mode on changed files only, using the repo-relative paths listed in \`${options.changedFilesPath}\`.`,
-    options.noDeslop
-      ? '- Do not run ai-slop-cleaner unless the user explicitly re-enables the deslop pass.'
-      : '- Keep the cleaner scope bounded to that file list; do not widen the pass to the full codebase or unrelated files.',
-    options.noDeslop
-      ? '- Step 7.6 stays satisfied by the latest successful pre-deslop verification evidence because this run opted out of the deslop pass.'
-      : '- Step 7.6 must rerun the current tests/build/lint verification after ai-slop-cleaner; if regression fails, roll back cleaner changes or fix and retry before completion.',
+    'Final verification guidance:',
+    '- Rerun the required tests/build/lint after final fixes and read the output before completion.',
     '</ralph_native_subagents>',
   ].join('\n');
 }
@@ -282,18 +269,16 @@ export function buildRalphAppendInstructions(
 async function writeRalphSessionFiles(
   cwd: string,
   task: string,
-  options: { noDeslop: boolean; approvedHint?: ApprovedExecutionLaunchHint | null },
+  options: { approvedHint?: ApprovedExecutionLaunchHint | null },
 ): Promise<RalphSessionFiles> {
   const dir = join(cwd, '.omx', 'ralph');
   await mkdir(dir, { recursive: true });
   const instructionsPath = join(dir, 'session-instructions.md');
-  const changedFilesPath = join(dir, 'changed-files.txt');
-  await writeFile(changedFilesPath, `${buildRalphChangedFilesSeedContents()}\n`);
   await writeFile(
     instructionsPath,
-    `${buildRalphAppendInstructions(task, { changedFilesPath: '.omx/ralph/changed-files.txt', noDeslop: options.noDeslop, approvedHint: options.approvedHint ?? null })}\n`,
+    `${buildRalphAppendInstructions(task, { approvedHint: options.approvedHint ?? null })}\n`,
   );
-  return { instructionsPath, changedFilesPath: '.omx/ralph/changed-files.txt' };
+  return { instructionsPath };
 }
 
 export async function ralphCommand(args: string[]): Promise<void> {
@@ -308,14 +293,13 @@ export async function ralphCommand(args: string[]): Promise<void> {
   const explicitTask = extractRalphTaskDescription(normalizedArgs);
   const approvedHint = readMatchedApprovedRalphExecutionHint(cwd, explicitTask);
   const task = explicitTask === 'ralph-cli-launch' ? approvedHint?.task ?? explicitTask : explicitTask;
-  const noDeslop = normalizedArgs.some((arg) => arg.toLowerCase() === '--no-deslop');
   const availableAgentTypes = await resolveAvailableAgentTypes(cwd);
   const codexHomeOverride = resolveCodexHomeForLaunch(cwd, process.env);
   const staffingPlan = buildFollowupStaffingPlan('ralph', task, availableAgentTypes, {
     codexHomeOverride,
   });
   await startMode('ralph', task, 50);
-  const sessionFiles = await writeRalphSessionFiles(cwd, task, { noDeslop, approvedHint });
+  const sessionFiles = await writeRalphSessionFiles(cwd, task, { approvedHint });
   await updateModeState('ralph', {
     current_phase: 'starting',
     canonical_progress_path: artifacts.canonicalProgressPath,
@@ -327,10 +311,6 @@ export async function ralphCommand(args: string[]): Promise<void> {
     native_subagent_policy: 'When the native surface exposes agent_type role routing, each parallel Codex dispatch must set agent_type to an installed OMX role and never omit it for OMX work; when it is role_routing_unavailable, do not fabricate agent_type and follow the OMX adapted role-pass protocol with a pre-validated role intent in the OMX subagent ledger, and never fake the role via a prompt label. Phase completion must wait for active native subagent threads to finish.',
     goal_mode_integration: 'codex-goal-tools',
     goal_mode_policy: 'Use get_goal for active objective discovery and update_goal only after a prompt-to-artifact completion audit proves the objective is achieved.',
-    deslop_enabled: !noDeslop,
-    deslop_opt_out: noDeslop,
-    deslop_changed_files_path: sessionFiles.changedFilesPath,
-    deslop_scope: 'changed-files-only',
     approved_plan_path: approvedHint?.sourcePath,
     approved_test_spec_paths: approvedHint?.testSpecPaths ?? [],
     approved_deep_interview_spec_paths: approvedHint?.deepInterviewSpecPaths ?? [],

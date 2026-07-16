@@ -1,6 +1,6 @@
 import type { CatalogManifest, CatalogEntryStatus } from './schema.js';
 
-export const SETUP_ONLY_INSTALLABLE_SKILLS = new Set(['wiki']);
+export const SETUP_ONLY_INSTALLABLE_SKILLS = new Set<string>();
 
 export function isCatalogInstallableStatus(status: CatalogEntryStatus | string | undefined): boolean {
   return status === 'active' || status === 'internal';

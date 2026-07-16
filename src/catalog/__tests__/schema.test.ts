@@ -10,6 +10,22 @@ function readSourceManifest(): unknown {
 }
 
 describe('catalog schema', () => {
+  const retainedSkills = [
+    'autopilot',
+    'best-practice-research',
+    'code-review',
+    'deep-interview',
+    'doctor',
+    'plan',
+    'ralph',
+    'ralplan',
+    'team',
+    'ultragoal',
+    'ultraqa',
+    'ultrawork',
+    'worker',
+  ];
+
   it('validates repository manifest', () => {
     const parsed = validateCatalogManifest(readSourceManifest());
     assert.equal(parsed.schemaVersion, 1);
@@ -27,8 +43,13 @@ describe('catalog schema', () => {
 
   it('requires canonical for alias/merged skill entries', () => {
     const broken = JSON.parse(JSON.stringify(readSourceManifest()));
-    const idx = broken.skills.findIndex((s: { status: string }) => s.status === 'alias');
-    delete broken.skills[idx].canonical;
+    broken.skills.push({
+      name: 'tmp-alias',
+      category: 'utility',
+      status: 'alias',
+      core: false,
+      internalRequired: false,
+    });
 
     assert.throws(
       () => validateCatalogManifest(broken),
@@ -59,41 +80,9 @@ describe('catalog schema', () => {
     assert.ok(counts.activeAgentCount > 0);
   });
 
-  it('includes ask as active and legacy ask provider skills as hard-deprecated entries', () => {
+  it('exposes only the retained core and supporting skills', () => {
     const parsed = validateCatalogManifest(readSourceManifest());
-    const ask = parsed.skills.find((skill) => skill.name === 'ask');
-    const askClaude = parsed.skills.find((skill) => skill.name === 'ask-claude');
-    const askGemini = parsed.skills.find((skill) => skill.name === 'ask-gemini');
-
-    assert.equal(ask?.status, 'active');
-    assert.equal(askClaude?.status, 'deprecated');
-    assert.equal(askClaude?.canonical, undefined);
-    assert.equal(askGemini?.status, 'deprecated');
-    assert.equal(askGemini?.canonical, undefined);
-  });
-
-  it('includes ai-slop-cleaner as an active built-in skill', () => {
-    const parsed = validateCatalogManifest(readSourceManifest());
-    const aiSlopCleaner = parsed.skills.find((skill) => skill.name === 'ai-slop-cleaner');
-
-    assert.equal(aiSlopCleaner?.category, 'shortcut');
-    assert.equal(aiSlopCleaner?.status, 'active');
-  });
-
-  it('includes autoresearch as an active built-in skill', () => {
-    const parsed = validateCatalogManifest(readSourceManifest());
-    const autoresearch = parsed.skills.find((skill) => skill.name === 'autoresearch');
-
-    assert.equal(autoresearch?.category, 'execution');
-    assert.equal(autoresearch?.status, 'active');
-  });
-
-  it('includes wiki as an active utility skill', () => {
-    const parsed = validateCatalogManifest(readSourceManifest());
-    const wiki = parsed.skills.find((skill) => skill.name === 'wiki');
-
-    assert.equal(wiki?.category, 'utility');
-    assert.equal(wiki?.status, 'active');
+    assert.deepEqual(parsed.skills.map((skill) => skill.name).sort(), retainedSkills);
   });
 
   it('includes ultragoal as a core execution skill', () => {

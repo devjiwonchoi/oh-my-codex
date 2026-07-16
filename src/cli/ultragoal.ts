@@ -71,8 +71,8 @@ Codex goal integration:
   Repeated identical external authorization blockers become non-retriable
   needs_user_decision stories; complete-goals --retry-failed skips them and prints
   the required external decision instead of looping.
-  Final completion is mandatory-gated: run ai-slop-cleaner, rerun verification,
-  run $code-review, and pass --quality-gate-json with APPROVE + CLEAR evidence.
+  Final completion is mandatory-gated: run verification and $code-review, then
+  pass --quality-gate-json with APPROVE + CLEAR evidence.
   Non-clean final review must use record-review-blockers before update_goal.
 `;
 

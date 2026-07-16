@@ -34,8 +34,7 @@ async function withTempRepo<T>(run: (cwd: string) => Promise<T>): Promise<T> {
 
 function cleanQualityGate(): object {
   return {
-    aiSlopCleaner: { status: 'passed', evidence: 'ai-slop-cleaner ran on changed files' },
-    verification: { status: 'passed', commands: ['npm test'], evidence: 'tests passed after cleaner' },
+    verification: { status: 'passed', commands: ['npm test'], evidence: 'tests passed' },
     codeReview: {
       recommendation: 'APPROVE',
       architectStatus: 'CLEAR',
@@ -1055,20 +1054,6 @@ describe('ultragoal artifacts', () => {
           codexGoal: { goal: { objective, status: 'complete' } },
           qualityGate: {
             ...cleanQualityGate(),
-            aiSlopCleaner: { status: 'not_applicable', evidence: 'skipped cleaner' },
-          },
-        }),
-        /aiSlopCleaner\.status="passed"/,
-      );
-
-      await assert.rejects(
-        () => checkpointUltragoal(cwd, {
-          goalId: started.goal!.id,
-          status: 'complete',
-          evidence: 'tests passed',
-          codexGoal: { goal: { objective, status: 'complete' } },
-          qualityGate: {
-            ...cleanQualityGate(),
             codeReview: {
               recommendation: 'APPROVE',
               architectStatus: 'CLEAR',
@@ -1157,7 +1142,6 @@ describe('ultragoal artifacts', () => {
       assert.equal(isUltragoalDone(plan), true);
       const ledger = await readFile(join(cwd, '.omx/ultragoal/ledger.jsonl'), 'utf-8');
       assert.match(ledger, /"qualityGate"/);
-      assert.match(ledger, /"aiSlopCleaner"/);
       assert.match(ledger, /"codeReview"/);
     });
   });

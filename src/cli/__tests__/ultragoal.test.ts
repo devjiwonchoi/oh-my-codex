@@ -30,8 +30,7 @@ async function withCwd<T>(run: (cwd: string) => Promise<T>): Promise<T> {
 
 function cleanQualityGate(): string {
   return JSON.stringify({
-    aiSlopCleaner: { status: 'passed', evidence: 'ai-slop-cleaner passed' },
-    verification: { status: 'passed', commands: ['npm test'], evidence: 'tests passed after cleaner' },
+    verification: { status: 'passed', commands: ['npm test'], evidence: 'tests passed' },
     codeReview: {
       recommendation: 'APPROVE',
       architectStatus: 'CLEAR',
@@ -148,7 +147,7 @@ describe('cli/ultragoal', () => {
     assert.match(ULTRAGOAL_HELP, /add-goal/);
     assert.match(ULTRAGOAL_HELP, /record-review-blockers/);
     assert.match(ULTRAGOAL_HELP, /quality-gate-json/);
-    assert.match(ULTRAGOAL_HELP, /ai-slop-cleaner/);
+    assert.match(ULTRAGOAL_HELP, /verification/);
     assert.match(ULTRAGOAL_HELP, /code-review/);
   });
 

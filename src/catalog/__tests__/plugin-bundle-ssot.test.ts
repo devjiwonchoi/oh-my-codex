@@ -61,7 +61,7 @@ describe("plugin bundle SSOT contract", () => {
 		assert.equal(result.checked, true);
 		assert.equal(result.changed, false);
 		assert.deepEqual(result.mirroredSkillNames, expectedSkillNames);
-		assert.equal(result.mirroredSkillNames.includes("pipeline"), true);
+		assert.equal(result.mirroredSkillNames.includes("worker"), true);
 		const pluginMcp = JSON.parse(
 			await readFile(join(root, "plugins", "oh-my-codex", ".mcp.json"), "utf-8"),
 		) as { mcpServers?: Record<string, { enabled?: boolean }> };
@@ -131,14 +131,13 @@ describe("plugin bundle SSOT contract", () => {
 			const manifest = JSON.parse(await readFile(manifestPath, "utf-8")) as {
 				skills: Array<{ name: string; status: string; canonical?: string }>;
 			};
-			const skill = manifest.skills.find((entry) => entry.name === "help");
-			assert.ok(skill, "fixture should include help skill");
+			const skill = manifest.skills.find((entry) => entry.name === "doctor");
+			assert.ok(skill, "fixture should include doctor skill");
 			skill.status = "deprecated";
-			skill.canonical = "omx-setup";
 			await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
 			const result = await syncPluginMirror({ root: fixtureRoot });
-			assert.equal(result.mirroredSkillNames.includes("help"), false);
+			assert.equal(result.mirroredSkillNames.includes("doctor"), false);
 
 			const checkResult = await syncPluginMirror({ root: fixtureRoot, check: true });
 			assert.equal(checkResult.checked, true);
@@ -151,7 +150,7 @@ describe("plugin bundle SSOT contract", () => {
 		const fixtureRoot = await copyBundleFixture();
 		try {
 			await cp(
-				join(fixtureRoot, "skills", "help"),
+				join(fixtureRoot, "skills", "doctor"),
 				join(fixtureRoot, "skills", "uncataloged-skill"),
 				{ recursive: true },
 			);

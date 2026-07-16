@@ -91,7 +91,7 @@ Use the CLI-first state surface (`omx state ... --json`) for ultrawork lifecycle
 - **On completion**:
   `omx state write --input '{"mode":"ultrawork","active":false}' --json`
 - **On cancellation/cleanup**:
-  run `$cancel` (which should call `omx state clear --input '{"mode":"ultrawork"}' --json`)
+  run `omx cancel` (which clears the active Ultrawork state)
 
 <Examples>
 <Good>

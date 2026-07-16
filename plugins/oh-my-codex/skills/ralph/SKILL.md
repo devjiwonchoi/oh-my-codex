@@ -66,7 +66,7 @@ Complex tasks often fail silently: partial implementations get declared "done", 
    - Require structured JSON output: `score`, `verdict`, `category_match`, `differences[]`, `suggestions[]`, `reasoning`.
    - Persist verdict to `.omx/state/{scope}/ralph-progress.json` including numeric + qualitative feedback.
    - Default pass threshold: `score >= 90`.
-   - **URL-based visual cloning tasks**: When the task description contains a target URL (e.g., "clone https://example.com"), route the work through `$visual-ralph`. `$web-clone` is hard-deprecated; Visual Ralph owns the migrated live-URL visual implementation use case and uses its built-in visual verdict step for measured visual scoring.
+   - **URL-based visual tasks**: inspect the live target, capture visual evidence, and use the `designer` and `vision` agent roles directly when available.
 6. **Verify completion with fresh evidence**:
    - If Codex goal mode is available, call `get_goal` before final verification to restate the active objective and include it in the evidence checklist.
    a. Identify what command proves the task is complete
@@ -79,15 +79,9 @@ Complex tasks often fail silently: partial implementations get declared "done", 
    - >20 files or security/architectural changes: `task(agent_type="architect", reasoning_effort="xhigh", prompt="...")`
    - Ralph floor: always run an explicit `architect` native subagent, even for small changes
    - On a `role_routing_unavailable` surface, before each App Architect spawn, run `omx ralplan role-intent write --role architect --parent-thread <leader-thread-id> --json`; read `spawn_task_name` from its receipt (`omx_role_intent_<correlation_token>`), the App-compatible `task_name` value (lowercase letters, digits, and underscores only), then spawn the App Architect with `task_name` set to that exact unmodified value, **not** `agent_nickname`. The recorded validated intent and correlation token are the authoritative role carrier, never a prompt label.
-7.5 **Mandatory Deslop Pass**:
-   - After Step 7 passes, run `oh-my-codex:ai-slop-cleaner` on **all files changed during the Ralph session**.
-   - Scope the cleaner to **changed files only**; do not widen the pass beyond Ralph-owned edits.
-   - Run the cleaner in **standard mode** (not `--review`).
-   - If the prompt contains `--no-deslop`, skip Step 7.5 entirely and proceed with the most recent successful verification evidence.
-7.6 **Regression Re-verification**:
-   - After the deslop pass, re-run all tests/build/lint and read the output to confirm they still pass.
-   - If post-deslop regression fails, roll back cleaner changes or fix and retry. Then rerun Step 7.5 and Step 7.6 until the regression is green.
-   - Do not proceed to completion until post-deslop regression is green (unless `--no-deslop` explicitly skipped the deslop pass).
+7.5 **Regression Re-verification**:
+   - Re-run all required tests/build/lint after final fixes and read the output to confirm they still pass.
+   - Do not proceed to completion until the final verification is green.
 8. **On approval**: If Codex goal mode is active, call `update_goal({status: "complete"})` before `/cancel`; report final elapsed time and token-budget usage when the tool returns it. Then run `/cancel` to cleanly exit and clean up all state files.
 9. **On rejection**: Fix the issues raised, then re-verify with the same `agent_type` and `reasoning_effort` profile
 </Steps>
@@ -137,7 +131,7 @@ Use the CLI-first state surface for Ralph lifecycle state (`omx state write/read
   5. Read the state back with `omx state read --input '{"mode":"ralph"}' --json` and verify `completion_audit.passed === true`, a non-empty checklist, and non-empty verification evidence before producing the final answer.
   6. If Codex goal mode is active, call `update_goal({status:"complete"})` only after this Ralph audit read-back succeeds.
 - **On cancellation/cleanup**:
-  run `$cancel` (which should call `omx state clear --input '{"mode":"ralph"}' --json`)
+  run `omx cancel` (which clears the active Ralph state)
 
 
 ## Scenario Examples
@@ -204,9 +198,8 @@ Why bad: These are independent tasks that should run in parallel, not sequential
 - [ ] lsp_diagnostics shows 0 errors on affected files
 - [ ] Architect verification passed: on a routing-capable surface via explicit `task(agent_type="architect", reasoning_effort="medium"...)` minimum; on a `role_routing_unavailable` surface via a validated OMX-adapted Architect role-pass (pre-recorded role intent + `omx_adapted` provenance in the subagent ledger)
 - [ ] Codex goal-mode completion audit passed, and `update_goal({status: "complete"})` was called when an active goal exists
-- [ ] ai-slop-cleaner pass completed on changed files (or --no-deslop specified)
-- [ ] Post-deslop regression tests pass
-- [ ] `/cancel` run for clean state cleanup
+- [ ] Final regression tests pass
+- [ ] `omx cancel` run for clean state cleanup
 </Final_Checklist>
 
 <Advanced>
@@ -221,10 +214,6 @@ Prompt-side `$ralph` workflow activation is lighter-weight than `omx ralph --prd
 It seeds Ralph workflow state and guidance, but it does not implicitly launch the
 CLI entrypoint or apply the PRD startup gate. Treat `omx ralph --prd ...` as the
 explicit PRD-gated path.
-
-### Detecting `--no-deslop`
-Check if `{{PROMPT}}` contains `--no-deslop`.
-If `--no-deslop` is present, skip the deslop pass entirely after Step 7 and continue using the latest successful pre-deslop verification evidence.
 
 ### Visual Reference Flags (Optional)
 Ralph execution supports visual reference flags for screenshot tasks:
