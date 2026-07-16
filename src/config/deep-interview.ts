@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { parse as parseToml } from '@iarna/toml';
+import { legacyOmxRuntimeConfigRoot, readLegacyDeepInterviewTable } from '../compat/legacy-omx/config.js';
 import { findGitLayout } from '../utils/git-layout.js';
 
 export type DeepInterviewProfile = 'quick' | 'standard' | 'deep';
@@ -14,7 +15,7 @@ export interface DeepInterviewConfigOptions {
 
 export interface DeepInterviewConfigCandidate {
   path: string;
-  precedence: 'project-omx' | 'project-root' | 'user';
+  precedence: 'project-nomx' | 'project-legacy' | 'project-root' | 'user' | 'user-legacy';
 }
 
 export interface DeepInterviewRuntimeConfig {
@@ -103,12 +104,14 @@ function normalizeMaxRounds(value: unknown): number | undefined {
 
 function warnMalformedConfig(configPath: string, error: unknown): void {
   const message = error instanceof Error ? error.message : String(error);
-  console.warn(`[omx] warning: ignoring malformed deep-interview config at ${configPath}: ${message}`);
+  console.warn(`[nomx] warning: ignoring malformed deep-interview config at ${configPath}: ${message}`);
 }
 
 function extractDeepInterviewTable(parsed: unknown): DeepInterviewConfigTable | null {
-  if (!isRecord(parsed) || !isRecord(parsed.omx) || !isRecord(parsed.omx.deepInterview)) return null;
-  return parsed.omx.deepInterview as DeepInterviewConfigTable;
+  if (isRecord(parsed) && isRecord(parsed.nomx) && isRecord(parsed.nomx.deepInterview)) {
+    return parsed.nomx.deepInterview as DeepInterviewConfigTable;
+  }
+  return readLegacyDeepInterviewTable(parsed) as DeepInterviewConfigTable | null;
 }
 
 function readDeepInterviewConfigTable(configPath: string): DeepInterviewConfigReadResult {
@@ -177,16 +180,21 @@ export function getDeepInterviewConfigCandidatePaths(options: Pick<DeepInterview
   const home = options.homeDir || homedir();
   const projectRoot = findGitLayout(options.cwd)?.worktreeRoot ?? options.cwd;
   const candidates: DeepInterviewConfigCandidate[] = [
-    { path: join(options.cwd, '.omx', 'config.toml'), precedence: 'project-omx' },
-    { path: join(options.cwd, 'omx.toml'), precedence: 'project-root' },
+    { path: join(options.cwd, '.nomx', 'config.toml'), precedence: 'project-nomx' },
+    { path: join(options.cwd, 'nomx.toml'), precedence: 'project-root' },
   ];
   if (projectRoot !== options.cwd) {
     candidates.push(
-      { path: join(projectRoot, '.omx', 'config.toml'), precedence: 'project-omx' },
-      { path: join(projectRoot, 'omx.toml'), precedence: 'project-root' },
+      { path: join(projectRoot, '.nomx', 'config.toml'), precedence: 'project-nomx' },
+      { path: join(projectRoot, 'nomx.toml'), precedence: 'project-root' },
     );
   }
-  candidates.push({ path: join(home, '.omx', 'config.toml'), precedence: 'user' });
+  candidates.push({ path: join(legacyOmxRuntimeConfigRoot(options.cwd), 'config.toml'), precedence: 'project-legacy' });
+  if (projectRoot !== options.cwd) {
+    candidates.push({ path: join(legacyOmxRuntimeConfigRoot(projectRoot), 'config.toml'), precedence: 'project-legacy' });
+  }
+  candidates.push({ path: join(home, '.nomx', 'config.toml'), precedence: 'user' });
+  candidates.push({ path: join(legacyOmxRuntimeConfigRoot(home), 'config.toml'), precedence: 'user-legacy' });
 
   const seen = new Set<string>();
   return candidates.filter((candidate) => {

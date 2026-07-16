@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { legacyOmxConfigFile, legacyOmxRuntimeConfigRoot } from "../compat/legacy-omx/config.js";
+import { resolveNamespaceEnvironment } from "../identity/index.js";
 import { codexHome } from "../utils/paths.js";
 
 export const SETUP_TEAM_MODES = ["enabled", "disabled"] as const;
@@ -64,7 +66,8 @@ export function teamModeEnabled(mode: SetupTeamMode | undefined): boolean {
 }
 
 export function readTeamModeConfig(cwd = process.cwd()): TeamModeConfig {
-	const env = process.env.OMX_TEAM_MODE?.trim().toLowerCase();
+	const envValue = resolveNamespaceEnvironment({ suffix: "TEAM_MODE", kind: "string" }).value;
+	const env = typeof envValue === "string" ? envValue.trim().toLowerCase() : undefined;
 	if (env === "enabled" || env === "1" || env === "true") {
 		return { enabled: true, status: "enabled", source: "env" };
 	}
@@ -72,34 +75,39 @@ export function readTeamModeConfig(cwd = process.cwd()): TeamModeConfig {
 		return { enabled: false, status: "disabled", source: "env" };
 	}
 
-	const setupPath = join(cwd, ".omx", "setup-scope.json");
-	try {
-		const enabled = readBooleanFromJson(setupPath);
-		if (enabled !== undefined) {
-			return {
-				enabled,
-				status: enabled ? "enabled" : "disabled",
-				source: "setup",
-				path: setupPath,
-			};
+	for (const setupPath of [
+		join(cwd, ".nomx", "setup-scope.json"),
+		join(legacyOmxRuntimeConfigRoot(cwd), "setup-scope.json"),
+	]) {
+		try {
+			const enabled = readBooleanFromJson(setupPath);
+			if (enabled !== undefined) {
+				return {
+					enabled,
+					status: enabled ? "enabled" : "disabled",
+					source: "setup",
+					path: setupPath,
+				};
+			}
+		} catch {
+			return { enabled: true, status: "invalid", source: "invalid", path: setupPath };
 		}
-	} catch {
-		return { enabled: true, status: "invalid", source: "invalid", path: setupPath };
 	}
 
-	const userConfigPath = join(codexHome(), ".omx-config.json");
-	try {
-		const enabled = readBooleanFromJson(userConfigPath);
-		if (enabled !== undefined) {
-			return {
-				enabled,
-				status: enabled ? "enabled" : "disabled",
-				source: "file",
-				path: userConfigPath,
-			};
+	for (const userConfigPath of [join(codexHome(), ".nomx-config.json"), legacyOmxConfigFile(codexHome())]) {
+		try {
+			const enabled = readBooleanFromJson(userConfigPath);
+			if (enabled !== undefined) {
+				return {
+					enabled,
+					status: enabled ? "enabled" : "disabled",
+					source: "file",
+					path: userConfigPath,
+				};
+			}
+		} catch {
+			return { enabled: true, status: "invalid", source: "invalid", path: userConfigPath };
 		}
-	} catch {
-		return { enabled: true, status: "invalid", source: "invalid", path: userConfigPath };
 	}
 
 	return { enabled: true, status: "defaulted", source: "default" };

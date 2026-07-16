@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 
 const root = process.cwd();
 const skill = readFileSync(join(root, 'skills', 'best-practice-research', 'SKILL.md'), 'utf-8');
-const pluginSkill = readFileSync(join(root, 'plugins', 'oh-my-codex', 'skills', 'best-practice-research', 'SKILL.md'), 'utf-8');
+const pluginSkill = readFileSync(join(root, 'plugins', 'nomx', 'skills', 'best-practice-research', 'SKILL.md'), 'utf-8');
 
 describe('best-practice-research skill contract', () => {
   it('defines a bounded wrapper without replacing researcher', () => {

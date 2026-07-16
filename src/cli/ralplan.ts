@@ -85,7 +85,7 @@ export async function ralplanCommand(
   // #3181: a durable native-hook leader attestation (leader_thread_id + leader_attested_at)
   // authorizes the in-turn atomic self-heal path, but ONLY when a usable current session
   // pointer maps to this session. resolveRuntimeStateScope will select an env-provided
-  // session id (OMX_SESSION_ID/CODEX_SESSION_ID/SESSION_ID) even with no usable pointer or
+  // session id (NOMX_SESSION_ID/CODEX_SESSION_ID/SESSION_ID) even with no usable pointer or
   // a pointer owned by another session; in that case it omits metadata. Requiring metadata
   // that maps to currentScope.sessionId prevents a stale/foreign process from selecting an
   // attested session by environment alone and publishing/binding into it (shared state

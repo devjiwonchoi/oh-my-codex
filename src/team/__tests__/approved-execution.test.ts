@@ -14,18 +14,18 @@ import {
 import { renderLeaderOwnedUltragoalContextSection } from '../ultragoal-context.js';
 import type { ApprovedExecutionLaunchHint } from '../../planning/artifacts.js';
 
-async function withUnboxedOmxRoot<T>(fn: () => Promise<T>): Promise<T> {
-  const previousOmxRoot = process.env.OMX_ROOT;
-  const previousOmxStateRoot = process.env.OMX_STATE_ROOT;
+async function withUnboxedNomxRoot<T>(fn: () => Promise<T>): Promise<T> {
+  const previousNomxRoot = process.env.NOMX_ROOT;
+  const previousNomxStateRoot = process.env.NOMX_STATE_ROOT;
   try {
-    delete process.env.OMX_ROOT;
-    delete process.env.OMX_STATE_ROOT;
+    delete process.env.NOMX_ROOT;
+    delete process.env.NOMX_STATE_ROOT;
     return await fn();
   } finally {
-    if (typeof previousOmxRoot === 'string') process.env.OMX_ROOT = previousOmxRoot;
-    else delete process.env.OMX_ROOT;
-    if (typeof previousOmxStateRoot === 'string') process.env.OMX_STATE_ROOT = previousOmxStateRoot;
-    else delete process.env.OMX_STATE_ROOT;
+    if (typeof previousNomxRoot === 'string') process.env.NOMX_ROOT = previousNomxRoot;
+    else delete process.env.NOMX_ROOT;
+    if (typeof previousNomxStateRoot === 'string') process.env.NOMX_STATE_ROOT = previousNomxStateRoot;
+    else delete process.env.NOMX_STATE_ROOT;
   }
 }
 
@@ -33,11 +33,11 @@ function buildReadyApprovedTeamHint(
   overrides: Partial<ApprovedExecutionLaunchHint> = {},
 ): ApprovedExecutionLaunchHint {
   return {
-    sourcePath: '/repo/.omx/plans/prd-issue-1314.md',
-    testSpecPaths: ['/repo/.omx/plans/test-spec-issue-1314.md'],
+    sourcePath: '/repo/.nomx/plans/prd-issue-1314.md',
+    testSpecPaths: ['/repo/.nomx/plans/test-spec-issue-1314.md'],
     deepInterviewSpecPaths: [],
     repositoryContextSummary: {
-      sourcePath: '/repo/.omx/plans/repo-context-issue-1314.md',
+      sourcePath: '/repo/.nomx/plans/repo-context-issue-1314.md',
       content: 'Read the approved repository slice before broader repo exploration.',
       truncated: false,
     },
@@ -55,9 +55,9 @@ describe('approved execution binding', () => {
   it('buildApprovedTeamHandoffSection renders ready approved Team baseline', () => {
     const handoff = buildApprovedTeamHandoffSection(buildReadyApprovedTeamHint());
 
-    assert.match(handoff ?? '', /Approved plan: \/repo\/\.omx\/plans\/prd-issue-1314\.md/);
-    assert.match(handoff ?? '', /Test specs: \/repo\/\.omx\/plans\/test-spec-issue-1314\.md/);
-    assert.match(handoff ?? '', /Approved repository context summary source: \/repo\/\.omx\/plans\/repo-context-issue-1314\.md/);
+    assert.match(handoff ?? '', /Approved plan: \/repo\/\.nomx\/plans\/prd-issue-1314\.md/);
+    assert.match(handoff ?? '', /Test specs: \/repo\/\.nomx\/plans\/test-spec-issue-1314\.md/);
+    assert.match(handoff ?? '', /Approved repository context summary source: \/repo\/\.nomx\/plans\/repo-context-issue-1314\.md/);
     assert.match(handoff ?? '', /Read the approved repository slice before broader repo exploration\./);
     assert.match(handoff ?? '', /Use the approved plan and matching test specs as the execution baseline/);
     assert.doesNotMatch(handoff ?? '', /query the canonical pack|Context pack index/);
@@ -66,8 +66,8 @@ describe('approved execution binding', () => {
   it('renders checkpoint-ready leader-owned Ultragoal context for Team handoff surfaces', () => {
     const section = renderLeaderOwnedUltragoalContextSection({
       kind: 'leader_owned_ultragoal_context',
-      goalsPath: '.omx/ultragoal/goals.json',
-      ledgerPath: '.omx/ultragoal/ledger.jsonl',
+      goalsPath: '.nomx/ultragoal/goals.json',
+      ledgerPath: '.nomx/ultragoal/ledger.jsonl',
       activeGoalId: 'G001-team-runtime-bridge',
       activeGoalTitle: 'Team runtime bridge',
       codexGoalMode: 'aggregate',
@@ -75,8 +75,8 @@ describe('approved execution binding', () => {
     }) ?? '';
 
     assert.match(section, /Leader-owned Ultragoal context/);
-    assert.match(section, /\.omx\/ultragoal\/goals\.json/);
-    assert.match(section, /\.omx\/ultragoal\/ledger\.jsonl/);
+    assert.match(section, /\.nomx\/ultragoal\/goals\.json/);
+    assert.match(section, /\.nomx\/ultragoal\/ledger\.jsonl/);
     assert.match(section, /G001-team-runtime-bridge/);
     assert.match(section, /nomx ultragoal checkpoint/);
     assert.match(section, /--codex-goal-json/);
@@ -92,9 +92,9 @@ describe('approved execution binding', () => {
   });
 
   it('writes and reads a normalized approved execution binding under the team state root', async () => {
-    await withUnboxedOmxRoot(async () => {
-      const cwd = await mkdtemp(join(tmpdir(), 'omx-approved-execution-write-'));
-      const stateRoot = join(cwd, '.omx', 'state');
+    await withUnboxedNomxRoot(async () => {
+      const cwd = await mkdtemp(join(tmpdir(), 'nomx-approved-execution-write-'));
+      const stateRoot = join(cwd, '.nomx', 'state');
       try {
         await writePersistedApprovedTeamExecutionBinding('alpha-team', cwd, {
           prd_path: '  /tmp/prd-alpha.md  ',
@@ -112,7 +112,7 @@ describe('approved execution binding', () => {
           Object.keys(
             JSON.parse(
               readFileSync(
-                join(cwd, '.omx', 'state', 'team', 'alpha-team', 'approved-execution.json'),
+                join(cwd, '.nomx', 'state', 'team', 'alpha-team', 'approved-execution.json'),
                 'utf-8',
               ),
             ) as Record<string, unknown>,
@@ -120,7 +120,7 @@ describe('approved execution binding', () => {
           ['command', 'prd_path', 'task'],
         );
         assert.equal(
-          existsSync(join(cwd, '.omx', 'state', 'team', 'alpha-team', 'approved-execution.json')),
+          existsSync(join(cwd, '.nomx', 'state', 'team', 'alpha-team', 'approved-execution.json')),
           true,
         );
       } finally {
@@ -130,11 +130,11 @@ describe('approved execution binding', () => {
   });
 
   it('resolves a valid continuity state for an exact approved team binding', async () => {
-    await withUnboxedOmxRoot(async () => {
-      const cwd = await mkdtemp(join(tmpdir(), 'omx-approved-execution-valid-'));
-      const stateRoot = join(cwd, '.omx', 'state');
+    await withUnboxedNomxRoot(async () => {
+      const cwd = await mkdtemp(join(tmpdir(), 'nomx-approved-execution-valid-'));
+      const stateRoot = join(cwd, '.nomx', 'state');
       try {
-        const plansDir = join(cwd, '.omx', 'plans');
+        const plansDir = join(cwd, '.nomx', 'plans');
         await mkdir(plansDir, { recursive: true });
         const prdPath = join(plansDir, 'prd-issue-1314.md');
         await writeFile(
@@ -167,12 +167,12 @@ describe('approved execution binding', () => {
   });
 
   it('reports an ambiguous continuity state when a task-only binding matches multiple team launch hints', async () => {
-    await withUnboxedOmxRoot(async () => {
-      const cwd = await mkdtemp(join(tmpdir(), 'omx-approved-execution-ambiguous-'));
-      const stateRoot = join(cwd, '.omx', 'state');
+    await withUnboxedNomxRoot(async () => {
+      const cwd = await mkdtemp(join(tmpdir(), 'nomx-approved-execution-ambiguous-'));
+      const stateRoot = join(cwd, '.nomx', 'state');
       const approvedTask = 'Execute approved issue 1316 plan';
       try {
-        const plansDir = join(cwd, '.omx', 'plans');
+        const plansDir = join(cwd, '.nomx', 'plans');
         await mkdir(plansDir, { recursive: true });
         const prdPath = join(plansDir, 'prd-issue-1316.md');
         await writeFile(
@@ -208,13 +208,13 @@ describe('approved execution binding', () => {
   });
 
   it('keeps an exact-command binding valid when the task text alone would be ambiguous', async () => {
-    await withUnboxedOmxRoot(async () => {
-      const cwd = await mkdtemp(join(tmpdir(), 'omx-approved-execution-command-'));
-      const stateRoot = join(cwd, '.omx', 'state');
+    await withUnboxedNomxRoot(async () => {
+      const cwd = await mkdtemp(join(tmpdir(), 'nomx-approved-execution-command-'));
+      const stateRoot = join(cwd, '.nomx', 'state');
       const approvedTask = 'Execute approved issue 1317 plan';
       const exactCommand = `nomx team 2:executor "${approvedTask}"`;
       try {
-        const plansDir = join(cwd, '.omx', 'plans');
+        const plansDir = join(cwd, '.nomx', 'plans');
         await mkdir(plansDir, { recursive: true });
         const prdPath = join(plansDir, 'prd-issue-1317.md');
         await writeFile(
@@ -252,13 +252,13 @@ describe('approved execution binding', () => {
   });
 
   it('keeps an exact-command binding valid when the approved team hint is wrapped across visible lines', async () => {
-    await withUnboxedOmxRoot(async () => {
-      const cwd = await mkdtemp(join(tmpdir(), 'omx-approved-execution-wrapped-command-'));
-      const stateRoot = join(cwd, '.omx', 'state');
+    await withUnboxedNomxRoot(async () => {
+      const cwd = await mkdtemp(join(tmpdir(), 'nomx-approved-execution-wrapped-command-'));
+      const stateRoot = join(cwd, '.nomx', 'state');
       const approvedTask = 'Execute approved issue 1317 wrapped plan';
       const exactCommand = `nomx team 2:executor "${approvedTask}"`;
       try {
-        const plansDir = join(cwd, '.omx', 'plans');
+        const plansDir = join(cwd, '.nomx', 'plans');
         await mkdir(plansDir, { recursive: true });
         const prdPath = join(plansDir, 'prd-issue-1317-wrapped.md');
         await writeFile(
@@ -298,11 +298,11 @@ describe('approved execution binding', () => {
   });
 
   it('treats bindings without a matching test-spec baseline as stale', async () => {
-    await withUnboxedOmxRoot(async () => {
-      const cwd = await mkdtemp(join(tmpdir(), 'omx-approved-execution-missing-baseline-'));
-      const stateRoot = join(cwd, '.omx', 'state');
+    await withUnboxedNomxRoot(async () => {
+      const cwd = await mkdtemp(join(tmpdir(), 'nomx-approved-execution-missing-baseline-'));
+      const stateRoot = join(cwd, '.nomx', 'state');
       try {
-        const plansDir = join(cwd, '.omx', 'plans');
+        const plansDir = join(cwd, '.nomx', 'plans');
         await mkdir(plansDir, { recursive: true });
         const prdPath = join(plansDir, 'prd-issue-1318.md');
         await writeFile(
@@ -329,9 +329,9 @@ describe('approved execution binding', () => {
 
 
   it('reports malformed and stale binding states explicitly', async () => {
-    await withUnboxedOmxRoot(async () => {
-      const cwd = await mkdtemp(join(tmpdir(), 'omx-approved-execution-invalid-'));
-      const stateRoot = join(cwd, '.omx', 'state');
+    await withUnboxedNomxRoot(async () => {
+      const cwd = await mkdtemp(join(tmpdir(), 'nomx-approved-execution-invalid-'));
+      const stateRoot = join(cwd, '.nomx', 'state');
       try {
         const teamRoot = join(stateRoot, 'team', 'broken-team');
         await mkdir(teamRoot, { recursive: true });
@@ -342,7 +342,7 @@ describe('approved execution binding', () => {
         );
 
         await writePersistedApprovedTeamExecutionBinding('broken-team', cwd, {
-          prd_path: join(cwd, '.omx', 'plans', 'prd-missing.md'),
+          prd_path: join(cwd, '.nomx', 'plans', 'prd-missing.md'),
           task: 'Execute missing approved plan',
         }, stateRoot);
         const state = await resolvePersistedApprovedTeamExecutionContinuityState(
@@ -366,18 +366,18 @@ describe('approved execution binding', () => {
   });
 
   it('rejects unsafe team names before resolving approved binding paths', async () => {
-    await withUnboxedOmxRoot(async () => {
-      const cwd = await mkdtemp(join(tmpdir(), 'omx-approved-execution-unsafe-team-'));
+    await withUnboxedNomxRoot(async () => {
+      const cwd = await mkdtemp(join(tmpdir(), 'nomx-approved-execution-unsafe-team-'));
       try {
         await assert.rejects(
           () => writePersistedApprovedTeamExecutionBinding('../escape', cwd, {
-            prd_path: join(cwd, '.omx', 'plans', 'prd-alpha.md'),
+            prd_path: join(cwd, '.nomx', 'plans', 'prd-alpha.md'),
             task: 'Execute approved alpha plan',
           }),
           /invalid_team_name:\.\.\/escape/,
         );
         assert.equal(
-          existsSync(join(cwd, '.omx', 'state', 'escape', 'approved-execution.json')),
+          existsSync(join(cwd, '.nomx', 'state', 'escape', 'approved-execution.json')),
           false,
         );
         assert.throws(

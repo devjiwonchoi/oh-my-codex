@@ -41,7 +41,7 @@ describe('runProcessTreeWithTimeout', () => {
   });
 
   it('terminates suspicious process storms before the global timeout', { skip: process.platform !== 'linux' }, async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-process-tree-storm-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-process-tree-storm-'));
     const script = join(root, 'storm.sh');
     await writeFile(script, [
       '#!/bin/sh',
@@ -69,7 +69,7 @@ describe('runProcessTreeWithTimeout', () => {
 
 
   it('returns parent output promptly when inherited-stdio grandchildren outlive the parent', { skip: process.platform === 'win32' }, async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-process-tree-inherited-stdio-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-process-tree-inherited-stdio-'));
     const script = join(root, 'inherited-stdio.sh');
     await writeFile(script, [
       '#!/bin/sh',
@@ -95,7 +95,7 @@ describe('runProcessTreeWithTimeout', () => {
   });
 
   it('sweeps process-group grandchildren when the direct child exits', { skip: process.platform === 'win32' }, async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-process-tree-orphan-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-process-tree-orphan-'));
     const script = join(root, 'orphan.sh');
     const ready = join(root, 'ready');
     const term = join(root, 'term');

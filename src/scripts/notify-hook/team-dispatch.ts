@@ -71,8 +71,8 @@ function recordBridgeFallback({
     // best effort observability only
   }
   try {
-    process.emitWarning(`[omx] team-dispatch bridge fallback: ${event.bridge_operation} -> ${event.fallback_target}: ${event.reason}`, {
-      code: 'OMX_TEAM_DISPATCH_BRIDGE_FALLBACK',
+    process.emitWarning(`[nomx] team-dispatch bridge fallback: ${event.bridge_operation} -> ${event.fallback_target}: ${event.reason}`, {
+      code: 'NOMX_TEAM_DISPATCH_BRIDGE_FALLBACK',
     });
   } catch {
     // best effort observability only
@@ -158,9 +158,9 @@ async function writeJsonAtomic(path, value) {
 const DISPATCH_LOCK_STALE_MS = 5 * 60 * 1000;
 const DISPATCH_REQUEST_LEASE_STALE_MS = 30 * 1000;
 const DEFAULT_ISSUE_DISPATCH_COOLDOWN_MS = 15 * 60 * 1000;
-const ISSUE_DISPATCH_COOLDOWN_ENV = 'OMX_TEAM_DISPATCH_ISSUE_COOLDOWN_MS';
+const ISSUE_DISPATCH_COOLDOWN_ENV = 'NOMX_TEAM_DISPATCH_ISSUE_COOLDOWN_MS';
 const DEFAULT_DISPATCH_TRIGGER_COOLDOWN_MS = 30 * 1000;
-const DISPATCH_TRIGGER_COOLDOWN_ENV = 'OMX_TEAM_DISPATCH_TRIGGER_COOLDOWN_MS';
+const DISPATCH_TRIGGER_COOLDOWN_ENV = 'NOMX_TEAM_DISPATCH_TRIGGER_COOLDOWN_MS';
 const LEADER_PANE_MISSING_DEFERRED_REASON = 'leader_pane_missing_deferred';
 const LEADER_NOTIFICATION_DEFERRED_TYPE = 'leader_notification_deferred';
 
@@ -932,8 +932,8 @@ function buildDispatchAttemptEvidence(result, fallback = {}) {
 
 export async function drainPendingTeamDispatch({
   cwd,
-  stateDir = join(cwd || process.cwd(), '.omx', 'state'),
-  logsDir = join(cwd, '.omx', 'logs'),
+  stateDir = join(cwd || process.cwd(), '.nomx', 'state'),
+  logsDir = join(cwd, '.nomx', 'logs'),
   maxPerTick = 5,
   injector = injectDispatchRequest,
 }: {
@@ -943,7 +943,7 @@ export async function drainPendingTeamDispatch({
   maxPerTick?: number;
   injector?: typeof injectDispatchRequest;
 } = {}) {
-  if (safeString(process.env.OMX_TEAM_WORKER)) {
+  if (safeString(process.env.NOMX_TEAM_WORKER)) {
     return { processed: 0, skipped: 0, failed: 0, reason: 'worker_context' };
   }
   const teamRoot = join(stateDir, 'team');

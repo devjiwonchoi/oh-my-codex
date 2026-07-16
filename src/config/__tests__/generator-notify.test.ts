@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildMergedConfig, mergeConfig, OMX_DEVELOPER_INSTRUCTIONS, upsertPluginModeRuntimeFeatureFlags } from '../generator.js';
+import { buildMergedConfig, mergeConfig, NOMX_DEVELOPER_INSTRUCTIONS, upsertPluginModeRuntimeFeatureFlags } from '../generator.js';
 
 describe('config generator', () => {
   it('places top-level keys before [features]', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       await mergeConfig(configPath, wd);
@@ -36,7 +36,7 @@ describe('config generator', () => {
   });
 
   it('writes notify as a TOML array', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       await mergeConfig(configPath, wd);
@@ -50,7 +50,7 @@ describe('config generator', () => {
   });
 
   it('does not seed context defaults for fresh configs', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       await mergeConfig(configPath, wd);
@@ -73,25 +73,25 @@ describe('config generator', () => {
   });
 
   it('writes model_reasoning_effort and strengthened developer_instructions', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       await mergeConfig(configPath, wd);
       const toml = await readFile(configPath, 'utf-8');
 
       assert.match(toml, /^model_reasoning_effort = "medium"$/m);
-      assert.match(toml, /^developer_instructions = "You have oh-my-codex installed/m);
+      assert.match(toml, /^developer_instructions = "You have nomx installed/m);
       assert.match(toml, /AGENTS\.md is the orchestration brain and main control surface/);
       assert.match(toml, /Follow AGENTS\.md for skill\/keyword routing, \$name workflow invocation, and role-specialized subagents/);
       assert.match(toml, /Native subagents live in \.codex\/agents/);
-      assert.match(toml, /when the native surface exposes `agent_type` role routing, set `agent_type` to an installed role and never omit it for OMX work/i);
+      assert.match(toml, /when the native surface exposes `agent_type` role routing, set `agent_type` to an installed role and never omit it for NOMX work/i);
       assert.match(toml, /role_routing_unavailable/i);
       assert.match(toml, /do not fabricate `agent_type`/i);
-      assert.match(toml, /OMX adapted role-pass protocol/i);
-      assert.match(toml, /pre-validated role intent in the OMX subagent ledger/i);
+      assert.match(toml, /NOMX adapted role-pass protocol/i);
+      assert.match(toml, /pre-validated role intent in the NOMX subagent ledger/i);
       assert.match(toml, /never fake the role via a prompt label/i);
       assert.match(toml, /Treat installed prompts as narrower execution surfaces under AGENTS\.md authority/);
-      assert.match(toml, new RegExp(`^developer_instructions = "${OMX_DEVELOPER_INSTRUCTIONS.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"$`, 'm'));
+      assert.match(toml, new RegExp(`^developer_instructions = "${NOMX_DEVELOPER_INSTRUCTIONS.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"$`, 'm'));
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
@@ -115,8 +115,8 @@ describe('config generator', () => {
     }
   });
 
-  it('re-runs setup replacing OMX config cleanly', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+  it('re-runs setup replacing NOMX config cleanly', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       await mergeConfig(configPath, wd);
@@ -130,12 +130,12 @@ describe('config generator', () => {
       await mergeConfig(configPath, wd);
       const rerun = await readFile(configPath, 'utf-8');
 
-      // OMX block appears exactly once
+      // NOMX block appears exactly once
       assert.equal(
-        (rerun.match(/# oh-my-codex \(OMX\) Configuration/g) ?? []).length,
+        (rerun.match(/# nomx \(NOMX\) Configuration/g) ?? []).length,
         1
       );
-      assert.equal((rerun.match(/^# End oh-my-codex$/gm) ?? []).length, 1);
+      assert.equal((rerun.match(/^# End nomx$/gm) ?? []).length, 1);
 
       // Features correct
       assert.equal((rerun.match(/^\[features\]$/gm) ?? []).length, 1);
@@ -159,7 +159,7 @@ describe('config generator', () => {
   });
 
   it('does not add a missing context partner to explicit settings', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       await writeFile(
@@ -179,7 +179,7 @@ describe('config generator', () => {
   });
 
   it('does not add context keys for non-gpt-5.6-sol models', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       await writeFile(configPath, 'model = \"o3\"\n');
@@ -196,7 +196,7 @@ describe('config generator', () => {
   });
 
   it('preserves existing user top-level config', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       const existing = [
@@ -216,14 +216,14 @@ describe('config generator', () => {
       assert.match(toml, /^model = "o3"$/m);
       assert.match(toml, /^approval_policy = "on-failure"$/m);
 
-      // OMX keys added
+      // NOMX keys added
       assert.match(toml, /^notify = \[/m);
       assert.match(toml, /^model_reasoning_effort = "medium"$/m);
 
       // User's feature flag preserved
       assert.match(toml, /^web_search = true$/m);
 
-      // OMX feature flags added without legacy multi-agent configuration
+      // NOMX feature flags added without legacy multi-agent configuration
       assert.doesNotMatch(toml, /^multi_agent\s*=/m);
       assert.match(toml, /^goals = true$/m);
     } finally {
@@ -232,7 +232,7 @@ describe('config generator', () => {
   });
 
   it('does not write retired global [agents] defaults', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       await mergeConfig(configPath, wd);
@@ -247,7 +247,7 @@ describe('config generator', () => {
   });
 
   it('removes deprecated collab flag from [features]', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       const existing = [
@@ -278,21 +278,21 @@ describe('config generator', () => {
     }
   });
 
-  it('migrates a legacy OMX block and preserves user settings', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+  it('migrates a legacy NOMX block and preserves user settings', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       const legacy = [
         '[user.before]',
         'name = "kept-before"',
         '',
-        '# oh-my-codex (OMX) Configuration',
+        '# nomx (NOMX) Configuration',
         '# legacy block without top divider',
         'notify = ["node", "/tmp/legacy notify-hook.js"]',
-        '[mcp_servers.omx_state]',
+        '[mcp_servers.nomx_state]',
         'command = "node"',
         'args = ["/tmp/state-server.js"]',
-        '# End oh-my-codex',
+        '# End nomx',
         '',
         '[user.after]',
         'name = "kept-after"',
@@ -304,7 +304,7 @@ describe('config generator', () => {
       const toml = await readFile(configPath, 'utf-8');
 
       assert.equal(
-        (toml.match(/oh-my-codex \(OMX\) Configuration/g) ?? []).length,
+        (toml.match(/nomx \(NOMX\) Configuration/g) ?? []).length,
         1
       );
       assert.match(toml, /^\[user.before\]$/m);
@@ -318,7 +318,7 @@ describe('config generator', () => {
   });
 
   it('merges into existing [features] table without duplicating it', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       const original = [
@@ -352,7 +352,7 @@ describe('config generator', () => {
   });
 
   it('migrates legacy codex_hooks flag to hooks without duplicating hook flags', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       const original = [
@@ -375,7 +375,7 @@ describe('config generator', () => {
   });
 
   it('preserves existing hooks flag without adding legacy codex_hooks', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       const original = [
@@ -398,7 +398,7 @@ describe('config generator', () => {
   });
 
   it('can target the legacy codex_hooks flag when requested', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       const original = [
@@ -421,7 +421,7 @@ describe('config generator', () => {
   });
 
   it('dedupes mixed legacy codex_hooks and hooks flags to a single hooks flag', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
       const original = [
@@ -481,38 +481,38 @@ describe('config generator', () => {
   });
 
   it('escapes Windows-style backslashes for MCP server args', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-config-gen-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-config-gen-'));
     try {
       const configPath = join(wd, 'config.toml');
-      const windowsPkgRoot = 'C:\\Users\\alice\\oh-my-codex';
+      const windowsPkgRoot = 'C:\\Users\\alice\\nomx';
       await mergeConfig(configPath, windowsPkgRoot, { includeFirstPartyMcp: true });
       const toml = await readFile(configPath, 'utf-8');
 
       assert.match(
         toml,
-        /args = \["C:\\\\Users\\\\alice\\\\oh-my-codex\/dist\/mcp\/state-server\.js"\]/,
+        /args = \["C:\\\\Users\\\\alice\\\\nomx\/dist\/mcp\/state-server\.js"\]/,
       );
       assert.match(
         toml,
-        /args = \["C:\\\\Users\\\\alice\\\\oh-my-codex\/dist\/mcp\/memory-server\.js"\]/,
+        /args = \["C:\\\\Users\\\\alice\\\\nomx\/dist\/mcp\/memory-server\.js"\]/,
       );
       assert.match(
         toml,
-        /args = \["C:\\\\Users\\\\alice\\\\oh-my-codex\/dist\/mcp\/code-intel-server\.js"\]/,
+        /args = \["C:\\\\Users\\\\alice\\\\nomx\/dist\/mcp\/code-intel-server\.js"\]/,
       );
       assert.match(
         toml,
-        /args = \["C:\\\\Users\\\\alice\\\\oh-my-codex\/dist\/mcp\/trace-server\.js"\]/,
+        /args = \["C:\\\\Users\\\\alice\\\\nomx\/dist\/mcp\/trace-server\.js"\]/,
       );
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it('does not preserve cross-install OMX notify commands when notify is disabled', () => {
-    const pkgRoot = '/current/install/oh-my-codex';
+  it('does not preserve cross-install NOMX notify commands when notify is disabled', () => {
+    const pkgRoot = '/current/install/nomx';
     const staleConfig = [
-      'notify = ["node", "/opt/homebrew/lib/node_modules/oh-my-codex/dist/scripts/notify-dispatcher.js", "--metadata", "/tmp/notify-dispatch.json"]',
+      'notify = ["node", "/opt/homebrew/lib/node_modules/nomx/dist/scripts/notify-dispatcher.js", "--metadata", "/tmp/notify-dispatch.json"]',
       'approval_policy = "never"',
       '',
     ].join('\n');
@@ -524,10 +524,10 @@ describe('config generator', () => {
     assert.match(merged, /^approval_policy = "never"$/m);
   });
 
-  it('does not preserve Windows-style OMX notify hooks when notify is disabled', () => {
-    const pkgRoot = 'C:\\Users\\alice\\AppData\\Roaming\\npm\\node_modules\\oh-my-codex';
+  it('does not preserve Windows-style NOMX notify hooks when notify is disabled', () => {
+    const pkgRoot = 'C:\\Users\\alice\\AppData\\Roaming\\npm\\node_modules\\nomx';
     const staleConfig = [
-      'notify = ["node", "C:\\\\Users\\\\alice\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\oh-my-codex\\\\dist\\\\scripts\\\\notify-hook.js"]',
+      'notify = ["node", "C:\\\\Users\\\\alice\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\nomx\\\\dist\\\\scripts\\\\notify-hook.js"]',
       'approval_policy = "never"',
       '',
     ].join('\n');
@@ -539,10 +539,10 @@ describe('config generator', () => {
     assert.match(merged, /^approval_policy = "never"$/m);
   });
 
-  it('does not preserve OMX notify commands invoked through node flags when notify is disabled', () => {
-    const pkgRoot = '/current/install/oh-my-codex';
+  it('does not preserve NOMX notify commands invoked through node flags when notify is disabled', () => {
+    const pkgRoot = '/current/install/nomx';
     const staleConfig = [
-      'notify = ["node", "--no-warnings", "/opt/homebrew/lib/node_modules/oh-my-codex/dist/scripts/notify-hook.js"]',
+      'notify = ["node", "--no-warnings", "/opt/homebrew/lib/node_modules/nomx/dist/scripts/notify-hook.js"]',
       'approval_policy = "never"',
       '',
     ].join('\n');
@@ -554,10 +554,10 @@ describe('config generator', () => {
     assert.match(merged, /^approval_policy = "never"$/m);
   });
 
-  it('preserves real user notify commands that mention OMX paths as arguments', () => {
-    const pkgRoot = '/current/install/oh-my-codex';
+  it('preserves real user notify commands that mention NOMX paths as arguments', () => {
+    const pkgRoot = '/current/install/nomx';
     const userNotify = [
-      'notify = ["node", "/tmp/user-notify.js", "/opt/homebrew/lib/node_modules/oh-my-codex/dist/scripts/notify-hook.js"]',
+      'notify = ["node", "/tmp/user-notify.js", "/opt/homebrew/lib/node_modules/nomx/dist/scripts/notify-hook.js"]',
       'approval_policy = "never"',
       '',
     ].join('\n');
@@ -566,7 +566,7 @@ describe('config generator', () => {
 
     assert.match(
       merged,
-      /^notify = \["node", "\/tmp\/user-notify\.js", "\/opt\/homebrew\/lib\/node_modules\/oh-my-codex\/dist\/scripts\/notify-hook\.js"\]$/m,
+      /^notify = \["node", "\/tmp\/user-notify\.js", "\/opt\/homebrew\/lib\/node_modules\/nomx\/dist\/scripts\/notify-hook\.js"\]$/m,
     );
     assert.match(merged, /^approval_policy = "never"$/m);
   });

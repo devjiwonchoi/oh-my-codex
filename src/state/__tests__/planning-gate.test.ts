@@ -35,13 +35,13 @@ describe('planning gate: tool classification', () => {
   });
 
   it('classifies same-command protected artifact write plus shell execution as implementation', () => {
-    const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+    const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 #!/bin/sh
 mkdir -p src
 printf pwned > src/pwned.ts
 SCRIPT
-sh .omx/context/run.sh
+sh .nomx/context/run.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
@@ -50,9 +50,9 @@ nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ral
   it('classifies Python literal planning artifact write plus shell execution as implementation', () => {
     const command = `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/plans/run.sh').write_text('echo pwned')
+Path('.nomx/plans/run.sh').write_text('echo pwned')
 PY
-sh .omx/plans/run.sh`;
+sh .nomx/plans/run.sh`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -60,9 +60,9 @@ sh .omx/plans/run.sh`;
   it('classifies Python literal tmp artifact write plus shell execution as implementation', () => {
     const command = `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/run.sh').write_text('echo pwned')
+Path('.nomx/tmp/sess/run.sh').write_text('echo pwned')
 PY
-sh .omx/tmp/sess/run.sh`;
+sh .nomx/tmp/sess/run.sh`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -70,9 +70,9 @@ sh .omx/tmp/sess/run.sh`;
   it('classifies Python literal tmp artifact write plus tsx execution as implementation', () => {
     const command = `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/run.ts').write_text('console.log(1)')
+Path('.nomx/tmp/sess/run.ts').write_text('console.log(1)')
 PY
-tsx .omx/tmp/sess/run.ts`;
+tsx .nomx/tmp/sess/run.ts`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
@@ -81,34 +81,34 @@ tsx .omx/tmp/sess/run.ts`;
     const commands = [
       `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/run.ts').write_text('console.log(1)')
+Path('.nomx/tmp/sess/run.ts').write_text('console.log(1)')
 PY
-tsx --tsconfig tsconfig.json watch .omx/tmp/sess/run.ts`,
+tsx --tsconfig tsconfig.json watch .nomx/tmp/sess/run.ts`,
       `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/run.ts').write_text('console.log(1)')
+Path('.nomx/tmp/sess/run.ts').write_text('console.log(1)')
 PY
-deno run .omx/tmp/sess/run.ts`,
+deno run .nomx/tmp/sess/run.ts`,
       `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/run.txt').write_text('print(1)')
+Path('.nomx/tmp/sess/run.txt').write_text('print(1)')
 PY
-python -X dev .omx/tmp/sess/run.txt`,
+python -X dev .nomx/tmp/sess/run.txt`,
       `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/probe.go').write_text('package main')
+Path('.nomx/tmp/sess/probe.go').write_text('package main')
 PY
-go run .omx/tmp/sess/probe.go`,
+go run .nomx/tmp/sess/probe.go`,
       `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/preload').write_text('')
+Path('.nomx/tmp/sess/preload').write_text('')
 PY
-node --require .omx/tmp/sess/preload -e ''`,
+node --require .nomx/tmp/sess/preload -e ''`,
       `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/rc').write_text('')
+Path('.nomx/tmp/sess/rc').write_text('')
 PY
-bash --rcfile .omx/tmp/sess/rc -i -c true`,
+bash --rcfile .nomx/tmp/sess/rc -i -c true`,
     ];
 
     for (const command of commands) {
@@ -118,21 +118,21 @@ bash --rcfile .omx/tmp/sess/rc -i -c true`,
 
   it('classifies tmp stdin redirection into interpreters and shells as implementation', () => {
     const commands = [
-      'python < .omx/tmp/s/run.txt',
-      'node < .omx/tmp/s/run.txt',
-      'ruby < .omx/tmp/s/run.txt',
-      'perl < .omx/tmp/s/run.txt',
-      'sh < .omx/tmp/s/run.txt',
-      'bash < .omx/tmp/s/run.txt',
-      '/usr/bin/python < .omx/tmp/s/run.txt',
-      '/bin/sh < .omx/tmp/s/run.txt',
-      'env /bin/bash < .omx/tmp/s/run.txt',
-      'command /usr/bin/node < .omx/tmp/s/run.txt',
+      'python < .nomx/tmp/s/run.txt',
+      'node < .nomx/tmp/s/run.txt',
+      'ruby < .nomx/tmp/s/run.txt',
+      'perl < .nomx/tmp/s/run.txt',
+      'sh < .nomx/tmp/s/run.txt',
+      'bash < .nomx/tmp/s/run.txt',
+      '/usr/bin/python < .nomx/tmp/s/run.txt',
+      '/bin/sh < .nomx/tmp/s/run.txt',
+      'env /bin/bash < .nomx/tmp/s/run.txt',
+      'command /usr/bin/node < .nomx/tmp/s/run.txt',
       `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/s/run.txt').write_text('print(1)')
+Path('.nomx/tmp/s/run.txt').write_text('print(1)')
 PY
-python < .omx/tmp/s/run.txt`,
+python < .nomx/tmp/s/run.txt`,
     ];
 
     for (const command of commands) {
@@ -143,7 +143,7 @@ python < .omx/tmp/s/run.txt`,
   it('does not classify Python literal tmp artifact write without execution as implementation', () => {
     const command = `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/notes.md').write_text('# Scratch notes\\n')
+Path('.nomx/tmp/sess/notes.md').write_text('# Scratch notes\\n')
 PY`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), false);
@@ -152,18 +152,18 @@ PY`;
   it('does not classify Python literal planning artifact write without execution as implementation', () => {
     const command = `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/plans/notes.md').write_text('# Plan notes\\n')
+Path('.nomx/plans/notes.md').write_text('# Plan notes\\n')
 PY`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), false);
   });
 
   it('classifies same-command protected artifact execution through cd plus timeout as implementation', () => {
-    const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+    const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
-cd .omx/context && timeout 5 sh run.sh
+cd .nomx/context && timeout 5 sh run.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
@@ -171,16 +171,16 @@ nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ral
 
   it('classifies same-command protected artifact execution through cd shell wrappers and options as implementation', () => {
     const executionForms = [
-      'command cd .omx/context && sh run.sh',
-      'builtin cd .omx/context && sh run.sh',
-      'cd -- .omx/context && sh run.sh',
-      'cd -P .omx/context && sh run.sh',
-      'cd -L .omx/context && sh run.sh',
+      'command cd .nomx/context && sh run.sh',
+      'builtin cd .nomx/context && sh run.sh',
+      'cd -- .nomx/context && sh run.sh',
+      'cd -P .nomx/context && sh run.sh',
+      'cd -L .nomx/context && sh run.sh',
     ];
 
     for (const executionForm of executionForms) {
-      const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+      const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 ${executionForm}
@@ -192,14 +192,14 @@ nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ral
 
   it('classifies grouped cwd same-command protected artifact executions as implementation', () => {
     const executionForms = [
-      '(cd .omx/context && sh run.sh)',
-      '{ cd .omx/context; sh run.sh; }',
-      '(cd .omx/context; sh run.sh)',
+      '(cd .nomx/context && sh run.sh)',
+      '{ cd .nomx/context; sh run.sh; }',
+      '(cd .nomx/context; sh run.sh)',
     ];
 
     for (const executionForm of executionForms) {
-      const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+      const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 ${executionForm}
@@ -210,75 +210,75 @@ nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ral
   });
 
   it('classifies same-command protected artifact execution through bash -lc as implementation', () => {
-    const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+    const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
-bash -lc 'sh .omx/context/run.sh'
+bash -lc 'sh .nomx/context/run.sh'
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
 
   it('classifies tee writes when the protected executable is a later output file', () => {
-    const command = `mkdir -p .omx/context
-printf 'echo pwned\n' | tee .omx/context/notes.md .omx/context/run.sh
-sh .omx/context/run.sh
+    const command = `mkdir -p .nomx/context
+printf 'echo pwned\n' | tee .nomx/context/notes.md .nomx/context/run.sh
+sh .nomx/context/run.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
 
   it('classifies same-command protected artifact execution through script interpreters as implementation', () => {
-    const command = `mkdir -p .omx/context
-cat > .omx/context/run.py <<'PY'
+    const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.py <<'PY'
 print('pwned')
 PY
-python3 .omx/context/run.py
+python3 .nomx/context/run.py
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
 
   it('classifies shell script operands after shell options that consume the next word', () => {
-    const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+    const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
-bash -o posix .omx/context/run.sh
+bash -o posix .nomx/context/run.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
 
   it('classifies same-command protected artifact execution through attached env chdir as implementation', () => {
-    const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+    const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
-env -C.omx/context sh run.sh
+env -C.nomx/context sh run.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
 
   it('classifies same-command protected artifact execution through env -C as implementation', () => {
-    const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+    const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 printf '%s\n' pwned > src/pwned.ts
 SCRIPT
-env -C .omx/context sh run.sh
+env -C .nomx/context sh run.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
 
   it('classifies same-command protected artifact execution through env --chdir as implementation', () => {
-    const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+    const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 printf '%s\n' pwned > src/pwned.ts
 SCRIPT
-env --chdir=.omx/context sh run.sh
+env --chdir=.nomx/context sh run.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
@@ -286,13 +286,13 @@ nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ral
 
   it('classifies direct executable artifact paths through direct-exec wrappers as implementation', () => {
     for (const executionLine of [
-      'command ./.omx/context/run.sh',
-      'nohup ./.omx/context/run.sh',
-      'time ./.omx/context/run.sh',
-      'setsid ./.omx/context/run.sh',
+      'command ./.nomx/context/run.sh',
+      'nohup ./.nomx/context/run.sh',
+      'time ./.nomx/context/run.sh',
+      'setsid ./.nomx/context/run.sh',
     ]) {
-      const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+      const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 printf '%s\n' pwned > src/pwned.ts
 SCRIPT
 ${executionLine}
@@ -303,18 +303,18 @@ nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ral
   });
 
   it('classifies same-command protected specs source through cwd-changing shell as implementation', () => {
-    const command = `mkdir -p .omx/specs
-printf 'export PWNED=1\n' > .omx/specs/env.sh
-env --chdir=.omx/specs sh -c '. env.sh'
+    const command = `mkdir -p .nomx/specs
+printf 'export PWNED=1\n' > .nomx/specs/env.sh
+env --chdir=.nomx/specs sh -c '. env.sh'
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
   });
 
   it('classifies same-command protected artifact write plus source as implementation', () => {
-    const command = `mkdir -p .omx/specs
-printf 'export PWNED=1\n' > .omx/specs/env.sh
-source .omx/specs/env.sh
+    const command = `mkdir -p .nomx/specs
+printf 'export PWNED=1\n' > .nomx/specs/env.sh
+source .nomx/specs/env.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
 
     assert.equal(isImplementationToolCall({ tool_name: 'Bash', tool_input: command }), true);
@@ -330,8 +330,8 @@ nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ral
   });
 
   it('does not classify protected artifact write plus ralplan handoff without execution as implementation', () => {
-    const command = `mkdir -p .omx/context
-cat > .omx/context/notes.md <<'EOF'
+    const command = `mkdir -p .nomx/context
+cat > .nomx/context/notes.md <<'EOF'
 # Handoff notes
 EOF
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`;
@@ -386,13 +386,13 @@ describe('planning gate: downstream_authority=plan_then_execute + no ralplan con
   });
 
   it('denies same-command protected artifact write plus execution when no ralplan consensus artifact exists', () => {
-    const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+    const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 #!/bin/sh
 mkdir -p src
 printf pwned > src/pwned.ts
 SCRIPT
-sh .omx/context/run.sh
+sh .nomx/context/run.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan","state":{"deep_interview_gate":{"status":"complete","rationale":"done"}}}' --json`;
     const decision = evaluatePreToolUseGate(
       { tool_name: 'Bash', tool_input: command },
@@ -408,9 +408,9 @@ nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ral
   it('denies same-command tmp TypeScript artifact execution through tsx when no ralplan consensus artifact exists', () => {
     const command = `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/run.ts').write_text('console.log(1)')
+Path('.nomx/tmp/sess/run.ts').write_text('console.log(1)')
 PY
-tsx .omx/tmp/sess/run.ts`;
+tsx .nomx/tmp/sess/run.ts`;
     const decision = evaluatePreToolUseGate(
       { tool_name: 'Bash', tool_input: command },
       gateState,
@@ -426,24 +426,24 @@ tsx .omx/tmp/sess/run.ts`;
     const commands = [
       `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/run.ts').write_text('console.log(1)')
+Path('.nomx/tmp/sess/run.ts').write_text('console.log(1)')
 PY
-tsx --tsconfig tsconfig.json watch .omx/tmp/sess/run.ts`,
+tsx --tsconfig tsconfig.json watch .nomx/tmp/sess/run.ts`,
       `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/run.ts').write_text('console.log(1)')
+Path('.nomx/tmp/sess/run.ts').write_text('console.log(1)')
 PY
-deno run .omx/tmp/sess/run.ts`,
+deno run .nomx/tmp/sess/run.ts`,
       `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/run.txt').write_text('print(1)')
+Path('.nomx/tmp/sess/run.txt').write_text('print(1)')
 PY
-python -X dev .omx/tmp/sess/run.txt`,
+python -X dev .nomx/tmp/sess/run.txt`,
       `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/sess/probe.go').write_text('package main')
+Path('.nomx/tmp/sess/probe.go').write_text('package main')
 PY
-go run .omx/tmp/sess/probe.go`,
+go run .nomx/tmp/sess/probe.go`,
     ];
 
     for (const command of commands) {
@@ -460,17 +460,17 @@ go run .omx/tmp/sess/probe.go`,
 
   it('denies tmp stdin redirection into interpreters and shells when no ralplan consensus artifact exists', () => {
     const commands = [
-      'python < .omx/tmp/s/run.txt',
-      'node < .omx/tmp/s/run.txt',
-      'ruby < .omx/tmp/s/run.txt',
-      'perl < .omx/tmp/s/run.txt',
-      'sh < .omx/tmp/s/run.txt',
-      'bash < .omx/tmp/s/run.txt',
+      'python < .nomx/tmp/s/run.txt',
+      'node < .nomx/tmp/s/run.txt',
+      'ruby < .nomx/tmp/s/run.txt',
+      'perl < .nomx/tmp/s/run.txt',
+      'sh < .nomx/tmp/s/run.txt',
+      'bash < .nomx/tmp/s/run.txt',
       `python3 - <<'PY'
 from pathlib import Path
-Path('.omx/tmp/s/run.txt').write_text('print(1)')
+Path('.nomx/tmp/s/run.txt').write_text('print(1)')
 PY
-python < .omx/tmp/s/run.txt`,
+python < .nomx/tmp/s/run.txt`,
     ];
 
     for (const command of commands) {
@@ -487,39 +487,39 @@ python < .omx/tmp/s/run.txt`,
 
   it('denies review5 protected artifact write plus same-command execution probes', () => {
     const probes = [
-      `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+      `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
-cd .omx/context && timeout 5 sh run.sh
+cd .nomx/context && timeout 5 sh run.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
-      `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+      `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
-bash -lc 'sh .omx/context/run.sh'
+bash -lc 'sh .nomx/context/run.sh'
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
-      `mkdir -p .omx/context
-printf 'echo pwned\n' | tee .omx/context/notes.md .omx/context/run.sh
-sh .omx/context/run.sh
+      `mkdir -p .nomx/context
+printf 'echo pwned\n' | tee .nomx/context/notes.md .nomx/context/run.sh
+sh .nomx/context/run.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
-      `mkdir -p .omx/context
-cat > .omx/context/run.py <<'PY'
+      `mkdir -p .nomx/context
+cat > .nomx/context/run.py <<'PY'
 print('pwned')
 PY
-python3 .omx/context/run.py
+python3 .nomx/context/run.py
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
-      `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+      `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
-bash -o posix .omx/context/run.sh
+bash -o posix .nomx/context/run.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
-      `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+      `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
-env -C.omx/context sh run.sh
+env -C.nomx/context sh run.sh
 nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ralplan"}' --json`,
     ];
 
@@ -538,16 +538,16 @@ nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ral
 
   it('denies cd wrapper and option same-command protected artifact executions', () => {
     const probes = [
-      'command cd .omx/context && sh run.sh',
-      'builtin cd .omx/context && sh run.sh',
-      'cd -- .omx/context && sh run.sh',
-      'cd -P .omx/context && sh run.sh',
-      'cd -L .omx/context && sh run.sh',
+      'command cd .nomx/context && sh run.sh',
+      'builtin cd .nomx/context && sh run.sh',
+      'cd -- .nomx/context && sh run.sh',
+      'cd -P .nomx/context && sh run.sh',
+      'cd -L .nomx/context && sh run.sh',
     ];
 
     for (const executionForm of probes) {
-      const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+      const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 ${executionForm}
@@ -566,14 +566,14 @@ nomx state write --input '{"mode":"autopilot","active":true,"current_phase":"ral
 
   it('denies grouped cwd same-command protected artifact executions', () => {
     const probes = [
-      `(cd .omx/context && sh run.sh)`,
-      `{ cd .omx/context; sh run.sh; }`,
-      `(cd .omx/context; sh run.sh)`,
+      `(cd .nomx/context && sh run.sh)`,
+      `{ cd .nomx/context; sh run.sh; }`,
+      `(cd .nomx/context; sh run.sh)`,
     ];
 
     for (const executionForm of probes) {
-      const command = `mkdir -p .omx/context
-cat > .omx/context/run.sh <<'SCRIPT'
+      const command = `mkdir -p .nomx/context
+cat > .nomx/context/run.sh <<'SCRIPT'
 echo pwned
 SCRIPT
 ${executionForm}

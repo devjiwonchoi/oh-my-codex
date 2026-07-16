@@ -17,7 +17,7 @@ import {
   completeAdaptedRoleBinding,
   consumePendingRoleIntent,
   listBoundAdaptedRoleIntents,
-  OMX_ADAPTED_PROVENANCE,
+  NOMX_ADAPTED_PROVENANCE,
   recordPendingRoleIntent,
   recordSubagentTurn,
   readSubagentTrackingState,
@@ -36,7 +36,7 @@ const canonicalClaimantToken = (value: string) => {
 function bindAdaptedTurn(sessionId: string, threadId: string) {
   return (
     state: SubagentTrackingState,
-    intent: { role: string; provenanceKind: typeof OMX_ADAPTED_PROVENANCE },
+    intent: { role: string; provenanceKind: typeof NOMX_ADAPTED_PROVENANCE },
   ): SubagentTrackingState => recordSubagentTurn(state, {
     sessionId,
     threadId,
@@ -59,7 +59,7 @@ function recordIntent(cwd: string, sessionId: string, parentThreadId: string, co
 
 describe('adapted role binding', () => {
   it('commits adapted tracker evidence, publishes a marker, and completes the retained intent', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-'));
     const stateDir = getBaseStateDir(cwd);
     try {
       recordIntent(cwd, 'session-happy', 'parent-happy', 'tokenhappy');
@@ -73,21 +73,21 @@ describe('adapted role binding', () => {
 
       const state = await readSubagentTrackingState(cwd);
       assert.equal(state.sessions['session-happy']?.threads['child-happy']?.role, 'architect');
-      assert.equal(state.sessions['session-happy']?.threads['child-happy']?.provenance_kind, OMX_ADAPTED_PROVENANCE);
+      assert.equal(state.sessions['session-happy']?.threads['child-happy']?.provenance_kind, NOMX_ADAPTED_PROVENANCE);
       assert.deepEqual(state.pending_role_intents, []);
       assert.equal(readRoleRoutingMarker(stateDir, {
         cwd,
         sessionId: 'session-happy',
         parentThreadId: 'parent-happy',
         nowMs: NOW_MS,
-      })?.evidence, 'validated OMX adapted role intent correlated to an untyped native child');
+      })?.evidence, 'validated NOMX adapted role intent correlated to an untyped native child');
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it('does not create adapted authority or a marker before a matching bind begins', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-'));
     const stateDir = getBaseStateDir(cwd);
     try {
       recordIntent(cwd, 'session-before', 'parent-before', 'tokenbefore');
@@ -108,7 +108,7 @@ describe('adapted role binding', () => {
   });
 
   it('recovers a crash after tracker commit and before marker publication', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-'));
     const stateDir = getBaseStateDir(cwd);
     try {
       recordIntent(cwd, 'session-after-tracker', 'parent-after-tracker', 'tokenaftertracker');
@@ -137,7 +137,7 @@ describe('adapted role binding', () => {
   });
 
   it('idempotently recovers a crash after marker publication and before completion', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-'));
     const stateDir = getBaseStateDir(cwd);
     try {
       recordIntent(cwd, 'session-after-marker', 'parent-after-marker', 'tokenaftermarker');
@@ -172,7 +172,7 @@ describe('adapted role binding', () => {
   });
 
   it('recovers retained bindings from the durable tracker journal after process restart', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-'));
     const stateDir = getBaseStateDir(cwd);
     try {
       recordIntent(cwd, 'session-restart', 'parent-restart', 'tokenrestart');
@@ -198,14 +198,14 @@ describe('adapted role binding', () => {
   });
 
   it('recovers an owned cwd-default claimant-less legacy bound journal', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-legacy-bound-recovery-'));
-    const previousOmxRoot = process.env.OMX_ROOT;
-    const previousTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-legacy-bound-recovery-'));
+    const previousOmxRoot = process.env.NOMX_ROOT;
+    const previousTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     try {
-      delete process.env.OMX_ROOT;
-      delete process.env.OMX_TEAM_STATE_ROOT;
-      delete process.env.OMX_STATE_ROOT;
+      delete process.env.NOMX_ROOT;
+      delete process.env.NOMX_TEAM_STATE_ROOT;
+      delete process.env.NOMX_STATE_ROOT;
       const stateDir = getBaseStateDir(cwd);
       await mkdir(stateDir, { recursive: true });
       await writeFile(subagentTrackingPath(cwd), `${JSON.stringify({
@@ -233,22 +233,22 @@ describe('adapted role binding', () => {
         nowMs: NOW_MS,
       })?.session_id, 'legacy-bound-recovery-session');
     } finally {
-      if (previousOmxRoot === undefined) delete process.env.OMX_ROOT;
-      else process.env.OMX_ROOT = previousOmxRoot;
-      if (previousTeamStateRoot === undefined) delete process.env.OMX_TEAM_STATE_ROOT;
-      else process.env.OMX_TEAM_STATE_ROOT = previousTeamStateRoot;
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousOmxRoot === undefined) delete process.env.NOMX_ROOT;
+      else process.env.NOMX_ROOT = previousOmxRoot;
+      if (previousTeamStateRoot === undefined) delete process.env.NOMX_TEAM_STATE_ROOT;
+      else process.env.NOMX_TEAM_STATE_ROOT = previousTeamStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
 
   it('does not duplicate adapted authority on an idempotent retry', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-'));
     const stateDir = getBaseStateDir(cwd);
     let bindCount = 0;
-    const bind = (state: SubagentTrackingState, intent: { role: string; provenanceKind: typeof OMX_ADAPTED_PROVENANCE }) => {
+    const bind = (state: SubagentTrackingState, intent: { role: string; provenanceKind: typeof NOMX_ADAPTED_PROVENANCE }) => {
       bindCount += 1;
       return bindAdaptedTurn('session-retry', 'child-retry')(state, intent);
     };
@@ -280,7 +280,7 @@ describe('adapted role binding', () => {
   });
 
   it('fences stale claimants and treats a post-recovery stale completion as a no-op', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-'));
     const stateDir = getBaseStateDir(cwd);
     const input = {
       sessionId: 'session-stale',
@@ -315,7 +315,7 @@ describe('adapted role binding', () => {
   });
 
   it('recovers a malformed bound journal without a claimant token', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-'));
     const stateDir = getBaseStateDir(cwd);
     try {
       await mkdir(stateDir, { recursive: true });
@@ -350,7 +350,7 @@ describe('adapted role binding', () => {
   });
 
   it('preserves a stored claimant when bound_at is malformed and fails closed on omitted completion', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-'));
     const stateDir = getBaseStateDir(cwd);
     try {
       await mkdir(stateDir, { recursive: true });
@@ -402,12 +402,12 @@ describe('adapted role binding', () => {
   });
 
   it('keeps same-scope markers and tracker evidence isolated by canonical workspace under a shared state root', async () => {
-    const sharedRoot = await mkdtemp(join(tmpdir(), 'omx-adapted-shared-markers-'));
+    const sharedRoot = await mkdtemp(join(tmpdir(), 'nomx-adapted-shared-markers-'));
     const cwdA = join(sharedRoot, 'workspace-a');
     const cwdB = join(sharedRoot, 'workspace-b');
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     try {
-      process.env.OMX_STATE_ROOT = sharedRoot;
+      process.env.NOMX_STATE_ROOT = sharedRoot;
       await mkdir(cwdA, { recursive: true });
       await mkdir(cwdB, { recursive: true });
       const sharedStateDir = getBaseStateDir(cwdA);
@@ -446,14 +446,14 @@ describe('adapted role binding', () => {
         cwd: cwdB, sessionId: scope.sessionId, parentThreadId: scope.parentThreadId, nowMs: NOW_MS,
       })?.cwd, canonicalizeOriginCwd(cwdB));
     } finally {
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(sharedRoot, { recursive: true, force: true });
     }
   });
 
   it('preserves legacy no-cwd markers and matches them for any cwd (backward compatibility)', async () => {
-    const stateDir = await mkdtemp(join(tmpdir(), 'omx-legacy-marker-'));
+    const stateDir = await mkdtemp(join(tmpdir(), 'nomx-legacy-marker-'));
     try {
       // Legacy marker shape: no cwd field (pre-cwd-identity markers).
       writeRoleRoutingMarker(stateDir, {
@@ -492,12 +492,12 @@ describe('adapted role binding', () => {
   });
 
   it('retains expired foreign journals through every successful shared-root writeback', async () => {
-    const sharedRoot = await mkdtemp(join(tmpdir(), 'omx-adapted-shared-writeback-'));
+    const sharedRoot = await mkdtemp(join(tmpdir(), 'nomx-adapted-shared-writeback-'));
     const cwdA = join(sharedRoot, 'workspace-a');
     const cwdB = join(sharedRoot, 'workspace-b');
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     try {
-      process.env.OMX_STATE_ROOT = sharedRoot;
+      process.env.NOMX_STATE_ROOT = sharedRoot;
       await mkdir(cwdA, { recursive: true });
       await mkdir(cwdB, { recursive: true });
       assert.equal(getBaseStateDir(cwdA), getBaseStateDir(cwdB));
@@ -560,23 +560,23 @@ describe('adapted role binding', () => {
         parentThreadId: 'parent-consume-b',
         correlationToken: canonicalCorrelationToken('tokenconsumeb'),
         nowMs: lateNowMs,
-      }), { role: 'critic', provenanceKind: OMX_ADAPTED_PROVENANCE });
+      }), { role: 'critic', provenanceKind: NOMX_ADAPTED_PROVENANCE });
       await assertForeignRetained();
     } finally {
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(sharedRoot, { recursive: true, force: true });
     }
   });
 
   it('allows one same-scope winner per origin and lets a bound A journal coexist with B', async () => {
-    const sharedRoot = await mkdtemp(join(tmpdir(), 'omx-adapted-shared-single-flight-'));
+    const sharedRoot = await mkdtemp(join(tmpdir(), 'nomx-adapted-shared-single-flight-'));
     const cwdA = join(sharedRoot, 'workspace-a');
     const cwdB = join(sharedRoot, 'workspace-b');
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     const scope = { sessionId: 'session-single-flight', parentThreadId: 'parent-single-flight', nowMs: NOW_MS };
     try {
-      process.env.OMX_STATE_ROOT = sharedRoot;
+      process.env.NOMX_STATE_ROOT = sharedRoot;
       await mkdir(cwdA, { recursive: true });
       await mkdir(cwdB, { recursive: true });
       assert.equal(getBaseStateDir(cwdA), getBaseStateDir(cwdB));
@@ -602,29 +602,29 @@ describe('adapted role binding', () => {
       assert.deepEqual(consumePendingRoleIntent(cwdB, {
         ...scope,
         correlationToken: canonicalCorrelationToken('tokenb'),
-      }), { role: 'critic', provenanceKind: OMX_ADAPTED_PROVENANCE });
+      }), { role: 'critic', provenanceKind: NOMX_ADAPTED_PROVENANCE });
 
       // A's bound journal still occupies only A's scope; B can independently record (S, P).
       assert.equal(recordPendingRoleIntent(cwdB, {
         role: 'critic', ...scope, correlationToken: canonicalCorrelationToken('tokenbafterabound'),
       }).ok, true);
     } finally {
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(sharedRoot, { recursive: true, force: true });
     }
   });
 
   it('does not let a foreign workspace recover a retained intent under a shared state root', async () => {
-    const sharedRoot = await mkdtemp(join(tmpdir(), 'omx-adapted-shared-root-'));
+    const sharedRoot = await mkdtemp(join(tmpdir(), 'nomx-adapted-shared-root-'));
     const cwdA = join(sharedRoot, 'workspace-a');
     const cwdB = join(sharedRoot, 'workspace-b');
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     try {
-      process.env.OMX_STATE_ROOT = sharedRoot;
+      process.env.NOMX_STATE_ROOT = sharedRoot;
       await mkdir(cwdA, { recursive: true });
       await mkdir(cwdB, { recursive: true });
-      // Under a shared OMX_STATE_ROOT, A and B share one tracker + marker store.
+      // Under a shared NOMX_STATE_ROOT, A and B share one tracker + marker store.
       const sharedStateDir = getBaseStateDir(cwdA);
       assert.equal(sharedStateDir, getBaseStateDir(cwdB));
 
@@ -664,23 +664,23 @@ describe('adapted role binding', () => {
         nowMs: NOW_MS,
       })?.session_id, 'session-a');
     } finally {
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(sharedRoot, { recursive: true, force: true });
     }
   });
 
   it('does not recover a legacy no-origin bound journal from another workspace under a shared state root', async () => {
-    const sharedRoot = await mkdtemp(join(tmpdir(), 'omx-adapted-shared-legacy-recovery-'));
+    const sharedRoot = await mkdtemp(join(tmpdir(), 'nomx-adapted-shared-legacy-recovery-'));
     const cwdA = join(sharedRoot, 'workspace-a');
     const cwdB = join(sharedRoot, 'workspace-b');
-    const previousOmxRoot = process.env.OMX_ROOT;
-    const previousTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const previousOmxRoot = process.env.NOMX_ROOT;
+    const previousTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     try {
-      delete process.env.OMX_ROOT;
-      delete process.env.OMX_TEAM_STATE_ROOT;
-      process.env.OMX_STATE_ROOT = sharedRoot;
+      delete process.env.NOMX_ROOT;
+      delete process.env.NOMX_TEAM_STATE_ROOT;
+      process.env.NOMX_STATE_ROOT = sharedRoot;
       await mkdir(cwdA, { recursive: true });
       await mkdir(cwdB, { recursive: true });
       const sharedStateDir = getBaseStateDir(cwdA);
@@ -707,28 +707,28 @@ describe('adapted role binding', () => {
       assert.equal(existsSync(join(sharedStateDir, NATIVE_SUBAGENT_ROLE_ROUTING_MARKER_FILE)), false);
       assert.equal((await readSubagentTrackingState(cwdB)).pending_role_intents[0]?.origin_cwd, undefined);
     } finally {
-      if (previousOmxRoot === undefined) delete process.env.OMX_ROOT;
-      else process.env.OMX_ROOT = previousOmxRoot;
-      if (previousTeamStateRoot === undefined) delete process.env.OMX_TEAM_STATE_ROOT;
-      else process.env.OMX_TEAM_STATE_ROOT = previousTeamStateRoot;
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousOmxRoot === undefined) delete process.env.NOMX_ROOT;
+      else process.env.NOMX_ROOT = previousOmxRoot;
+      if (previousTeamStateRoot === undefined) delete process.env.NOMX_TEAM_STATE_ROOT;
+      else process.env.NOMX_TEAM_STATE_ROOT = previousTeamStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(sharedRoot, { recursive: true, force: true });
     }
   });
 
   it('fails closed when a foreign workspace drives the primary bind path under a shared state root', async () => {
-    const sharedRoot = await mkdtemp(join(tmpdir(), 'omx-adapted-shared-bind-'));
+    const sharedRoot = await mkdtemp(join(tmpdir(), 'nomx-adapted-shared-bind-'));
     const cwdA = join(sharedRoot, 'workspace-a');
     const cwdB = join(sharedRoot, 'workspace-b');
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     let foreignCallbackRuns = 0;
     const foreignCallback = (state: SubagentTrackingState): SubagentTrackingState => {
       foreignCallbackRuns += 1;
       return state;
     };
     try {
-      process.env.OMX_STATE_ROOT = sharedRoot;
+      process.env.NOMX_STATE_ROOT = sharedRoot;
       await mkdir(cwdA, { recursive: true });
       await mkdir(cwdB, { recursive: true });
       const sharedStateDir = getBaseStateDir(cwdA);
@@ -807,15 +807,15 @@ describe('adapted role binding', () => {
         cwd: cwdA, sessionId: 'session-a', parentThreadId: 'parent-a', nowMs: NOW_MS,
       })?.session_id, 'session-a');
     } finally {
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(sharedRoot, { recursive: true, force: true });
     }
   });
 
   it('authenticates a symlink-aliased origin workspace as the same canonical origin', async () => {
-    const realCwd = await mkdtemp(join(tmpdir(), 'omx-adapted-real-'));
-    const aliasParent = await mkdtemp(join(tmpdir(), 'omx-adapted-alias-'));
+    const realCwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-real-'));
+    const aliasParent = await mkdtemp(join(tmpdir(), 'nomx-adapted-alias-'));
     const aliasCwd = join(aliasParent, 'alias');
     try {
       await symlink(realCwd, aliasCwd);
@@ -851,7 +851,7 @@ describe('adapted role binding', () => {
     }
   });
   it('never publishes a recovery marker for an invalid dominant durable credential', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-invalid-dominant-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-invalid-dominant-'));
     const stateDir = getBaseStateDir(cwd);
     const base = {
       role: 'architect',
@@ -891,7 +891,7 @@ describe('adapted role binding', () => {
   });
 
   it('fails closed on a malformed caller origin but migrates a cwd-partitioned originless journal', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-'));
     const stateDir = getBaseStateDir(cwd);
     let callbackRuns = 0;
     const callback = (state: SubagentTrackingState): SubagentTrackingState => {
@@ -945,8 +945,8 @@ describe('adapted role binding', () => {
   });
 
   it('keeps a bound intent isolated to its workspace state directory', async () => {
-    const cwdA = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-a-'));
-    const cwdB = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-b-'));
+    const cwdA = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-a-'));
+    const cwdB = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-b-'));
     const stateDirA = getBaseStateDir(cwdA);
     const stateDirB = getBaseStateDir(cwdB);
     try {
@@ -974,7 +974,7 @@ describe('adapted role binding', () => {
   });
 
   it('recovers distinct session and parent scopes into distinct markers', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-binding-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-binding-'));
     const stateDir = getBaseStateDir(cwd);
     try {
       recordIntent(cwd, 'session-a-one', 'parent-a-one', 'tokenaone');
@@ -1011,7 +1011,7 @@ describe('adapted role binding', () => {
     }
   });
   it('rejects every malformed persisted credential without publishing or deleting it', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-adapted-invalid-credential-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-adapted-invalid-credential-'));
     const stateDir = getBaseStateDir(cwd);
     const base = {
       role: 'architect',

@@ -10,17 +10,17 @@ import {
 } from "../native-hook-claim-journal.js";
 
 async function markJournalOwnerDead(root: string): Promise<void> {
-	const path = join(root, ".omx", "native-hook-claim-journal.json");
+	const path = join(root, ".nomx", "native-hook-claim-journal.json");
 	const journal = JSON.parse(await readFile(path, "utf-8")) as { ownerPid: number };
 	journal.ownerPid = 2_147_483_647;
 	await writeFile(path, `${JSON.stringify(journal, null, 2)}\n`, "utf-8");
 }
 
 test("claim journal restores an exact original after rename-away interruption", async () => {
-	const root = await mkdtemp(join(tmpdir(), "omx-claim-recovery-"));
+	const root = await mkdtemp(join(tmpdir(), "nomx-claim-recovery-"));
 	try {
 		const canonicalPath = join(root, "hooks.json");
-		const claimPath = join(root, ".hooks.json.omx-claim-test.tmp");
+		const claimPath = join(root, ".hooks.json.nomx-claim-test.tmp");
 		const before = Buffer.from('{"hooks":{}}\n');
 		await writeFile(canonicalPath, before);
 		await persistNativeHookClaimJournal(root, {
@@ -41,10 +41,10 @@ test("claim journal restores an exact original after rename-away interruption", 
 });
 
 test("claim journal finalizes an exact installed successor and removes the parked original", async () => {
-	const root = await mkdtemp(join(tmpdir(), "omx-claim-finalize-"));
+	const root = await mkdtemp(join(tmpdir(), "nomx-claim-finalize-"));
 	try {
 		const canonicalPath = join(root, "config.toml");
-		const claimPath = join(root, ".config.toml.omx-claim-test.tmp");
+		const claimPath = join(root, ".config.toml.nomx-claim-test.tmp");
 		const before = Buffer.from('model = "before"\n');
 		const after = Buffer.from('model = "after"\n');
 		await writeFile(claimPath, before);
@@ -67,10 +67,10 @@ test("claim journal finalizes an exact installed successor and removes the parke
 });
 
 test("claim journal refuses to overwrite unrecognized canonical content", async () => {
-	const root = await mkdtemp(join(tmpdir(), "omx-claim-conflict-"));
+	const root = await mkdtemp(join(tmpdir(), "nomx-claim-conflict-"));
 	try {
 		const canonicalPath = join(root, "hooks.json");
-		const claimPath = join(root, ".hooks.json.omx-claim-test.tmp");
+		const claimPath = join(root, ".hooks.json.nomx-claim-test.tmp");
 		const before = Buffer.from("before\n");
 		await writeFile(claimPath, before);
 		await writeFile(canonicalPath, "foreign\n");
@@ -92,10 +92,10 @@ test("claim journal refuses to overwrite unrecognized canonical content", async 
 });
 
 test("claim journal refuses to overwrite an existing recovery record", async () => {
-	const root = await mkdtemp(join(tmpdir(), "omx-claim-existing-"));
+	const root = await mkdtemp(join(tmpdir(), "nomx-claim-existing-"));
 	try {
 		const firstCanonicalPath = join(root, "hooks.json");
-		const firstClaimPath = join(root, ".hooks.json.omx-claim-first.tmp");
+		const firstClaimPath = join(root, ".hooks.json.nomx-claim-first.tmp");
 		const first = Buffer.from("first\n");
 		await persistNativeHookClaimJournal(root, {
 			canonicalPath: firstCanonicalPath,
@@ -103,13 +103,13 @@ test("claim journal refuses to overwrite an existing recovery record", async () 
 			before: first,
 			after: null,
 		});
-		const journalPath = join(root, ".omx", "native-hook-claim-journal.json");
+		const journalPath = join(root, ".nomx", "native-hook-claim-journal.json");
 		const originalJournal = await readFile(journalPath);
 
 		await assert.rejects(
 			persistNativeHookClaimJournal(root, {
 				canonicalPath: join(root, "config.toml"),
-				claimPath: join(root, ".config.toml.omx-claim-second.tmp"),
+				claimPath: join(root, ".config.toml.nomx-claim-second.tmp"),
 				before: Buffer.from("second\n"),
 				after: null,
 			}),
@@ -122,10 +122,10 @@ test("claim journal refuses to overwrite an existing recovery record", async () 
 });
 
 test("claim journal finalizes a completed deletion after claim removal", async () => {
-	const root = await mkdtemp(join(tmpdir(), "omx-claim-deleted-"));
+	const root = await mkdtemp(join(tmpdir(), "nomx-claim-deleted-"));
 	try {
 		const canonicalPath = join(root, "hooks.json");
-		const claimPath = join(root, ".hooks.json.omx-claim-deleted.tmp");
+		const claimPath = join(root, ".hooks.json.nomx-claim-deleted.tmp");
 		await persistNativeHookClaimJournal(root, {
 			canonicalPath,
 			claimPath,

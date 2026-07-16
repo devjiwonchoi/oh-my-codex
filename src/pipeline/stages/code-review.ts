@@ -66,7 +66,7 @@ export function createCodeReviewStage(options: CodeReviewStageOptions = {}): Pip
           ? (clean ? 'Review clean.' : 'Review returned findings; return to ralplan.')
           : 'Code-review evidence missing; fail closed and return to ralplan.'),
         stage: 'code-review',
-        artifact_path: '.omx/state/autopilot-state.json#pipeline_stage_results.code-review.artifacts.review_verdict',
+        artifact_path: '.nomx/state/autopilot-state.json#pipeline_stage_results.code-review.artifacts.review_verdict',
       };
 
       return {

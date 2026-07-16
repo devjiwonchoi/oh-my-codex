@@ -14,6 +14,16 @@ import {
 } from '../../config/codex-hooks.js';
 import { uninstall } from '../uninstall.js';
 import TOML from '@iarna/toml';
+import { createNomxRootMetadata } from '../../identity/index.js';
+
+function ensureNomxTestIdentity(base: string | undefined): void {
+  if (!base) return;
+  const root = join(base, '.nomx');
+  const identityPath = join(root, 'identity.json');
+  if (existsSync(root) && !existsSync(identityPath)) {
+    writeFileSync(identityPath, `${JSON.stringify(createNomxRootMetadata(root), null, 2)}\n`);
+  }
+}
 
 function runOmx(
   cwd: string,
@@ -22,9 +32,11 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
+  const nomxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
   const resolvedHome = envOverrides.HOME ?? process.env.HOME;
-  const result = spawnSync(process.execPath, [omxBin, ...argv], {
+  ensureNomxTestIdentity(cwd);
+  ensureNomxTestIdentity(resolvedHome);
+  const result = spawnSync(process.execPath, [nomxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
     env: {
@@ -49,6 +61,8 @@ async function withCwd<T>(cwd: string, run: () => Promise<T>): Promise<T> {
   const previousCwd = process.cwd();
   process.chdir(cwd);
   try {
+    ensureNomxTestIdentity(cwd);
+    ensureNomxTestIdentity(process.env.HOME);
     return await run();
   } finally {
     process.chdir(previousCwd);
@@ -61,7 +75,7 @@ async function withDriveQualifiedWindowsCodexHome<T>(
 ): Promise<T> {
   const previousHome = process.env.HOME;
   const previousCodexHome = process.env.CODEX_HOME;
-  const codexHomeDir = 'C:\\Users\\omx\\.codex';
+  const codexHomeDir = 'C:\\Users\\nomx\\.codex';
   process.env.HOME = wd;
   process.env.CODEX_HOME = codexHomeDir;
   try {
@@ -84,13 +98,13 @@ function packageRoot(): string {
   return join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 }
 
-/** Build a realistic OMX config.toml for testing */
+/** Build a realistic NOMX config.toml for testing */
 function buildOmxConfig(): string {
   return [
-    '# oh-my-codex top-level settings (must be before any [table])',
+    '# nomx top-level settings (must be before any [table])',
     'notify = ["node", "/path/to/notify-hook.js"]',
     'model_reasoning_effort = "medium"',
-    'developer_instructions = "You have oh-my-codex installed."',
+    'developer_instructions = "You have nomx installed."',
     '',
     '[features]',
     'multi_agent = true',
@@ -99,40 +113,40 @@ function buildOmxConfig(): string {
     'goals = true',
     '',
     '# ============================================================',
-    '# oh-my-codex (OMX) Configuration',
+    '# nomx (NOMX) Configuration',
     '# Managed by nomx setup - manual edits preserved on next setup',
     '# ============================================================',
     '',
-    '# OMX State Management MCP Server',
-    '[mcp_servers.omx_state]',
+    '# NOMX State Management MCP Server',
+    '[mcp_servers.nomx_state]',
     'command = "node"',
     'args = ["/path/to/state-server.js"]',
     'enabled = true',
     'startup_timeout_sec = 5',
     '',
-    '# OMX Project Memory MCP Server',
-    '[mcp_servers.omx_memory]',
+    '# NOMX Project Memory MCP Server',
+    '[mcp_servers.nomx_memory]',
     'command = "node"',
     'args = ["/path/to/memory-server.js"]',
     'enabled = true',
     'startup_timeout_sec = 5',
     '',
-    '# OMX Code Intelligence MCP Server',
-    '[mcp_servers.omx_code_intel]',
+    '# NOMX Code Intelligence MCP Server',
+    '[mcp_servers.nomx_code_intel]',
     'command = "node"',
     'args = ["/path/to/code-intel-server.js"]',
     'enabled = true',
     'startup_timeout_sec = 10',
     '',
-    '# OMX Trace MCP Server',
-    '[mcp_servers.omx_trace]',
+    '# NOMX Trace MCP Server',
+    '[mcp_servers.nomx_trace]',
     'command = "node"',
     'args = ["/path/to/trace-server.js"]',
     'enabled = true',
     'startup_timeout_sec = 5',
     '',
-    '# OMX Wiki MCP Server',
-    '[mcp_servers.omx_wiki]',
+    '# NOMX Wiki MCP Server',
+    '[mcp_servers.nomx_wiki]',
     'command = "node"',
     'args = ["/path/to/wiki-server.js"]',
     'enabled = true',
@@ -142,29 +156,29 @@ function buildOmxConfig(): string {
     'description = "Code implementation"',
     'config_file = "/path/to/executor.toml"',
     '',
-    '# OMX TUI StatusLine (Codex CLI v0.101.0+)',
+    '# NOMX TUI StatusLine (Codex CLI v0.101.0+)',
     '[tui]',
     'status_line = ["model-with-reasoning", "git-branch"]',
     '',
     '# ============================================================',
-    '# End oh-my-codex',
+    '# End nomx',
     '',
   ].join('\n');
 }
 
-/** Build a config with OMX entries mixed with user entries */
+/** Build a config with NOMX entries mixed with user entries */
 
 function buildConfigWithSeededModelContext(): string {
   return [
-    '# oh-my-codex top-level settings (must be before any [table])',
+    '# nomx top-level settings (must be before any [table])',
     'notify = ["node", "/path/to/notify-hook.js"]',
     'model_reasoning_effort = "medium"',
-    'developer_instructions = "You have oh-my-codex installed."',
+    'developer_instructions = "You have nomx installed."',
     'model = "gpt-5.6-sol"',
-    '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)',
+    '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)',
     'model_context_window = 250000',
     'model_auto_compact_token_limit = 200000',
-    '# End oh-my-codex seeded behavioral defaults',
+    '# End nomx seeded behavioral defaults',
     '',
     '[features]',
     'multi_agent = true',
@@ -173,32 +187,32 @@ function buildConfigWithSeededModelContext(): string {
     'goals = true',
     '',
     '# ============================================================',
-    '# oh-my-codex (OMX) Configuration',
+    '# nomx (NOMX) Configuration',
     '# Managed by nomx setup - manual edits preserved on next setup',
     '# ============================================================',
     '',
-    '[mcp_servers.omx_state]',
+    '[mcp_servers.nomx_state]',
     'command = "node"',
     'args = ["/path/to/state-server.js"]',
     'enabled = true',
     '',
     '# ============================================================',
-    '# End oh-my-codex',
+    '# End nomx',
     '',
   ].join('\n');
 }
 
 function buildConfigWithEditedSeededModelContext(): string {
   return [
-    '# oh-my-codex top-level settings (must be before any [table])',
+    '# nomx top-level settings (must be before any [table])',
     'notify = ["node", "/path/to/notify-hook.js"]',
     'model_reasoning_effort = "medium"',
-    'developer_instructions = "You have oh-my-codex installed."',
+    'developer_instructions = "You have nomx installed."',
     'model = "gpt-5.6-sol"',
-    '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)',
+    '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)',
     'model_context_window = 123456',
     'model_auto_compact_token_limit = 200000',
-    '# End oh-my-codex seeded behavioral defaults',
+    '# End nomx seeded behavioral defaults',
     '',
     '[features]',
     'multi_agent = true',
@@ -207,17 +221,17 @@ function buildConfigWithEditedSeededModelContext(): string {
     'goals = true',
     '',
     '# ============================================================',
-    '# oh-my-codex (OMX) Configuration',
+    '# nomx (NOMX) Configuration',
     '# Managed by nomx setup - manual edits preserved on next setup',
     '# ============================================================',
     '',
-    '[mcp_servers.omx_state]',
+    '[mcp_servers.nomx_state]',
     'command = "node"',
     'args = ["/path/to/state-server.js"]',
     'enabled = true',
     '',
     '# ============================================================',
-    '# End oh-my-codex',
+    '# End nomx',
     '',
   ].join('\n');
 }
@@ -227,10 +241,10 @@ function buildMixedConfig(): string {
     '# User settings',
     'model = "o4-mini"',
     '',
-    '# oh-my-codex top-level settings (must be before any [table])',
+    '# nomx top-level settings (must be before any [table])',
     'notify = ["node", "/path/to/notify-hook.js"]',
     'model_reasoning_effort = "medium"',
-    'developer_instructions = "You have oh-my-codex installed."',
+    'developer_instructions = "You have nomx installed."',
     '',
     '[features]',
     'multi_agent = true',
@@ -251,31 +265,31 @@ function buildMixedConfig(): string {
     'description = "keep me"',
     '',
     '# ============================================================',
-    '# oh-my-codex (OMX) Configuration',
+    '# nomx (NOMX) Configuration',
     '# Managed by nomx setup - manual edits preserved on next setup',
     '# ============================================================',
     '',
-    '[mcp_servers.omx_state]',
+    '[mcp_servers.nomx_state]',
     'command = "node"',
     'args = ["/path/to/state-server.js"]',
     'enabled = true',
     '',
-    '[mcp_servers.omx_memory]',
+    '[mcp_servers.nomx_memory]',
     'command = "node"',
     'args = ["/path/to/memory-server.js"]',
     'enabled = true',
     '',
-    '[mcp_servers.omx_code_intel]',
+    '[mcp_servers.nomx_code_intel]',
     'command = "node"',
     'args = ["/path/to/code-intel-server.js"]',
     'enabled = true',
     '',
-    '[mcp_servers.omx_trace]',
+    '[mcp_servers.nomx_trace]',
     'command = "node"',
     'args = ["/path/to/trace-server.js"]',
     'enabled = true',
     '',
-    '[mcp_servers.omx_wiki]',
+    '[mcp_servers.nomx_wiki]',
     'command = "node"',
     'args = ["/path/to/wiki-server.js"]',
     'enabled = true',
@@ -288,7 +302,7 @@ function buildMixedConfig(): string {
     'status_line = ["model-with-reasoning"]',
     '',
     '# ============================================================',
-    '# End oh-my-codex',
+    '# End nomx',
     '',
   ].join('\n');
 }
@@ -321,24 +335,24 @@ function buildAmbiguousMultiAgentConfig(
     `description = "${marker}"`,
     '',
     '# ============================================================',
-    '# oh-my-codex (OMX) Configuration',
+    '# nomx (NOMX) Configuration',
     '# Managed by nomx setup - manual edits preserved on next setup',
     '# ============================================================',
     '',
-    '[mcp_servers.omx_state]',
+    '[mcp_servers.nomx_state]',
     'command = "node"',
     'args = ["/path/to/state-server.js"]',
     'enabled = true',
     '',
     '# ============================================================',
-    '# End oh-my-codex',
+    '# End nomx',
     '',
   ].join('\n');
 }
 
 describe('nomx uninstall', () => {
-  it('removes OMX block from config.toml with --dry-run', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+  it('removes NOMX block from config.toml with --dry-run', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -353,21 +367,21 @@ describe('nomx uninstall', () => {
       if (shouldSkipForSpawnPermissions(res.error)) return;
       assert.equal(res.status, 0, res.stderr || res.stdout);
       assert.match(res.stdout, /dry-run mode/);
-      assert.match(res.stdout, /OMX configuration block/);
+      assert.match(res.stdout, /NOMX configuration block/);
       assert.match(res.stdout, /hooks\.json/);
-      assert.match(res.stdout, /omx_state/);
+      assert.match(res.stdout, /nomx_state/);
 
       // Config should NOT have been modified
       const config = await readFile(join(codexDir, 'config.toml'), 'utf-8');
-      assert.match(config, /oh-my-codex \(OMX\) Configuration/);
+      assert.match(config, /nomx \(NOMX\) Configuration/);
       assert.equal(existsSync(join(codexDir, 'hooks.json')), true);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it('removes OMX block from config.toml', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+  it('removes NOMX block from config.toml', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -381,15 +395,15 @@ describe('nomx uninstall', () => {
       const res = runOmx(wd, ['uninstall'], { HOME: home });
       if (shouldSkipForSpawnPermissions(res.error)) return;
       assert.equal(res.status, 0, res.stderr || res.stdout);
-      assert.match(res.stdout, /Removed OMX configuration block/);
+      assert.match(res.stdout, /Removed NOMX configuration block/);
 
       const config = await readFile(join(codexDir, 'config.toml'), 'utf-8');
-      assert.doesNotMatch(config, /oh-my-codex \(OMX\) Configuration/);
-      assert.doesNotMatch(config, /omx_state/);
-      assert.doesNotMatch(config, /omx_memory/);
-      assert.doesNotMatch(config, /omx_code_intel/);
-      assert.doesNotMatch(config, /omx_trace/);
-      assert.doesNotMatch(config, /omx_wiki/);
+      assert.doesNotMatch(config, /nomx \(NOMX\) Configuration/);
+      assert.doesNotMatch(config, /nomx_state/);
+      assert.doesNotMatch(config, /nomx_memory/);
+      assert.doesNotMatch(config, /nomx_code_intel/);
+      assert.doesNotMatch(config, /nomx_trace/);
+      assert.doesNotMatch(config, /nomx_wiki/);
       assert.doesNotMatch(config, /\[agents\.executor\]/);
       assert.doesNotMatch(config, /\[tui\]/);
       assert.doesNotMatch(config, /notify\s*=/);
@@ -405,13 +419,13 @@ describe('nomx uninstall', () => {
   });
 
 
-  it('does not restore stale OMX dispatcher metadata as notify', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-stale-notify-'));
+  it('does not restore stale NOMX dispatcher metadata as notify', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-stale-notify-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
-      const metadataPath = join(codexDir, '.omx', 'notify-dispatch.json');
-      const stalePkgRoot = join(wd, 'old-global', 'oh-my-codex');
+      const metadataPath = join(codexDir, '.nomx', 'notify-dispatch.json');
+      const stalePkgRoot = join(wd, 'old-global', 'nomx');
       const staleDispatcher = join(stalePkgRoot, 'dist', 'scripts', 'notify-dispatcher.js');
       await mkdir(dirname(metadataPath), { recursive: true });
       await writeFile(
@@ -422,25 +436,25 @@ describe('nomx uninstall', () => {
           `notify = ["node", "${staleDispatcher}", "--metadata", "${metadataPath}"]`,
           '',
           '# ============================================================',
-          '# oh-my-codex (OMX) Configuration',
+          '# nomx (NOMX) Configuration',
           '# Managed by nomx setup - manual edits preserved on next setup',
           '# ============================================================',
-          '[mcp_servers.omx_state]',
+          '[mcp_servers.nomx_state]',
           'command = "node"',
           'args = ["/path/to/state-server.js"]',
           'enabled = true',
           '# ============================================================',
-          '# End oh-my-codex',
+          '# End nomx',
           '',
         ].join('\n'),
       );
       await writeFile(
         metadataPath,
         JSON.stringify({
-          managedBy: 'oh-my-codex',
+          managedBy: 'nomx',
           version: 1,
           previousNotify: ['node', staleDispatcher, '--metadata', metadataPath],
-          omxNotify: ['node', join(stalePkgRoot, 'dist', 'scripts', 'notify-hook.js')],
+          nomxNotify: ['node', join(stalePkgRoot, 'dist', 'scripts', 'notify-hook.js')],
           dispatcherNotify: ['node', staleDispatcher, '--metadata', metadataPath],
         }),
       );
@@ -453,14 +467,14 @@ describe('nomx uninstall', () => {
       assert.match(config, /^approval_policy = "on-failure"$/m);
       assert.doesNotMatch(config, /^notify\s*=/m);
       assert.doesNotMatch(config, /notify-dispatcher\.js/);
-      assert.doesNotMatch(config, /oh-my-codex \(OMX\) Configuration/);
+      assert.doesNotMatch(config, /nomx \(NOMX\) Configuration/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it('preserves user config entries when removing OMX', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+  it('preserves user config entries when removing NOMX', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -482,9 +496,9 @@ describe('nomx uninstall', () => {
       assert.match(config, /^max_depth = 5$/m);
       assert.match(config, /^\[agents\.custom_role\]$/m);
       assert.match(config, /^description = "keep me"$/m);
-      // OMX entries removed
-      assert.doesNotMatch(config, /omx_state/);
-      assert.doesNotMatch(config, /omx_memory/);
+      // NOMX entries removed
+      assert.doesNotMatch(config, /nomx_state/);
+      assert.doesNotMatch(config, /nomx_memory/);
       assert.doesNotMatch(config, /notify\s*=.*node/);
       assert.match(config, /multi_agent\s*=/);
       assert.doesNotMatch(config, /child_agents_md/);
@@ -495,7 +509,7 @@ describe('nomx uninstall', () => {
   });
 
   it('fails closed for unsupported root metadata in hooks.json', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-invalid-hooks-root-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-invalid-hooks-root-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -526,7 +540,7 @@ describe('nomx uninstall', () => {
   });
 
   it('removes safely positioned managed wrappers while preserving foreign hooks and the native feature flag', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-safe-foreign-hooks-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-safe-foreign-hooks-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -557,8 +571,8 @@ describe('nomx uninstall', () => {
       await rm(wd, { recursive: true, force: true });
     }
   });
-  it('fails closed without removing a shell-expanding foreign command that resembles an OMX hook', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-shell-expanding-hook-'));
+  it('fails closed without removing a shell-expanding foreign command that resembles an NOMX hook', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-shell-expanding-hook-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -589,7 +603,7 @@ describe('nomx uninstall', () => {
   });
 
   it('fails closed without cleaning config when managed removal would shift a foreign handler', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-unsafe-foreign-hooks-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-unsafe-foreign-hooks-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -656,14 +670,14 @@ describe('nomx uninstall', () => {
       },
     ] as const;
     for (const representation of representations) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-uninstall-trust-${representation.name}-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-uninstall-trust-${representation.name}-`));
       try {
         await withCwd(wd, async () => {
           const codexDir = join(wd, '.codex');
           const configPath = join(codexDir, 'config.toml');
           const hooksPath = join(codexDir, 'hooks.json');
           const shimPath = buildManagedCodexNativeHookWindowsShimPath(codexDir);
-          const metadataPath = join(codexDir, '.omx', 'notify-dispatch.json');
+          const metadataPath = join(codexDir, '.nomx', 'notify-dispatch.json');
           const hooks = `${JSON.stringify(buildManagedCodexHooksConfig(packageRoot(), {
             platform: 'win32',
             codexHomeDir: codexDir,
@@ -683,14 +697,14 @@ describe('nomx uninstall', () => {
             'model = "foreign"',
             '',
             '# ============================================================',
-            '# oh-my-codex (OMX) Configuration',
+            '# nomx (NOMX) Configuration',
             '# Managed by nomx setup - manual edits preserved on next setup',
             '# ============================================================',
             '',
             ...representation.render(key, trust.trusted_hash),
             '',
             '# ============================================================',
-            '# End oh-my-codex',
+            '# End nomx',
             '',
           ].join('\n');
           const metadata = Buffer.from('{"managedBy":"foreign"}\n', 'utf-8');
@@ -717,11 +731,11 @@ describe('nomx uninstall', () => {
           assert.deepEqual(await readFile(shimPath), shim);
           assert.deepEqual(await readFile(metadataPath), metadata);
           assert.deepEqual(
-            (await readdir(codexDir)).filter((entry) => entry.includes('.omx-')),
+            (await readdir(codexDir)).filter((entry) => entry.includes('.nomx-')),
             [],
           );
           assert.deepEqual(
-            (await readdir(wd)).filter((entry) => entry.includes('.omx-')),
+            (await readdir(wd)).filter((entry) => entry.includes('.nomx-')),
             [],
           );
         });
@@ -743,17 +757,17 @@ describe('nomx uninstall', () => {
       },
     ] as const;
     for (const fixture of fixtures) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-uninstall-marker-${fixture.name}-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-uninstall-marker-${fixture.name}-`));
       try {
         await withCwd(wd, async () => {
           const codexDir = join(wd, '.codex');
           const configPath = join(codexDir, 'config.toml');
           const hooksPath = join(codexDir, 'hooks.json');
           const shimPath = buildManagedCodexNativeHookWindowsShimPath(codexDir);
-          const metadataPath = join(codexDir, '.omx', 'notify-dispatch.json');
+          const metadataPath = join(codexDir, '.nomx', 'notify-dispatch.json');
           const config = buildOmxConfig().replace(
-            '# End oh-my-codex',
-            '[hooks.state."foreign-key"]\ntrusted_hash = "sha256:foreign"\n\n# End oh-my-codex',
+            '# End nomx',
+            '[hooks.state."foreign-key"]\ntrusted_hash = "sha256:foreign"\n\n# End nomx',
           );
           const shim = Buffer.from(
             buildManagedCodexNativeHookWindowsShimContent(packageRoot()),
@@ -783,11 +797,11 @@ describe('nomx uninstall', () => {
             assert.deepEqual(await readFile(hooksPath), Buffer.from(fixture.hooks, 'utf-8'));
           }
           assert.deepEqual(
-            (await readdir(codexDir)).filter((entry) => entry.includes('.omx-')),
+            (await readdir(codexDir)).filter((entry) => entry.includes('.nomx-')),
             [],
           );
           assert.deepEqual(
-            (await readdir(wd)).filter((entry) => entry.includes('.omx-')),
+            (await readdir(wd)).filter((entry) => entry.includes('.nomx-')),
             [],
           );
         });
@@ -797,7 +811,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('preserves a shim referenced by a Unicode-escaped future hook event', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-future-shim-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-future-shim-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -841,7 +855,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('preserves a drive-qualified shim referenced by a drive-less future hook event', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-drive-qualified-future-shim-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-drive-qualified-future-shim-'));
     try {
       await withDriveQualifiedWindowsCodexHome(wd, async (codexHomeDir) => {
         const configPath = join(codexHomeDir, 'config.toml');
@@ -851,7 +865,7 @@ describe('nomx uninstall', () => {
           platform: 'win32',
           codexHomeDir,
         });
-        const driveLessFutureShimPath = '\\Users\\omx\\.codex\\hooks\\omx-native-hook-windows-shim.ps1';
+        const driveLessFutureShimPath = '\\Users\\nomx\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1';
         const hooks = `${JSON.stringify({
           ...managed,
           hooks: {
@@ -883,7 +897,7 @@ describe('nomx uninstall', () => {
   });
 
   it('preserves a shim referenced through a normalized Windows path alias', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-shim-path-alias-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-shim-path-alias-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -892,7 +906,7 @@ describe('nomx uninstall', () => {
         const shimPath = buildManagedCodexNativeHookWindowsShimPath(codexDir);
         const shimAlias = shimPath
           .replace(/[\\/]+hooks[\\/]+/i, '\\hooks\\\\.\\')
-          .replace(/omx-native-hook-windows-shim\.ps1$/i, 'OMX-NATIVE-HOOK-WINDOWS-SHIM.PS1')
+          .replace(/nomx-native-hook-windows-shim\.ps1$/i, 'NOMX-NATIVE-HOOK-WINDOWS-SHIM.PS1')
           .replace(/\\/g, '/');
         const managed = buildManagedCodexHooksConfig(packageRoot(), {
           platform: 'win32',
@@ -927,7 +941,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('preserves a shim for a distinct absolute -File target', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-quoted-inert-shim-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-quoted-inert-shim-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -945,7 +959,7 @@ describe('nomx uninstall', () => {
             FutureEvent: [{
               hooks: [{
                 type: 'command',
-                command: "& 'C:\\%OMX_INERT%\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'D:\\tools\\unrelated-$env:INERT.ps1'",
+                command: "& 'C:\\%NOMX_INERT%\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'D:\\tools\\unrelated-$env:INERT.ps1'",
               }],
             }],
           },
@@ -978,7 +992,7 @@ describe('nomx uninstall', () => {
       { name: 'distinct-basename-absolute-deletion', reference: 'distinct-basename-absolute', mutation: 'delete' },
     ] as const;
     for (const fixture of fixtures) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-uninstall-preserved-shim-${fixture.name}-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-uninstall-preserved-shim-${fixture.name}-`));
       try {
         await withCwd(wd, async () => {
           const codexDir = join(wd, '.codex');
@@ -987,21 +1001,21 @@ describe('nomx uninstall', () => {
           const shimPath = buildManagedCodexNativeHookWindowsShimPath(codexDir);
           const shimAlias = shimPath
             .replace(/[\\/]+hooks[\\/]+/i, '\\hooks\\\\.\\')
-            .replace(/omx-native-hook-windows-shim\.ps1$/i, 'OMX-NATIVE-HOOK-WINDOWS-SHIM.PS1')
+            .replace(/nomx-native-hook-windows-shim\.ps1$/i, 'NOMX-NATIVE-HOOK-WINDOWS-SHIM.PS1')
             .replace(/\\/g, '/');
           const command = fixture.reference === 'exact'
             ? `& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File '${shimAlias}'`
             : fixture.reference === 'environment'
-              ? '& $env:OMX_SHIM'
+              ? '& $env:NOMX_SHIM'
               : fixture.reference === 'alternate-absolute'
-                ? "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'D:\\aliases\\omx-native-hook-windows-shim.ps1'"
+                ? "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'D:\\aliases\\nomx-native-hook-windows-shim.ps1'"
                 : fixture.reference === 'rooted-short-name'
-                  ? "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File '\\Users\\ALICE~1\\.codex\\hooks\\OMX-NA~1.PS1'"
+                  ? "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File '\\Users\\ALICE~1\\.codex\\hooks\\NOMX-NA~1.PS1'"
                   : fixture.reference === 'drive-relative-short-name'
-                    ? "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:Users\\ALICE~1\\.codex\\hooks\\OMX-NA~1.PS1'"
+                    ? "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:Users\\ALICE~1\\.codex\\hooks\\NOMX-NA~1.PS1'"
                     : fixture.reference === 'distinct-basename-absolute'
                       ? "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'D:\\aliases\\foreign-hook-alias.ps1'"
-                      : 'echo omx-native-hook-windows-shim.ps1';
+                      : 'echo nomx-native-hook-windows-shim.ps1';
           const managed = buildManagedCodexHooksConfig(packageRoot(), {
             platform: 'win32',
             codexHomeDir: codexDir,
@@ -1053,7 +1067,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('rolls back hooks when a preserved environment-indirected shim drifts under --keep-config', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-keep-config-preserved-shim-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-keep-config-preserved-shim-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1068,7 +1082,7 @@ describe('nomx uninstall', () => {
           ...managed,
           hooks: {
             ...managed.hooks,
-            FutureEvent: [{ hooks: [{ type: 'command', command: '& $env:OMX_SHIM' }] }],
+            FutureEvent: [{ hooks: [{ type: 'command', command: '& $env:NOMX_SHIM' }] }],
           },
         }, null, 2)}\n`;
         const config = buildOmxConfig();
@@ -1105,7 +1119,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('rolls back when a preserved Windows shim drifts after staged-cleanup finalization', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-preserved-shim-finalization-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-preserved-shim-finalization-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1120,7 +1134,7 @@ describe('nomx uninstall', () => {
           ...managed,
           hooks: {
             ...managed.hooks,
-            FutureEvent: [{ hooks: [{ type: 'command', command: '& $env:OMX_SHIM' }] }],
+            FutureEvent: [{ hooks: [{ type: 'command', command: '& $env:NOMX_SHIM' }] }],
           },
         }, null, 2)}\n`;
         const config = buildOmxConfig();
@@ -1156,7 +1170,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('rolls back hooks, historical proof-owned shim, and config when shim removal fails', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-shim-rollback-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-shim-rollback-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1173,7 +1187,7 @@ describe('nomx uninstall', () => {
           2,
         )}\n`;
         const shim = buildManagedCodexNativeHookWindowsShimContent(
-          'C:\\Historical Install\\oh-my-codex',
+          'C:\\Historical Install\\nomx',
           { nodePath: 'D:\\Historical Node\\node.exe' },
         );
         await mkdir(codexDir, { recursive: true });
@@ -1206,7 +1220,7 @@ describe('nomx uninstall', () => {
   });
 
   it('rejects a modified Windows shim before any uninstall artifact write', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-modified-shim-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-modified-shim-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1244,7 +1258,7 @@ describe('nomx uninstall', () => {
   });
 
   it('rolls back hooks, shim, and config when config commit fails after hook mutation', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-config-rollback-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-config-rollback-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1292,7 +1306,7 @@ describe('nomx uninstall', () => {
   });
 
   it('rejects invalid UTF-8 hooks.json and config.toml before changing either artifact', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-invalid-utf8-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-invalid-utf8-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1328,7 +1342,7 @@ describe('nomx uninstall', () => {
   });
 
   it('rejects symlinked native hook artifacts without following their targets', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-symlink-hooks-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-symlink-hooks-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1353,7 +1367,7 @@ describe('nomx uninstall', () => {
   });
 
   it('aborts before the first removal when any planned artifact becomes stale', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-stale-snapshot-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-stale-snapshot-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1384,7 +1398,7 @@ describe('nomx uninstall', () => {
   });
 
   it('never replaces a concurrent symlink while rolling back a failed uninstall transaction', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-stale-rollback-link-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-stale-rollback-link-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1426,7 +1440,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('rejects a symlinked controlled ancestor before reading an escaped artifact', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-ancestor-link-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-ancestor-link-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1454,7 +1468,7 @@ describe('nomx uninstall', () => {
 
   it('does not truncate or follow regular and symlink replacement temporary collisions', async () => {
     for (const collisionKind of ['regular', 'symlink'] as const) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-uninstall-temp-${collisionKind}-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-uninstall-temp-${collisionKind}-`));
       try {
         await withCwd(wd, async () => {
           const codexDir = join(wd, '.codex');
@@ -1495,7 +1509,7 @@ describe('nomx uninstall', () => {
   });
 
   it('rejects stale snapshots immediately before forward rename and remove mutations', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-stale-forward-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-stale-forward-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1540,7 +1554,7 @@ describe('nomx uninstall', () => {
 
   it('fails closed for non-throwing regular and symlink write-temporary replacements', async () => {
     for (const replacementKind of ['regular', 'symlink'] as const) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-uninstall-write-temp-${replacementKind}-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-uninstall-write-temp-${replacementKind}-`));
       try {
         await withCwd(wd, async () => {
           const codexDir = join(wd, '.codex');
@@ -1597,7 +1611,7 @@ describe('nomx uninstall', () => {
 
   it('fails closed for non-throwing regular and symlink staged-tombstone replacements', async () => {
     for (const replacementKind of ['regular', 'symlink'] as const) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-uninstall-staged-tombstone-${replacementKind}-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-uninstall-staged-tombstone-${replacementKind}-`));
       try {
         await withCwd(wd, async () => {
           const codexDir = join(wd, '.codex');
@@ -1653,7 +1667,7 @@ describe('nomx uninstall', () => {
   });
 
   it('rejects stale snapshots immediately before rollback rename and staged-copy removal', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-stale-rollback-primitives-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-stale-rollback-primitives-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1707,7 +1721,7 @@ describe('nomx uninstall', () => {
 
   it('rolls back when staged-deletion cleanup fails before any staged copy is committed', async () => {
 
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-staged-deletion-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-staged-deletion-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1756,24 +1770,24 @@ describe('nomx uninstall', () => {
   });
 
   it('does not roll back when preserved metadata drifts after staged-deletion cleanup finalization', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-second-staged-drift-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-second-staged-drift-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
         const configPath = join(codexDir, 'config.toml');
         const hooksPath = join(codexDir, 'hooks.json');
         const shimPath = buildManagedCodexNativeHookWindowsShimPath(codexDir);
-        const metadataPath = join(codexDir, '.omx', 'notify-dispatch.json');
+        const metadataPath = join(codexDir, '.nomx', 'notify-dispatch.json');
         const dispatcherPath = join(packageRoot(), 'dist', 'scripts', 'notify-dispatcher.js');
         const hooks = `${JSON.stringify(buildManagedCodexHooksConfig(packageRoot(), {
           platform: 'win32',
           codexHomeDir: codexDir,
         }), null, 2)}\n`;
         const metadata = {
-          managedBy: 'oh-my-codex',
+          managedBy: 'nomx',
           version: 1,
           previousNotify: ['node', '/tmp/user-notify.js'],
-          omxNotify: ['node', join(packageRoot(), 'dist', 'scripts', 'notify-hook.js')],
+          nomxNotify: ['node', join(packageRoot(), 'dist', 'scripts', 'notify-hook.js')],
           dispatcherNotify: ['node', dispatcherPath, '--metadata', metadataPath],
         };
         const foreignMetadata = JSON.stringify({
@@ -1824,7 +1838,7 @@ describe('nomx uninstall', () => {
       { name: 'finalization', stage: 'after-staged-cleanup', drift: 'config', committed: true },
     ] as const;
     for (const fixture of fixtures) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-uninstall-applied-${fixture.name}-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-uninstall-applied-${fixture.name}-`));
       try {
         await withCwd(wd, async () => {
           const codexDir = join(wd, '.codex');
@@ -1890,7 +1904,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('rolls back registered destinations when post-rename or post-remove verification fails', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-post-apply-recovery-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-post-apply-recovery-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -1931,22 +1945,22 @@ describe('nomx uninstall', () => {
     }
   });
   it('strictly validates dispatcher metadata and treats it as a stale read-only transaction precondition', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-notify-metadata-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-notify-metadata-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
         const configPath = join(codexDir, 'config.toml');
-        const metadataPath = join(codexDir, '.omx', 'notify-dispatch.json');
+        const metadataPath = join(codexDir, '.nomx', 'notify-dispatch.json');
         const dispatcherPath = join(packageRoot(), 'dist', 'scripts', 'notify-dispatcher.js');
         const config = buildOmxConfig().replace(
           /^notify = .*$/m,
           `notify = ${JSON.stringify(['node', dispatcherPath, '--metadata', metadataPath])}`,
         );
         const metadata = {
-          managedBy: 'oh-my-codex',
+          managedBy: 'nomx',
           version: 1,
           previousNotify: ['node', '/tmp/user-notify.js'],
-          omxNotify: ['node', join(packageRoot(), 'dist', 'scripts', 'notify-hook.js')],
+          nomxNotify: ['node', join(packageRoot(), 'dist', 'scripts', 'notify-hook.js')],
           dispatcherNotify: ['node', dispatcherPath, '--metadata', metadataPath],
         };
         await mkdir(dirname(metadataPath), { recursive: true });
@@ -1991,7 +2005,7 @@ describe('nomx uninstall', () => {
   });
 
   it('does not report stale rollback recovery when failure occurs before destructive removal', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-pre-destructive-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-pre-destructive-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -2030,7 +2044,7 @@ describe('nomx uninstall', () => {
   });
 
   it('removes exact historical root trust state but preserves nonmatching nested state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-legacy-hook-state-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-legacy-hook-state-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -2050,7 +2064,7 @@ describe('nomx uninstall', () => {
       assert.deepEqual(JSON.parse(await readFile(hooksPath, 'utf-8')), {});
 
       const nestedState = {
-        retained: { custom: true, trusted_hash: 'sha256:not-omx' },
+        retained: { custom: true, trusted_hash: 'sha256:not-nomx' },
       };
       await writeFile(hooksPath, JSON.stringify({
         hooks: {
@@ -2073,7 +2087,7 @@ describe('nomx uninstall', () => {
   });
 
   it('removes only trust state at the managed hook coordinates planned from hooks.json', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-hook-trust-coordinates-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-hook-trust-coordinates-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -2122,7 +2136,7 @@ describe('nomx uninstall', () => {
   });
 
   it('keeps empty hooks.json byte-identical during dry-run and no-op uninstall', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-empty-hooks-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-empty-hooks-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -2149,7 +2163,7 @@ describe('nomx uninstall', () => {
   });
 
   it('fails closed for partial hooks.json corruption before config cleanup', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-corrupt-hooks-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-corrupt-hooks-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -2173,7 +2187,7 @@ describe('nomx uninstall', () => {
   });
 
   it('does not preserve hooks feature flag from non-features tables', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -2213,8 +2227,8 @@ describe('nomx uninstall', () => {
     }
   });
 
-  it('removes unchanged OMX-seeded model/context keys during uninstall', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+  it('removes unchanged NOMX-seeded model/context keys during uninstall', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -2234,14 +2248,14 @@ describe('nomx uninstall', () => {
       assert.doesNotMatch(config, /notify\s*=/);
       assert.doesNotMatch(config, /model_reasoning_effort\s*=/);
       assert.doesNotMatch(config, /developer_instructions\s*=/);
-      assert.doesNotMatch(config, /oh-my-codex \(OMX\) Configuration/);
+      assert.doesNotMatch(config, /nomx \(NOMX\) Configuration/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it('preserves user-edited seeded model/context keys during uninstall', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -2261,14 +2275,14 @@ describe('nomx uninstall', () => {
       assert.doesNotMatch(config, /notify\s*=/);
       assert.doesNotMatch(config, /model_reasoning_effort\s*=/);
       assert.doesNotMatch(config, /developer_instructions\s*=/);
-      assert.doesNotMatch(config, /oh-my-codex \(OMX\) Configuration/);
+      assert.doesNotMatch(config, /nomx \(NOMX\) Configuration/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it('--keep-config skips config.toml cleanup', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -2282,31 +2296,31 @@ describe('nomx uninstall', () => {
 
       // Config should NOT have been modified
       const config = await readFile(join(codexDir, 'config.toml'), 'utf-8');
-      assert.match(config, /oh-my-codex \(OMX\) Configuration/);
-      assert.match(config, /omx_state/);
+      assert.match(config, /nomx \(NOMX\) Configuration/);
+      assert.match(config, /nomx_state/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it('--purge removes .omx/ cache directory', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+  it('--purge removes .nomx/ cache directory', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       await mkdir(home, { recursive: true });
-      // Create .omx/ directory with some files
-      const omxDir = join(wd, '.omx');
-      await mkdir(join(omxDir, 'state'), { recursive: true });
-      await writeFile(join(omxDir, 'setup-scope.json'), JSON.stringify({ scope: 'user' }));
-      await writeFile(join(omxDir, 'notepad.md'), '# notes');
-      await writeFile(join(omxDir, 'state', 'ralph-state.json'), '{}');
+      // Create .nomx/ directory with some files
+      const nomxDir = join(home, '.nomx');
+      await mkdir(join(nomxDir, 'state'), { recursive: true });
+      await writeFile(join(nomxDir, 'setup-scope.json'), JSON.stringify({ scope: 'user' }));
+      await writeFile(join(nomxDir, 'notepad.md'), '# notes');
+      await writeFile(join(nomxDir, 'state', 'ralph-state.json'), '{}');
 
       const res = runOmx(wd, ['uninstall', '--keep-config', '--purge'], { HOME: home });
       if (shouldSkipForSpawnPermissions(res.error)) return;
       assert.equal(res.status, 0, res.stderr || res.stdout);
-      assert.match(res.stdout, /\.omx\/ cache directory/);
+      assert.match(res.stdout, /\.nomx\/ cache directory/);
 
-      assert.equal(existsSync(omxDir), false, '.omx/ directory should be removed');
+      assert.equal(existsSync(nomxDir), false, '.nomx/ directory should be removed');
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
@@ -2318,12 +2332,12 @@ describe('nomx uninstall', () => {
       { name: 'custom', multiAgent: false, maxThreads: 17, maxDepth: 5 },
     ] satisfies MultiAgentPreservationVariant[]) {
       it(`preserves ambiguous multi-agent ownership in ${scope} scope (${variant.name})`, async () => {
-        const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-ownership-'));
+        const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-ownership-'));
         try {
           const home = join(wd, 'home');
           const userConfigPath = join(home, '.codex', 'config.toml');
           const projectConfigPath = join(wd, '.codex', 'config.toml');
-          const setupStateDir = join(wd, '.omx');
+          const setupStateDir = join(wd, '.nomx');
           await mkdir(join(home, '.codex'), { recursive: true });
           await mkdir(join(wd, '.codex'), { recursive: true });
           await mkdir(setupStateDir, { recursive: true });
@@ -2362,8 +2376,8 @@ describe('nomx uninstall', () => {
           assert.deepEqual(parsed.agents?.custom_role, {
             description: `${scope}-config`,
           });
-          assert.doesNotMatch(selectedAfter, /mcp_servers\.omx_state/);
-          assert.doesNotMatch(selectedAfter, /oh-my-codex \(OMX\) Configuration/);
+          assert.doesNotMatch(selectedAfter, /mcp_servers\.nomx_state/);
+          assert.doesNotMatch(selectedAfter, /nomx \(NOMX\) Configuration/);
 
           assert.equal(
             await readFile(unselectedPath, 'utf-8'),
@@ -2377,17 +2391,17 @@ describe('nomx uninstall', () => {
     }
   }
   it('works with project scope', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       await mkdir(home, { recursive: true });
 
       // Create project-scoped setup
-      const omxDir = join(wd, '.omx');
+      const nomxDir = join(wd, '.nomx');
       const codexDir = join(wd, '.codex');
-      await mkdir(omxDir, { recursive: true });
+      await mkdir(nomxDir, { recursive: true });
       await mkdir(join(codexDir, 'prompts'), { recursive: true });
-      await writeFile(join(omxDir, 'setup-scope.json'), JSON.stringify({ scope: 'project' }));
+      await writeFile(join(nomxDir, 'setup-scope.json'), JSON.stringify({ scope: 'project' }));
       await writeFile(join(codexDir, 'config.toml'), buildOmxConfig());
       // Install a prompt
       await writeFile(join(codexDir, 'prompts', 'executor.md'), '# executor');
@@ -2399,14 +2413,14 @@ describe('nomx uninstall', () => {
 
       // Project-local config.toml should be cleaned
       const config = await readFile(join(codexDir, 'config.toml'), 'utf-8');
-      assert.doesNotMatch(config, /oh-my-codex \(OMX\) Configuration/);
+      assert.doesNotMatch(config, /nomx \(NOMX\) Configuration/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it('handles missing config.toml gracefully', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       await mkdir(home, { recursive: true });
@@ -2421,7 +2435,7 @@ describe('nomx uninstall', () => {
   });
 
   it('shows summary of what was removed', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -2432,7 +2446,7 @@ describe('nomx uninstall', () => {
       if (shouldSkipForSpawnPermissions(res.error)) return;
       assert.equal(res.status, 0, res.stderr || res.stdout);
       assert.match(res.stdout, /Uninstall summary/);
-      assert.match(res.stdout, /MCP servers: omx_state, omx_memory, omx_code_intel, omx_trace, omx_wiki/);
+      assert.match(res.stdout, /MCP servers: nomx_state, nomx_memory, nomx_code_intel, nomx_trace/);
       assert.match(res.stdout, /Agent entries: 1/);
       assert.match(res.stdout, /TUI status line section/);
       assert.match(res.stdout, /Top-level keys/);
@@ -2444,12 +2458,12 @@ describe('nomx uninstall', () => {
   });
 
   it('warns when overlapping legacy ~/.agents/skills remains after user-scope uninstall', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
-      const canonicalHelp = join(codexDir, 'skills', 'help');
-      const legacyHelp = join(home, '.agents', 'skills', 'help');
+      const canonicalHelp = join(codexDir, 'skills', 'doctor');
+      const legacyHelp = join(home, '.agents', 'skills', 'doctor');
       await mkdir(canonicalHelp, { recursive: true });
       await mkdir(legacyHelp, { recursive: true });
       await writeFile(join(canonicalHelp, 'SKILL.md'), '# canonical help\n');
@@ -2462,7 +2476,7 @@ describe('nomx uninstall', () => {
         res.stdout,
         /Warning: 1 overlapping skill names remain between .*\.codex[\\/]+skills and .*\.agents[\\/]+skills; 1 differ in SKILL\.md content\. nomx uninstall only removes the active canonical skill root; archive or remove ~\/\.agents\/skills if Codex still shows duplicates/,
       );
-      assert.equal(existsSync(canonicalHelp), false, 'canonical OMX skill should be removed');
+      assert.equal(existsSync(canonicalHelp), false, 'canonical NOMX skill should be removed');
       assert.equal(existsSync(join(home, '.agents', 'skills')), true, 'legacy skill root should remain for manual cleanup');
     } finally {
       await rm(wd, { recursive: true, force: true });
@@ -2470,11 +2484,11 @@ describe('nomx uninstall', () => {
   });
 
   it('warns when a distinct legacy ~/.agents/skills root remains after user-scope uninstall', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
-      const canonicalHelp = join(codexDir, 'skills', 'help');
+      const canonicalHelp = join(codexDir, 'skills', 'autopilot');
       const legacyDoctor = join(home, '.agents', 'skills', 'doctor');
       await mkdir(canonicalHelp, { recursive: true });
       await mkdir(legacyDoctor, { recursive: true });
@@ -2488,7 +2502,7 @@ describe('nomx uninstall', () => {
         res.stdout,
         /Warning: legacy ~\/\.agents\/skills still exists \(1 skills\)\. nomx uninstall does not remove that historical root automatically; archive or remove ~\/\.agents\/skills if Codex still shows stale or duplicate skills/,
       );
-      assert.equal(existsSync(canonicalHelp), false, 'canonical OMX skill should be removed');
+      assert.equal(existsSync(canonicalHelp), false, 'canonical NOMX skill should be removed');
       assert.equal(existsSync(join(home, '.agents', 'skills')), true, 'legacy skill root should remain for manual cleanup');
     } finally {
       await rm(wd, { recursive: true, force: true });
@@ -2496,7 +2510,7 @@ describe('nomx uninstall', () => {
   });
 
   it('does not warn about legacy ~/.agents/skills when none exists', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -2515,17 +2529,17 @@ describe('nomx uninstall', () => {
   });
 
   it('does not warn about legacy ~/.agents/skills during project-scope uninstall', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const projectSkillsHelp = join(wd, '.codex', 'skills', 'help');
       const legacyHelp = join(home, '.agents', 'skills', 'help');
       await mkdir(projectSkillsHelp, { recursive: true });
       await mkdir(legacyHelp, { recursive: true });
-      await mkdir(join(wd, '.omx'), { recursive: true });
+      await mkdir(join(wd, '.nomx'), { recursive: true });
       await writeFile(join(projectSkillsHelp, 'SKILL.md'), '# project help\n');
       await writeFile(join(legacyHelp, 'SKILL.md'), '# legacy help\n');
-      await writeFile(join(wd, '.omx', 'setup-scope.json'), JSON.stringify({ scope: 'project' }));
+      await writeFile(join(wd, '.nomx', 'setup-scope.json'), JSON.stringify({ scope: 'project' }));
 
       const res = runOmx(wd, ['uninstall', '--keep-config'], { HOME: home });
       if (shouldSkipForSpawnPermissions(res.error)) return;
@@ -2539,7 +2553,7 @@ describe('nomx uninstall', () => {
   });
 
   it('does not warn when legacy ~/.agents/skills is just a link to the canonical skills root', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-legacy-link-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-legacy-link-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -2564,32 +2578,32 @@ describe('nomx uninstall', () => {
     }
   });
 
-  it('--dry-run --purge does not actually remove .omx/ directory', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+  it('--dry-run --purge does not actually remove .nomx/ directory', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       await mkdir(home, { recursive: true });
-      const omxDir = join(wd, '.omx');
-      await mkdir(join(omxDir, 'state'), { recursive: true });
-      await writeFile(join(omxDir, 'setup-scope.json'), JSON.stringify({ scope: 'user' }));
-      await writeFile(join(omxDir, 'notepad.md'), '# notes');
+      const nomxDir = join(home, '.nomx');
+      await mkdir(join(nomxDir, 'state'), { recursive: true });
+      await writeFile(join(nomxDir, 'setup-scope.json'), JSON.stringify({ scope: 'user' }));
+      await writeFile(join(nomxDir, 'notepad.md'), '# notes');
 
       const res = runOmx(wd, ['uninstall', '--keep-config', '--purge', '--dry-run'], { HOME: home });
       if (shouldSkipForSpawnPermissions(res.error)) return;
       assert.equal(res.status, 0, res.stderr || res.stdout);
       assert.match(res.stdout, /dry-run mode/);
-      assert.match(res.stdout, /\.omx\/ cache directory/);
+      assert.match(res.stdout, /\.nomx\/ cache directory/);
 
-      // .omx/ should still exist
-      assert.equal(existsSync(omxDir), true, '.omx/ should NOT be removed in dry-run');
-      assert.equal(existsSync(join(omxDir, 'notepad.md')), true);
+      // .nomx/ should still exist
+      assert.equal(existsSync(nomxDir), true, '.nomx/ should NOT be removed in dry-run');
+      assert.equal(existsSync(join(nomxDir, 'notepad.md')), true);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it('second uninstall run reports nothing to remove (idempotent)', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -2599,7 +2613,7 @@ describe('nomx uninstall', () => {
       const first = runOmx(wd, ['uninstall'], { HOME: home });
       if (shouldSkipForSpawnPermissions(first.error)) return;
       assert.equal(first.status, 0, first.stderr || first.stdout);
-      assert.match(first.stdout, /Removed OMX configuration block/);
+      assert.match(first.stdout, /Removed NOMX configuration block/);
 
       const second = runOmx(wd, ['uninstall'], { HOME: home });
       if (shouldSkipForSpawnPermissions(second.error)) return;
@@ -2610,12 +2624,12 @@ describe('nomx uninstall', () => {
     }
   });
 
-  it('does not delete user AGENTS.md that merely mentions oh-my-codex', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+  it('does not delete user AGENTS.md that merely mentions nomx', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       await mkdir(home, { recursive: true });
-      const userAgentsMd = '# My Agents\n\nDo not use oh-my-codex for this project.\n';
+      const userAgentsMd = '# My Agents\n\nDo not use nomx for this project.\n';
       await writeFile(join(wd, 'AGENTS.md'), userAgentsMd);
 
       const res = runOmx(wd, ['uninstall'], { HOME: home });
@@ -2631,17 +2645,17 @@ describe('nomx uninstall', () => {
     }
   });
 
-  it('removes OMX-managed AGENTS sections while preserving project guidance', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-merged-agents-'));
+  it('removes NOMX-managed AGENTS sections while preserving project guidance', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-merged-agents-'));
     try {
       const home = join(wd, 'home');
       await mkdir(home, { recursive: true });
-      await mkdir(join(wd, '.omx'), { recursive: true });
-      await writeFile(join(wd, '.omx', 'setup-scope.json'), JSON.stringify({ scope: 'project' }));
+      await mkdir(join(wd, '.nomx'), { recursive: true });
+      await writeFile(join(wd, '.nomx', 'setup-scope.json'), JSON.stringify({ scope: 'project' }));
       const userGuidance = '# User project instructions\n\nPreserve this guidance.\n';
       await writeFile(
         join(wd, 'AGENTS.md'),
-        `${userGuidance}\n<!-- OMX:AGENTS:START -->\n<!-- omx:generated:agents-md -->\n# oh-my-codex - Intelligent Multi-Agent Orchestration\n<!-- OMX:AGENTS:END -->\n`,
+        `${userGuidance}\n<!-- NOMX:AGENTS:START -->\n<!-- nomx:generated:agents-md -->\n# nomx - Intelligent Multi-Agent Orchestration\n<!-- NOMX:AGENTS:END -->\n`,
       );
 
       const res = runOmx(wd, ['uninstall', '--keep-config'], { HOME: home });
@@ -2654,13 +2668,13 @@ describe('nomx uninstall', () => {
   });
 
   it('removes managed user-scope AGENTS.md from CODEX_HOME', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       const codexHome = join(home, '.codex');
       await mkdir(codexHome, { recursive: true });
-      await mkdir(join(wd, '.omx'), { recursive: true });
-      await writeFile(join(wd, '.omx', 'setup-scope.json'), JSON.stringify({ scope: 'user' }));
+      await mkdir(join(wd, '.nomx'), { recursive: true });
+      await writeFile(join(wd, '.nomx', 'setup-scope.json'), JSON.stringify({ scope: 'user' }));
       await writeFile(
         join(codexHome, 'AGENTS.md'),
         '<!-- AUTONOMY DIRECTIVE — DO NOT REMOVE -->\n'
@@ -2668,8 +2682,8 @@ describe('nomx uninstall', () => {
           + 'DO NOT STOP TO ASK "SHOULD I PROCEED?" — PROCEED. DO NOT WAIT FOR CONFIRMATION ON OBVIOUS NEXT STEPS.\n'
           + 'IF BLOCKED, TRY AN ALTERNATIVE APPROACH. ONLY ASK WHEN TRULY AMBIGUOUS OR DESTRUCTIVE.\n'
           + '<!-- END AUTONOMY DIRECTIVE -->\n'
-          + '<!-- omx:generated:agents-md -->\n'
-          + '# oh-my-codex - Intelligent Multi-Agent Orchestration\n',
+          + '<!-- nomx:generated:agents-md -->\n'
+          + '# nomx - Intelligent Multi-Agent Orchestration\n',
       );
 
       const res = runOmx(wd, ['uninstall', '--keep-config'], { HOME: home });
@@ -2682,36 +2696,36 @@ describe('nomx uninstall', () => {
   });
 
   it('removes setup-scope.json and hud-config.json without --purge', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-'));
     try {
       const home = join(wd, 'home');
       await mkdir(home, { recursive: true });
-      const omxDir = join(wd, '.omx');
-      await mkdir(omxDir, { recursive: true });
-      await writeFile(join(omxDir, 'setup-scope.json'), JSON.stringify({ scope: 'user' }));
-      await writeFile(join(omxDir, 'hud-config.json'), JSON.stringify({ preset: 'focused' }));
-      await writeFile(join(omxDir, 'notepad.md'), '# keep this');
+      const nomxDir = join(home, '.nomx');
+      await mkdir(nomxDir, { recursive: true });
+      await writeFile(join(nomxDir, 'setup-scope.json'), JSON.stringify({ scope: 'user' }));
+      await writeFile(join(nomxDir, 'hud-config.json'), JSON.stringify({ preset: 'focused' }));
+      await writeFile(join(nomxDir, 'notepad.md'), '# keep this');
 
       const res = runOmx(wd, ['uninstall', '--keep-config'], { HOME: home });
       if (shouldSkipForSpawnPermissions(res.error)) return;
       assert.equal(res.status, 0, res.stderr || res.stdout);
 
-      assert.equal(existsSync(join(omxDir, 'setup-scope.json')), false);
-      assert.equal(existsSync(join(omxDir, 'hud-config.json')), false);
+      assert.equal(existsSync(join(nomxDir, 'setup-scope.json')), false);
+      assert.equal(existsSync(join(nomxDir, 'hud-config.json')), false);
       // notepad.md should still exist (not purged)
-      assert.equal(existsSync(join(omxDir, 'notepad.md')), true);
+      assert.equal(existsSync(join(nomxDir, 'notepad.md')), true);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
   it('removes exact marked pairs and authorized singleton blocks during uninstall', async () => {
     const cases = [
-      { lines: ['# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', 'model_auto_compact_token_limit = 200000', '# End oh-my-codex seeded behavioral defaults'], removed: ['model_context_window', 'model_auto_compact_token_limit'], preserved: {} },
-      { lines: ['model_auto_compact_token_limit=777', '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', '# End oh-my-codex seeded behavioral defaults'], removed: ['model_context_window'], preserved: { model_auto_compact_token_limit: 777 } },
-      { lines: ['model_context_window = 123456', '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_auto_compact_token_limit = 200000', '# End oh-my-codex seeded behavioral defaults'], removed: ['model_auto_compact_token_limit'], preserved: { model_context_window: 123456 } },
+      { lines: ['# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', 'model_auto_compact_token_limit = 200000', '# End nomx seeded behavioral defaults'], removed: ['model_context_window', 'model_auto_compact_token_limit'], preserved: {} },
+      { lines: ['model_auto_compact_token_limit=777', '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', '# End nomx seeded behavioral defaults'], removed: ['model_context_window'], preserved: { model_auto_compact_token_limit: 777 } },
+      { lines: ['model_context_window = 123456', '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_auto_compact_token_limit = 200000', '# End nomx seeded behavioral defaults'], removed: ['model_auto_compact_token_limit'], preserved: { model_context_window: 123456 } },
     ];
     for (const fixture of cases) {
-      const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-defaults-'));
+      const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-defaults-'));
       try {
         const home = join(wd, 'home');
         const configPath = join(home, '.codex', 'config.toml');
@@ -2739,33 +2753,33 @@ describe('nomx uninstall', () => {
         markers: false,
       },
       {
-        lines: ['# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 123456', 'model_auto_compact_token_limit = 200000', '# End oh-my-codex seeded behavioral defaults', '[user_table]', 'label = "edited"'],
+        lines: ['# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 123456', 'model_auto_compact_token_limit = 200000', '# End nomx seeded behavioral defaults', '[user_table]', 'label = "edited"'],
         preservedLines: ['model_context_window = 123456', 'model_auto_compact_token_limit = 200000', '[user_table]', 'label = "edited"'],
         markers: false,
       },
       {
-        lines: ['model_auto_compact_token_limit = 1', 'model_auto_compact_token_limit = 2', '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', '# End oh-my-codex seeded behavioral defaults', '[user_table]', 'label = "ambiguous"'],
+        lines: ['model_auto_compact_token_limit = 1', 'model_auto_compact_token_limit = 2', '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', '# End nomx seeded behavioral defaults', '[user_table]', 'label = "ambiguous"'],
         preservedLines: ['model_auto_compact_token_limit = 1', 'model_auto_compact_token_limit = 2', 'model_context_window = 250000', '[user_table]', 'label = "ambiguous"'],
         markers: true,
       },
       {
-        lines: ['model_context_window = 999', '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', 'model_auto_compact_token_limit = 200000', '# End oh-my-codex seeded behavioral defaults', '[user_table]', 'label = "pair-duplicate-before"'],
+        lines: ['model_context_window = 999', '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', 'model_auto_compact_token_limit = 200000', '# End nomx seeded behavioral defaults', '[user_table]', 'label = "pair-duplicate-before"'],
         preservedLines: ['model_context_window = 999', 'model_context_window = 250000', 'model_auto_compact_token_limit = 200000', '[user_table]', 'label = "pair-duplicate-before"'],
         markers: true,
       },
       {
-        lines: ['# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', 'model_auto_compact_token_limit = 200000', '# End oh-my-codex seeded behavioral defaults', 'model_auto_compact_token_limit = 999', '[user_table]', 'label = "pair-duplicate-after"'],
+        lines: ['# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', 'model_auto_compact_token_limit = 200000', '# End nomx seeded behavioral defaults', 'model_auto_compact_token_limit = 999', '[user_table]', 'label = "pair-duplicate-after"'],
         preservedLines: ['model_context_window = 250000', 'model_auto_compact_token_limit = 200000', 'model_auto_compact_token_limit = 999', '[user_table]', 'label = "pair-duplicate-after"'],
         markers: true,
       },
       {
-        lines: ['# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', '# End oh-my-codex seeded behavioral defaults', '[user_table]', 'label = "after-table"', 'model_auto_compact_token_limit = 777'],
+        lines: ['# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', '# End nomx seeded behavioral defaults', '[user_table]', 'label = "after-table"', 'model_auto_compact_token_limit = 777'],
         preservedLines: ['model_context_window = 250000', '[user_table]', 'label = "after-table"', 'model_auto_compact_token_limit = 777'],
         markers: false,
       },
     ];
     for (const fixture of cases) {
-      const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-defaults-'));
+      const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-defaults-'));
       try {
         const home = join(wd, 'home');
         const configPath = join(home, '.codex', 'config.toml');
@@ -2784,11 +2798,11 @@ describe('nomx uninstall', () => {
   });
 
   it('does not write during dry-run and is a fixed point after legacy-default cleanup', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-defaults-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-defaults-'));
     try {
       const home = join(wd, 'home');
       const configPath = join(home, '.codex', 'config.toml');
-      const original = ['# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', 'model_auto_compact_token_limit = 200000', '# End oh-my-codex seeded behavioral defaults', ''].join('\n');
+      const original = ['# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', 'model_auto_compact_token_limit = 200000', '# End nomx seeded behavioral defaults', ''].join('\n');
       await mkdir(dirname(configPath), { recursive: true });
       await writeFile(configPath, original);
       const dryRun = runOmx(wd, ['uninstall', '--dry-run'], { HOME: home });
@@ -2807,8 +2821,8 @@ describe('nomx uninstall', () => {
   });
 
   it('keeps singleton and bounded cleanup dry-run-safe, differential, and idempotent', async () => {
-    const start = '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)';
-    const end = '# End oh-my-codex seeded behavioral defaults';
+    const start = '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)';
+    const end = '# End nomx seeded behavioral defaults';
     const fixtures = [
       {
         baseline: ['model_auto_compact_token_limit = 777', '[user_table]', 'label = "context-singleton"', ''].join('\n'),
@@ -2825,7 +2839,7 @@ describe('nomx uninstall', () => {
     ];
 
     for (const fixture of fixtures) {
-      const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-defaults-'));
+      const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-defaults-'));
       try {
         const baselineHome = join(wd, 'baseline-home');
         const migratedHome = join(wd, 'migrated-home');
@@ -2858,7 +2872,7 @@ describe('nomx uninstall', () => {
   });
 
   it('preserves existing uninstall-pipeline semantics after removing a marked pair', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-defaults-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-defaults-'));
     try {
       const baselineHome = join(wd, 'baseline-home');
       const migratedHome = join(wd, 'migrated-home');
@@ -2868,7 +2882,7 @@ describe('nomx uninstall', () => {
       await mkdir(dirname(baselinePath), { recursive: true });
       await mkdir(dirname(migratedPath), { recursive: true });
       await writeFile(baselinePath, baseline);
-      await writeFile(migratedPath, baseline.replace('model = "o4-mini"', ['model = "o4-mini"', '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', 'model_auto_compact_token_limit = 200000', '# End oh-my-codex seeded behavioral defaults'].join('\n')));
+      await writeFile(migratedPath, baseline.replace('model = "o4-mini"', ['model = "o4-mini"', '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', 'model_context_window = 250000', 'model_auto_compact_token_limit = 200000', '# End nomx seeded behavioral defaults'].join('\n')));
       const baselineRun = runOmx(wd, ['uninstall'], { HOME: baselineHome });
       if (shouldSkipForSpawnPermissions(baselineRun.error)) return;
       assert.equal(baselineRun.status, 0, baselineRun.stderr || baselineRun.stdout);
@@ -2880,7 +2894,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('preserves a same-byte foreign replacement made immediately after an uninstall rename', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-immediate-post-rename-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-immediate-post-rename-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -2916,7 +2930,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('preflights every staged uninstall recovery copy before rollback', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-rollback-recovery-preflight-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-rollback-recovery-preflight-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -2960,7 +2974,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('stops later uninstall rollback restores when the first restored artifact drifts', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-rollback-restored-drift-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-rollback-restored-drift-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -3012,7 +3026,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('preserves a foreign inode injected after final uninstall rename validation', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-final-rename-claim-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-final-rename-claim-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -3045,7 +3059,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('preserves a foreign inode injected after final uninstall removal validation', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-final-remove-claim-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-final-remove-claim-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -3082,7 +3096,7 @@ describe('nomx uninstall', () => {
     }
   });
   it('preserves a foreign inode injected after final uninstall rollback validation', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-uninstall-final-restore-claim-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-uninstall-final-restore-claim-'));
     try {
       await withCwd(wd, async () => {
         const codexDir = join(wd, '.codex');
@@ -3121,7 +3135,7 @@ describe('nomx uninstall', () => {
 });
 
 describe('stripOmxFeatureFlags', () => {
-  it('removes OMX feature flags and preserves user flags', async () => {
+  it('removes NOMX feature flags and preserves user flags', async () => {
     const { stripOmxFeatureFlags } = await import('../../config/generator.js');
 
     const config = [

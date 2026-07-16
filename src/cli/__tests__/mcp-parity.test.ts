@@ -31,11 +31,11 @@ async function writeOwnerEvidenceTmux(cwd: string, ownerSessionId: string, canon
     `#!/usr/bin/env bash
 set -eu
 case "\${1:-}" in
-display-message) printf '%s\n' "omx-owner-evidence" ;;
+display-message) printf '%s\n' "nomx-owner-evidence" ;;
 show-option|show-options)
 case "\${@: -1}" in
-@omx_pane_instance_id) printf '%s\n' "${ownerSessionId}" ;;
-@omx_instance_id) printf '%s\n' "${canonicalSessionId}" ;;
+@nomx_pane_instance_id) printf '%s\n' "${ownerSessionId}" ;;
+@nomx_instance_id) printf '%s\n' "${canonicalSessionId}" ;;
 esac
 ;;
 esac
@@ -48,7 +48,7 @@ esac
 
 describe("mcpParityCommand", () => {
   it("supports state write/read parity via CLI", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-mcp-parity-state-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-mcp-parity-state-"));
     const logs = captureLogs();
 
     try {
@@ -76,12 +76,12 @@ describe("mcpParityCommand", () => {
   });
 
   it("preserves session-scoped state when used as the state fallback path", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-mcp-parity-state-session-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-mcp-parity-state-session-"));
     const logs = captureLogs();
-    const previousDisable = process.env.OMX_STATE_SERVER_DISABLE_AUTO_START;
+    const previousDisable = process.env.NOMX_STATE_SERVER_DISABLE_AUTO_START;
 
     try {
-      process.env.OMX_STATE_SERVER_DISABLE_AUTO_START = "1";
+      process.env.NOMX_STATE_SERVER_DISABLE_AUTO_START = "1";
       await mcpParityCommand("state", [
         "write",
         "--input",
@@ -97,7 +97,7 @@ describe("mcpParityCommand", () => {
       const writeResult = JSON.parse(logs.pop() || "{}") as { path?: string };
       assert.equal(
         writeResult.path,
-        join(cwd, ".omx", "state", "sessions", "session-fallback", "ralph-state.json"),
+        join(cwd, ".nomx", "state", "sessions", "session-fallback", "ralph-state.json"),
       );
 
       await mcpParityCommand("state", [
@@ -119,21 +119,21 @@ describe("mcpParityCommand", () => {
       assert.equal(readResult.current_phase, "executing");
       assert.equal(readResult.owner_omx_session_id, "session-fallback");
     } finally {
-      if (typeof previousDisable === "string") process.env.OMX_STATE_SERVER_DISABLE_AUTO_START = previousDisable;
-      else delete process.env.OMX_STATE_SERVER_DISABLE_AUTO_START;
+      if (typeof previousDisable === "string") process.env.NOMX_STATE_SERVER_DISABLE_AUTO_START = previousDisable;
+      else delete process.env.NOMX_STATE_SERVER_DISABLE_AUTO_START;
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it("rejects unmatched implicit owner environment state writes", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-mcp-parity-unmatched-owner-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-mcp-parity-unmatched-owner-"));
     const logs = captureLogs();
-    const previousSessionId = process.env.OMX_SESSION_ID;
+    const previousSessionId = process.env.NOMX_SESSION_ID;
 
     try {
-      const stateDir = join(cwd, ".omx", "state");
+      const stateDir = join(cwd, ".nomx", "state");
       await writeSessionStart(cwd, "native-unmatched-id", { nativeSessionId: "native-unmatched-id" });
-      process.env.OMX_SESSION_ID = "omx-unmatched-id";
+      process.env.NOMX_SESSION_ID = "nomx-unmatched-id";
 
       await mcpParityCommand("state", [
         "write",
@@ -149,39 +149,39 @@ describe("mcpParityCommand", () => {
 
       assert.match(
         logs.pop() ?? "",
-        /Cannot resolve writable state scope: OMX_SESSION_ID is not bound to session\.json\./,
+        /Cannot resolve writable state scope: NOMX_SESSION_ID is not bound to session\.json\./,
       );
       assert.equal(existsSync(join(stateDir, "sessions", "native-unmatched-id", "ralplan-state.json")), false);
-      assert.equal(existsSync(join(stateDir, "sessions", "omx-unmatched-id", "ralplan-state.json")), false);
+      assert.equal(existsSync(join(stateDir, "sessions", "nomx-unmatched-id", "ralplan-state.json")), false);
     } finally {
-      if (typeof previousSessionId === "string") process.env.OMX_SESSION_ID = previousSessionId;
-      else delete process.env.OMX_SESSION_ID;
+      if (typeof previousSessionId === "string") process.env.NOMX_SESSION_ID = previousSessionId;
+      else delete process.env.NOMX_SESSION_ID;
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it("converges owner-present env state writes on the canonical native session", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-mcp-parity-owner-session-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-mcp-parity-owner-session-"));
     const logs = captureLogs();
-    const previousSessionId = process.env.OMX_SESSION_ID;
+    const previousSessionId = process.env.NOMX_SESSION_ID;
     const previousTmux = process.env.TMUX;
     const previousTmuxPane = process.env.TMUX_PANE;
     const previousPath = process.env.PATH;
 
     try {
       const canonicalSessionId = "native-id";
-      const ownerSessionId = "omx-owner-id";
-      process.env.OMX_SESSION_ID = ownerSessionId;
-      const stateDir = join(cwd, ".omx", "state");
+      const ownerSessionId = "nomx-owner-id";
+      process.env.NOMX_SESSION_ID = ownerSessionId;
+      const stateDir = join(cwd, ".nomx", "state");
       await writeSessionStart(cwd, canonicalSessionId, {
         nativeSessionId: canonicalSessionId,
-        ownerOmxSessionId: ownerSessionId,
+        ownerNomxSessionId: ownerSessionId,
         ownerAliasVerified: true,
-        tmuxSessionName: "omx-owner-evidence",
+        tmuxSessionName: "nomx-owner-evidence",
         tmuxPaneId: "%owner",
       });
       const fakeBinDir = await writeOwnerEvidenceTmux(cwd, ownerSessionId, canonicalSessionId);
-      process.env.TMUX = "/tmp/omx-owner";
+      process.env.TMUX = "/tmp/nomx-owner";
       process.env.TMUX_PANE = "%owner";
       process.env.PATH = `${fakeBinDir}:${previousPath ?? ""}`;
 
@@ -204,8 +204,8 @@ describe("mcpParityCommand", () => {
       );
       assert.equal(existsSync(join(stateDir, "sessions", ownerSessionId, "ralplan-state.json")), false);
     } finally {
-      if (typeof previousSessionId === "string") process.env.OMX_SESSION_ID = previousSessionId;
-      else delete process.env.OMX_SESSION_ID;
+      if (typeof previousSessionId === "string") process.env.NOMX_SESSION_ID = previousSessionId;
+      else delete process.env.NOMX_SESSION_ID;
       if (typeof previousTmux === "string") process.env.TMUX = previousTmux;
       else delete process.env.TMUX;
       if (typeof previousTmuxPane === "string") process.env.TMUX_PANE = previousTmuxPane;
@@ -217,7 +217,7 @@ describe("mcpParityCommand", () => {
   });
 
   it("matches state tool outcome-clearing semantics on fallback writes", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-mcp-parity-state-outcome-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-mcp-parity-state-outcome-"));
     const logs = captureLogs();
 
     try {
@@ -267,7 +267,7 @@ describe("mcpParityCommand", () => {
   });
 
   it("supports notepad and project-memory parity via CLI", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-mcp-parity-memory-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-mcp-parity-memory-"));
     const logs = captureLogs();
 
     try {
@@ -314,11 +314,11 @@ describe("mcpParityCommand", () => {
   });
 
   it("supports trace summary parity via CLI", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-mcp-parity-trace-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-mcp-parity-trace-"));
     const logs = captureLogs();
 
     try {
-      const logsDir = join(cwd, ".omx", "logs");
+      const logsDir = join(cwd, ".nomx", "logs");
       await mkdir(logsDir, { recursive: true });
       await writeFile(
         join(logsDir, "turns-2026-04-08.jsonl"),

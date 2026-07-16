@@ -3,7 +3,7 @@ import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { assertGoalWorkflowCanComplete } from './validation.js';
 
-export const GOAL_WORKFLOWS_DIR = '.omx/goals';
+export const GOAL_WORKFLOWS_DIR = '.nomx/goals';
 export const GOAL_WORKFLOW_STATUS = 'status.json';
 export const GOAL_WORKFLOW_LEDGER = 'ledger.jsonl';
 

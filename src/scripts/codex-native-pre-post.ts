@@ -1,5 +1,5 @@
 import {
-  OMX_LORE_COMMIT_GUARD_ENV,
+  NOMX_LORE_COMMIT_GUARD_ENV,
   isLoreCommitGuardEnabled,
   readConfiguredLoreCommitGuardValue,
 } from "../config/commit-lore-guard.js";
@@ -124,7 +124,7 @@ function matchesDestructiveFixture(command: string): boolean {
 }
 
 function isMcpLikeToolName(toolName: string): boolean {
-  return /^(mcp__|omx_(?:state|memory|trace|code_intel)\b|state_|project_memory_|notepad_|trace_)/i.test(toolName);
+  return /^(mcp__|nomx_(?:state|memory|trace|code_intel)\b|state_|project_memory_|notepad_|trace_)/i.test(toolName);
 }
 
 const MCP_TRANSPORT_FAILURE_PATTERNS = [
@@ -140,7 +140,7 @@ const MCP_TRANSPORT_FAILURE_PATTERNS = [
   /mcp(?: server)? .*closed/i,
 ];
 
-type OmxParityCommand =
+type NomxParityCommand =
   | "state"
   | "notepad"
   | "project-memory"
@@ -197,7 +197,7 @@ export function detectMcpTransportFailure(
   };
 }
 
-function resolveOmxParityTarget(toolName: string): { command: OmxParityCommand; tool: string } | null {
+function resolveOmxParityTarget(toolName: string): { command: NomxParityCommand; tool: string } | null {
   const match = toolName.match(/^mcp__omx_(state|memory|trace|code_intel)__([a-z0-9_]+)$/i);
   if (!match) return null;
 
@@ -240,7 +240,7 @@ const LORE_TRAILER_PREFIXES = [
   "Related:",
 ] as const;
 
-const OMX_COAUTHOR_TRAILER = "Co-authored-by: OmX <omx@oh-my-codex.dev>";
+const NOMX_COAUTHOR_TRAILER = "Co-authored-by: OmX <nomx@nomx.dev>";
 
 function isDoubleQuotedShellEscapeTarget(char: string | undefined): boolean {
   return char === "\"" || char === "\\" || char === "$" || char === "`" || char === "\n";
@@ -862,19 +862,19 @@ function buildEffectiveLoreCommitGuardEnv(parsed: GitCommitCommandParseResult): 
 
   if (
     !parsed.environmentStartsClean
-    && !parsed.unsetEnvironmentNames.includes(OMX_LORE_COMMIT_GUARD_ENV)
-    && typeof effectiveEnvironment[OMX_LORE_COMMIT_GUARD_ENV] !== "string"
+    && !parsed.unsetEnvironmentNames.includes(NOMX_LORE_COMMIT_GUARD_ENV)
+    && typeof effectiveEnvironment[NOMX_LORE_COMMIT_GUARD_ENV] !== "string"
   ) {
     const configuredValue = readConfiguredLoreCommitGuardValue(effectiveEnvironment);
     if (typeof configuredValue === "string") {
-      effectiveEnvironment[OMX_LORE_COMMIT_GUARD_ENV] = configuredValue;
+      effectiveEnvironment[NOMX_LORE_COMMIT_GUARD_ENV] = configuredValue;
     }
   }
   return effectiveEnvironment;
 }
 
 function isLoreTrailerLine(line: string): boolean {
-  return line === OMX_COAUTHOR_TRAILER
+  return line === NOMX_COAUTHOR_TRAILER
     || LORE_TRAILER_PREFIXES.some((prefix) => line.startsWith(prefix));
 }
 
@@ -938,7 +938,7 @@ function buildGitCommitComplianceErrors(message: string | null): string[] {
   const hasSubject = (lines[0]?.trim() ?? "") !== "";
   const hasBlankSeparator = lines.length >= 2 && lines[1]?.trim() === "";
   const { bodyText, trailerLines } = splitBodyAndTrailerLines(lines.slice(2).join("\n"));
-  const hasOmxCoauthorTrailer = trailerLines.includes(OMX_COAUTHOR_TRAILER);
+  const hasOmxCoauthorTrailer = trailerLines.includes(NOMX_COAUTHOR_TRAILER);
   const usesCompactLorePath = hasSubject && hasBlankSeparator && !bodyText && hasOmxCoauthorTrailer;
   if (!usesCompactLorePath) {
     if (!bodyText) {
@@ -949,7 +949,7 @@ function buildGitCommitComplianceErrors(message: string | null): string[] {
     }
   }
   if (!hasOmxCoauthorTrailer) {
-    errors.push(`Add the required co-author trailer: \`${OMX_COAUTHOR_TRAILER}\`.`);
+    errors.push(`Add the required co-author trailer: \`${NOMX_COAUTHOR_TRAILER}\`.`);
   }
 
   return errors;
@@ -977,7 +977,7 @@ function buildGitCommitEnforcementOutput(commandText: string): Record<string, un
       hookEventName: "PreToolUse",
     },
     systemMessage: [
-      "git commit is blocked until the inline commit message follows the Lore protocol and includes `Co-authored-by: OmX <omx@oh-my-codex.dev>`.",
+      "git commit is blocked until the inline commit message follows the Lore protocol and includes `Co-authored-by: OmX <nomx@nomx.dev>`.",
       ...errors.map((error) => `- ${error}`),
     ].join("\n"),
   };
@@ -1165,7 +1165,7 @@ function commandInvokesOmxQuestion(command: string): boolean {
     if ((token === "nomx" || token === "nomx.js") && tokens[index + 1]?.value === "question") return true;
     if (
       (token === "node" || token === "node.exe")
-      && /(?:^|\/)omx\.js$/.test(tokens[index + 1]?.value || "")
+      && /(?:^|\/)nomx\.js$/.test(tokens[index + 1]?.value || "")
       && tokens[index + 2]?.value === "question"
     ) return true;
   }
@@ -1177,7 +1177,7 @@ function isQuestionReturnPaneAssignment(token: string): boolean {
   const equalsIndex = token.indexOf('=');
   if (equalsIndex <= 0) return false;
   const name = token.slice(0, equalsIndex);
-  if (!['OMX_QUESTION_RETURN_PANE', 'OMX_LEADER_PANE_ID', 'TMUX_PANE'].includes(name)) return false;
+  if (!['NOMX_QUESTION_RETURN_PANE', 'NOMX_LEADER_PANE_ID', 'TMUX_PANE'].includes(name)) return false;
   const value = token.slice(equalsIndex + 1);
   return /^%\d+$/.test(value) || /^\$\{?TMUX_PANE\}?$/.test(value);
 }
@@ -1187,13 +1187,13 @@ function hasInheritedQuestionReturnPaneBridge(): boolean {
   // already accepts outside tmux; TMUX_PANE alone is not stable across all
   // Bash/background-terminal tool paths that this enforcement protects.
   const explicitPane = safeString(
-    process.env.OMX_QUESTION_RETURN_PANE || process.env.OMX_LEADER_PANE_ID,
+    process.env.NOMX_QUESTION_RETURN_PANE || process.env.NOMX_LEADER_PANE_ID,
   ).trim();
   return /^%\d+$/.test(explicitPane);
 }
 
 function commandHasPowerShellQuestionReturnPane(command: string): boolean {
-  return /\$env:(?:OMX_QUESTION_RETURN_PANE|OMX_LEADER_PANE_ID)\s*=\s*(?:['"]?%\d+['"]?|\$env:TMUX_PANE)\b/i.test(command)
+  return /\$env:(?:NOMX_QUESTION_RETURN_PANE|NOMX_LEADER_PANE_ID)\s*=\s*(?:['"]?%\d+['"]?|\$env:TMUX_PANE)\b/i.test(command)
     || /\$env:TMUX_PANE\s*=\s*['"]?%\d+['"]?/i.test(command);
 }
 
@@ -1209,7 +1209,7 @@ function commandInvokesOmxTeam(command: string): boolean {
     const rawToken = tokens[index] || '';
     const token = rawToken.replace(/\\/g, '/').split('/').pop() || '';
     if ((token === 'nomx' || token === 'nomx.js') && tokens[index + 1] === 'team') return true;
-    if ((token === 'node' || token === 'node.exe') && /(?:^|\/)omx\.js$/.test(tokens[index + 1] || '') && tokens[index + 2] === 'team') return true;
+    if ((token === 'node' || token === 'node.exe') && /(?:^|\/)nomx\.js$/.test(tokens[index + 1] || '') && tokens[index + 2] === 'team') return true;
   }
   return /\bomx\s+team\b/i.test(command) || /\bomx\.js['"]?\s+team\b/i.test(command);
 }
@@ -1220,7 +1220,7 @@ function commandInvokesOmxHud(command: string): boolean {
     const rawToken = tokens[index] || '';
     const token = rawToken.replace(/\\/g, '/').split('/').pop() || '';
     if ((token === 'nomx' || token === 'nomx.js') && tokens[index + 1] === 'hud') return true;
-    if ((token === 'node' || token === 'node.exe') && /(?:^|\/)omx\.js$/.test(tokens[index + 1] || '') && tokens[index + 2] === 'hud') return true;
+    if ((token === 'node' || token === 'node.exe') && /(?:^|\/)nomx\.js$/.test(tokens[index + 1] || '') && tokens[index + 2] === 'hud') return true;
   }
   return /\bomx\s+hud\b/i.test(command) || /\bomx\.js['"]?\s+hud\b/i.test(command);
 }
@@ -1234,7 +1234,7 @@ function buildNativeOmxHudPreToolUseEnforcementOutput(
   return {
     decision: "block",
     reason: "nomx hud cannot be launched directly from Codex App/native outside-tmux Bash sessions.",
-    systemMessage: "nomx hud is blocked from Bash in Codex App/native outside-tmux sessions; use SessionStart/HUD context instead, or launch OMX CLI from an attached tmux shell first for the tmux HUD runtime.",
+    systemMessage: "nomx hud is blocked from Bash in Codex App/native outside-tmux sessions; use SessionStart/HUD context instead, or launch NOMX CLI from an attached tmux shell first for the tmux HUD runtime.",
   };
 }
 
@@ -1247,7 +1247,7 @@ function buildNativeOmxTeamPreToolUseEnforcementOutput(
   return {
     decision: "block",
     reason: "nomx team cannot be launched directly from Codex App/native outside-tmux Bash sessions.",
-    systemMessage: `nomx team is blocked from Bash in Codex App/native outside-tmux sessions; launch OMX CLI from an attached tmux shell first. Original command: ${command}`,
+    systemMessage: `nomx team is blocked from Bash in Codex App/native outside-tmux sessions; launch NOMX CLI from an attached tmux shell first. Original command: ${command}`,
   };
 }
 
@@ -1270,7 +1270,7 @@ function buildOmxQuestionPreToolUseEnforcementOutput(
   return {
     decision: "block",
     reason: "nomx question Bash invocations must preserve the leader pane return target.",
-    systemMessage: `nomx question is blocked from Bash until the command preserves the leader pane with \`OMX_QUESTION_RETURN_PANE=$TMUX_PANE\` or an explicit \`%pane\` value. Original command: ${command}`,
+    systemMessage: `nomx question is blocked from Bash until the command preserves the leader pane with \`NOMX_QUESTION_RETURN_PANE=$TMUX_PANE\` or an explicit \`%pane\` value. Original command: ${command}`,
   };
 }
 
@@ -1398,14 +1398,14 @@ export function buildNativePostToolUseOutput(
     const fallbackCommand = buildOmxParityFallbackCommand(payload, mcpTransportFailure.toolName);
     const fallbackText = fallbackCommand
       ? `Retry via CLI parity with \`${fallbackCommand}\`.`
-      : "Retry via the matching OMX CLI parity surface instead of retrying the MCP transport blindly.";
+      : "Retry via the matching NOMX CLI parity surface instead of retrying the MCP transport blindly.";
     return {
       decision: "block",
-      reason: "The MCP tool appears to have lost its transport/server connection. Preserve state, debug the transport failure, and use OMX CLI/file-backed fallbacks instead of retrying blindly.",
+      reason: "The MCP tool appears to have lost its transport/server connection. Preserve state, debug the transport failure, and use NOMX CLI/file-backed fallbacks instead of retrying blindly.",
       hookSpecificOutput: {
         hookEventName: "PostToolUse",
         additionalContext:
-          `Clear MCP transport-death signal detected. Preserve current team/runtime state. ${fallbackText} OMX MCP servers are plain Node stdio processes, so they still shut down when stdin/transport closes. If this happened during team runtime, inspect first with \`nomx team status <team>\` or \`nomx team api read-stall-state --input '{"team_name":"<team>"}' --json\`, and only force cleanup after capturing needed state. For root-cause debugging, rerun with \`OMX_MCP_TRANSPORT_DEBUG=1\` to log why the stdio transport closed.`,
+          `Clear MCP transport-death signal detected. Preserve current team/runtime state. ${fallbackText} NOMX MCP servers are plain Node stdio processes, so they still shut down when stdin/transport closes. If this happened during team runtime, inspect first with \`nomx team status <team>\` or \`nomx team api read-stall-state --input '{"team_name":"<team>"}' --json\`, and only force cleanup after capturing needed state. For root-cause debugging, rerun with \`NOMX_MCP_TRANSPORT_DEBUG=1\` to log why the stdio transport closed.`,
       },
     };
   }

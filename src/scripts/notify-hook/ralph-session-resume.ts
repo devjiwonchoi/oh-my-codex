@@ -145,8 +145,8 @@ function parsePositiveInteger(value: unknown): number | null {
 }
 
 function resolveActiveStateStaleThresholdMs(env: NodeJS.ProcessEnv = process.env): number {
-  return parsePositiveInteger(env.OMX_RALPH_ACTIVE_STATE_STALE_MS)
-    ?? parsePositiveInteger(env.OMX_RALPH_RESUME_STALE_MS)
+  return parsePositiveInteger(env.NOMX_RALPH_ACTIVE_STATE_STALE_MS)
+    ?? parsePositiveInteger(env.NOMX_RALPH_RESUME_STALE_MS)
     ?? DEFAULT_RALPH_ACTIVE_STATE_STALE_MS;
 }
 

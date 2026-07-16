@@ -48,9 +48,9 @@ const MARKERS = [
   '<!-- OMX:RUNTIME:END -->',
   '<!-- OMX:TEAM:WORKER:START -->',
   '<!-- OMX:TEAM:WORKER:END -->',
-  '<!-- OMX:MODELS:START -->',
-  '<!-- OMX:MODELS:END -->',
-  '<!-- omx:generated:agents-md -->',
+  '<!-- NOMX:MODELS:START -->',
+  '<!-- NOMX:MODELS:END -->',
+  '<!-- nomx:generated:agents-md -->',
 ];
 
 const ABSOLUTE_DIRECTIVE_PATTERN = /\b(MUST(?:\s+NOT)?|DO NOT|DON'T|NEVER|ALWAYS|REQUIRED|REQUIRE|ONLY|STOP|ASK only|AUTO-CONTINUE|KEEP GOING)\b/i;

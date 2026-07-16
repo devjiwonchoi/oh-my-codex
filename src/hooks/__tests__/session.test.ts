@@ -66,14 +66,14 @@ async function withPointerDependencies(
 }
 
 async function withOwnerEnvironment(sessionId: string | undefined, run: () => Promise<void>): Promise<void> {
-  const previous = process.env.OMX_SESSION_ID;
-  if (sessionId === undefined) delete process.env.OMX_SESSION_ID;
-  else process.env.OMX_SESSION_ID = sessionId;
+  const previous = process.env.NOMX_SESSION_ID;
+  if (sessionId === undefined) delete process.env.NOMX_SESSION_ID;
+  else process.env.NOMX_SESSION_ID = sessionId;
   try {
     await run();
   } finally {
-    if (previous === undefined) delete process.env.OMX_SESSION_ID;
-    else process.env.OMX_SESSION_ID = previous;
+    if (previous === undefined) delete process.env.NOMX_SESSION_ID;
+    else process.env.NOMX_SESSION_ID = previous;
   }
 }
 
@@ -102,12 +102,12 @@ function validLockOwner(overrides: Record<string, unknown> = {}): Record<string,
 
 describe('session lifecycle manager', () => {
   it('resets session metrics files with zeroed counters', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-metrics-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-metrics-'));
     try {
       await resetSessionMetrics(cwd);
 
-      const metricsPath = join(cwd, '.omx', 'metrics.json');
-      const hudPath = join(cwd, '.omx', 'state', 'hud-state.json');
+      const metricsPath = join(cwd, '.nomx', 'metrics.json');
+      const hudPath = join(cwd, '.nomx', 'state', 'hud-state.json');
       assert.equal(existsSync(metricsPath), true);
       assert.equal(existsSync(hudPath), true);
 
@@ -128,12 +128,12 @@ describe('session lifecycle manager', () => {
   });
 
   it('writes hud session metrics into the active session scope when session id is provided', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-metrics-scoped-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-metrics-scoped-'));
     try {
       await resetSessionMetrics(cwd, 'sess-scoped');
 
-      const metricsPath = join(cwd, '.omx', 'metrics.json');
-      const hudPath = join(cwd, '.omx', 'state', 'sessions', 'sess-scoped', 'hud-state.json');
+      const metricsPath = join(cwd, '.nomx', 'metrics.json');
+      const hudPath = join(cwd, '.nomx', 'state', 'sessions', 'sess-scoped', 'hud-state.json');
       assert.equal(existsSync(metricsPath), true);
       assert.equal(existsSync(hudPath), true);
 
@@ -148,7 +148,7 @@ describe('session lifecycle manager', () => {
 
 
   it('treats symlinked cwd aliases as authoritative for the same session state', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-cwd-alias-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-cwd-alias-'));
     const aliasCwd = `${cwd}-alias`;
     try {
       await symlink(cwd, aliasCwd, process.platform === 'win32' ? 'junction' : 'dir');
@@ -165,7 +165,7 @@ describe('session lifecycle manager', () => {
   });
 
   it('writes session start/end lifecycle artifacts and archives session history', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-lifecycle-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-lifecycle-'));
     const sessionId = 'sess-lifecycle-1';
     try {
       await writeSessionStart(cwd, sessionId);
@@ -177,14 +177,14 @@ describe('session lifecycle manager', () => {
       assert.equal(state.pid, process.pid);
       assert.equal(isSessionStale(state), false);
 
-      const sessionPath = join(cwd, '.omx', 'state', 'session.json');
+      const sessionPath = join(cwd, '.nomx', 'state', 'session.json');
       assert.equal(existsSync(sessionPath), true);
 
       await writeSessionEnd(cwd, sessionId);
 
       assert.equal(existsSync(sessionPath), false);
 
-      const historyPath = join(cwd, '.omx', 'logs', 'session-history.jsonl');
+      const historyPath = join(cwd, '.nomx', 'logs', 'session-history.jsonl');
       assert.equal(existsSync(historyPath), true);
 
       const historyLines = (await readFile(historyPath, 'utf-8'))
@@ -199,7 +199,7 @@ describe('session lifecycle manager', () => {
       assert.equal(typeof historyEntry.started_at, 'string');
       assert.equal(typeof historyEntry.ended_at, 'string');
 
-      const dailyLogPath = join(cwd, '.omx', 'logs', `omx-${todayIsoDate()}.jsonl`);
+      const dailyLogPath = join(cwd, '.nomx', 'logs', `nomx-${todayIsoDate()}.jsonl`);
       assert.equal(existsSync(dailyLogPath), true);
       const dailyLog = await readFile(dailyLogPath, 'utf-8');
       assert.match(dailyLog, /"event":"session_start"/);
@@ -210,10 +210,10 @@ describe('session lifecycle manager', () => {
   });
 
   it('does not delete the current session pointer when ending a different session', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-end-owner-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-end-owner-'));
     try {
       await writeSessionStart(cwd, 'sess-current');
-      const stateDir = join(cwd, '.omx', 'state');
+      const stateDir = join(cwd, '.nomx', 'state');
       const sessionPath = join(stateDir, 'session.json');
       const currentHudPath = join(stateDir, 'sessions', 'sess-current', 'hud-state.json');
       const endingHudPath = join(stateDir, 'sessions', 'sess-ending', 'hud-state.json');
@@ -230,7 +230,7 @@ describe('session lifecycle manager', () => {
       assert.equal(existsSync(currentHudPath), true);
       assert.equal(existsSync(endingHudPath), false);
 
-      const historyLines = (await readFile(join(cwd, '.omx', 'logs', 'session-history.jsonl'), 'utf-8'))
+      const historyLines = (await readFile(join(cwd, '.nomx', 'logs', 'session-history.jsonl'), 'utf-8'))
         .trim()
         .split('\n')
         .filter(Boolean);
@@ -247,12 +247,12 @@ describe('session lifecycle manager', () => {
   });
 
   it('removes canonical and native session-scoped hud state on session end', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-end-hud-cleanup-'));
-    const canonicalSessionId = 'omx-launch-hud';
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-end-hud-cleanup-'));
+    const canonicalSessionId = 'nomx-launch-hud';
     const nativeSessionId = 'codex-native-hud';
     try {
       await writeSessionStart(cwd, canonicalSessionId, { nativeSessionId });
-      const stateDir = join(cwd, '.omx', 'state');
+      const stateDir = join(cwd, '.nomx', 'state');
       const rootHudPath = join(stateDir, 'hud-state.json');
       const canonicalHudPath = join(stateDir, 'sessions', canonicalSessionId, 'hud-state.json');
       const nativeHudPath = join(stateDir, 'sessions', nativeSessionId, 'hud-state.json');
@@ -273,26 +273,26 @@ describe('session lifecycle manager', () => {
   });
 
   it('preserves canonical session id while reconciling native SessionStart metadata', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-native-reconcile-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-native-reconcile-'));
     try {
-      await writeSessionStart(cwd, 'omx-launch-1');
+      await writeSessionStart(cwd, 'nomx-launch-1');
 
       const reconciled = await reconcileNativeSessionStart(cwd, 'codex-native-1', {
         pid: 54321,
         platform: 'win32',
       });
 
-      assert.equal(reconciled.session_id, 'omx-launch-1');
+      assert.equal(reconciled.session_id, 'nomx-launch-1');
       assert.equal(reconciled.native_session_id, 'codex-native-1');
       assert.equal(reconciled.pid, 54321);
       assert.equal(reconciled.platform, 'win32');
 
       const persisted = await readSessionState(cwd);
-      assert.equal(persisted?.session_id, 'omx-launch-1');
+      assert.equal(persisted?.session_id, 'nomx-launch-1');
       assert.equal(persisted?.native_session_id, 'codex-native-1');
       assert.equal(persisted?.pid, 54321);
 
-      const dailyLogPath = join(cwd, '.omx', 'logs', `omx-${todayIsoDate()}.jsonl`);
+      const dailyLogPath = join(cwd, '.nomx', 'logs', `nomx-${todayIsoDate()}.jsonl`);
       const dailyLog = await readFile(dailyLogPath, 'utf-8');
       assert.match(dailyLog, /"event":"session_start_reconciled"/);
       assert.match(dailyLog, /"native_session_id":"codex-native-1"/);
@@ -301,10 +301,10 @@ describe('session lifecycle manager', () => {
     }
   });
 
-  it('starts a fresh native session while retaining the owner OMX launch session when native SessionStart changes', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-native-fresh-'));
+  it('starts a fresh native session while retaining the owner NOMX launch session when native SessionStart changes', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-native-fresh-'));
     try {
-      await writeSessionStart(cwd, 'omx-old-session', {
+      await writeSessionStart(cwd, 'nomx-old-session', {
         nativeSessionId: 'codex-native-old',
       });
 
@@ -316,7 +316,7 @@ describe('session lifecycle manager', () => {
       assert.equal(reconciled.session_id, 'codex-native-new');
       assert.equal(reconciled.native_session_id, 'codex-native-new');
       assert.equal(reconciled.previous_native_session_id, 'codex-native-old');
-      assert.equal(reconciled.owner_omx_session_id, 'omx-old-session');
+      assert.equal(reconciled.owner_omx_session_id, 'nomx-old-session');
       assert.match(reconciled.native_session_switched_at ?? '', /^\d{4}-\d{2}-\d{2}T/);
       assert.equal(reconciled.pid, 54321);
 
@@ -324,9 +324,9 @@ describe('session lifecycle manager', () => {
       assert.equal(persisted?.session_id, 'codex-native-new');
       assert.equal(persisted?.native_session_id, 'codex-native-new');
       assert.equal(persisted?.previous_native_session_id, 'codex-native-old');
-      assert.equal(persisted?.owner_omx_session_id, 'omx-old-session');
+      assert.equal(persisted?.owner_omx_session_id, 'nomx-old-session');
 
-      const dailyLogPath = join(cwd, '.omx', 'logs', `omx-${todayIsoDate()}.jsonl`);
+      const dailyLogPath = join(cwd, '.nomx', 'logs', `nomx-${todayIsoDate()}.jsonl`);
       const dailyLog = await readFile(dailyLogPath, 'utf-8');
       assert.match(dailyLog, /"event":"native_session_replaced"/);
       assert.match(dailyLog, /"event":"session_start"/);
@@ -337,39 +337,59 @@ describe('session lifecycle manager', () => {
     }
   });
 
-  it('preserves existing native and tmux bindings on same-session start updates', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-binding-preserve-'));
+  it('retains a copied legacy owner session id across a native SessionStart replacement', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-native-legacy-owner-'));
     try {
-      await writeSessionStart(cwd, 'omx-launch-1', {
-        nativeSessionId: 'codex-native-1',
-        tmuxSessionName: 'omx-detached-demo',
+      await writeSessionStart(cwd, 'omx-legacy-owner', {
+        nativeSessionId: 'codex-native-old',
       });
 
-      const withPane = await writeSessionStart(cwd, 'omx-launch-1', {
-        tmuxSessionName: 'omx-detached-demo',
+      const reconciled = await reconcileNativeSessionStart(cwd, 'codex-native-new', {
+        pid: process.pid,
+        platform: 'win32',
+      });
+
+      assert.equal(reconciled.session_id, 'codex-native-new');
+      assert.equal(reconciled.owner_omx_session_id, 'omx-legacy-owner');
+      assert.equal((await readSessionState(cwd))?.owner_omx_session_id, 'omx-legacy-owner');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves existing native and tmux bindings on same-session start updates', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-binding-preserve-'));
+    try {
+      await writeSessionStart(cwd, 'nomx-launch-1', {
+        nativeSessionId: 'codex-native-1',
+        tmuxSessionName: 'nomx-detached-demo',
+      });
+
+      const withPane = await writeSessionStart(cwd, 'nomx-launch-1', {
+        tmuxSessionName: 'nomx-detached-demo',
         tmuxPaneId: '%42',
       });
 
       assert.equal(withPane.native_session_id, 'codex-native-1');
-      assert.equal(withPane.tmux_session_name, 'omx-detached-demo');
+      assert.equal(withPane.tmux_session_name, 'nomx-detached-demo');
       assert.equal(withPane.tmux_pane_id, '%42');
 
-      const withoutPane = await writeSessionStart(cwd, 'omx-launch-1', {
-        tmuxSessionName: 'omx-detached-demo',
+      const withoutPane = await writeSessionStart(cwd, 'nomx-launch-1', {
+        tmuxSessionName: 'nomx-detached-demo',
       });
 
       assert.equal(withoutPane.native_session_id, 'codex-native-1');
-      assert.equal(withoutPane.tmux_session_name, 'omx-detached-demo');
+      assert.equal(withoutPane.tmux_session_name, 'nomx-detached-demo');
       assert.equal(withoutPane.tmux_pane_id, '%42');
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
-  it('lets an owner OMX launch session end the fresh native session it spawned', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-native-owner-end-'));
+  it('lets an owner NOMX launch session end the fresh native session it spawned', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-native-owner-end-'));
     try {
-      await writeSessionStart(cwd, 'omx-owner-session', {
+      await writeSessionStart(cwd, 'nomx-owner-session', {
         nativeSessionId: 'codex-native-old',
       });
       await reconcileNativeSessionStart(cwd, 'codex-native-new', {
@@ -377,10 +397,10 @@ describe('session lifecycle manager', () => {
         platform: 'win32',
       });
 
-      await writeSessionEnd(cwd, 'omx-owner-session');
+      await writeSessionEnd(cwd, 'nomx-owner-session');
 
       assert.equal(await readSessionState(cwd), null);
-      const historyLines = (await readFile(join(cwd, '.omx', 'logs', 'session-history.jsonl'), 'utf-8'))
+      const historyLines = (await readFile(join(cwd, '.nomx', 'logs', 'session-history.jsonl'), 'utf-8'))
         .trim()
         .split('\n')
         .filter(Boolean);
@@ -388,7 +408,7 @@ describe('session lifecycle manager', () => {
       const historyEntry = JSON.parse(historyLines[0]) as SessionHistoryEntry & {
         active_session_id?: string;
       };
-      assert.equal(historyEntry.session_id, 'omx-owner-session');
+      assert.equal(historyEntry.session_id, 'nomx-owner-session');
       assert.equal(historyEntry.native_session_id, 'codex-native-new');
       assert.equal(historyEntry.active_session_id, 'codex-native-new');
     } finally {
@@ -396,10 +416,10 @@ describe('session lifecycle manager', () => {
     }
   });
 
-  it('preserves owner OMX metadata when reconciling the same fresh native session', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-native-owner-reconcile-'));
+  it('preserves owner NOMX metadata when reconciling the same fresh native session', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-native-owner-reconcile-'));
     try {
-      await writeSessionStart(cwd, 'omx-owner-session', {
+      await writeSessionStart(cwd, 'nomx-owner-session', {
         nativeSessionId: 'codex-native-old',
       });
       await reconcileNativeSessionStart(cwd, 'codex-native-new', {
@@ -415,20 +435,20 @@ describe('session lifecycle manager', () => {
       assert.equal(reconciled.session_id, 'codex-native-new');
       assert.equal(reconciled.native_session_id, 'codex-native-new');
       assert.equal(reconciled.previous_native_session_id, 'codex-native-old');
-      assert.equal(reconciled.owner_omx_session_id, 'omx-owner-session');
+      assert.equal(reconciled.owner_omx_session_id, 'nomx-owner-session');
       assert.equal(reconciled.pid, process.pid);
 
-      await writeSessionEnd(cwd, 'omx-owner-session');
+      await writeSessionEnd(cwd, 'nomx-owner-session');
       assert.equal(await readSessionState(cwd), null);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
-  it('carries the owner OMX launch session across chained native SessionStart replacements', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-native-owner-chain-'));
+  it('carries the owner NOMX launch session across chained native SessionStart replacements', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-native-owner-chain-'));
     try {
-      await writeSessionStart(cwd, 'omx-owner-session', {
+      await writeSessionStart(cwd, 'nomx-owner-session', {
         nativeSessionId: 'codex-native-a',
       });
       await reconcileNativeSessionStart(cwd, 'codex-native-b', {
@@ -444,25 +464,25 @@ describe('session lifecycle manager', () => {
       assert.equal(reconciled.session_id, 'codex-native-c');
       assert.equal(reconciled.native_session_id, 'codex-native-c');
       assert.equal(reconciled.previous_native_session_id, 'codex-native-b');
-      assert.equal(reconciled.owner_omx_session_id, 'omx-owner-session');
+      assert.equal(reconciled.owner_omx_session_id, 'nomx-owner-session');
 
-      const dailyLogPath = join(cwd, '.omx', 'logs', `omx-${todayIsoDate()}.jsonl`);
+      const dailyLogPath = join(cwd, '.nomx', 'logs', `nomx-${todayIsoDate()}.jsonl`);
       const dailyLog = await readFile(dailyLogPath, 'utf-8');
-      assert.match(dailyLog, /"session_id":"omx-owner-session"/);
+      assert.match(dailyLog, /"session_id":"nomx-owner-session"/);
       assert.match(dailyLog, /"active_session_id":"codex-native-b"/);
       assert.match(dailyLog, /"previous_native_session_id":"codex-native-b"/);
       assert.match(dailyLog, /"replaced_by_native_session_id":"codex-native-c"/);
 
-      await writeSessionEnd(cwd, 'omx-owner-session');
+      await writeSessionEnd(cwd, 'nomx-owner-session');
       assert.equal(await readSessionState(cwd), null);
-      const historyLines = (await readFile(join(cwd, '.omx', 'logs', 'session-history.jsonl'), 'utf-8'))
+      const historyLines = (await readFile(join(cwd, '.nomx', 'logs', 'session-history.jsonl'), 'utf-8'))
         .trim()
         .split('\n')
         .filter(Boolean);
       const historyEntry = JSON.parse(historyLines.at(-1) ?? '{}') as SessionHistoryEntry & {
         active_session_id?: string;
       };
-      assert.equal(historyEntry.session_id, 'omx-owner-session');
+      assert.equal(historyEntry.session_id, 'nomx-owner-session');
       assert.equal(historyEntry.native_session_id, 'codex-native-c');
       assert.equal(historyEntry.active_session_id, 'codex-native-c');
     } finally {
@@ -470,8 +490,8 @@ describe('session lifecycle manager', () => {
     }
   });
 
-  it('starts a fresh canonical session when a non-OMX native session is replaced', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-native-non-omx-fresh-'));
+  it('starts a fresh canonical session when a non-NOMX native session is replaced', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-native-non-nomx-fresh-'));
     try {
       await writeSessionStart(cwd, 'codex-native-old', {
         nativeSessionId: 'codex-native-old',
@@ -497,9 +517,9 @@ describe('session lifecycle manager', () => {
   });
 
   it('preserves foreign selected-pointer evidence instead of replacing it during native reconciliation', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-native-foreign-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-native-foreign-'));
     try {
-      const statePath = join(cwd, '.omx', 'state', 'session.json');
+      const statePath = join(cwd, '.nomx', 'state', 'session.json');
       await resetSessionMetrics(cwd);
       await writeFile(statePath, JSON.stringify({
         session_id: 'sess-other-worktree',
@@ -526,9 +546,9 @@ describe('session lifecycle manager', () => {
   });
 
   it('treats invalid session JSON as absent state', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-invalid-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-invalid-'));
     try {
-      const statePath = join(cwd, '.omx', 'state', 'session.json');
+      const statePath = join(cwd, '.nomx', 'state', 'session.json');
       await resetSessionMetrics(cwd);
       await writeFile(statePath, '{ not-json', 'utf-8');
       const state = await readSessionState(cwd);
@@ -539,9 +559,9 @@ describe('session lifecycle manager', () => {
   });
 
   it('ignores session.json when its recorded cwd points at another worktree', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-mismatched-cwd-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-mismatched-cwd-'));
     try {
-      const statePath = join(cwd, '.omx', 'state', 'session.json');
+      const statePath = join(cwd, '.nomx', 'state', 'session.json');
       await resetSessionMetrics(cwd);
       await writeFile(statePath, JSON.stringify({
         session_id: 'sess-other-worktree',
@@ -556,22 +576,22 @@ describe('session lifecycle manager', () => {
   });
 
   it('ignores session.json when its PID identity is stale', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-stale-pointer-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-stale-pointer-'));
     try {
-      const statePath = join(cwd, '.omx', 'state', 'session.json');
+      const statePath = join(cwd, '.nomx', 'state', 'session.json');
       await resetSessionMetrics(cwd);
       await writeFile(statePath, JSON.stringify({
         session_id: 'sess-stale-pointer',
         cwd,
         pid: 4242,
         pid_start_ticks: 11,
-        pid_cmdline: 'node omx',
+        pid_cmdline: 'node nomx',
       }), 'utf-8');
 
       const state = await readUsableSessionState(cwd, {
         platform: 'linux',
         isPidAlive: () => true,
-        readLinuxIdentity: () => ({ startTicks: 22, cmdline: 'node omx' }),
+        readLinuxIdentity: () => ({ startTicks: 22, cmdline: 'node nomx' }),
       });
       assert.equal(state, null);
     } finally {
@@ -595,13 +615,13 @@ describe('isSessionStale', () => {
   it('returns false for a live Linux process when identity matches', () => {
     const state = makeState({
       pid_start_ticks: 111,
-      pid_cmdline: 'node omx',
+      pid_cmdline: 'node nomx',
     });
 
     const stale = isSessionStale(state, {
       platform: 'linux',
       isPidAlive: () => true,
-      readLinuxIdentity: () => ({ startTicks: 111, cmdline: 'node omx' }),
+      readLinuxIdentity: () => ({ startTicks: 111, cmdline: 'node nomx' }),
     });
 
     assert.equal(stale, false);
@@ -610,13 +630,13 @@ describe('isSessionStale', () => {
   it('returns true for PID reuse on Linux when start ticks mismatch', () => {
     const state = makeState({
       pid_start_ticks: 111,
-      pid_cmdline: 'node omx',
+      pid_cmdline: 'node nomx',
     });
 
     const stale = isSessionStale(state, {
       platform: 'linux',
       isPidAlive: () => true,
-      readLinuxIdentity: () => ({ startTicks: 222, cmdline: 'node omx' }),
+      readLinuxIdentity: () => ({ startTicks: 222, cmdline: 'node nomx' }),
     });
 
     assert.equal(stale, true);
@@ -628,7 +648,7 @@ describe('isSessionStale', () => {
     const stale = isSessionStale(state, {
       platform: 'linux',
       isPidAlive: () => true,
-      readLinuxIdentity: () => ({ startTicks: 111, cmdline: 'node omx' }),
+      readLinuxIdentity: () => ({ startTicks: 111, cmdline: 'node nomx' }),
     });
 
     assert.equal(stale, true);
@@ -682,7 +702,7 @@ describe('session pointer transaction', () => {
   });
 
   it('classifies only the exact selected pointer as absent, usable, stale, indeterminate, malformed, or foreign', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-pointer-status-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-pointer-status-'));
     try {
       const context = resolveSessionPointerContext(cwd);
       await withPointerDependencies({
@@ -768,7 +788,7 @@ describe('session pointer transaction', () => {
     ];
 
     for (const testCase of cases) {
-      const cwd = await mkdtemp(join(tmpdir(), `omx-session-lock-${testCase.name}-`));
+      const cwd = await mkdtemp(join(tmpdir(), `nomx-session-lock-${testCase.name}-`));
       try {
         const context = resolveSessionPointerContext(cwd);
         await mkdir(context.lockPath, { recursive: true });
@@ -796,7 +816,7 @@ describe('session pointer transaction', () => {
   });
 
   it('retries a positively matching live owner with the bounded 25/50/100 schedule before timing out', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-lock-timeout-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-lock-timeout-'));
     try {
       await writeLockOwner(cwd, validLockOwner());
       const delays: number[] = [];
@@ -824,7 +844,7 @@ describe('session pointer transaction', () => {
   });
 
   it('rolls back only its unpublished owner artifacts and reports rollback ambiguity', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-owner-publish-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-owner-publish-'));
     try {
       const context = resolveSessionPointerContext(cwd);
       await withPointerDependencies({
@@ -927,7 +947,7 @@ describe('session pointer transaction', () => {
     ] as const;
 
     for (const failure of failures) {
-      const cwd = await mkdtemp(join(tmpdir(), `omx-session-${failure.name}-`));
+      const cwd = await mkdtemp(join(tmpdir(), `nomx-session-${failure.name}-`));
       try {
         const context = resolveSessionPointerContext(cwd);
         await withPointerDependencies(failure.dependencies(context), async () => {
@@ -944,7 +964,7 @@ describe('session pointer transaction', () => {
       }
     }
 
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-invalid-token-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-invalid-token-'));
     try {
       const context = resolveSessionPointerContext(cwd);
       await withPointerDependencies({ token: () => 'bad' }, async () => {
@@ -969,7 +989,7 @@ describe('session pointer transaction', () => {
       { operation: 'pointer-rename', fail: 'rename' },
     ] as const;
     for (const phase of phases) {
-      const cwd = await mkdtemp(join(tmpdir(), `omx-session-${phase.fail}-`));
+      const cwd = await mkdtemp(join(tmpdir(), `nomx-session-${phase.fail}-`));
       try {
         const context = resolveSessionPointerContext(cwd);
         const tempPath = `${context.sessionPath}.tmp-${TEST_TOKEN}`;
@@ -1007,7 +1027,7 @@ describe('session pointer transaction', () => {
   });
 
   it('preserves owned pointer residue and ordered cleanup evidence when cleanup or release cannot complete', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-pointer-residue-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-pointer-residue-'));
     try {
       const context = resolveSessionPointerContext(cwd);
       const tempPath = `${context.sessionPath}.tmp-${TEST_TOKEN}`;
@@ -1045,7 +1065,7 @@ describe('session pointer transaction', () => {
   });
 
   it('leaves foreign pointer temps inert and a successor commits after explicit lock recovery', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-pointer-successor-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-pointer-successor-'));
     try {
       const context = resolveSessionPointerContext(cwd);
       const ownTempPath = `${context.sessionPath}.tmp-${TEST_TOKEN}`;
@@ -1090,28 +1110,28 @@ describe('session pointer transaction', () => {
   });
 
   it('binds an owner alias only on a verified same-native/absent transition and never during replacement', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-owner-alias-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-owner-alias-'));
     try {
       const nativeOnly = await reconcileNativeSessionStart(cwd, 'native-first', {
         platform: 'win32',
-        ownerOmxSessionId: 'omx-owner',
+        ownerNomxSessionId: 'nomx-owner',
       });
       assert.equal(nativeOnly.owner_omx_session_id, undefined);
 
-      await withOwnerEnvironment('omx-owner', async () => {
+      await withOwnerEnvironment('nomx-owner', async () => {
         const bound = await reconcileNativeSessionStart(cwd, 'native-first', {
           platform: 'win32',
           ownerAliasVerified: true,
         });
         assert.equal(bound.session_id, 'native-first');
-        assert.equal(bound.owner_omx_session_id, 'omx-owner');
+        assert.equal(bound.owner_omx_session_id, 'nomx-owner');
 
         const replacement = await reconcileNativeSessionStart(cwd, 'native-second', {
           platform: 'win32',
           ownerAliasVerified: true,
         });
         assert.equal(replacement.session_id, 'native-second');
-        assert.equal(replacement.owner_omx_session_id, 'omx-owner');
+        assert.equal(replacement.owner_omx_session_id, 'nomx-owner');
       });
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -1119,16 +1139,16 @@ describe('session pointer transaction', () => {
   });
 
   it('preserves pointer evidence when history cannot be appended and rejects unusable end states before history or HUD cleanup', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-session-end-preserve-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-session-end-preserve-'));
     try {
       const context = resolveSessionPointerContext(cwd);
       await writeSessionStart(cwd, 'sess-history', { platform: 'win32' });
-      await mkdir(join(cwd, '.omx', 'logs'), { recursive: true });
-      await rm(join(cwd, '.omx', 'logs'), { recursive: true, force: true });
-      await writeFile(join(cwd, '.omx', 'logs'), 'not-a-directory', 'utf-8');
+      await mkdir(join(cwd, '.nomx', 'logs'), { recursive: true });
+      await rm(join(cwd, '.nomx', 'logs'), { recursive: true, force: true });
+      await writeFile(join(cwd, '.nomx', 'logs'), 'not-a-directory', 'utf-8');
       await assert.rejects(writeSessionEnd(cwd, 'sess-history'));
       assert.equal((await readSessionState(cwd))?.session_id, 'sess-history');
-      await rm(join(cwd, '.omx', 'logs'), { force: true });
+      await rm(join(cwd, '.nomx', 'logs'), { force: true });
 
       await writeFile(context.sessionPath, '{ malformed', 'utf-8');
       await assert.rejects(
@@ -1138,7 +1158,7 @@ describe('session pointer transaction', () => {
           && error.pointerStatus === 'malformed',
       );
       assert.equal(await readFile(context.sessionPath, 'utf-8'), '{ malformed');
-      assert.equal(existsSync(join(cwd, '.omx', 'logs', 'session-history.jsonl')), false);
+      assert.equal(existsSync(join(cwd, '.nomx', 'logs', 'session-history.jsonl')), false);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
@@ -1147,9 +1167,9 @@ describe('session pointer transaction', () => {
 
 describe('prompt provenance diagnostics', () => {
   it('writes exactly one redacted record at the supplied selected root', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-provenance-log-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-provenance-log-'));
     try {
-      const stateDir = join(cwd, 'selected', '.omx', 'state');
+      const stateDir = join(cwd, 'selected', '.nomx', 'state');
       await appendPromptSessionProvenanceRejection({
         cwd,
         baseStateDir: stateDir,
@@ -1162,11 +1182,11 @@ describe('prompt provenance diagnostics', () => {
         selectedRootStatus: 'malformed',
         timestamp: '2026-07-14T00:00:00.000Z',
       });
-      const log = await readFile(join(cwd, 'selected', '.omx', 'logs', `omx-${todayIsoDate()}.jsonl`), 'utf-8');
+      const log = await readFile(join(cwd, 'selected', '.nomx', 'logs', `nomx-${todayIsoDate()}.jsonl`), 'utf-8');
       assert.equal(log.trim().split('\n').length, 1);
       assert.match(log, /"event":"prompt_session_provenance_rejected"/);
       assert.equal(log.includes(cwd), false);
-      assert.equal(existsSync(join(cwd, '.omx', 'logs', `omx-${todayIsoDate()}.jsonl`)), false);
+      assert.equal(existsSync(join(cwd, '.nomx', 'logs', `nomx-${todayIsoDate()}.jsonl`)), false);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }

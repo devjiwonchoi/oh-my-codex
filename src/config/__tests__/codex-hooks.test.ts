@@ -51,7 +51,7 @@ describe("codex hooks helpers", () => {
     assert.match(
       sessionStart?.matcher ?? "",
       /(?:^|\|)clear(?:\||$)/,
-      "Codex emits SessionStart source=clear after /clear replacement threads; OMX must keep beginning-of-session hooks active",
+      "Codex emits SessionStart source=clear after /clear replacement threads; NOMX must keep beginning-of-session hooks active",
     );
     assert.match(
       sessionStart?.matcher ?? "",
@@ -62,7 +62,7 @@ describe("codex hooks helpers", () => {
 
   it("uses a PowerShell -Command-safe Windows shim command with single-quoted literals", () => {
     const config = buildManagedCodexHooksConfig(
-      "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\oh-my-codex",
+      "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\nomx",
       {
         platform: "win32",
         codexHomeDir: "C:\\Users\\Ada Lovelace\\.codex",
@@ -73,7 +73,7 @@ describe("codex hooks helpers", () => {
 
     assert.equal(
       command,
-      "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:\\Users\\Ada Lovelace\\.codex\\hooks\\omx-native-hook-windows-shim.ps1'",
+      "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:\\Users\\Ada Lovelace\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1'",
     );
     assert.doesNotMatch(command ?? "", /codex-native-hook\.js/);
     assert.doesNotMatch(command ?? "", /^"[A-Z]:\\/i);
@@ -81,7 +81,7 @@ describe("codex hooks helpers", () => {
   });
 
   it("parses only managed Windows shim commands and returns their validated final path", () => {
-    const shimPath = "C:\\Users\\Ada Lovelace\\.codex\\hooks\\omx-native-hook-windows-shim.ps1";
+    const shimPath = "C:\\Users\\Ada Lovelace\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1";
     const managed = `& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File '${shimPath}'`;
 
     assert.equal(parseManagedCodexNativeHookWindowsShimCommand(managed), shimPath);
@@ -94,7 +94,7 @@ describe("codex hooks helpers", () => {
     for (const command of [
       `${managed} -NoExit`,
       managed.replace("-ExecutionPolicy Bypass", "-ExecutionPolicy RemoteSigned"),
-      managed.replace("omx-native-hook-windows-shim.ps1", "foreign-hook.ps1"),
+      managed.replace("nomx-native-hook-windows-shim.ps1", "foreign-hook.ps1"),
       `${managed}; Write-Host modified`,
       managed.replace("& ", "'&' "),
     ]) {
@@ -107,9 +107,9 @@ describe("codex hooks helpers", () => {
       "/repo with spaces;|<> (fixture) $literal/O'Brien",
       { platform: "linux" },
     );
-    const packageRoot = "D:\\Program Files\\O'Brien\\hook (fixture) $literal\\oh-my-codex";
+    const packageRoot = "D:\\Program Files\\O'Brien\\hook (fixture) $literal\\nomx";
     const codexHome = "C:\\Users\\O'Brien\\.codex (fixture) $literal";
-    const shimPath = "C:\\Users\\O'Brien\\.codex (fixture) $literal\\hooks\\omx-native-hook-windows-shim.ps1";
+    const shimPath = "C:\\Users\\O'Brien\\.codex (fixture) $literal\\hooks\\nomx-native-hook-windows-shim.ps1";
     const windowsCommand = buildManagedCodexNativeHookCommand(packageRoot, {
       platform: "win32",
       codexHomeDir: codexHome,
@@ -132,7 +132,7 @@ describe("codex hooks helpers", () => {
   it("owns only shell-static command spellings and keeps platform ownership exact", () => {
     const posixScript = "/repo/dist/scripts/codex-native-hook.js";
     const windowsScript = "C:\\repo\\DIST\\SCRIPTS\\CODEX-NATIVE-HOOK.JS";
-    const shimPath = "C:\\Users\\Ada\\.codex\\hooks\\omx-native-hook-windows-shim.ps1";
+    const shimPath = "C:\\Users\\Ada\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1";
     const managedWindowsShim = `& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File '${shimPath}'`;
 
     assert.equal(isManagedCodexHookCommand(`node '${posixScript}'`), true);
@@ -168,7 +168,7 @@ describe("codex hooks helpers", () => {
     if (!windows.ok) assert.equal(windows.error.code, "ambiguous_managed_handler");
   });
 
-  it("requires absolute, control-free POSIX OMX paths before ownership proof", () => {
+  it("requires absolute, control-free POSIX NOMX paths before ownership proof", () => {
     const historicalCommand = `node "/historical install/O'Brien/dist/scripts/codex-native-hook.js"`;
     const ownedSource = JSON.stringify({
       hooks: {
@@ -236,7 +236,7 @@ describe("codex hooks helpers", () => {
     }
   });
 
-  it("fails closed for decoded POSIX OMX spellings across command fields", () => {
+  it("fails closed for decoded POSIX NOMX spellings across command fields", () => {
     const exactEscapedCommand = String.raw`node /repo/dist/scripts/codex-native-ho\ok.js`;
     assert.equal(isManagedCodexHookCommand(exactEscapedCommand), true);
 
@@ -299,7 +299,7 @@ describe("codex hooks helpers", () => {
     });
     const merge = planManagedCodexHooksMerge(source, "/repo", "/fixture codex home/hooks.json", options);
     const removal = planManagedCodexHooksRemoval(source, "/fixture codex home/hooks.json", options);
-    assert.match(command, /-File '\\fixture codex home\\hooks\\omx-native-hook-windows-shim\.ps1'$/);
+    assert.match(command, /-File '\\fixture codex home\\hooks\\nomx-native-hook-windows-shim\.ps1'$/);
     assert.equal(isManagedCodexHookCommand(command), false);
     assert.equal(merge.ok, true);
     assert.equal(removal.ok, true);
@@ -346,7 +346,7 @@ describe("codex hooks helpers", () => {
       },
     ];
     for (const { label, options, hooksPath, codexHomeDir } of fixtures) {
-      const hostShimPath = join(codexHomeDir, "hooks", "omx-native-hook-windows-shim.ps1");
+      const hostShimPath = join(codexHomeDir, "hooks", "nomx-native-hook-windows-shim.ps1");
       const powerShellPath = resolveWindowsPowerShellPath(env);
       const command = `& '${powerShellPath}' -NoProfile -ExecutionPolicy Bypass -File '${hostShimPath}'`;
       const source = JSON.stringify({
@@ -356,13 +356,13 @@ describe("codex hooks helpers", () => {
       });
       const merge = planManagedCodexHooksMerge(source, "/repo", hooksPath, options);
       const removal = planManagedCodexHooksRemoval(source, hooksPath, options);
-      assert.match(command, /\/hooks\/omx-native-hook-windows-shim\.ps1'$/);
+      assert.match(command, /\/hooks\/nomx-native-hook-windows-shim\.ps1'$/);
       assert.equal(isManagedCodexHookCommand(command), false, label);
       assert.equal(merge.ok, true, label);
       assert.equal(removal.ok, true, label);
       if (removal.ok) assert.equal(removal.finalContent, null, label);
 
-      const alteredShimPath = join("/foreign codex home", "hooks", "omx-native-hook-windows-shim.ps1");
+      const alteredShimPath = join("/foreign codex home", "hooks", "nomx-native-hook-windows-shim.ps1");
       const altered = command.replace(hostShimPath, alteredShimPath);
       const alteredSource = JSON.stringify({
         hooks: {
@@ -382,8 +382,8 @@ describe("codex hooks helpers", () => {
     const script = "C:\\repo\\dist\\scripts\\codex-native-hook.js";
     const direct = `node "${script}"`;
     const invalidDirectCommands = [
-      `node "%OMX_ROOT%\\dist\\scripts\\codex-native-hook.js"`,
-      `node "!OMX_ROOT!\\dist\\scripts\\codex-native-hook.js"`,
+      `node "%NOMX_ROOT%\\dist\\scripts\\codex-native-hook.js"`,
+      `node "!NOMX_ROOT!\\dist\\scripts\\codex-native-hook.js"`,
       `node "$(Get-Location)\\dist\\scripts\\codex-native-hook.js"`,
       `node '${script}'`,
       `node "${script}`,
@@ -472,7 +472,7 @@ describe("codex hooks helpers", () => {
     const posixScript = "/historical/dist/scripts/codex-native-hook.js";
     const windowsScript = "C:\\historical\\dist\\scripts\\codex-native-hook.js";
     const powerShellExecutable = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
-    const shimPath = "C:\\Users\\Ada\\.codex\\hooks\\omx-native-hook-windows-shim.ps1";
+    const shimPath = "C:\\Users\\Ada\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1";
     const fallbackPosixCommand = `node "${posixScript}"`;
     const unsafeCommands = [
       ["POSIX dot-relative executable", `./node "${posixScript}"`, "linux"],
@@ -555,13 +555,13 @@ describe("codex hooks helpers", () => {
   it("fails closed for Windows direct-node and PowerShell shim quote concatenation across command fields", () => {
     const posixScript = "/repo/dist/scripts/codex-native-hook.js";
     const windowsScript = "C:\\repo\\dist\\scripts\\codex-native-hook.js";
-    const shimPath = "C:\\Users\\Ada\\.codex\\hooks\\omx-native-hook-windows-shim.ps1";
+    const shimPath = "C:\\Users\\Ada\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1";
     const shimPrefix = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File";
     const malformedCommands = [
       ["direct doubled", `node "C:\\repo\\dist\\scripts\\codex""-native-hook.js"`],
       ["direct adjacent", `node ""${windowsScript}""`],
       ["direct triple", `node """${windowsScript}"""`],
-      ["shim doubled", `${shimPrefix} "C:\\Users\\Ada\\.codex\\hooks\\omx""-native-hook-windows-shim.ps1"`],
+      ["shim doubled", `${shimPrefix} "C:\\Users\\Ada\\.codex\\hooks\\nomx""-native-hook-windows-shim.ps1"`],
       ["shim adjacent", `${shimPrefix} ""${shimPath}""`],
       ["shim triple", `${shimPrefix} """${shimPath}"""`],
     ] as const;
@@ -609,7 +609,7 @@ describe("codex hooks helpers", () => {
     const directExecutable = "C:\\base\\node.exe";
     const directScript = "C:\\base\\dist\\scripts\\codex-native-hook.js";
     const powerShellExecutable = "C:\\base\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
-    const shimPath = "C:\\base\\hooks\\omx-native-hook-windows-shim.ps1";
+    const shimPath = "C:\\base\\hooks\\nomx-native-hook-windows-shim.ps1";
     const invalidWindowsPaths: Array<[string, (path: string) => string]> = [
       ["pipe", (path) => path.replace("\\base\\", "\\ba|se\\")],
       ["angle brackets", (path) => path.replace("\\base\\", "\\ba<>se\\")],
@@ -643,9 +643,9 @@ describe("codex hooks helpers", () => {
 
     const validDirect = '"C:\\Program Files (x86)\\node.exe" "C:\\Users\\O\'Brien\\@scope & safe\\(fixture)\\dist\\scripts\\codex-native-hook.js"';
     const validUncDirect = '"\\\\server\\share\\node.exe" "\\\\server\\share\\repo\\dist\\scripts\\codex-native-hook.js"';
-    const validShimPath = "C:\\Users\\O'Brien\\@scope & safe\\(fixture)\\.codex\\hooks\\omx-native-hook-windows-shim.ps1";
-    const validPowerShell = "& 'C:\\Program Files (x86)\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:\\Users\\O''Brien\\@scope & safe\\(fixture)\\.codex\\hooks\\omx-native-hook-windows-shim.ps1'";
-    const rootedPowerShell = "& '\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File '\\Users\\Ada\\.codex\\hooks\\omx-native-hook-windows-shim.ps1'";
+    const validShimPath = "C:\\Users\\O'Brien\\@scope & safe\\(fixture)\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1";
+    const validPowerShell = "& 'C:\\Program Files (x86)\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:\\Users\\O''Brien\\@scope & safe\\(fixture)\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1'";
+    const rootedPowerShell = "& '\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File '\\Users\\Ada\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1'";
     assert.equal(isManagedCodexHookCommand(validDirect), true);
     assert.equal(isManagedCodexHookCommand(validUncDirect), true);
     assert.equal(parseManagedCodexNativeHookWindowsShimCommand(validPowerShell), validShimPath);
@@ -727,7 +727,7 @@ describe("codex hooks helpers", () => {
 
   it("emits Windows hooks.json entries with only the cmd-compatible command field", () => {
     const config = buildManagedCodexHooksConfig(
-      "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\oh-my-codex",
+      "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\nomx",
       {
         platform: "win32",
         codexHomeDir: "C:\\Users\\Ada Lovelace\\.codex",
@@ -746,13 +746,13 @@ describe("codex hooks helpers", () => {
     assert.equal(commandHook?.command_windows, undefined);
     assert.equal(
       commandHook?.command,
-      "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:\\Users\\Ada Lovelace\\.codex\\hooks\\omx-native-hook-windows-shim.ps1'",
+      "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:\\Users\\Ada Lovelace\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1'",
     );
   });
 
   it("derives the PowerShell path from windir when SystemRoot is absent", () => {
     const command = buildManagedCodexNativeHookCommand(
-      "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\oh-my-codex",
+      "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\nomx",
       {
         platform: "win32",
         codexHomeDir: "C:\\Users\\Ada Lovelace\\.codex",
@@ -762,7 +762,7 @@ describe("codex hooks helpers", () => {
 
     assert.equal(
       command,
-      "& 'E:\\WINNT\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:\\Users\\Ada Lovelace\\.codex\\hooks\\omx-native-hook-windows-shim.ps1'",
+      "& 'E:\\WINNT\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:\\Users\\Ada Lovelace\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1'",
     );
   });
 
@@ -786,7 +786,7 @@ describe("codex hooks helpers", () => {
             ],
           },
         }),
-        "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\oh-my-codex",
+        "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\nomx",
         "C:\\Users\\Ada Lovelace\\.codex\\hooks.json",
         {
           platform: "win32",
@@ -802,18 +802,18 @@ describe("codex hooks helpers", () => {
 
     assert.ok(commands.includes("echo keep-me"));
     assert.ok(commands.includes(
-      "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:\\Users\\Ada Lovelace\\.codex\\hooks\\omx-native-hook-windows-shim.ps1'",
+      "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'C:\\Users\\Ada Lovelace\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1'",
     ));
   });
 
   it("builds deterministic Windows shim paths and PowerShell 5.1-compatible ProcessStartInfo content", () => {
     assert.equal(
       buildManagedCodexNativeHookWindowsShimPath("C:\\Users\\Ada Lovelace\\.codex"),
-      "C:\\Users\\Ada Lovelace\\.codex\\hooks\\omx-native-hook-windows-shim.ps1",
+      "C:\\Users\\Ada Lovelace\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1",
     );
 
     const content = buildManagedCodexNativeHookWindowsShimContent(
-      "D:\\Program Files\\O'Malley\\oh-my-codex",
+      "D:\\Program Files\\O'Malley\\nomx",
       { nodePath: "C:\\Program Files\\nodejs\\node.exe" },
     );
 
@@ -832,13 +832,13 @@ describe("codex hooks helpers", () => {
     assert.match(content, /\$startInfo\.FileName = 'C:\\Program Files\\nodejs\\node\.exe'/);
     assert.match(
       content,
-      /\$startInfo\.Arguments = '"D:\\Program Files\\O''Malley\\oh-my-codex\\dist\\scripts\\codex-native-hook\.js"'/,
+      /\$startInfo\.Arguments = '"D:\\Program Files\\O''Malley\\nomx\\dist\\scripts\\codex-native-hook\.js"'/,
     );
   });
 
   it("prepends a UTF-8 BOM to the Windows shim so PowerShell 5.1 reads non-ASCII paths as UTF-8", () => {
     const content = buildManagedCodexNativeHookWindowsShimContent(
-      "C:\\Users\\정찬\\깃헙\\oh-my-codex",
+      "C:\\Users\\정찬\\깃헙\\nomx",
       { nodePath: "C:\\Program Files\\nodejs\\node.exe" },
     );
 
@@ -847,7 +847,7 @@ describe("codex hooks helpers", () => {
     // BOM must precede the script body, not replace it.
     assert.equal(content.slice(1).startsWith("$ErrorActionPreference = 'Stop'"), true);
     // Non-ASCII install path is preserved verbatim in the emitted shim.
-    assert.match(content, /정찬\\깃헙\\oh-my-codex/);
+    assert.match(content, /정찬\\깃헙\\nomx/);
 
     const utf8 = Buffer.from(content, "utf-8");
     assert.deepEqual([...utf8.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
@@ -855,17 +855,17 @@ describe("codex hooks helpers", () => {
 
   it("classifies only byte-identical Windows shims as current and complete generated variants as historical", () => {
     const expected = Buffer.from(buildManagedCodexNativeHookWindowsShimContent(
-      "C:\\Current Install\\oh-my-codex",
+      "C:\\Current Install\\nomx",
       {
         nodePath: "C:\\Current Node\\node.exe",
-        hookScriptPath: "C:\\Current Install\\oh-my-codex\\dist\\scripts\\codex-native-hook.js",
+        hookScriptPath: "C:\\Current Install\\nomx\\dist\\scripts\\codex-native-hook.js",
       },
     ), "utf-8");
     const historical = Buffer.from(buildManagedCodexNativeHookWindowsShimContent(
-      "C:\\Historical Install\\oh-my-codex",
+      "C:\\Historical Install\\nomx",
       {
         nodePath: "D:\\Historical Node\\O'Malley\\node",
-        hookScriptPath: "D:\\Historical Install\\O'Malley\\oh-my-codex\\dist\\scripts\\codex-native-hook.js",
+        hookScriptPath: "D:\\Historical Install\\O'Malley\\nomx\\dist\\scripts\\codex-native-hook.js",
       },
     ), "utf-8");
 
@@ -881,14 +881,14 @@ describe("codex hooks helpers", () => {
 
   it("requires qualified valid paths before recognizing historical Windows shim ownership", () => {
     const expected = Buffer.from(buildManagedCodexNativeHookWindowsShimContent(
-      "C:\\Current Install\\oh-my-codex",
+      "C:\\Current Install\\nomx",
       {
         nodePath: "C:\\Current Node\\node.exe",
-        hookScriptPath: "C:\\Current Install\\oh-my-codex\\dist\\scripts\\codex-native-hook.js",
+        hookScriptPath: "C:\\Current Install\\nomx\\dist\\scripts\\codex-native-hook.js",
       },
     ), "utf-8");
     const validNodePath = "D:\\Historical Node\\node.exe";
-    const validHookScriptPath = "D:\\Historical Install\\oh-my-codex\\dist\\scripts\\codex-native-hook.js";
+    const validHookScriptPath = "D:\\Historical Install\\nomx\\dist\\scripts\\codex-native-hook.js";
     const invalidHistoricalPaths = [
       { nodePath: "node.exe", hookScriptPath: validHookScriptPath },
       { nodePath: "D:node.exe", hookScriptPath: validHookScriptPath },
@@ -915,10 +915,10 @@ describe("codex hooks helpers", () => {
       { nodePath: validNodePath, hookScriptPath: "D:\\NUL .dir\\dist\\scripts\\codex-native-hook.js" },
     ];
     const uncHistorical = Buffer.from(buildManagedCodexNativeHookWindowsShimContent(
-      "\\\\server\\share\\Historical Install\\oh-my-codex",
+      "\\\\server\\share\\Historical Install\\nomx",
       {
         nodePath: "\\\\server\\share\\Node O'Brien\\node.exe",
-        hookScriptPath: "\\\\server\\share\\Historical Install\\O'Brien\\oh-my-codex\\dist\\scripts\\codex-native-hook.js",
+        hookScriptPath: "\\\\server\\share\\Historical Install\\O'Brien\\nomx\\dist\\scripts\\codex-native-hook.js",
       },
     ), "utf-8");
 
@@ -928,7 +928,7 @@ describe("codex hooks helpers", () => {
     );
     for (const paths of invalidHistoricalPaths) {
       const content = Buffer.from(buildManagedCodexNativeHookWindowsShimContent(
-        "D:\\Historical Install\\oh-my-codex",
+        "D:\\Historical Install\\nomx",
         paths,
       ), "utf-8");
       assert.equal(
@@ -941,17 +941,17 @@ describe("codex hooks helpers", () => {
 
   it("rejects incomplete, altered, encoding-ambiguous, and unverifiable Windows shim ownership", () => {
     const expected = Buffer.from(buildManagedCodexNativeHookWindowsShimContent(
-      "C:\\Current Install\\oh-my-codex",
+      "C:\\Current Install\\nomx",
       {
         nodePath: "C:\\Current Node\\node.exe",
-        hookScriptPath: "C:\\Current Install\\oh-my-codex\\dist\\scripts\\codex-native-hook.js",
+        hookScriptPath: "C:\\Current Install\\nomx\\dist\\scripts\\codex-native-hook.js",
       },
     ), "utf-8");
     const historical = Buffer.from(buildManagedCodexNativeHookWindowsShimContent(
-      "C:\\Historical Install\\oh-my-codex",
+      "C:\\Historical Install\\nomx",
       {
         nodePath: "D:\\Historical Node\\node.exe",
-        hookScriptPath: "D:\\Historical Install\\oh-my-codex\\dist\\scripts\\codex-native-hook.js",
+        hookScriptPath: "D:\\Historical Install\\nomx\\dist\\scripts\\codex-native-hook.js",
       },
     ), "utf-8");
     const modifiedFixedStatement = Buffer.from(historical.toString("utf-8").replace(
@@ -994,7 +994,7 @@ describe("codex hooks helpers", () => {
     });
     if (!shell) return;
 
-    const wd = await mkdtemp(join(tmpdir(), "omx-windows-hook-shim-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-windows-hook-shim-"));
     try {
       const pkgRoot = join(wd, "pkg root");
       const hookPath = join(pkgRoot, "dist", "scripts", "codex-native-hook.js");
@@ -1029,7 +1029,7 @@ describe("codex hooks helpers", () => {
         {
           input: JSON.stringify({
             hook_event_name: "Stop",
-            last_user_message: "这是 oh-my-codex PowerShell shim 回归测试，用长中文多字节 stdin JSON 验证不会触发截断。".repeat(600),
+            last_user_message: "这是 nomx PowerShell shim 回归测试，用长中文多字节 stdin JSON 验证不会触发截断。".repeat(600),
           }),
           encoding: "utf-8",
           maxBuffer: 1024 * 1024 * 10,
@@ -1037,7 +1037,7 @@ describe("codex hooks helpers", () => {
       );
 
       assert.equal(result.status, 17);
-      const expectedMessage = "这是 oh-my-codex PowerShell shim 回归测试，用长中文多字节 stdin JSON 验证不会触发截断。".repeat(600);
+      const expectedMessage = "这是 nomx PowerShell shim 回归测试，用长中文多字节 stdin JSON 验证不会触发截断。".repeat(600);
       assert.equal(result.stdout, `stdout:${expectedMessage.length}:这是`);
       assert.equal(result.stderr, "stderr:会触发截断。");
     } finally {
@@ -1077,7 +1077,7 @@ describe("codex hooks helpers", () => {
     );
     assert.match(JSON.stringify(sessionStart), /echo keep-me/);
     assert.match(JSON.stringify(sessionStart), /echo standalone-user/);
-    assert.doesNotMatch(JSON.stringify(sessionStart), /Loading OMX session context/);
+    assert.doesNotMatch(JSON.stringify(sessionStart), /Loading NOMX session context/);
   });
 
   it("replaces existing managed groups in place without moving foreign groups", () => {
@@ -1218,7 +1218,7 @@ describe("codex hooks helpers", () => {
     assert.ok(normalToml.includes(`[hooks.state."${hooksPath}:pre_tool_use:1:0"]`));
   });
 
-  it("builds trust state only for generated OMX hook handlers", () => {
+  it("builds trust state only for generated NOMX hook handlers", () => {
     const state = buildManagedCodexHookTrustState("/home/me/.codex/hooks.json", "/repo");
     const keys = Object.keys(state).sort();
 
@@ -1270,7 +1270,7 @@ describe("codex hooks helpers", () => {
 
   it("matches Codex's normalized command hook hash identity for Windows shim commands", async () => {
     const hooksPath = "C:\\Users\\Ada Lovelace\\.codex\\hooks.json";
-    const pkgRoot = "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\oh-my-codex";
+    const pkgRoot = "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\nomx";
     const state = buildManagedCodexHookTrustState(hooksPath, pkgRoot, {
       platform: "win32",
       codexHomeDir: "C:\\Users\\Ada Lovelace\\.codex",
@@ -1528,7 +1528,7 @@ describe("codex hooks helpers", () => {
             hooks: [
               {
                 type: "command",
-                command: 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\Users\\Ada\\.codex\\hooks\\omx-native-hook-windows-shim.ps1"',
+                command: 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\Users\\Ada\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1"',
               },
             ],
           },
@@ -1541,13 +1541,13 @@ describe("codex hooks helpers", () => {
     };
     const first = mergeManagedCodexHooksConfig(
       stale,
-      "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\oh-my-codex",
+      "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\nomx",
       "C:\\Users\\Ada Lovelace\\.codex\\hooks.json",
       options,
     );
     const second = mergeManagedCodexHooksConfig(
       first,
-      "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\oh-my-codex",
+      "D:\\Program Files\\nvm\\v24.12.0\\node_modules\\nomx",
       "C:\\Users\\Ada Lovelace\\.codex\\hooks.json",
       options,
     );
@@ -1558,12 +1558,12 @@ describe("codex hooks helpers", () => {
     };
     const commands = merged.hooks.SessionStart.flatMap((entry) => entry.hooks ?? [])
       .map((hook) => hook.command ?? "");
-    assert.equal(commands.filter((command) => /omx-native-hook-windows-shim\.ps1/.test(command)).length, 1);
+    assert.equal(commands.filter((command) => /nomx-native-hook-windows-shim\.ps1/.test(command)).length, 1);
     assert.equal(commands.filter((command) => /codex-native-hook\.js/.test(command)).length, 0);
     assert.ok(commands.includes("echo keep-me"));
   });
 
-  it("removes only OMX-managed wrappers during uninstall cleanup", () => {
+  it("removes only NOMX-managed wrappers during uninstall cleanup", () => {
     const managedOnly = JSON.stringify(buildManagedCodexHooksConfig("/repo"));
     const preserved = JSON.stringify({
       hooks: {
@@ -1719,12 +1719,12 @@ describe("codex hooks helpers", () => {
   });
 
   it("ignores runtime codex-home hook mirrors before hook loading", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-hook-dedupe-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-hook-dedupe-"));
     try {
       const canonicalPath = join(cwd, ".codex", "hooks.json");
-      const mirrorPath = join(cwd, ".omx", "runtime", "codex-home", "session-1", "hooks.json");
+      const mirrorPath = join(cwd, ".nomx", "runtime", "codex-home", "session-1", "hooks.json");
       await mkdir(join(cwd, ".codex"), { recursive: true });
-      await mkdir(join(cwd, ".omx", "runtime", "codex-home", "session-1"), { recursive: true });
+      await mkdir(join(cwd, ".nomx", "runtime", "codex-home", "session-1"), { recursive: true });
       await writeFile(canonicalPath, JSON.stringify(buildManagedCodexHooksConfig("/repo")));
       await symlink(canonicalPath, mirrorPath);
 
@@ -1739,7 +1739,7 @@ describe("codex hooks helpers", () => {
   });
 
   it("de-dupes hook config paths by realpath outside runtime mirrors", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-hook-realpath-dedupe-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-hook-realpath-dedupe-"));
     try {
       const canonicalPath = join(cwd, ".codex", "hooks.json");
       const aliasPath = join(cwd, "alias-hooks.json");
@@ -1756,12 +1756,12 @@ describe("codex hooks helpers", () => {
   });
 
   it("discovers canonical hook configs while skipping runtime codex-home mirrors", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-hook-discover-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-hook-discover-"));
     try {
       const canonicalPath = join(cwd, ".codex", "hooks.json");
-      const mirrorPath = join(cwd, ".omx", "runtime", "codex-home", "session-1", "hooks.json");
+      const mirrorPath = join(cwd, ".nomx", "runtime", "codex-home", "session-1", "hooks.json");
       await mkdir(join(cwd, ".codex"), { recursive: true });
-      await mkdir(join(cwd, ".omx", "runtime", "codex-home", "session-1"), { recursive: true });
+      await mkdir(join(cwd, ".nomx", "runtime", "codex-home", "session-1"), { recursive: true });
       await writeFile(canonicalPath, JSON.stringify(buildManagedCodexHooksConfig("/repo")));
       await writeFile(mirrorPath, JSON.stringify(buildManagedCodexHooksConfig("/repo")));
 
@@ -2104,7 +2104,7 @@ describe("codex hooks helpers", () => {
     assert.ok(plan.finalTrustState["/hooks.json:stop:1:0"]);
   });
 
-  it("appends each missing OMX event once and makes the third setup byte-identical", () => {
+  it("appends each missing NOMX event once and makes the third setup byte-identical", () => {
     const first = planManagedCodexHooksMerge("{}", "/repo", "/hooks.json");
     assert.equal(first.ok, true);
     if (!first.ok) return;
@@ -2234,7 +2234,7 @@ describe("codex hooks helpers", () => {
     if (!unsafePlan.ok) assert.equal(unsafePlan.error.code, "unsafe_managed_removal");
   });
 
-  it("fails closed for unsafe mixed removal and partial-corrupt OMX commands", () => {
+  it("fails closed for unsafe mixed removal and partial-corrupt NOMX commands", () => {
     const command = buildManagedCodexHooksConfig("/repo").hooks.SessionStart[0]?.hooks[0]?.command;
     const unsafeMixed = planManagedCodexHooksRemoval(JSON.stringify({
       hooks: {

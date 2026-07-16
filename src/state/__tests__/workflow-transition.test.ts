@@ -13,10 +13,10 @@ import {
 import { reconcileWorkflowTransition } from '../workflow-transition-reconcile.js';
 
 const STATE_ENV_KEYS = [
-  'OMX_ROOT',
-  'OMX_STATE_ROOT',
-  'OMX_TEAM_STATE_ROOT',
-  'OMX_SESSION_ID',
+  'NOMX_ROOT',
+  'NOMX_STATE_ROOT',
+  'NOMX_TEAM_STATE_ROOT',
+  'NOMX_SESSION_ID',
   'CODEX_SESSION_ID',
   'SESSION_ID',
 ] as const;
@@ -132,9 +132,9 @@ describe('workflow transition rules', () => {
 
   it('ignores stale root workflow state for session-scoped active decisions', async () => {
     await withIsolatedStateEnv(async () => {
-      const wd = await mkdtemp(join(tmpdir(), 'omx-workflow-active-scope-'));
+      const wd = await mkdtemp(join(tmpdir(), 'nomx-workflow-active-scope-'));
       try {
-        const stateDir = join(wd, '.omx', 'state');
+        const stateDir = join(wd, '.nomx', 'state');
         const sessionDir = join(stateDir, 'sessions', 'sess-current');
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
@@ -158,9 +158,9 @@ describe('workflow transition rules', () => {
 
   it('does not auto-complete stale root workflow state during a session transition', async () => {
     await withIsolatedStateEnv(async () => {
-      const wd = await mkdtemp(join(tmpdir(), 'omx-workflow-reconcile-scope-'));
+      const wd = await mkdtemp(join(tmpdir(), 'nomx-workflow-reconcile-scope-'));
       try {
-        const stateDir = join(wd, '.omx', 'state');
+        const stateDir = join(wd, '.nomx', 'state');
         const sessionDir = join(stateDir, 'sessions', 'sess-current');
         const rootRalphPath = join(stateDir, 'ralph-state.json');
         await mkdir(sessionDir, { recursive: true });
@@ -191,10 +191,10 @@ describe('workflow transition rules', () => {
 
   it('does not auto-complete session mode detail when canonical skill state is absent', async () => {
     await withIsolatedStateEnv(async () => {
-      const wd = await mkdtemp(join(tmpdir(), 'omx-workflow-reconcile-detail-only-'));
+      const wd = await mkdtemp(join(tmpdir(), 'nomx-workflow-reconcile-detail-only-'));
       try {
         const sessionId = 'sess-detail-only';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         const staleRalplanPath = join(sessionDir, 'ralplan-state.json');
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
@@ -223,9 +223,9 @@ describe('workflow transition rules', () => {
 
   it('lets terminal Team detail outrank a foreign compatibility mirror without touching foreign state', async () => {
     await withIsolatedStateEnv(async () => {
-      const wd = await mkdtemp(join(tmpdir(), 'omx-workflow-foreign-team-terminal-'));
+      const wd = await mkdtemp(join(tmpdir(), 'nomx-workflow-foreign-team-terminal-'));
       try {
-        const stateDir = join(wd, '.omx', 'state');
+        const stateDir = join(wd, '.nomx', 'state');
         await mkdir(stateDir, { recursive: true });
         const teamState = { active: false, mode: 'team', current_phase: 'cancelled', run_outcome: 'continue' };
         const skillState = {
@@ -261,9 +261,9 @@ describe('workflow transition rules', () => {
 
   it('still rejects planning rollback when root Team detail is genuinely active', async () => {
     await withIsolatedStateEnv(async () => {
-      const wd = await mkdtemp(join(tmpdir(), 'omx-workflow-foreign-team-active-'));
+      const wd = await mkdtemp(join(tmpdir(), 'nomx-workflow-foreign-team-active-'));
       try {
-        const stateDir = join(wd, '.omx', 'state');
+        const stateDir = join(wd, '.nomx', 'state');
         await mkdir(stateDir, { recursive: true });
         await writeFile(join(stateDir, 'team-state.json'), JSON.stringify({
           active: true,
@@ -288,7 +288,7 @@ describe('workflow transition rules', () => {
     });
   });
   it('co-locates auto-completed mode detail and canonical skill state under an explicit base state dir', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-workflow-reconcile-base-dir-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-workflow-reconcile-base-dir-'));
     try {
       const wd = join(root, 'source');
       const baseStateDir = join(root, 'boxed-state');
@@ -359,8 +359,8 @@ describe('workflow transition rules', () => {
       const boxedSkill = JSON.parse(await readFile(join(sessionDir, 'skill-active-state.json'), 'utf-8')) as Record<string, unknown>;
       assert.equal(boxedSkill.active, false);
 
-      assert.equal(existsSync(join(wd, '.omx', 'state', 'sessions', sessionId, 'deep-interview-state.json')), false);
-      assert.equal(existsSync(join(wd, '.omx', 'state', 'sessions', sessionId, 'skill-active-state.json')), false);
+      assert.equal(existsSync(join(wd, '.nomx', 'state', 'sessions', sessionId, 'deep-interview-state.json')), false);
+      assert.equal(existsSync(join(wd, '.nomx', 'state', 'sessions', sessionId, 'skill-active-state.json')), false);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -368,7 +368,7 @@ describe('workflow transition rules', () => {
 
   it('denies deep-interview to ralplan reconciliation when only handoff-cleared question evidence exists', async () => {
     await withIsolatedStateEnv(async () => {
-      const root = await mkdtemp(join(tmpdir(), 'omx-workflow-reconcile-ralplan-gate-deny-'));
+      const root = await mkdtemp(join(tmpdir(), 'nomx-workflow-reconcile-ralplan-gate-deny-'));
       try {
         const wd = join(root, 'source');
         const baseStateDir = join(root, 'boxed-state');
@@ -383,7 +383,7 @@ describe('workflow transition rules', () => {
             current_phase: 'interviewing',
             question_enforcement: {
               obligation_id: 'obligation-cleared',
-              source: 'omx-question',
+              source: 'nomx-question',
               status: 'cleared',
               lifecycle_outcome: 'askuserQuestion',
               requested_at: '2026-05-28T00:00:00.000Z',

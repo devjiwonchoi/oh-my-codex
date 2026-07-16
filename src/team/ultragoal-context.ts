@@ -6,8 +6,8 @@ import { TEAM_NAME_SAFE_PATTERN } from './contracts.js';
 
 export interface UltragoalTeamContext {
   kind: 'leader_owned_ultragoal_context';
-  goalsPath: '.omx/ultragoal/goals.json';
-  ledgerPath: '.omx/ultragoal/ledger.jsonl';
+  goalsPath: '.nomx/ultragoal/goals.json';
+  ledgerPath: '.nomx/ultragoal/ledger.jsonl';
   activeGoalId: string;
   activeGoalTitle?: string;
   codexGoalMode: 'aggregate' | 'per_story';
@@ -18,8 +18,8 @@ export interface UltragoalCheckpointGuidance {
   goal_id: string;
   goal_title?: string;
   codex_goal_mode: 'aggregate' | 'per_story';
-  goals_path: '.omx/ultragoal/goals.json';
-  ledger_path: '.omx/ultragoal/ledger.jsonl';
+  goals_path: '.nomx/ultragoal/goals.json';
+  ledger_path: '.nomx/ultragoal/ledger.jsonl';
   checkpoint_policy: 'fresh_leader_get_goal_required';
   checkpoint_command_template: string;
   final_checkpoint_command_template: string;
@@ -90,8 +90,8 @@ export function normalizeUltragoalTeamContext(value: unknown): UltragoalTeamCont
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const raw = value as Record<string, unknown>;
   if (raw.kind !== 'leader_owned_ultragoal_context') return null;
-  if (raw.goalsPath !== '.omx/ultragoal/goals.json') return null;
-  if (raw.ledgerPath !== '.omx/ultragoal/ledger.jsonl') return null;
+  if (raw.goalsPath !== '.nomx/ultragoal/goals.json') return null;
+  if (raw.ledgerPath !== '.nomx/ultragoal/ledger.jsonl') return null;
   if (typeof raw.activeGoalId !== 'string' || raw.activeGoalId.trim() === '') return null;
   const activeGoalId = raw.activeGoalId.trim();
   if (!isSafeUltragoalGoalId(activeGoalId)) return null;
@@ -101,8 +101,8 @@ export function normalizeUltragoalTeamContext(value: unknown): UltragoalTeamCont
     : undefined;
   return {
     kind: 'leader_owned_ultragoal_context',
-    goalsPath: '.omx/ultragoal/goals.json',
-    ledgerPath: '.omx/ultragoal/ledger.jsonl',
+    goalsPath: '.nomx/ultragoal/goals.json',
+    ledgerPath: '.nomx/ultragoal/ledger.jsonl',
     activeGoalId,
     ...(activeGoalTitle ? { activeGoalTitle } : {}),
     codexGoalMode: normalizeCodexGoalMode(raw.codexGoalMode),
@@ -122,7 +122,7 @@ function warning(code: UltragoalContextResolutionStatus, message: string): Ultra
 }
 
 export async function resolveLeaderOwnedUltragoalContextOutcome(cwd: string): Promise<UltragoalContextResolution> {
-  const goalsJsonPath = join(cwd, '.omx', 'ultragoal', 'goals.json');
+  const goalsJsonPath = join(cwd, '.nomx', 'ultragoal', 'goals.json');
   if (!existsSync(goalsJsonPath)) return { status: 'missing', context: null };
 
   try {
@@ -152,8 +152,8 @@ export async function resolveLeaderOwnedUltragoalContextOutcome(cwd: string): Pr
       : undefined;
     const context: UltragoalTeamContext = {
       kind: 'leader_owned_ultragoal_context',
-      goalsPath: '.omx/ultragoal/goals.json',
-      ledgerPath: '.omx/ultragoal/ledger.jsonl',
+      goalsPath: '.nomx/ultragoal/goals.json',
+      ledgerPath: '.nomx/ultragoal/ledger.jsonl',
       activeGoalId,
       ...(activeGoalTitle ? { activeGoalTitle } : {}),
       codexGoalMode: resolvePlanCodexGoalMode(parsed.codexGoalMode),
@@ -219,8 +219,8 @@ export function buildUltragoalCheckpointGuidance(
   context: UltragoalTeamContext,
 ): UltragoalCheckpointGuidance {
   const goalId = context.activeGoalId;
-  const intermediateStoryCommand = `nomx ultragoal checkpoint --goal-id ${goalId} --status complete --evidence "<team evidence mentioning .omx/ultragoal and ${goalId}>" --codex-goal-json <fresh-active-get_goal-json-or-path>`;
-  const finalStoryCommand = `nomx ultragoal checkpoint --goal-id ${goalId} --status complete --evidence "<team evidence mentioning .omx/ultragoal and ${goalId}>" --codex-goal-json <fresh-complete-get_goal-json-or-path> --quality-gate-json <quality-gate-json-or-path>`;
+  const intermediateStoryCommand = `nomx ultragoal checkpoint --goal-id ${goalId} --status complete --evidence "<team evidence mentioning .nomx/ultragoal and ${goalId}>" --codex-goal-json <fresh-active-get_goal-json-or-path>`;
+  const finalStoryCommand = `nomx ultragoal checkpoint --goal-id ${goalId} --status complete --evidence "<team evidence mentioning .nomx/ultragoal and ${goalId}>" --codex-goal-json <fresh-complete-get_goal-json-or-path> --quality-gate-json <quality-gate-json-or-path>`;
   return {
     goal_id: goalId,
     ...(context.activeGoalTitle ? { goal_title: context.activeGoalTitle } : {}),
@@ -234,13 +234,13 @@ export function buildUltragoalCheckpointGuidance(
       'team tasks are terminal',
       'verification passed',
       `evidence mentions ${goalId}`,
-      'evidence mentions .omx/ultragoal artifacts',
+      'evidence mentions .nomx/ultragoal artifacts',
       'leader captured fresh get_goal JSON before checkpointing',
     ],
     command_templates: {
       intermediate_story: intermediateStoryCommand,
       final_story: finalStoryCommand,
-      per_story: `nomx ultragoal checkpoint --goal-id ${goalId} --status complete --evidence "<team evidence mentioning .omx/ultragoal and ${goalId}>" --codex-goal-json <fresh-matching-get_goal-json-or-path>`,
+      per_story: `nomx ultragoal checkpoint --goal-id ${goalId} --status complete --evidence "<team evidence mentioning .nomx/ultragoal and ${goalId}>" --codex-goal-json <fresh-matching-get_goal-json-or-path>`,
       completed_wrong_legacy_goal_blocker: `nomx ultragoal checkpoint --goal-id ${goalId} --status blocked --evidence "<completed legacy Codex goal blocks this ultragoal story>" --codex-goal-json <fresh-completed-wrong-get_goal-json-or-path>`,
     },
   };
@@ -261,7 +261,7 @@ export function renderLeaderOwnedUltragoalContextSection(
     `- Ledger path: ${context.ledgerPath}`,
     `- Checkpoint policy: ${context.checkpointPolicy}`,
     '- Team tasks/evidence feed leader checkpointing; workers do not own Ultragoal goal state.',
-    '- Workers must not create worker Ultragoal ledgers, mutate `.omx/ultragoal`, auto-launch Team from Ultragoal, or claim shell commands changed Codex goal state.',
+    '- Workers must not create worker Ultragoal ledgers, mutate `.nomx/ultragoal`, auto-launch Team from Ultragoal, or claim shell commands changed Codex goal state.',
     `- Leader checkpoint command shape: ${guidance.command_templates.intermediate_story}`,
     '- Final aggregate stories require leader final quality gates before `update_goal({status: "complete"})`, then a fresh `get_goal` snapshot and `--quality-gate-json`.',
   ].join('\n');
@@ -280,7 +280,7 @@ export function renderUltragoalCheckpointGuidanceText(
     `  goals_path: ${guidance.goals_path}`,
     `  ledger_path: ${guidance.ledger_path}`,
     `  checkpoint_policy: ${guidance.checkpoint_policy}`,
-    '  worker_boundary: workers do not own Ultragoal goal state or mutate .omx/ultragoal artifacts',
+    '  worker_boundary: workers do not own Ultragoal goal state or mutate .nomx/ultragoal artifacts',
     `  evidence_requirements: ${guidance.evidence_requirements.join('; ')}`,
     `  intermediate_story: ${guidance.command_templates.intermediate_story}`,
     `  final_story: ${guidance.command_templates.final_story}`,

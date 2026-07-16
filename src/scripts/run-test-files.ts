@@ -8,13 +8,13 @@ const DEFAULT_FORCE_EXIT_GRACE_MS = 30_000;
 const DEFAULT_CI_TEST_CONCURRENCY = 1;
 const DEFAULT_LOCAL_TEST_CONCURRENCY = 1;
 const PRESERVED_TEST_ENV_KEYS = new Set([
-  'OMX_EXPLORE_BIN',
-  'OMX_NODE_TEST_CONCURRENCY',
-  'OMX_NODE_TEST_FORCE_EXIT',
-  'OMX_NODE_TEST_FORCE_EXIT_GRACE_MS',
-  'OMX_NODE_TEST_PRESERVE_RUNTIME_ENV',
-  'OMX_NODE_TEST_RUNNER_TIMEOUT_MS',
-  'OMX_NODE_TEST_TIMEOUT_MS',
+  'NOMX_EXPLORE_BIN',
+  'NOMX_NODE_TEST_CONCURRENCY',
+  'NOMX_NODE_TEST_FORCE_EXIT',
+  'NOMX_NODE_TEST_FORCE_EXIT_GRACE_MS',
+  'NOMX_NODE_TEST_PRESERVE_RUNTIME_ENV',
+  'NOMX_NODE_TEST_RUNNER_TIMEOUT_MS',
+  'NOMX_NODE_TEST_TIMEOUT_MS',
 ]);
 
 type TestRunResult = {
@@ -63,7 +63,7 @@ function isWindows(): boolean {
 }
 
 function parseTestConcurrency(env: NodeJS.ProcessEnv): number | undefined {
-  const rawValue = env.OMX_NODE_TEST_CONCURRENCY;
+  const rawValue = env.NOMX_NODE_TEST_CONCURRENCY;
   if (rawValue) {
     const parsed = Number(rawValue);
     if (Number.isFinite(parsed) && parsed >= 1) return Math.floor(parsed);
@@ -78,9 +78,10 @@ function parseTestConcurrency(env: NodeJS.ProcessEnv): number | undefined {
 function shouldScrubRuntimeEnvKey(key: string): boolean {
   if (PRESERVED_TEST_ENV_KEYS.has(key)) return false;
   return (
-    key.startsWith('OMX_') ||
+    key.startsWith('NOMX_') ||
     key.startsWith('OMXBOX_') ||
     key.startsWith('CODEX_') ||
+    key === 'USE_NOMX_EXPLORE_CMD' ||
     key === 'USE_OMX_EXPLORE_CMD' ||
     key === 'SESSION_ID' ||
     key === 'TMUX' ||
@@ -91,14 +92,14 @@ function shouldScrubRuntimeEnvKey(key: string): boolean {
 function buildChildEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const childEnv = { ...env };
   delete childEnv.NODE_TEST_CONTEXT;
-  if (!parseBooleanEnv(env.OMX_NODE_TEST_PRESERVE_RUNTIME_ENV)) {
+  if (!parseBooleanEnv(env.NOMX_NODE_TEST_PRESERVE_RUNTIME_ENV)) {
     for (const key of Object.keys(childEnv)) {
       if (shouldScrubRuntimeEnvKey(key)) {
         delete childEnv[key];
       }
     }
   }
-  childEnv.OMX_TEST_RELAX_TMUX_TIMEOUT = '1';
+  childEnv.NOMX_TEST_RELAX_TMUX_TIMEOUT = '1';
   return childEnv;
 }
 
@@ -116,11 +117,11 @@ if (files.length === 0) {
   process.exit(1);
 }
 
-const testTimeoutMs = parseTimeoutMs(process.env.OMX_NODE_TEST_TIMEOUT_MS, DEFAULT_TEST_TIMEOUT_MS);
-const runnerTimeoutMs = parseTimeoutMs(process.env.OMX_NODE_TEST_RUNNER_TIMEOUT_MS, DEFAULT_RUNNER_TIMEOUT_MS);
-const forceExitGraceMs = parseTimeoutMs(process.env.OMX_NODE_TEST_FORCE_EXIT_GRACE_MS, DEFAULT_FORCE_EXIT_GRACE_MS);
+const testTimeoutMs = parseTimeoutMs(process.env.NOMX_NODE_TEST_TIMEOUT_MS, DEFAULT_TEST_TIMEOUT_MS);
+const runnerTimeoutMs = parseTimeoutMs(process.env.NOMX_NODE_TEST_RUNNER_TIMEOUT_MS, DEFAULT_RUNNER_TIMEOUT_MS);
+const forceExitGraceMs = parseTimeoutMs(process.env.NOMX_NODE_TEST_FORCE_EXIT_GRACE_MS, DEFAULT_FORCE_EXIT_GRACE_MS);
 const testConcurrency = parseTestConcurrency(process.env);
-const forceExit = parseBooleanEnv(process.env.OMX_NODE_TEST_FORCE_EXIT);
+const forceExit = parseBooleanEnv(process.env.NOMX_NODE_TEST_FORCE_EXIT);
 const sharedTestArgs = ['--test'];
 if (testTimeoutMs > 0) {
   sharedTestArgs.push(`--test-timeout=${testTimeoutMs}`);

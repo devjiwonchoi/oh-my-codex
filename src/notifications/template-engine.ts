@@ -239,7 +239,7 @@ export function validateTemplate(
  * leading \n so that false conditionals leave zero residual whitespace.
  * No post-processing collapsing is needed.
  *
- * Note: "agent-call" event is not supported in OMX (Codex CLI does not emit it).
+ * Note: "agent-call" event is not supported in NOMX (Codex CLI does not emit it).
  */
 const DEFAULT_TEMPLATES: Record<NotificationEvent, string> = {
   "session-start":

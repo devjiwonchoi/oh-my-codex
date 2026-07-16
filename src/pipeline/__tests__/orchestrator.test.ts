@@ -64,23 +64,23 @@ function makeThrowingStage(name: string, message: string): PipelineStage {
 }
 
 let tempDir: string;
-let savedOmxEnv: Pick<NodeJS.ProcessEnv, 'OMX_ROOT' | 'OMX_STATE_ROOT' | 'OMX_TEAM_STATE_ROOT' | 'OMX_SESSION_ID'>;
+let savedOmxEnv: Pick<NodeJS.ProcessEnv, 'NOMX_ROOT' | 'NOMX_STATE_ROOT' | 'NOMX_TEAM_STATE_ROOT' | 'NOMX_SESSION_ID'>;
 
 function clearAmbientOmxEnv(): void {
   savedOmxEnv = {
-    OMX_ROOT: process.env.OMX_ROOT,
-    OMX_STATE_ROOT: process.env.OMX_STATE_ROOT,
-    OMX_TEAM_STATE_ROOT: process.env.OMX_TEAM_STATE_ROOT,
-    OMX_SESSION_ID: process.env.OMX_SESSION_ID,
+    NOMX_ROOT: process.env.NOMX_ROOT,
+    NOMX_STATE_ROOT: process.env.NOMX_STATE_ROOT,
+    NOMX_TEAM_STATE_ROOT: process.env.NOMX_TEAM_STATE_ROOT,
+    NOMX_SESSION_ID: process.env.NOMX_SESSION_ID,
   };
-  delete process.env.OMX_ROOT;
-  delete process.env.OMX_STATE_ROOT;
-  delete process.env.OMX_TEAM_STATE_ROOT;
-  delete process.env.OMX_SESSION_ID;
+  delete process.env.NOMX_ROOT;
+  delete process.env.NOMX_STATE_ROOT;
+  delete process.env.NOMX_TEAM_STATE_ROOT;
+  delete process.env.NOMX_SESSION_ID;
 }
 
 function restoreAmbientOmxEnv(): void {
-  for (const key of ['OMX_ROOT', 'OMX_STATE_ROOT', 'OMX_TEAM_STATE_ROOT', 'OMX_SESSION_ID'] as const) {
+  for (const key of ['NOMX_ROOT', 'NOMX_STATE_ROOT', 'NOMX_TEAM_STATE_ROOT', 'NOMX_SESSION_ID'] as const) {
     const value = savedOmxEnv[key];
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
@@ -88,7 +88,7 @@ function restoreAmbientOmxEnv(): void {
 }
 
 async function setup(): Promise<string> {
-  tempDir = await mkdtemp(join(tmpdir(), 'omx-pipeline-test-'));
+  tempDir = await mkdtemp(join(tmpdir(), 'nomx-pipeline-test-'));
   return tempDir;
 }
 
@@ -190,7 +190,7 @@ describe('Pipeline Orchestrator', () => {
                   architectural_status: 'CLEAR',
                   clean,
                   stage: 'code-review',
-                  artifact_path: '.omx/reviews/review-loop.json',
+                  artifact_path: '.nomx/reviews/review-loop.json',
                 },
                 return_to_ralplan_reason: clean ? null : 'Review requested a plan update.',
               },
@@ -205,7 +205,7 @@ describe('Pipeline Orchestrator', () => {
             return {
               status: 'completed',
               artifacts: {
-                qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/oh-my-codex/actions/runs/1' },
+                qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/nomx/actions/runs/1' },
                 return_to_ralplan_reason: null,
               },
               duration_ms: 0,
@@ -235,7 +235,7 @@ describe('Pipeline Orchestrator', () => {
     });
 
     it('threads return-loop review cycle into the rerun ralplan stage context', async () => {
-      const plansDir = join(tempDir, '.omx', 'plans');
+      const plansDir = join(tempDir, '.nomx', 'plans');
       await mkdir(plansDir, { recursive: true });
       await writeFile(join(plansDir, 'prd-stale.md'), '# Plan\n');
       await writeFile(join(plansDir, 'test-spec-stale.md'), '# Test Spec\n');
@@ -323,7 +323,7 @@ describe('Pipeline Orchestrator', () => {
         makeStage('ultragoal', { artifacts: { implemented: true } }),
         makeStage('code-review', {
           artifacts: {
-            review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/reviews/default-quality.json' },
+            review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/reviews/default-quality.json' },
             return_to_ralplan_reason: null,
           },
         }),
@@ -336,7 +336,7 @@ describe('Pipeline Orchestrator', () => {
             return {
               status: 'completed',
               artifacts: {
-                qa_verdict: { stage: 'ultraqa', clean, skipped: false, summary: clean ? 'QA clean.' : 'QA found a regression.', url: 'https://github.com/Yeachan-Heo/oh-my-codex/actions/runs/2' },
+                qa_verdict: { stage: 'ultraqa', clean, skipped: false, summary: clean ? 'QA clean.' : 'QA found a regression.', url: 'https://github.com/Yeachan-Heo/nomx/actions/runs/2' },
                 return_to_ralplan_reason: clean ? null : 'QA found a regression.',
               },
               duration_ms: 0,
@@ -416,7 +416,7 @@ describe('Pipeline Orchestrator', () => {
                   recommendation: clean ? 'APPROVE' : 'REQUEST CHANGES',
                   architectural_status: clean ? 'CLEAR' : 'BLOCK',
                   clean,
-                  artifact_path: clean ? '.omx/reviews/final-clean.json' : '.omx/reviews/stale-block.json',
+                  artifact_path: clean ? '.nomx/reviews/final-clean.json' : '.nomx/reviews/stale-block.json',
                 },
                 return_to_ralplan_reason: clean ? null : 'Stale BLOCK must be replaced after clean review.',
               },
@@ -430,7 +430,7 @@ describe('Pipeline Orchestrator', () => {
               stage: 'ultraqa',
               clean: true,
               skipped: false,
-              url: 'https://github.com/Yeachan-Heo/oh-my-codex/actions/runs/42',
+              url: 'https://github.com/Yeachan-Heo/nomx/actions/runs/42',
             },
             return_to_ralplan_reason: null,
           },
@@ -565,8 +565,8 @@ describe('Pipeline Orchestrator', () => {
     });
 
     it('materializes ralplan consensus handoff artifacts when ralplan is skipped', async () => {
-      const plansDir = join(tempDir, '.omx', 'plans');
-      const stateDir = join(tempDir, '.omx', 'state');
+      const plansDir = join(tempDir, '.nomx', 'plans');
+      const stateDir = join(tempDir, '.nomx', 'state');
       await mkdir(plansDir, { recursive: true });
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(plansDir, 'prd-skip.md'), '# Plan\n');
@@ -600,7 +600,7 @@ describe('Pipeline Orchestrator', () => {
         sequence: ['architect-review', 'critic-review'],
         ralplan_architect_review: { agent_role: 'architect', verdict: 'approve', summary: 'architect ok' },
         ralplan_critic_review: { agent_role: 'critic', verdict: 'approve', summary: 'critic ok' },
-        source: join(tempDir, '.omx', 'state', 'ralplan-state.json'),
+        source: join(tempDir, '.nomx', 'state', 'ralplan-state.json'),
         blockedReason: null,
       });
     });
@@ -689,7 +689,7 @@ describe('Pipeline Orchestrator', () => {
         cwd: tempDir,
       });
 
-      const statePath = join(tempDir, '.omx', 'state', 'autopilot-state.json');
+      const statePath = join(tempDir, '.nomx', 'state', 'autopilot-state.json');
       assert.ok(existsSync(statePath), 'pipeline state file should exist');
 
       const raw = await readFile(statePath, 'utf-8');
@@ -707,7 +707,7 @@ describe('Pipeline Orchestrator', () => {
         cwd: tempDir,
       });
 
-      const statePath = join(tempDir, '.omx', 'state', 'autopilot-state.json');
+      const statePath = join(tempDir, '.nomx', 'state', 'autopilot-state.json');
       const raw = await readFile(statePath, 'utf-8');
       const state = JSON.parse(raw);
       assert.equal(state.active, false);
@@ -805,7 +805,7 @@ describe('Pipeline Orchestrator', () => {
     it('returns true when pipeline state is active and in-progress', async () => {
       // Manually write an in-progress pipeline state
       const { mkdir: mkdirFs, writeFile: writeFileFs } = await import('fs/promises');
-      const stateDir = join(tempDir, '.omx', 'state');
+      const stateDir = join(tempDir, '.nomx', 'state');
       await mkdirFs(stateDir, { recursive: true });
       await writeFileFs(
         join(stateDir, 'autopilot-state.json'),

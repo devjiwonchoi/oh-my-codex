@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { resolveOmxDisplayVersionSync } from '../version.js';
+import { resolveNomxDisplayVersionSync } from '../version.js';
 
 async function withVersionFixture(
   run: (fixture: { packageRoot: string; stampPath: string }) => Promise<void> | void,
 ): Promise<void> {
-  const root = await mkdtemp(join(tmpdir(), 'omx-version-fixture-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-version-fixture-'));
   try {
     await mkdir(join(root, 'pkg'), { recursive: true });
     await mkdir(join(root, 'state'), { recursive: true });
@@ -19,10 +19,10 @@ async function withVersionFixture(
   }
 }
 
-describe('resolveOmxDisplayVersionSync', () => {
+describe('resolveNomxDisplayVersionSync', () => {
   it('returns a plain release version when no current dev install stamp is present', async () => {
     await withVersionFixture(({ packageRoot, stampPath }) => {
-      assert.equal(resolveOmxDisplayVersionSync({ packageRoot, stampPath }), 'v0.18.8');
+      assert.equal(resolveNomxDisplayVersionSync({ packageRoot, stampPath }), 'v0.18.8');
     });
   });
 
@@ -32,12 +32,12 @@ describe('resolveOmxDisplayVersionSync', () => {
         installed_version: '0.18.8',
         setup_completed_version: '0.18.8',
         install_channel: 'dev',
-        install_source: 'github:Yeachan-Heo/oh-my-codex#dev',
+        install_source: 'github:Yeachan-Heo/nomx#dev',
         install_revision: 'abcdef1234567890',
         updated_at: '2026-06-02T00:00:00.000Z',
       }, null, 2));
 
-      assert.equal(resolveOmxDisplayVersionSync({ packageRoot, stampPath }), 'v0.18.8-dev-abcdef123456');
+      assert.equal(resolveNomxDisplayVersionSync({ packageRoot, stampPath }), 'v0.18.8-dev-abcdef123456');
     });
   });
 
@@ -50,12 +50,12 @@ describe('resolveOmxDisplayVersionSync', () => {
         setup_completed_version: '0.18.8',
         dev_base_version: '0.18.9',
         install_channel: 'dev',
-        install_source: 'github:Yeachan-Heo/oh-my-codex#dev',
+        install_source: 'github:Yeachan-Heo/nomx#dev',
         install_revision: 'feedfacecafebeef',
         updated_at: '2026-06-09T00:00:00.000Z',
       }, null, 2));
 
-      assert.equal(resolveOmxDisplayVersionSync({ packageRoot, stampPath }), 'v0.18.9-dev-feedfacecafe');
+      assert.equal(resolveNomxDisplayVersionSync({ packageRoot, stampPath }), 'v0.18.9-dev-feedfacecafe');
     });
   });
 
@@ -69,7 +69,7 @@ describe('resolveOmxDisplayVersionSync', () => {
         updated_at: '2026-06-02T00:00:00.000Z',
       }, null, 2));
 
-      assert.equal(resolveOmxDisplayVersionSync({ packageRoot, stampPath }), 'v0.18.8');
+      assert.equal(resolveNomxDisplayVersionSync({ packageRoot, stampPath }), 'v0.18.8');
     });
   });
 
@@ -84,7 +84,7 @@ describe('resolveOmxDisplayVersionSync', () => {
         updated_at: '2026-06-09T00:00:00.000Z',
       }, null, 2));
 
-      assert.equal(resolveOmxDisplayVersionSync({ packageRoot, stampPath }), 'v0.18.8');
+      assert.equal(resolveNomxDisplayVersionSync({ packageRoot, stampPath }), 'v0.18.8');
     });
   });
 });

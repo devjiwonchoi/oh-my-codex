@@ -1,5 +1,5 @@
 /**
- * HUD type definitions for oh-my-codex
+ * HUD type definitions for nomx
  */
 
 /** Ralph loop state for HUD display */
@@ -164,7 +164,7 @@ export interface HudStatusLineConfig {
   preset?: HudPreset;
 }
 
-/** HUD configuration stored in .omx/hud-config.json */
+/** HUD configuration stored in .nomx/hud-config.json */
 export interface HudConfig {
   preset?: HudPreset;
   git?: HudGitConfig;

@@ -6,9 +6,9 @@ import { spawn } from 'child_process';
 
 export function runProcess(command: string, args: string[], timeoutMs = 3000): Promise<{ stdout: string; stderr: string; code: number | null }> {
   return new Promise((resolve, reject) => {
-    const usingTestTmux = command === 'tmux' && process.env.OMX_TEST_TMUX_BIN;
-    const relaxingTestTmuxTimeout = command === 'tmux' && process.env.OMX_TEST_RELAX_TMUX_TIMEOUT === '1';
-    const executable = usingTestTmux ? process.env.OMX_TEST_TMUX_BIN as string : command;
+    const usingTestTmux = command === 'tmux' && process.env.NOMX_TEST_TMUX_BIN;
+    const relaxingTestTmuxTimeout = command === 'tmux' && process.env.NOMX_TEST_RELAX_TMUX_TIMEOUT === '1';
+    const executable = usingTestTmux ? process.env.NOMX_TEST_TMUX_BIN as string : command;
     const effectiveTimeoutMs = usingTestTmux || relaxingTestTmuxTimeout ? Math.max(timeoutMs, 10_000) : timeoutMs;
     const child = spawn(executable, args, {
       stdio: ['ignore', 'pipe', 'pipe'],

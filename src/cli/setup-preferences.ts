@@ -43,7 +43,7 @@ export function isSetupMcpMode(value: string): value is SetupMcpMode {
 }
 
 export function getSetupScopeFilePath(projectRoot: string): string {
-	return join(projectRoot, ".omx", "setup-scope.json");
+	return join(projectRoot, ".nomx", "setup-scope.json");
 }
 
 export function resolvePersistedSetupMergeAgents(
@@ -69,7 +69,7 @@ export async function writePersistedSetupPreferences(
 	dependencies: WritePersistedSetupPreferencesDependencies = {},
 ): Promise<void> {
 	const scopePath = getSetupScopeFilePath(projectRoot);
-	const directory = join(projectRoot, ".omx");
+	const directory = join(projectRoot, ".nomx");
 	const tempPath = join(
 		directory,
 		`.setup-scope-${dependencies.createTempName?.() ?? `${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`}.tmp`,
@@ -151,7 +151,7 @@ export async function readPersistedSetupPreferences(
 			options.warnOnLegacyScope
 				? (from, to) => {
 						console.warn(
-							`[omx] Migrating persisted setup scope "${from}" → "${to}" ` +
+							`[nomx] Migrating persisted setup scope "${from}" → "${to}" ` +
 								`(see issue #243: simplified to user/project).`,
 						);
 					}

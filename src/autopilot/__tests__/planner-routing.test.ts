@@ -10,7 +10,7 @@ import {
 } from '../planner-routing.js';
 
 async function writeConfig(codexHome: string, config: Record<string, unknown>): Promise<void> {
-  await writeFile(join(codexHome, '.omx-config.json'), JSON.stringify(config));
+  await writeFile(join(codexHome, '.nomx-config.json'), JSON.stringify(config));
 }
 
 describe('autopilot planner routing', () => {
@@ -19,18 +19,18 @@ describe('autopilot planner routing', () => {
   let originalFrontier: string | undefined;
 
   beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), 'omx-autopilot-planner-routing-'));
+    tempDir = await mkdtemp(join(tmpdir(), 'nomx-autopilot-planner-routing-'));
     originalCodexHome = process.env.CODEX_HOME;
-    originalFrontier = process.env.OMX_DEFAULT_FRONTIER_MODEL;
+    originalFrontier = process.env.NOMX_DEFAULT_FRONTIER_MODEL;
     process.env.CODEX_HOME = tempDir;
-    delete process.env.OMX_DEFAULT_FRONTIER_MODEL;
+    delete process.env.NOMX_DEFAULT_FRONTIER_MODEL;
   });
 
   afterEach(async () => {
     if (originalCodexHome === undefined) delete process.env.CODEX_HOME;
     else process.env.CODEX_HOME = originalCodexHome;
-    if (originalFrontier === undefined) delete process.env.OMX_DEFAULT_FRONTIER_MODEL;
-    else process.env.OMX_DEFAULT_FRONTIER_MODEL = originalFrontier;
+    if (originalFrontier === undefined) delete process.env.NOMX_DEFAULT_FRONTIER_MODEL;
+    else process.env.NOMX_DEFAULT_FRONTIER_MODEL = originalFrontier;
     await rm(tempDir, { recursive: true, force: true });
   });
 

@@ -72,11 +72,23 @@ function runTmux(
 }
 
 export function isRealTmuxAvailable(): boolean {
+  const serverName = uniqueTmuxIdentifier('nomx-capability-probe');
   try {
-    runTmux(['-V'], { ignoreTmuxEnv: true });
-    return true;
+    const created = runTmux(
+      ['new-session', '-d', '-P', '-F', '#{session_name}', '-s', serverName, 'sleep 1'],
+      { ignoreTmuxEnv: true, serverName, configFile: NULL_TMUX_CONFIG },
+    );
+    return created === serverName;
   } catch {
     return false;
+  } finally {
+    try {
+      runTmux(['kill-server'], {
+        ignoreTmuxEnv: true,
+        serverName,
+        configFile: NULL_TMUX_CONFIG,
+      });
+    } catch {}
   }
 }
 
@@ -111,9 +123,9 @@ export async function withTempTmuxSession<T>(
   }
 
   const previousEnv = snapshotTmuxEnv(process.env);
-  const fixtureCwd = await mkdtemp(join(tmpdir(), 'omx-tmux-fixture-'));
-  const sessionName = uniqueTmuxIdentifier('omx-test');
-  const serverName = options.useAmbientServer ? '' : uniqueTmuxIdentifier('omx-fixture');
+  const fixtureCwd = await mkdtemp(join(tmpdir(), 'nomx-tmux-fixture-'));
+  const sessionName = uniqueTmuxIdentifier('nomx-test');
+  const serverName = options.useAmbientServer ? '' : uniqueTmuxIdentifier('nomx-fixture');
   const serverKind: TempTmuxSessionFixture['serverKind'] = options.useAmbientServer ? 'ambient' : 'synthetic';
   const tmuxOptions = {
     ignoreTmuxEnv: true,

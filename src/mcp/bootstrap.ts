@@ -1,29 +1,29 @@
 import { execFileSync } from 'node:child_process';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { resolveOmxFirstPartyMcpEntrypointForPluginTarget } from '../config/omx-first-party-mcp.js';
+import { resolveNomxFirstPartyMcpEntrypointForPluginTarget } from '../config/nomx-first-party-mcp.js';
 import { writeMcpLifecycleTelemetry } from './lifecycle-telemetry.js';
 
 export type McpServerName = 'state' | 'memory' | 'code_intel' | 'trace' | 'wiki' | 'hermes';
 
 const SERVER_DISABLE_ENV: Record<McpServerName, string> = {
-  state: 'OMX_STATE_SERVER_DISABLE_AUTO_START',
-  memory: 'OMX_MEMORY_SERVER_DISABLE_AUTO_START',
-  code_intel: 'OMX_CODE_INTEL_SERVER_DISABLE_AUTO_START',
-  trace: 'OMX_TRACE_SERVER_DISABLE_AUTO_START',
-  wiki: 'OMX_WIKI_SERVER_DISABLE_AUTO_START',
-  hermes: 'OMX_HERMES_SERVER_DISABLE_AUTO_START',
+  state: 'NOMX_STATE_SERVER_DISABLE_AUTO_START',
+  memory: 'NOMX_MEMORY_SERVER_DISABLE_AUTO_START',
+  code_intel: 'NOMX_CODE_INTEL_SERVER_DISABLE_AUTO_START',
+  trace: 'NOMX_TRACE_SERVER_DISABLE_AUTO_START',
+  wiki: 'NOMX_WIKI_SERVER_DISABLE_AUTO_START',
+  hermes: 'NOMX_HERMES_SERVER_DISABLE_AUTO_START',
 };
 
-const GLOBAL_DISABLE_ENV = 'OMX_MCP_SERVER_DISABLE_AUTO_START';
-const LIFECYCLE_DEBUG_ENV = 'OMX_MCP_TRANSPORT_DEBUG';
-const PARENT_WATCHDOG_INTERVAL_ENV = 'OMX_MCP_PARENT_WATCHDOG_INTERVAL_MS';
-const DUPLICATE_SIBLING_WATCHDOG_INTERVAL_ENV = 'OMX_MCP_DUPLICATE_SIBLING_WATCHDOG_INTERVAL_MS';
-const DUPLICATE_SIBLING_PRE_TRAFFIC_GRACE_ENV = 'OMX_MCP_DUPLICATE_SIBLING_PRE_TRAFFIC_GRACE_MS';
-const DUPLICATE_SIBLING_POST_TRAFFIC_IDLE_ENV = 'OMX_MCP_DUPLICATE_SIBLING_POST_TRAFFIC_IDLE_MS';
-const DUPLICATE_SIBLING_INITIAL_DELAY_ENV = 'OMX_MCP_DUPLICATE_SIBLING_INITIAL_DELAY_MS';
-const DUPLICATE_SIBLING_INITIAL_DELAY_MAX_ENV = 'OMX_MCP_DUPLICATE_SIBLING_INITIAL_DELAY_MAX_MS';
-const MAX_SIBLINGS_PER_ENTRYPOINT_ENV = 'OMX_MCP_MAX_SIBLINGS_PER_ENTRYPOINT';
-export const MCP_ENTRYPOINT_MARKER_ENV = 'OMX_MCP_ENTRYPOINT_MARKER';
+const GLOBAL_DISABLE_ENV = 'NOMX_MCP_SERVER_DISABLE_AUTO_START';
+const LIFECYCLE_DEBUG_ENV = 'NOMX_MCP_TRANSPORT_DEBUG';
+const PARENT_WATCHDOG_INTERVAL_ENV = 'NOMX_MCP_PARENT_WATCHDOG_INTERVAL_MS';
+const DUPLICATE_SIBLING_WATCHDOG_INTERVAL_ENV = 'NOMX_MCP_DUPLICATE_SIBLING_WATCHDOG_INTERVAL_MS';
+const DUPLICATE_SIBLING_PRE_TRAFFIC_GRACE_ENV = 'NOMX_MCP_DUPLICATE_SIBLING_PRE_TRAFFIC_GRACE_MS';
+const DUPLICATE_SIBLING_POST_TRAFFIC_IDLE_ENV = 'NOMX_MCP_DUPLICATE_SIBLING_POST_TRAFFIC_IDLE_MS';
+const DUPLICATE_SIBLING_INITIAL_DELAY_ENV = 'NOMX_MCP_DUPLICATE_SIBLING_INITIAL_DELAY_MS';
+const DUPLICATE_SIBLING_INITIAL_DELAY_MAX_ENV = 'NOMX_MCP_DUPLICATE_SIBLING_INITIAL_DELAY_MAX_MS';
+const MAX_SIBLINGS_PER_ENTRYPOINT_ENV = 'NOMX_MCP_MAX_SIBLINGS_PER_ENTRYPOINT';
+export const MCP_ENTRYPOINT_MARKER_ENV = 'NOMX_MCP_ENTRYPOINT_MARKER';
 const DEFAULT_PARENT_WATCHDOG_INTERVAL_MS = 1_000;
 const DEFAULT_DUPLICATE_SIBLING_WATCHDOG_INTERVAL_MS = 5_000;
 const DEFAULT_DUPLICATE_SIBLING_PRE_TRAFFIC_GRACE_MS = 2_000;
@@ -80,7 +80,7 @@ export function extractMcpEntrypointMarker(command: string): string | null {
   if (entrypointMatch?.[1]) return entrypointMatch[1].toLowerCase();
 
   const mcpServeMatch = normalizedCommand.match(MCP_SERVE_TARGET_PATTERN);
-  return resolveOmxFirstPartyMcpEntrypointForPluginTarget(mcpServeMatch?.[1]);
+  return resolveNomxFirstPartyMcpEntrypointForPluginTarget(mcpServeMatch?.[1]);
 }
 
 export function resolveCurrentMcpEntrypointMarker(
@@ -517,7 +517,7 @@ export function autoStartStdioMcpServer(
   const logLifecycle = (message: string, error?: unknown) => {
     if (!lifecycleDebugEnabled) return;
     const detail = error ? ` ${error instanceof Error ? error.message : String(error)}` : '';
-    process.stderr.write(`[omx-${serverName}-server] ${message}${detail}\n`);
+    process.stderr.write(`[nomx-${serverName}-server] ${message}${detail}\n`);
   };
 
   const emitLifecycle = (
@@ -702,7 +702,7 @@ export function autoStartStdioMcpServer(
     try {
       await server.close();
     } catch (error) {
-      console.error(`[omx-${serverName}-server] shutdown failed`, error);
+      console.error(`[nomx-${serverName}-server] shutdown failed`, error);
     }
 
     logLifecycle('transport shutdown: exit');

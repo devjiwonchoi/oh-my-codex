@@ -17,7 +17,7 @@ import {
 } from "../state/skill-active.js";
 import {
   isTrustedSubagentThread,
-  OMX_ADAPTED_PROVENANCE,
+  NOMX_ADAPTED_PROVENANCE,
   attestLeaderThread,
   readSubagentSessionSummary,
   readSubagentSessionLedger,
@@ -65,7 +65,11 @@ import {
   writeTeamLeaderAttention,
   writeTeamPhase,
 } from "../team/state.js";
-import { omxNotepadPath, resolveProjectMemoryPath } from "../utils/paths.js";
+import {
+  canonicalizeComparablePath,
+  nomxNotepadPath,
+  resolveProjectMemoryPath,
+} from "../utils/paths.js";
 import { findGitLayout } from "../utils/git-layout.js";
 import {
   getAuthoritativeActiveStatePaths,
@@ -183,7 +187,7 @@ interface NativeHookDispatchOptions {
 
 export interface NativeHookDispatchResult {
   hookEventName: CodexHookEventName | null;
-  omxEventName: string | null;
+  nomxEventName: string | null;
   skillState: SkillActiveState | null;
   outputJson: Record<string, unknown> | null;
 }
@@ -200,7 +204,7 @@ const ORDINARY_STOP_NO_PROGRESS_DEFAULT_MAX_REPEATS = 8;
 const RALPH_ORPHANED_STARTING_STALE_MS = 15 * 60_000;
 const ORDINARY_STOP_NO_PROGRESS_DEFAULT_IDLE_MS = 10 * 60_000;
 const ORDINARY_STOP_NO_PROGRESS_MAX_MESSAGE_LENGTH = 240;
-const OMX_OWNER_SESSION_ID_PATTERN = /^omx-[A-Za-z0-9_-]{1,60}$/;
+const NOMX_OWNER_SESSION_ID_PATTERN = /^nomx-[A-Za-z0-9_-]{1,60}$/;
 const STABLE_FINAL_RECOMMENDATION_PATTERNS = [
   /^\s*(?:launch|release|ship)-?ready\s*:\s*(?:yes|no)\b[^\n\r]*/im,
   /^\s*ready to release\s*:\s*(?:yes|no)\b[^\n\r]*/im,
@@ -208,7 +212,7 @@ const STABLE_FINAL_RECOMMENDATION_PATTERNS = [
   /^\s*decision\s*:\s*(?:yes|no|ship|hold|release|do not release|proceed|do not proceed)\b[^\n\r]*/im,
 ] as const;
 const RELEASE_READINESS_FINALIZE_SYSTEM_MESSAGE =
-  "OMX release-readiness detected a stable final recommendation with no active worker tasks; emit one concise final decision summary and finalize.";
+  "NOMX release-readiness detected a stable final recommendation with no active worker tasks; emit one concise final decision summary and finalize.";
 const EXECUTION_HANDOFF_PATTERNS = [
   /^(?:好|好的|行|可以|那就|那现在)?[，,\s]*(?:开始|继续|直接)\s*(?:执行|优化|实现|修改|修复)(?=$|\s|[，,。.!！?？])/u,
   /(?:按照|按|基于)(?:这个|上述|当前)?\s*(?:plan|计划|方案).{0,16}(?:开始|继续|直接)?\s*(?:执行|优化|实现|修改|修复)/u,
@@ -259,7 +263,7 @@ function safeString(value: unknown): string {
 }
 
 async function resolveVerifiedOwnerOmxSessionId(): Promise<string | undefined> {
-  const candidate = normalizeSessionId(process.env.OMX_SESSION_ID);
+  const candidate = normalizeSessionId(process.env.NOMX_SESSION_ID);
   if (!candidate) return undefined;
   const evidence = await probeActualTmuxInstanceEvidence(process.env.TMUX_PANE);
   return tmuxEvidenceBindsCandidate(evidence, candidate) ? candidate : undefined;
@@ -282,7 +286,7 @@ function resolveHudReconcileSessionId(
   sessionIdForState: string | null,
 ): string | undefined {
   const ownerOmxSessionId = safeString(currentSessionState?.owner_omx_session_id).trim();
-  if (OMX_OWNER_SESSION_ID_PATTERN.test(ownerOmxSessionId)) return ownerOmxSessionId;
+  if (NOMX_OWNER_SESSION_ID_PATTERN.test(ownerOmxSessionId)) return ownerOmxSessionId;
   return canonicalSessionId || sessionIdForState || undefined;
 }
 
@@ -300,7 +304,7 @@ function resolveHudReconcileSessionIds(
     nativeSessionId ?? undefined,
     safeString(currentSessionState?.session_id),
     safeString(currentSessionState?.native_session_id),
-    OMX_OWNER_SESSION_ID_PATTERN.test(ownerOmxSessionId) ? ownerOmxSessionId : undefined,
+    NOMX_OWNER_SESSION_ID_PATTERN.test(ownerOmxSessionId) ? ownerOmxSessionId : undefined,
     safeString(currentSessionState?.owner_codex_session_id),
   ]);
 }
@@ -463,7 +467,7 @@ function readNativeSubagentSessionStartMetadata(transcriptPath: string): NativeS
 
 function reportRoleRoutingBindingFailure(error: unknown): void {
   console.error(
-    `[omx] SECURITY: native adapted role binding did not complete; retained binding will be recovered: ${error instanceof Error ? error.message : String(error)}`,
+    `[nomx] SECURITY: native adapted role binding did not complete; retained binding will be recovered: ${error instanceof Error ? error.message : String(error)}`,
   );
 }
 
@@ -483,7 +487,7 @@ async function recordNativeSubagentSessionStart(
   ].filter(Boolean))];
   let adaptedRoleIntent: {
     role: string;
-    provenanceKind: typeof OMX_ADAPTED_PROVENANCE;
+    provenanceKind: typeof NOMX_ADAPTED_PROVENANCE;
   } | null = null;
 
   if (!metadata.agentRole && correlationSessionId && parentThreadId) {
@@ -519,7 +523,7 @@ async function recordNativeSubagentSessionStart(
           return next;
         },
       );
-      adaptedRoleIntent = bound ? { role: bound.role, provenanceKind: OMX_ADAPTED_PROVENANCE } : null;
+      adaptedRoleIntent = bound ? { role: bound.role, provenanceKind: NOMX_ADAPTED_PROVENANCE } : null;
     } catch (error) {
       reportRoleRoutingBindingFailure(error);
       throw error;
@@ -640,7 +644,7 @@ async function isNativeSubagentHook(
   }
 
   // Native Codex resume can report the child native session as the canonical
-  // session id before OMX reconciles it back to the owning session.  In that
+  // session id before NOMX reconciles it back to the owning session.  In that
   // window the per-session summary lookup above misses the child and a
   // subagent UserPromptSubmit can accidentally activate workflow keywords from
   // quoted review context.  Fall back to the global tracking index so any known
@@ -881,7 +885,7 @@ function extractBalancedJsonObject(text: string, startIndex: number): string | n
 
 function normalizePromptSteeringProposal(raw: unknown, prompt: string): UltragoalSteeringProposal | null {
   const candidate = safeObject(raw);
-  const nested = candidate.omx_ultragoal_steer ?? candidate.ultragoal_steer ?? candidate.steering ?? candidate;
+  const nested = candidate.nomx_ultragoal_steer ?? candidate.ultragoal_steer ?? candidate.steering ?? candidate;
   const proposal = parseUltragoalSteeringDirective(JSON.stringify(nested));
   if (!proposal) return null;
   if (proposal.source !== "user_prompt_submit") return null;
@@ -897,7 +901,7 @@ function normalizePromptSteeringProposal(raw: unknown, prompt: string): Ultragoa
 function parseUserPromptUltragoalSteeringDirective(prompt: string): UltragoalSteeringProposal | null {
   const trimmed = prompt.trim();
   if (!trimmed) return null;
-  const fenced = trimmed.match(/```(?:omx-ultragoal-steer|ultragoal-steer)\s*([\s\S]*?)```/i);
+  const fenced = trimmed.match(/```(?:nomx-ultragoal-steer|ultragoal-steer)\s*([\s\S]*?)```/i);
   if (fenced?.[1]) {
     try {
       return normalizePromptSteeringProposal(JSON.parse(fenced[1]), prompt);
@@ -906,7 +910,7 @@ function parseUserPromptUltragoalSteeringDirective(prompt: string): UltragoalSte
     }
   }
 
-  const label = trimmed.match(/(?:^|\n)\s*(?:OMX_ULTRAGOAL_STEER|omx\.ultragoal\.steer|nomx ultragoal steer)\s*:\s*{/i);
+  const label = trimmed.match(/(?:^|\n)\s*(?:NOMX_ULTRAGOAL_STEER|nomx\.ultragoal\.steer|nomx ultragoal steer)\s*:\s*{/i);
   if (label?.index !== undefined) {
     const brace = trimmed.indexOf("{", label.index);
     const json = brace >= 0 ? extractBalancedJsonObject(trimmed, brace) : null;
@@ -923,7 +927,7 @@ function parseUserPromptUltragoalSteeringDirective(prompt: string): UltragoalSte
     try {
       const parsed = JSON.parse(trimmed);
       const object = safeObject(parsed);
-      if ("omx_ultragoal_steer" in object || "ultragoal_steer" in object) {
+      if ("nomx_ultragoal_steer" in object || "ultragoal_steer" in object) {
         return normalizePromptSteeringProposal(parsed, prompt);
       }
     } catch {
@@ -941,13 +945,13 @@ async function applyUserPromptUltragoalSteering(cwd: string, prompt: string): Pr
     const status = result.deduped ? "deduped" : result.accepted ? "accepted" : "rejected";
     const reasons = result.rejectedReasons.length > 0 ? ` rejectedReasons=${result.rejectedReasons.join("; ")}` : "";
     return [
-      `OMX native UserPromptSubmit applied bounded .omx/ultragoal steering for G002-cli-and-prompt-submit-bridge: ${status}.`,
+      `NOMX native UserPromptSubmit applied bounded .nomx/ultragoal steering for G002-cli-and-prompt-submit-bridge: ${status}.`,
       `mutation=${result.audit.kind}; source=${result.audit.source}; targets=${result.audit.targetGoalIds.join(",") || "none"}; idempotencyKey=${result.audit.idempotencyKey ?? "none"}.${reasons}`,
-      "Only explicit structured steering directives are parsed; normal prose is ignored and cannot mutate .omx/ultragoal.",
+      "Only explicit structured steering directives are parsed; normal prose is ignored and cannot mutate .nomx/ultragoal.",
     ].join(" ");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return `OMX native UserPromptSubmit rejected bounded .omx/ultragoal steering for G002-cli-and-prompt-submit-bridge: ${message}`;
+    return `NOMX native UserPromptSubmit rejected bounded .nomx/ultragoal steering for G002-cli-and-prompt-submit-bridge: ${message}`;
   }
 }
 
@@ -1387,6 +1391,28 @@ async function retireShadowedRalphStartingSeed(
   await writeFile(path, JSON.stringify(next, null, 2));
 }
 
+function resolveRalphStopSessionCandidates(
+  preferredSessionId: string | undefined,
+  selectedSession: SessionState | null,
+  payloadSessionId: string | undefined,
+): string[] {
+  const preferred = safeString(preferredSessionId).trim();
+  const selectedCanonical = safeString(selectedSession?.session_id).trim();
+  if (!preferred) return selectedCanonical ? [selectedCanonical] : [];
+  if (preferred !== selectedCanonical) return [preferred];
+
+  const payload = safeString(payloadSessionId).trim();
+  const selectedAliases = new Set([
+    safeString(selectedSession?.native_session_id).trim(),
+    safeString(selectedSession?.previous_native_session_id).trim(),
+    safeString(selectedSession?.codex_session_id).trim(),
+    safeString(selectedSession?.owner_omx_session_id).trim(),
+  ].filter(Boolean));
+  return payload && payload !== preferred && selectedAliases.has(payload)
+    ? [payload, preferred]
+    : [preferred];
+}
+
 
 async function readRalphCompletionAuditBlockState(
   cwd: string,
@@ -1407,10 +1433,11 @@ async function readRalphCompletionAuditBlockState(
   const staleCurrentSessionId = rawSessionInfo && !isSessionStateUsable(rawSessionInfo, cwd)
     ? safeString(rawSessionInfo.session_id).trim()
     : "";
-  const sessionCandidates = [...new Set([
-    safeString(preferredSessionId).trim(),
-    currentOmxSessionId,
-  ].filter(Boolean))];
+  const sessionCandidates = resolveRalphStopSessionCandidates(
+    preferredSessionId,
+    usableSessionInfo,
+    safeString(ownerContext?.payloadSessionId).trim(),
+  );
 
   const evaluateCandidate = (state: Record<string, unknown> | null, path: string, sessionId: string): RalphCompletionAuditBlockState | null => {
     if (!state || state.mode && safeString(state.mode) !== "ralph") return null;
@@ -1472,10 +1499,11 @@ async function readActiveRalphState(
   const staleCurrentSessionId = rawSessionInfo && !isSessionStateUsable(rawSessionInfo, cwd)
     ? safeString(rawSessionInfo.session_id).trim()
     : "";
-  const sessionCandidates = [...new Set([
-    safeString(preferredSessionId).trim(),
-    currentOmxSessionId,
-  ].filter(Boolean))];
+  const sessionCandidates = resolveRalphStopSessionCandidates(
+    preferredSessionId,
+    usableSessionInfo,
+    safeString(ownerContext?.payloadSessionId).trim(),
+  );
   const completedCanonicalPath = currentOmxSessionId
     ? getStateFilePath("ralph-state.json", cwd, currentOmxSessionId)
     : "";
@@ -1755,7 +1783,7 @@ function normalizeGitPath(path: string): string {
 
 function isDiffAuditableSourcePath(path: string): boolean {
   const normalized = normalizeGitPath(path).toLowerCase();
-  if (!normalized || normalized.startsWith(".git/") || normalized.startsWith(".omx/")) return false;
+  if (!normalized || normalized.startsWith(".git/") || normalized.startsWith(".nomx/")) return false;
   if (/(^|\/)(?:docs?|documentation|changelog|changeset|\.github)(?:\/|$)/i.test(normalized)) return false;
   if (/(^|\/)(?:__tests__|__test__|test|tests|spec|specs|fixtures?|mocks?)(?:\/|$)/i.test(normalized)) return false;
   if (/(?:^|\/)[^\/]+\.(?:test|spec)\.[^.\/]+$/i.test(normalized)) return false;
@@ -1899,7 +1927,7 @@ function localExcludeAlreadyIgnoresOmx(cwd: string): boolean {
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line && !line.startsWith("#"));
-    return lines.includes(".omx/") || lines.includes(".omx");
+    return lines.includes(".nomx/") || lines.includes(".nomx");
   } catch {
     return false;
   }
@@ -1921,7 +1949,7 @@ function isPathIgnoredByGit(cwd: string, path: string): boolean {
 async function ensureOmxLocalIgnoreEntry(cwd: string): Promise<{ changed: boolean; excludePath?: string }> {
   const repoRoot = tryReadGitValue(cwd, ["rev-parse", "--show-toplevel"]);
   if (!repoRoot) return { changed: false };
-  if (localExcludeAlreadyIgnoresOmx(repoRoot) || isPathIgnoredByGit(repoRoot, ".omx/")) {
+  if (localExcludeAlreadyIgnoresOmx(repoRoot) || isPathIgnoredByGit(repoRoot, ".nomx/")) {
     return { changed: false };
   }
 
@@ -1933,11 +1961,11 @@ async function ensureOmxLocalIgnoreEntry(cwd: string): Promise<{ changed: boolea
     ? await readFile(excludePath, "utf-8")
     : "";
   const lines = existing.split(/\r?\n/).map((line) => line.trim());
-  if (lines.includes(".omx/")) {
+  if (lines.includes(".nomx/")) {
     return { changed: false, excludePath };
   }
 
-  const next = `${existing}${existing.endsWith("\n") || existing.length === 0 ? "" : "\n"}.omx/\n`;
+  const next = `${existing}${existing.endsWith("\n") || existing.length === 0 ? "" : "\n"}.nomx/\n`;
   await writeFile(excludePath, next);
   return { changed: true, excludePath };
 }
@@ -2017,7 +2045,7 @@ async function buildPersistedSubagentReopenContext(
       lines.push(`  - resume_agent(${JSON.stringify(entry.agentId)})${formatSubagentLedgerMetadata(entry)}`);
     }
     if (reopenTargets.length > 12) {
-      lines.push(`  - ... ${reopenTargets.length - 12} more saved subagent id(s) omitted from this compact SessionStart context; consult .omx/state/subagent-tracking.json before spawning replacements.`);
+      lines.push(`  - ... ${reopenTargets.length - 12} more saved subagent id(s) omitted from this compact SessionStart context; consult .nomx/state/subagent-tracking.json before spawning replacements.`);
     }
   } else {
     lines.push("- No compatible saved subagent id is currently marked reopenable; do not spawn a replacement merely because reopen was unavailable.");
@@ -2058,7 +2086,7 @@ async function buildSessionStartContext(
 
   const localIgnoreResult = await ensureOmxLocalIgnoreEntry(cwd);
   if (localIgnoreResult.changed) {
-    sections.push(`Added .omx/ to ${localIgnoreResult.excludePath} to keep local OMX state out of source control without mutating tracked repo ignores.`);
+    sections.push(`Added .nomx/ to ${localIgnoreResult.excludePath} to keep local NOMX state out of source control without mutating tracked repo ignores.`);
   }
 
   const modeSummaries: string[] = [];
@@ -2079,7 +2107,7 @@ async function buildSessionStartContext(
     modeSummaries.push(`- ${mode} phase: ${formatPhase(state.current_phase)}`);
   }
   if (modeSummaries.length > 0) {
-    sections.push(["[Active OMX modes]", ...modeSummaries].join("\n"));
+    sections.push(["[Active NOMX modes]", ...modeSummaries].join("\n"));
   }
 
   const projectMemoryPath = resolveProjectMemoryPath(cwd);
@@ -2092,7 +2120,7 @@ async function buildSessionStartContext(
     const build = safeContextSnippet(projectMemory.build);
     const summary: string[] = [];
     const relativeMemoryPath = relative(cwd, projectMemoryPath).replace(/\\/g, "/");
-    summary.push(`- source: ${relativeMemoryPath === "project-memory.json" ? "project-memory.json" : ".omx/project-memory.json"}`);
+    summary.push(`- source: ${relativeMemoryPath === "project-memory.json" ? "project-memory.json" : ".nomx/project-memory.json"}`);
     if (techStack) summary.push(`- stack: ${techStack}`);
     if (conventions) summary.push(`- conventions: ${conventions}`);
     if (build) summary.push(`- build: ${build}`);
@@ -2111,9 +2139,9 @@ async function buildSessionStartContext(
     }
   }
 
-  if (existsSync(omxNotepadPath(cwd))) {
+  if (existsSync(nomxNotepadPath(cwd))) {
     try {
-      const notepad = await readFile(omxNotepadPath(cwd), "utf-8");
+      const notepad = await readFile(nomxNotepadPath(cwd), "utf-8");
       const header = "## PRIORITY";
       const idx = notepad.indexOf(header);
       if (idx >= 0) {
@@ -2194,7 +2222,7 @@ function resolveExecutionEnvironment(
       surface: "attached tmux runtime - tmux",
       tmuxWorkflowGuidance: "nomx team, nomx hud, and nomx question are directly usable in this session",
       questionGuidance: "visible temporary renderer available from the current pane; primary success JSON is answers[]",
-      teamRuntimeInstruction: "Use the durable OMX team runtime via `nomx team ...` for coordinated execution; do not replace it with in-process fanout.",
+      teamRuntimeInstruction: "Use the durable NOMX team runtime via `nomx team ...` for coordinated execution; do not replace it with in-process fanout.",
       teamHelpInstruction: "If you need runtime syntax, run `nomx team --help` yourself.",
       deepInterviewInstruction: "Deep-interview must ask each interview round via `nomx question`; do not fall back to `request_user_input` or plain-text questioning. This session is already attached to tmux, so `nomx question` can open its temporary renderer directly over the leader pane. After starting `nomx question` in a background terminal, wait for that terminal to finish and read the JSON answer before continuing the interview. Prefer `answers[0].answer` / `answers[]`; use legacy `answer` only as fallback. Deep-interview remains one question per round, so do not batch multiple interview rounds into one `questions[]` form. Stop remains blocked while a deep-interview question obligation is pending.",
       leaderPaneHint,
@@ -2210,13 +2238,13 @@ function resolveExecutionEnvironment(
       surface: isNativeOutsideTmux
         ? "native-hook / Codex App outside tmux with tmux return bridge"
         : "direct CLI outside tmux with tmux return bridge",
-      tmuxWorkflowGuidance: "nomx team and nomx hud need an attached tmux OMX CLI shell from this surface; nomx question can use the detected bridge",
+      tmuxWorkflowGuidance: "nomx team and nomx hud need an attached tmux NOMX CLI shell from this surface; nomx question can use the detected bridge",
       questionGuidance: questionBridgeHint,
       teamRuntimeInstruction: isNativeOutsideTmux
-        ? "This session is native-hook / Codex App outside tmux; `nomx team` is a CLI/tmux runtime surface, not directly available here. Launch OMX CLI from an attached tmux shell first; do not replace it with in-process fanout."
+        ? "This session is native-hook / Codex App outside tmux; `nomx team` is a CLI/tmux runtime surface, not directly available here. Launch NOMX CLI from an attached tmux shell first; do not replace it with in-process fanout."
         : "This session is direct CLI outside tmux with a tmux return bridge for `nomx question`; prompt-side `$team` does not auto-start the durable tmux team runtime here. If you intentionally want the runtime, run `nomx team ...` yourself from shell instead of replacing it with in-process fanout.",
       teamHelpInstruction: isNativeOutsideTmux
-        ? "If you need runtime syntax, run `nomx team --help` from an attached tmux OMX CLI shell."
+        ? "If you need runtime syntax, run `nomx team --help` from an attached tmux NOMX CLI shell."
         : "If you need runtime syntax, run `nomx team --help` yourself from shell.",
       deepInterviewInstruction: `Deep-interview is active, but this session is not attached to tmux. Do not invoke \`nomx question\`, \`nomx hud\`, or \`nomx team\` from this surface. Ask each interview round through the native structured question tool when available; otherwise ask exactly one concise plain-text question and wait for the answer. A tmux return bridge (${leaderPaneHint}) is recorded for explicit attached-tmux recovery only, not for default Codex App/native fallback.`,
       leaderPaneHint,
@@ -2228,17 +2256,17 @@ function resolveExecutionEnvironment(
     ? "native-hook / Codex App outside tmux"
     : "direct CLI outside tmux";
   const teamRuntimeInstruction = isNativeOutsideTmux
-    ? "This session is native-hook / Codex App outside tmux; `nomx team` is a CLI/tmux runtime surface, not directly available here. Launch OMX CLI from an attached tmux shell first; do not replace it with in-process fanout."
+    ? "This session is native-hook / Codex App outside tmux; `nomx team` is a CLI/tmux runtime surface, not directly available here. Launch NOMX CLI from an attached tmux shell first; do not replace it with in-process fanout."
     : "This session is direct CLI outside tmux; prompt-side `$team` does not auto-start the durable tmux team runtime here. If you intentionally want the runtime, run `nomx team ...` yourself from shell instead of replacing it with in-process fanout.";
   const teamHelpInstruction = isNativeOutsideTmux
-    ? "If you need runtime syntax, run `nomx team --help` from an attached tmux OMX CLI shell rather than from Codex App/native outside-tmux context."
+    ? "If you need runtime syntax, run `nomx team --help` from an attached tmux NOMX CLI shell rather than from Codex App/native outside-tmux context."
     : "If you need runtime syntax, run `nomx team --help` yourself from shell.";
   return {
     kind: isNativeOutsideTmux ? "native-outside-tmux" : "direct-cli-outside-tmux",
     launcher: executionSurface.launcher,
     transport: executionSurface.transport,
     surface,
-    tmuxWorkflowGuidance: "nomx team, nomx hud, and nomx question need an attached tmux OMX CLI shell or preserved question bridge from this surface",
+    tmuxWorkflowGuidance: "nomx team, nomx hud, and nomx question need an attached tmux NOMX CLI shell or preserved question bridge from this surface",
     questionGuidance: questionBridgeHint,
     teamRuntimeInstruction,
     teamHelpInstruction,
@@ -2267,7 +2295,7 @@ function buildExecutionEnvironmentSection(
 
 function resolveQuestionLeaderPaneHint(cwd: string, payload?: CodexHookPayload): string {
   const payloadSessionId = safeString(payload?.session_id).trim();
-  const envSessionId = safeString(process.env.OMX_SESSION_ID || process.env.CODEX_SESSION_ID || process.env.SESSION_ID).trim();
+  const envSessionId = safeString(process.env.NOMX_SESSION_ID || process.env.CODEX_SESSION_ID || process.env.SESSION_ID).trim();
   const sessionId = payloadSessionId || envSessionId;
   const candidatePaths = [
     ...(sessionId ? [getStatePath('deep-interview', cwd, sessionId), getStatePath('ralplan', cwd, sessionId), getStatePath('ralph', cwd, sessionId)] : []),
@@ -2353,12 +2381,12 @@ function buildNativeOutsideTmuxTeamPromptBlockState(
     thread_id: threadId,
     turn_id: turnId,
     active_skills: [],
-    transition_error: "Codex App/native outside-tmux sessions cannot activate the tmux-only `team` workflow directly. Launch OMX CLI from an attached tmux shell first, then run `nomx team ...` there.",
+    transition_error: "Codex App/native outside-tmux sessions cannot activate the tmux-only `team` workflow directly. Launch NOMX CLI from an attached tmux shell first, then run `nomx team ...` there.",
   };
 }
 
 function buildSkillStateCliInstruction(mode: string, statePath: string): string {
-  return `skill: ${mode} activated and initial state initialized at ${statePath}; use CLI-first state updates via \`nomx state write/read/clear --input '<json>' --json\`; use omx_state MCP only when explicit MCP compatibility is enabled.`;
+  return `skill: ${mode} activated and initial state initialized at ${statePath}; use CLI-first state updates via \`nomx state write/read/clear --input '<json>' --json\`; use nomx_state MCP only when explicit MCP compatibility is enabled.`;
 }
 
 function buildAutopilotPromptActivationNote(
@@ -2423,7 +2451,7 @@ function buildAdditionalContextMessage(
   const matches = classification.matches.filter((entry) => teamMode.enabled || entry.skill !== "team");
   const match = matches[0] ?? null;
   if (!match) {
-    const markedQuestionAnswer = classification.reservedInput === "omx-question-answered";
+    const markedQuestionAnswer = classification.reservedInput === "nomx-question-answered";
     const continuedSkill = safeString(skillState?.skill).trim();
     const eligibleMarkedContinuation = markedQuestionAnswer
       && skillState?.active === true
@@ -2440,8 +2468,8 @@ function buildAdditionalContextMessage(
     const autopilotPromptActivationNote = buildAutopilotPromptActivationNote(skillState, { markedQuestionAnswer, cwd, payload, sessionId: safeString(skillState?.session_id).trim() });
     return [
       markedQuestionAnswer
-        ? `OMX native UserPromptSubmit continued active workflow skill "${continuedSkill}"; workflow-like tokens inside the marked nomx question answer are treated as answer text, not a new workflow activation.`
-        : `OMX native UserPromptSubmit continued active workflow skill "${continuedSkill}".`,
+        ? `NOMX native UserPromptSubmit continued active workflow skill "${continuedSkill}"; workflow-like tokens inside the marked nomx question answer are treated as answer text, not a new workflow activation.`
+        : `NOMX native UserPromptSubmit continued active workflow skill "${continuedSkill}".`,
       promptPriorityMessage,
       skillState?.initialized_mode && skillState.initialized_state_path
         ? buildSkillStateCliInstruction(skillState.initialized_mode, skillState.initialized_state_path)
@@ -2453,8 +2481,8 @@ function buildAdditionalContextMessage(
     ].filter(Boolean).join(" ");
   }
   const detectedKeywordMessage = matches.length > 1
-    ? `OMX native UserPromptSubmit detected workflow keywords ${matches.map((entry) => `"${entry.keyword}" -> ${entry.skill}`).join(", ")}.`
-    : `OMX native UserPromptSubmit detected workflow keyword "${match.keyword}" -> ${match.skill}.`;
+    ? `NOMX native UserPromptSubmit detected workflow keywords ${matches.map((entry) => `"${entry.keyword}" -> ${entry.skill}`).join(", ")}.`
+    : `NOMX native UserPromptSubmit detected workflow keyword "${match.keyword}" -> ${match.skill}.`;
   const activeSkills = Array.isArray(skillState?.active_skills)
     ? skillState.active_skills.map((entry) => entry.skill)
     : [];
@@ -2473,7 +2501,7 @@ function buildAdditionalContextMessage(
     ? "Ultrawork protocol: ground the task before editing, define pass/fail acceptance criteria, keep shared-file work local, and use direct-tool plus background evidence lanes only for truly independent work. Direct ultrawork provides lightweight verification only; Ralph owns persistence and the full verified-completion promise."
     : null;
   const ultragoalPromptActivationNote = match.skill === "ultragoal"
-    ? "Ultragoal protocol: use `nomx ultragoal create-goals` / `complete-goals` / `checkpoint` for `.omx/ultragoal` artifacts, then use Codex goal model tools only from the active agent handoff (`get_goal`, `create_goal`, `update_goal`) and never overwrite a different active Codex goal. Ultragoal does not call `/goal clear`; for multiple sequential ultragoal runs in one Codex session/thread, manually clear the completed Codex goal in the UI before creating the next aggregate goal."
+    ? "Ultragoal protocol: use `nomx ultragoal create-goals` / `complete-goals` / `checkpoint` for `.nomx/ultragoal` artifacts, then use Codex goal model tools only from the active agent handoff (`get_goal`, `create_goal`, `update_goal`) and never overwrite a different active Codex goal. Ultragoal does not call `/goal clear`; for multiple sequential ultragoal runs in one Codex session/thread, manually clear the completed Codex goal in the UI before creating the next aggregate goal."
     : null;
   const autopilotPromptActivationNote = buildAutopilotPromptActivationNote(skillState, { cwd, payload, sessionId: safeString(skillState?.session_id).trim() });
   const combinedTransitionMessage = (() => {
@@ -2486,7 +2514,7 @@ function buildAdditionalContextMessage(
 
   if (skillState?.transition_error) {
     return [
-      `OMX native UserPromptSubmit denied workflow keyword "${match.keyword}" -> ${match.skill}.`,
+      `NOMX native UserPromptSubmit denied workflow keyword "${match.keyword}" -> ${match.skill}.`,
       skillState.transition_error,
       promptPriorityMessage,
       'Follow AGENTS.md routing and preserve workflow transition and planning-safety rules.',
@@ -2571,9 +2599,9 @@ function parseTeamWorkerEnv(rawValue: string): { teamName: string; workerName: s
 }
 
 function hasTeamWorkerEnvironment(): boolean {
-  return parseTeamWorkerEnv(safeString(process.env.OMX_TEAM_INTERNAL_WORKER))
+  return parseTeamWorkerEnv(safeString(process.env.NOMX_TEAM_INTERNAL_WORKER))
     !== null
-    || parseTeamWorkerEnv(safeString(process.env.OMX_TEAM_WORKER)) !== null;
+    || parseTeamWorkerEnv(safeString(process.env.NOMX_TEAM_WORKER)) !== null;
 }
 
 async function resolveTeamStateDirForWorkerContext(
@@ -2582,7 +2610,7 @@ async function resolveTeamStateDirForWorkerContext(
 ): Promise<string | null> {
   const resolved = await resolveWorkerNotifyTeamStateRootPath(cwd, workerContext, process.env).catch(() => null);
   if (resolved) return resolved;
-  const explicit = safeString(process.env.OMX_TEAM_STATE_ROOT).trim();
+  const explicit = safeString(process.env.NOMX_TEAM_STATE_ROOT).trim();
   if (explicit) {
     const candidate = resolve(cwd, explicit);
     const workerRoot = join(candidate, "team", workerContext.teamName, "workers", workerContext.workerName);
@@ -2594,8 +2622,8 @@ async function resolveTeamStateDirForWorkerContext(
 
 async function isConfirmedTeamWorkerPromptSubmitPane(cwd: string): Promise<boolean> {
   const workerContext =
-    parseTeamWorkerEnv(safeString(process.env.OMX_TEAM_INTERNAL_WORKER))
-    || parseTeamWorkerEnv(safeString(process.env.OMX_TEAM_WORKER));
+    parseTeamWorkerEnv(safeString(process.env.NOMX_TEAM_INTERNAL_WORKER))
+    || parseTeamWorkerEnv(safeString(process.env.NOMX_TEAM_WORKER));
   if (!workerContext) return false;
 
   const currentPaneId = safeString(process.env.TMUX_PANE).trim();
@@ -2636,8 +2664,8 @@ async function resolveTeamWorkerStopDecision(
   cwd: string,
 ): Promise<TeamWorkerStopDecision> {
   const workerContext =
-    parseTeamWorkerEnv(safeString(process.env.OMX_TEAM_INTERNAL_WORKER))
-    || parseTeamWorkerEnv(safeString(process.env.OMX_TEAM_WORKER));
+    parseTeamWorkerEnv(safeString(process.env.NOMX_TEAM_INTERNAL_WORKER))
+    || parseTeamWorkerEnv(safeString(process.env.NOMX_TEAM_WORKER));
   if (!workerContext) return { kind: "unresolved", reason: "missing_worker_context" };
 
   const blockWorkerStop = (
@@ -2652,11 +2680,11 @@ async function resolveTeamWorkerStopDecision(
     output: {
       decision: "block",
       reason:
-        `OMX team worker ${workerContext.workerName} Stop cannot be allowed for ${reasonCode}: ${detail}. ` +
+        `NOMX team worker ${workerContext.workerName} Stop cannot be allowed for ${reasonCode}: ${detail}. ` +
         "Continue the assigned task, repair worker state, or report a concrete blocker before stopping.",
       stopReason: `team_worker_${workerContext.workerName}_${reasonCode}`,
       systemMessage:
-        `OMX team worker ${workerContext.workerName} Stop lacks completed task evidence (${reasonCode}).`,
+        `NOMX team worker ${workerContext.workerName} Stop lacks completed task evidence (${reasonCode}).`,
     },
   });
 
@@ -2731,10 +2759,10 @@ async function resolveTeamWorkerStopDecision(
       output: {
         decision: "block",
         reason:
-          `OMX team worker ${workerContext.workerName} is still assigned non-terminal task ${taskId} (${statusValue}); continue the current assigned task or report a concrete blocker before stopping.`,
+          `NOMX team worker ${workerContext.workerName} is still assigned non-terminal task ${taskId} (${statusValue}); continue the current assigned task or report a concrete blocker before stopping.`,
         stopReason: `team_worker_${workerContext.workerName}_${taskId}_${statusValue}`,
         systemMessage:
-          `OMX team worker ${workerContext.workerName} is still assigned task ${taskId} (${statusValue}).`,
+          `NOMX team worker ${workerContext.workerName} is still assigned task ${taskId} (${statusValue}).`,
       },
     };
   }
@@ -2857,11 +2885,11 @@ async function buildModeBasedStopOutput(
   const phase = formatPhase(state.current_phase);
   if (!rootCanonicalState || mode !== "autopilot") {
     const systemMessage = mode === "autopilot" && phase.toLowerCase().replace(/_/g, "-") === "code-review"
-      ? "OMX autopilot is still active (phase: code-review). Run the required $code-review step before completing or clearing Autopilot state."
-      : `OMX ${mode} is still active (phase: ${phase}).`;
+      ? "NOMX autopilot is still active (phase: code-review). Run the required $code-review step before completing or clearing Autopilot state."
+      : `NOMX ${mode} is still active (phase: ${phase}).`;
     return {
       decision: "block",
-      reason: `OMX ${mode} is still active (phase: ${phase}); continue the task and gather fresh verification evidence before stopping.`,
+      reason: `NOMX ${mode} is still active (phase: ${phase}); continue the task and gather fresh verification evidence before stopping.`,
       stopReason: `${mode}_${phase}`,
       systemMessage,
     };
@@ -2869,11 +2897,11 @@ async function buildModeBasedStopOutput(
   const statePath = sourcedState ? formatStopStatePath(cwd, sourcedState.path) : "unknown";
   const diagnostic = `state: ${statePath}; canonical: ${canonicalDisagreement}`;
   const systemMessage = mode === "autopilot" && phase.toLowerCase().replace(/_/g, "-") === "code-review"
-    ? `OMX autopilot is still active (phase: code-review; ${diagnostic}). Run the required $code-review step before completing or clearing Autopilot state.`
-    : `OMX ${mode} is still active (phase: ${phase}; ${diagnostic}).`;
+    ? `NOMX autopilot is still active (phase: code-review; ${diagnostic}). Run the required $code-review step before completing or clearing Autopilot state.`
+    : `NOMX ${mode} is still active (phase: ${phase}; ${diagnostic}).`;
   return {
     decision: "block",
-    reason: `OMX ${mode} is still active (phase: ${phase}; ${diagnostic}); continue the task and gather fresh verification evidence before stopping.`,
+    reason: `NOMX ${mode} is still active (phase: ${phase}; ${diagnostic}); continue the task and gather fresh verification evidence before stopping.`,
     stopReason: `${mode}_${phase}`,
     systemMessage,
   };
@@ -2978,14 +3006,14 @@ function hasFreshNativeGoalCleanupEvidence(text: string): boolean {
 
 
 async function findCompletedGoalWorkflowCleanupNotice(cwd: string): Promise<string | null> {
-  const ultragoal = await readJsonIfExists(join(cwd, ".omx", "ultragoal", "goals.json"));
+  const ultragoal = await readJsonIfExists(join(cwd, ".nomx", "ultragoal", "goals.json"));
   const aggregateCompletion = safeObject(ultragoal?.aggregateCompletion);
   const ultragoals = Array.isArray(ultragoal?.goals) ? ultragoal.goals.map(safeObject) : [];
   if (safeString(aggregateCompletion.status) === "complete" || (ultragoals.length > 0 && ultragoals.every((goal) => safeString(goal.status) === "complete"))) {
     return buildCodexGoalTerminalCleanupNotice("Ultragoal completion");
   }
 
-  const performanceRoot = join(cwd, ".omx", "goals", "performance");
+  const performanceRoot = join(cwd, ".nomx", "goals", "performance");
   for (const entry of await readdir(performanceRoot, { withFileTypes: true }).catch(() => [])) {
     if (!entry.isDirectory()) continue;
     const state = await readJsonIfExists(join(performanceRoot, entry.name, "state.json"));
@@ -2994,7 +3022,7 @@ async function findCompletedGoalWorkflowCleanupNotice(cwd: string): Promise<stri
     }
   }
 
-  const autoresearchRoot = join(cwd, ".omx", "goals", "autoresearch");
+  const autoresearchRoot = join(cwd, ".nomx", "goals", "autoresearch");
   for (const entry of await readdir(autoresearchRoot, { withFileTypes: true }).catch(() => [])) {
     if (!entry.isDirectory()) continue;
     const mission = await readJsonIfExists(join(autoresearchRoot, entry.name, "mission.json"));
@@ -3032,7 +3060,7 @@ async function buildCompletedGoalCleanupStopOutput(payload: CodexHookPayload, cw
 }
 
 async function findActiveGoalWorkflowReconciliationRequirement(cwd: string): Promise<{ workflow: string; command: string; remediation?: string } | null> {
-  const ultragoal = await readJsonIfExists(join(cwd, ".omx", "ultragoal", "goals.json"));
+  const ultragoal = await readJsonIfExists(join(cwd, ".nomx", "ultragoal", "goals.json"));
   const aggregateCompletion = safeObject(ultragoal?.aggregateCompletion);
   const aggregateProductComplete = safeString(aggregateCompletion.status) === "complete";
   const ultragoals = Array.isArray(ultragoal?.goals) ? ultragoal.goals.map(safeObject) : [];
@@ -3048,7 +3076,7 @@ async function findActiveGoalWorkflowReconciliationRequirement(cwd: string): Pro
       workflow: "ultragoal",
       command: `nomx ultragoal checkpoint --goal-id ${goalId} --status complete --codex-goal-json '<get_goal JSON or path>' --evidence '<evidence>'`,
       remediation: [
-        `If get_goal returns a completed task-scoped objective for the same aggregate ultragoal plan, checkpoint ${goalId} with evidence naming ${goalId} plus .omx/ultragoal/goals.json or ledger.jsonl and pass final quality-gate JSON; OMX will reconcile the completed planned scope without mutating Codex goal state.`,
+        `If get_goal returns a completed task-scoped objective for the same aggregate ultragoal plan, checkpoint ${goalId} with evidence naming ${goalId} plus .nomx/ultragoal/goals.json or ledger.jsonl and pass final quality-gate JSON; NOMX will reconcile the completed planned scope without mutating Codex goal state.`,
         `If get_goal instead returns a different completed legacy objective and complete checkpointing fails, do not repeat --status complete in this thread.`,
         `Record the non-terminal blocker with: nomx ultragoal checkpoint --goal-id ${goalId} --status blocked --codex-goal-json '<different completed get_goal JSON or path>' --evidence '<completed legacy Codex goal blocks create_goal in this thread>'.`,
         `If get_goal itself is unavailable with a Codex DB/schema/context error such as "no such table: thread_goals", record an auditable safe-recovery blocker instead: nomx ultragoal checkpoint --goal-id ${goalId} --status blocked --codex-goal-json '<unavailable get_goal error JSON or path>' --evidence '<get_goal unavailable due to Codex DB/schema/context error; safe recovery requires a working Codex goal context>'.`,
@@ -3057,7 +3085,7 @@ async function findActiveGoalWorkflowReconciliationRequirement(cwd: string): Pro
     };
   }
 
-  const performanceRoot = join(cwd, ".omx", "goals", "performance");
+  const performanceRoot = join(cwd, ".nomx", "goals", "performance");
   for (const entry of await readdir(performanceRoot, { withFileTypes: true }).catch(() => [])) {
     if (!entry.isDirectory()) continue;
     const state = await readJsonIfExists(join(performanceRoot, entry.name, "state.json"));
@@ -3073,7 +3101,7 @@ async function findActiveGoalWorkflowReconciliationRequirement(cwd: string): Pro
     }
   }
 
-  const autoresearchRoot = join(cwd, ".omx", "goals", "autoresearch");
+  const autoresearchRoot = join(cwd, ".nomx", "goals", "autoresearch");
   for (const entry of await readdir(autoresearchRoot, { withFileTypes: true }).catch(() => [])) {
     if (!entry.isDirectory()) continue;
     const mission = await readJsonIfExists(join(autoresearchRoot, entry.name, "mission.json"));
@@ -3106,7 +3134,7 @@ async function buildGoalWorkflowReconciliationPromptWarning(cwd: string, prompt:
   const requirement = await findActiveGoalWorkflowReconciliationRequirement(cwd);
   if (!requirement) return null;
   return [
-    `OMX ${requirement.workflow} goal workflow requires Codex goal snapshot reconciliation before completion.`,
+    `NOMX ${requirement.workflow} goal workflow requires Codex goal snapshot reconciliation before completion.`,
     "Call get_goal, pass the resulting JSON or a path with --codex-goal-json, and do not rely on hooks or shell commands to mutate Codex-owned goal state.",
     `Required command shape: ${requirement.command}.`,
     requirement.remediation,
@@ -3126,7 +3154,7 @@ async function buildGoalWorkflowReconciliationStopOutput(
   }
   const systemMessage =
     [
-      `OMX ${requirement.workflow} requires get_goal snapshot reconciliation before completion; call get_goal and pass --codex-goal-json to ${requirement.command}.`,
+      `NOMX ${requirement.workflow} requires get_goal snapshot reconciliation before completion; call get_goal and pass --codex-goal-json to ${requirement.command}.`,
       requirement.remediation,
       "Hooks must not mutate Codex goal state.",
     ].filter(Boolean).join(" ");
@@ -3209,7 +3237,7 @@ async function buildTeamStopOutput(cwd: string, sessionId?: string, threadId?: s
 
 function buildTeamStopReason(teamName: string, phase: string): string {
   const teamContext = teamName ? ` (${teamName})` : "";
-  return `OMX team pipeline is still active${teamContext} at phase ${phase}; continue coordinating until the team reaches a terminal phase. If system-generated worker auto-checkpoint commits exist, rewrite them into Lore-format final commits before merge/finalization.`;
+  return `NOMX team pipeline is still active${teamContext} at phase ${phase}; continue coordinating until the team reaches a terminal phase. If system-generated worker auto-checkpoint commits exist, rewrite them into Lore-format final commits before merge/finalization.`;
 }
 
 function buildTeamStopOutputForPhase(teamName: string, phase: string): Record<string, unknown> {
@@ -3217,7 +3245,7 @@ function buildTeamStopOutputForPhase(teamName: string, phase: string): Record<st
     decision: "block",
     reason: buildTeamStopReason(teamName, phase),
     stopReason: `team_${phase}`,
-    systemMessage: `OMX team pipeline is still active at phase ${phase}.`,
+    systemMessage: `NOMX team pipeline is still active at phase ${phase}.`,
   };
 }
 
@@ -3357,7 +3385,7 @@ function buildNativeUnknownRolePreToolUseOutput(
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       additionalContext:
-        "Use an installed OMX role for native agent_type/agent_role dispatch. On a role-routing-unavailable surface, record a validated OMX adapted role intent before spawning without fabricating agent_type.",
+        "Use an installed NOMX role for native agent_type/agent_role dispatch. On a role-routing-unavailable surface, record a validated NOMX adapted role intent before spawning without fabricating agent_type.",
     },
   };
 }
@@ -3569,7 +3597,7 @@ async function buildNativeSubagentCapacityCloseGuardOutput(
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       additionalContext:
-        `OMX blocked ${safeString(payload.tool_name).trim() || "close_agent"} before it could start: a recent native subagent capacity failure was recorded (${evidence}). `
+        `NOMX blocked ${safeString(payload.tool_name).trim() || "close_agent"} before it could start: a recent native subagent capacity failure was recorded (${evidence}). `
         + "Do not call multi_agent_v1.close_agent, and do not batch close_agent through multi_tool_use.parallel, as stale native handles can hang the whole turn. "
         + "Treat this as a bounded capacity blocker: persist/report the blocker evidence, avoid further native subagent cleanup from the model turn, and recover via runtime-level cleanup or a fresh Codex session.",
     },
@@ -3596,6 +3624,25 @@ async function resolveInternalSessionIdForPayload(
   if (nativeSessionId && payloadSessionId === nativeSessionId) return canonicalSessionId;
   if (ownerOmxSessionId && payloadSessionId === ownerOmxSessionId) return canonicalSessionId;
   return allowUnboundPayloadFallback ? payloadSessionId : "";
+}
+
+async function hasTrackedRootSessionEvidence(cwd: string, sessionId: string): Promise<boolean> {
+  const normalizedSessionId = normalizeSessionId(sessionId);
+  if (!normalizedSessionId) return false;
+
+  const read = await readSubagentTrackingStateStrict(cwd);
+  if (!read.ok) return false;
+
+  const trackedSession = read.state.sessions[normalizedSessionId];
+  const leaderThreadId = safeString(trackedSession?.leader_thread_id).trim();
+  if (!trackedSession || trackedSession.session_id !== normalizedSessionId || !leaderThreadId) return false;
+  if (trackedSession.threads[leaderThreadId]?.kind !== "leader") return false;
+
+  for (const candidate of Object.values(read.state.sessions)) {
+    if (candidate.threads[normalizedSessionId]?.kind === "subagent") return false;
+    if (candidate.threads[leaderThreadId]?.kind === "subagent") return false;
+  }
+  return true;
 }
 
 async function readRootSessionStateFromStateDir(stateDir: string): Promise<SessionState | null> {
@@ -3669,19 +3716,19 @@ async function readStopSessionPinnedState(
 }
 
 const DEEP_INTERVIEW_ALLOWED_WRITE_PREFIXES = [
-  ".omx/context",
-  ".omx/interviews",
-  ".omx/specs",
-  ".omx/tmp",
-  ".omx/state",
+  ".nomx/context",
+  ".nomx/interviews",
+  ".nomx/specs",
+  ".nomx/tmp",
+  ".nomx/state",
 ] as const;
 
 const RALPLAN_ALLOWED_WRITE_PREFIXES = [
-  ".omx/context",
-  ".omx/plans",
-  ".omx/specs",
-  ".omx/tmp",
-  ".omx/state",
+  ".nomx/context",
+  ".nomx/plans",
+  ".nomx/specs",
+  ".nomx/tmp",
+  ".nomx/state",
   ".beads",
 ] as const;
 
@@ -3770,7 +3817,7 @@ function normalizePlanningArtifactRelativePath(cwd: string, rawPath: string): st
 }
 
 function isProtectedPlanningStatePath(relativePath: string): boolean {
-  if (relativePath !== ".omx/state" && !relativePath.startsWith(".omx/state/")) return false;
+  if (relativePath !== ".nomx/state" && !relativePath.startsWith(".nomx/state/")) return false;
   const fileName = relativePath.split("/").pop() ?? "";
   return PROTECTED_PLANNING_STATE_FILE_NAMES.has(fileName);
 }
@@ -3781,13 +3828,13 @@ function isAllowedAuthoritativeRuntimePlanningStatePath(cwd: string, rawPath: st
   let targetPath: string;
   let baseStateDir: string;
   try {
-    targetPath = resolve(cwd, trimmed);
-    baseStateDir = resolve(getBaseStateDir(cwd));
+    targetPath = canonicalizeComparablePath(resolve(cwd, trimmed));
+    baseStateDir = canonicalizeComparablePath(resolve(getBaseStateDir(cwd)));
   } catch {
     return false;
   }
 
-  const localStateDir = resolve(cwd, ".omx", "state");
+  const localStateDir = canonicalizeComparablePath(resolve(cwd, ".nomx", "state"));
   if (baseStateDir === localStateDir) return false;
 
   const relativeToBase = relative(baseStateDir, targetPath).replace(/\\/g, "/");
@@ -3803,7 +3850,7 @@ function isAllowedAuthoritativeRuntimePlanningStatePath(cwd: string, rawPath: st
 
 
 function isPlanningTmpRelativePath(relativePath: string): boolean {
-  return relativePath === ".omx/tmp" || relativePath.startsWith(".omx/tmp/");
+  return relativePath === ".nomx/tmp" || relativePath.startsWith(".nomx/tmp/");
 }
 
 function isAllowedPlanningTmpScratchPath(relativePath: string): boolean {
@@ -3824,7 +3871,7 @@ function isAllowedPlanningArtifactPath(
   if (!relativePath) return isAllowedAuthoritativeRuntimePlanningStatePath(cwd, rawPath);
   if (isProtectedPlanningStatePath(relativePath)) return isAllowedAuthoritativeRuntimePlanningStatePath(cwd, rawPath);
   if (isPlanningTmpRelativePath(relativePath)) {
-    return allowedPrefixes.includes(".omx/tmp") && isAllowedPlanningTmpScratchPath(relativePath);
+    return allowedPrefixes.includes(".nomx/tmp") && isAllowedPlanningTmpScratchPath(relativePath);
   }
   return allowedPrefixes.some((prefix) => (
     relativePath === prefix || relativePath.startsWith(`${prefix}/`)
@@ -3838,7 +3885,7 @@ function isAllowedDeepInterviewArtifactPath(cwd: string, rawPath: string): boole
 
 function isAllowedRalplanDraftPath(cwd: string, rawPath: string): boolean {
   const relativePath = normalizePlanningArtifactRelativePath(cwd, rawPath);
-  return relativePath !== null && /^\.omx\/drafts\/[^/]+\.md$/.test(relativePath);
+  return relativePath !== null && /^\.nomx\/drafts\/[^/]+\.md$/.test(relativePath);
 }
 
 function isAllowedRalplanArtifactPath(cwd: string, rawPath: string): boolean {
@@ -5486,7 +5533,7 @@ function readStateWriteFlagValue(args: string[], flagName: "--input" | "--input-
   return value;
 }
 
-interface OmxStateCommandOperation {
+interface NomxStateCommandOperation {
   args: string[];
   prefix: string;
   commandPrefix: string;
@@ -6057,10 +6104,10 @@ function collectOmxStateCommandOperations(
   command: string,
   operation: "write" | "clear",
   nested = false,
-): OmxStateCommandOperation[] {
+): NomxStateCommandOperation[] {
   command = normalizeShellLineContinuations(stripHeredocBodiesForCommandScan(command));
-  const operations: OmxStateCommandOperation[] = [];
-  const addOperation = (candidate: OmxStateCommandOperation): void => {
+  const operations: NomxStateCommandOperation[] = [];
+  const addOperation = (candidate: NomxStateCommandOperation): void => {
     operations.push(candidate);
   };
 
@@ -6911,16 +6958,16 @@ function hasOnlyAllowedDeepInterviewRalplanHandoffMutations(cwd: string, command
 function isDurableDeepInterviewHandoffEvidencePath(cwd: string, rawPath: string): boolean {
   const relativePath = normalizePlanningArtifactRelativePath(cwd, rawPath);
   if (!relativePath) return false;
-  return relativePath === ".omx/context"
-    || relativePath.startsWith(".omx/context/")
-    || relativePath === ".omx/interviews"
-    || relativePath.startsWith(".omx/interviews/")
-    || relativePath === ".omx/specs"
-    || relativePath.startsWith(".omx/specs/");
+  return relativePath === ".nomx/context"
+    || relativePath.startsWith(".nomx/context/")
+    || relativePath === ".nomx/interviews"
+    || relativePath.startsWith(".nomx/interviews/")
+    || relativePath === ".nomx/specs"
+    || relativePath.startsWith(".nomx/specs/");
 }
 
 function hasExistingDurableDeepInterviewHandoffEvidence(cwd: string): boolean {
-  const roots = [".omx/context", ".omx/interviews", ".omx/specs"] as const;
+  const roots = [".nomx/context", ".nomx/interviews", ".nomx/specs"] as const;
   const maxEntries = 2_000;
   let visited = 0;
 
@@ -7351,7 +7398,7 @@ function buildRalplanBashBlockedDetail(cwd: string, command: string): string {
   }
   const executedTmpTarget = firstPlanningTmpScriptExecutionTarget(cwd, command);
   if (executedTmpTarget) {
-    return `execution target ${executedTmpTarget} is under .omx/tmp; planning tmp artifacts must not be used as generated-script transport`;
+    return `execution target ${executedTmpTarget} is under .nomx/tmp; planning tmp artifacts must not be used as generated-script transport`;
   }
 
   if (commandHasPackageInstallIntent(command)) {
@@ -7382,7 +7429,7 @@ function buildDeepInterviewBashBlockedDetail(cwd: string, command: string): stri
   }
   const executedTmpTarget = firstPlanningTmpScriptExecutionTarget(cwd, command);
   if (executedTmpTarget) {
-    return `execution target ${executedTmpTarget} is under .omx/tmp; deep-interview tmp artifacts must not be used as generated-script transport`;
+    return `execution target ${executedTmpTarget} is under .nomx/tmp; deep-interview tmp artifacts must not be used as generated-script transport`;
   }
   if (commandHasPackageInstallIntent(command)) {
     return "package installation commands are implementation actions and cannot be combined with allowed deep-interview artifact writes";
@@ -7455,7 +7502,7 @@ async function buildRalplanPreToolUseBoundaryOutput(
       hookEventName: "PreToolUse",
       additionalContext:
         `${planningModeDescription}. `
-        + "Write only planning artifacts under `.omx/context/`, `.omx/plans/`, `.omx/specs/`, `.omx/tmp/`, required `.omx/state/` files, Markdown drafts under `.omx/drafts/*.md`, or tracker metadata under `.beads/`. "
+        + "Write only planning artifacts under `.nomx/context/`, `.nomx/plans/`, `.nomx/specs/`, `.nomx/tmp/`, required `.nomx/state/` files, Markdown drafts under `.nomx/drafts/*.md`, or tracker metadata under `.beads/`. "
         + "Do not edit implementation files or run implementation-focused writes from planning phases. "
         + `To execute, first process an explicit handoff such as ${formatExecutionHandoffList(cwd)}, which must emit terminal planning state before implementation begins.`,
     },
@@ -7513,7 +7560,7 @@ async function buildDeepInterviewPreToolUseBoundaryOutput(
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       additionalContext:
-        `Deep-interview is requirements/spec mode. Treat detailed user answers as interview/spec material, not implicit implementation authorization. You may write only deep-interview artifacts under \`.omx/context/\`, \`.omx/interviews/\`, \`.omx/specs/\`, \`.omx/tmp/\`, or required \`.omx/state/\` files. To implement, first ask for or process an explicit transition such as \`$ralplan\`, \`$autopilot\`, ${formatExecutionHandoffList(cwd)}.`,
+        `Deep-interview is requirements/spec mode. Treat detailed user answers as interview/spec material, not implicit implementation authorization. You may write only deep-interview artifacts under \`.nomx/context/\`, \`.nomx/interviews/\`, \`.nomx/specs/\`, \`.nomx/tmp/\`, or required \`.nomx/state/\` files. To implement, first ask for or process an explicit transition such as \`$ralplan\`, \`$autopilot\`, ${formatExecutionHandoffList(cwd)}.`,
     },
   };
 }
@@ -7549,8 +7596,8 @@ function buildRootPointerConflictBlock(
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       additionalContext:
-        `OMX detected a live root session pointer owned by another session while a ${planningPhaseDescription} is active. `
-        + "This indicates collapsed session-root isolation. Do not perform implementation writes from this unresolved session; use the owning OMX session or restart with an isolated OMX_ROOT.",
+        `NOMX detected a live root session pointer owned by another session while a ${planningPhaseDescription} is active. `
+        + "This indicates collapsed session-root isolation. Do not perform implementation writes from this unresolved session; use the owning NOMX session or restart with an isolated NOMX_ROOT.",
     },
   };
 }
@@ -7652,8 +7699,9 @@ async function hasTrustedTypedSubagentProvenanceForPreToolUse(
   const payloadThreadId = readPayloadThreadId(payload);
   const trackedPayloadThread = payloadThreadId ? session.threads[payloadThreadId] : undefined;
   const hasTrackedAdaptedTypedRole = payloadThreadId !== ""
+    && trackedPayloadThread !== undefined
     && isTrustedSubagentThread(session, payloadThreadId)
-    && trackedPayloadThread?.provenance_kind === OMX_ADAPTED_PROVENANCE
+    && trackedPayloadThread.provenance_kind === NOMX_ADAPTED_PROVENANCE
     && resolveInstalledRoleName(trackedPayloadThread.role ?? "") !== null;
 
   // Resolve the Main-root leader THREAD identity from the tracker's leader_thread_id
@@ -7687,7 +7735,7 @@ async function hasTrustedTypedSubagentProvenanceForPreToolUse(
 
   // Planning boundary guards (ralplan, deep-interview) still require a recognized typed
   // agent role, so an untyped collaboration.spawn_agent child cannot write before an
-  // execution handoff/approval. A tracker-recorded OMX-adapted child is the equivalent
+  // execution handoff/approval. A tracker-recorded NOMX-adapted child is the equivalent
   // of a typed role only when its own persisted role is installed and validated.
   if (
     options.allowUntypedProvenance !== true
@@ -9124,7 +9172,7 @@ function buildRalplanContinuationStatus(
   const phase = blocker.phase || "planning";
   const artifact = blocker.latestPlanPath
     ? ` Artifact: ${blocker.latestPlanPath}.`
-    : " Artifact: use the latest `.omx/plans/` ralplan artifact if present.";
+    : " Artifact: use the latest `.nomx/plans/` ralplan artifact if present.";
 
   if (activeSubagentCount > 0) {
     return {
@@ -9132,7 +9180,7 @@ function buildRalplanContinuationStatus(
         `Status: waiting — ralplan is waiting for ${activeSubagentCount} active native subagent thread(s) to finish (phase: ${phase}). Do not stop silently; wait for the subagent result, then continue from the current ralplan artifact and proceed to the next planning/review step.${artifact}`,
       stopReasonSuffix: "waiting_subagent",
       systemMessage:
-        `OMX ralplan status: waiting for ${activeSubagentCount} active native subagent thread(s) at phase ${phase}; after they finish, continue from the current ralplan artifact and state the next status explicitly.`,
+        `NOMX ralplan status: waiting for ${activeSubagentCount} active native subagent thread(s) at phase ${phase}; after they finish, continue from the current ralplan artifact and state the next status explicitly.`,
     };
   }
 
@@ -9150,7 +9198,7 @@ function buildRalplanContinuationStatus(
         `Status: waiting_for_input — ralplan is paused for required user/operator input (phase: ${phase}). Ask the missing question or present the review choice explicitly before stopping.${artifact}`,
       stopReasonSuffix: "waiting_input",
       systemMessage:
-        `OMX ralplan status: waiting for input at phase ${phase}; ask the required question or present the explicit review choice before stopping.`,
+        `NOMX ralplan status: waiting for input at phase ${phase}; ask the required question or present the explicit review choice before stopping.`,
     };
   }
 
@@ -9163,7 +9211,7 @@ function buildRalplanContinuationStatus(
       `Status: continue_from_artifact — ralplan is still active (phase: ${phase}) and has not emitted a terminal complete/paused/waiting status. Continue from the current ralplan artifact, resolve any review ambiguity conservatively or ask the user if needed, and proceed to the next planning/review step before stopping; do not begin implementation from ralplan.${artifact}${completeHint}`,
     stopReasonSuffix: "continue_artifact",
     systemMessage:
-      `OMX ralplan status: continue_from_artifact at phase ${phase}; continue from the current ralplan artifact and finish by stating whether ralplan is complete, paused for review, waiting for input, or still continuing; do not begin implementation from ralplan.`,
+      `NOMX ralplan status: continue_from_artifact at phase ${phase}; continue from the current ralplan artifact and finish by stating whether ralplan is complete, paused for review, waiting for input, or still continuing; do not begin implementation from ralplan.`,
   };
 }
 
@@ -9248,7 +9296,7 @@ async function buildDeepInterviewQuestionStopOutput(
   if (!obligationId) return null;
 
   const systemMessage =
-    `OMX deep-interview is still active (phase: ${phase}) and requires a structured question via nomx question before stopping; read the returned answers[] JSON before continuing.`;
+    `NOMX deep-interview is still active (phase: ${phase}) and requires a structured question via nomx question before stopping; read the returned answers[] JSON before continuing.`;
 
   return {
     obligationId,
@@ -9266,7 +9314,7 @@ function resolveRepeatableStopSessionId(
   payload: CodexHookPayload,
   canonicalSessionId?: string,
 ): string {
-  const inheritedSessionId = safeString(process.env.OMX_SESSION_ID || process.env.CODEX_SESSION_ID).trim();
+  const inheritedSessionId = safeString(process.env.NOMX_SESSION_ID || process.env.CODEX_SESSION_ID).trim();
   return canonicalSessionId?.trim() || readPayloadSessionId(payload) || inheritedSessionId || "";
 }
 
@@ -9412,11 +9460,11 @@ async function maybeBuildOrdinaryStopNoProgressOutput(
   await writeFile(statePath, JSON.stringify({ ...state, sessions }, null, 2));
 
   const maxRepeats = parseBoundedPositiveInteger(
-    process.env.OMX_NATIVE_STOP_NO_PROGRESS_MAX_REPEATS,
+    process.env.NOMX_NATIVE_STOP_NO_PROGRESS_MAX_REPEATS,
     ORDINARY_STOP_NO_PROGRESS_DEFAULT_MAX_REPEATS,
   );
   const idleMs = parseBoundedNonNegativeInteger(
-    process.env.OMX_NATIVE_STOP_NO_PROGRESS_IDLE_MS,
+    process.env.NOMX_NATIVE_STOP_NO_PROGRESS_IDLE_MS,
     ORDINARY_STOP_NO_PROGRESS_DEFAULT_IDLE_MS,
   );
   const firstSeenMs = readIsoTimeMs(firstSeenAt) ?? Date.now();
@@ -9428,7 +9476,7 @@ async function maybeBuildOrdinaryStopNoProgressOutput(
   );
   const elapsedSeconds = Math.round(elapsedMs / 1000);
   const diagnostic =
-    `OMX ordinary task no-progress guard triggered after ${repeatCount} repeated Stop-hook pass(es) over ~${elapsedSeconds}s with unchanged status: "${message}". ` +
+    `NOMX ordinary task no-progress guard triggered after ${repeatCount} repeated Stop-hook pass(es) over ~${elapsedSeconds}s with unchanged status: "${message}". ` +
     "Emit a concise diagnostic summary now: state the last concrete progress/evidence, whether the task is complete, blocked, failed, or needs missing information, and stop instead of continuing a vague working loop.";
 
   return {
@@ -9510,7 +9558,9 @@ async function findCanonicalActiveTeamForSession(
   sessionId: string,
   threadId?: string,
 ): Promise<{ teamName: string; phase: string } | null> {
-  if (!sessionId.trim()) return null;
+  const requestedSessionId = sessionId.trim();
+  if (!requestedSessionId) return null;
+  const selectedSessionId = safeString((await readUsableSessionState(cwd))?.session_id).trim();
   const teamsRoot = join(resolveCanonicalTeamStateRoot(cwd), "team");
   if (!existsSync(teamsRoot)) return null;
 
@@ -9526,7 +9576,13 @@ async function findCanonicalActiveTeamForSession(
     ]);
     if (!manifest || !phaseState) continue;
     const ownerSessionId = (manifest.leader?.session_id ?? "").trim();
-    if (ownerSessionId && ownerSessionId !== sessionId.trim()) continue;
+    if (ownerSessionId) {
+      if (ownerSessionId !== requestedSessionId) continue;
+    } else if (selectedSessionId !== requestedSessionId) {
+      // Ownerless manifests are a legacy compatibility fallback. They may only
+      // govern the selected session, never a concurrently tracked sibling.
+      continue;
+    }
     if (!teamStateMatchesThreadForStop(manifest.leader as unknown as Record<string, unknown>, threadId)) continue;
     if (!isNonTerminalPhase(phaseState.current_phase)) continue;
 
@@ -9630,9 +9686,9 @@ async function buildSkillStopOutput(
 
   return {
     decision: "block",
-    reason: `OMX skill ${blocker.skill} is still active (phase: ${blocker.phase}); continue until the current ${blocker.skill} workflow reaches a terminal state.`,
+    reason: `NOMX skill ${blocker.skill} is still active (phase: ${blocker.phase}); continue until the current ${blocker.skill} workflow reaches a terminal state.`,
     stopReason: `skill_${blocker.skill}_${blocker.phase}`,
-    systemMessage: `OMX skill ${blocker.skill} is still active (phase: ${blocker.phase}).`,
+    systemMessage: `NOMX skill ${blocker.skill} is still active (phase: ${blocker.phase}).`,
   };
 }
 
@@ -9780,7 +9836,7 @@ async function buildStopHookOutput(
     await reopenRalphCompletionAuditBlock(ralphCompletionAuditBlock);
     const blockingPath = formatStopStatePath(cwd, ralphCompletionAuditBlock.path);
     const systemMessage = [
-      `OMX Ralph completion audit is missing required evidence (${ralphCompletionAuditBlock.reason}; state: ${blockingPath}).`,
+      `NOMX Ralph completion audit is missing required evidence (${ralphCompletionAuditBlock.reason}; state: ${blockingPath}).`,
       "Continue verification and do not report complete yet.",
       "Record machine-readable completion evidence before stopping:",
       '- either set "completion_audit" on the Ralph state object, for example: nomx state write --input \'{"mode":"ralph","active":false,"current_phase":"complete","completion_audit":{"passed":true,"prompt_to_artifact_checklist":["..."],"verification_evidence":["..."]}}\' --json',
@@ -9804,7 +9860,7 @@ async function buildStopHookOutput(
   }
   const ralphState = options.skipRalphStopBlock === true
     ? null
-    : await readActiveRalphState(cwd, stateDir, sessionId || canonicalSessionId, ralphOwnerContext);
+    : await readActiveRalphState(cwd, stateDir, canonicalSessionId, ralphOwnerContext);
   if (!ralphState) {
     const teamWorkerDecision = await resolveTeamWorkerStopDecision(cwd);
     if (teamWorkerDecision.kind === "blocked") {
@@ -9822,7 +9878,7 @@ async function buildStopHookOutput(
       try {
         await maybeNudgeLeaderForAllowedWorkerStop({
           stateDir: teamWorkerDecision.stateDir,
-          logsDir: join(cwd, ".omx", "logs"),
+          logsDir: join(cwd, ".nomx", "logs"),
           workerContext: teamWorkerDecision.workerContext,
         });
       } catch (err) {
@@ -9981,7 +10037,7 @@ async function buildStopHookOutput(
           reason: effectiveResponse,
           stopReason: "auto_nudge",
           systemMessage:
-            "OMX native Stop detected a stall/permission-style handoff and continued the turn automatically.",
+            "NOMX native Stop detected a stall/permission-style handoff and continued the turn automatically.",
         },
         canonicalSessionId,
       );
@@ -10008,7 +10064,7 @@ async function buildStopHookOutput(
   const blockingPath = formatStopStatePath(cwd, ralphState.path);
   const stopReason = `ralph_${currentPhase}`;
   const systemMessage =
-    `OMX Ralph is still active (phase: ${currentPhase}; state: ${blockingPath}); continue the task and gather fresh verification evidence before stopping.`;
+    `NOMX Ralph is still active (phase: ${currentPhase}; state: ${blockingPath}); continue the task and gather fresh verification evidence before stopping.`;
 
   return await returnPersistentStopBlock(
     payload,
@@ -10057,10 +10113,10 @@ export async function dispatchCodexNativeHook(
 ): Promise<NativeHookDispatchResult> {
   const hookEventName = readHookEventName(payload);
   const cwd = options.cwd ?? (safeString(payload.cwd).trim() || process.cwd());
-  if (hookEventName === "PostCompact" && process.env.OMX_NATIVE_HOOK_DOCTOR_SMOKE === "1") {
+  if (hookEventName === "PostCompact" && process.env.NOMX_NATIVE_HOOK_DOCTOR_SMOKE === "1") {
     return {
       hookEventName,
-      omxEventName: mapCodexHookEventToOmxEvent(hookEventName),
+      nomxEventName: mapCodexHookEventToOmxEvent(hookEventName),
       skillState: null,
       outputJson: null,
     };
@@ -10073,7 +10129,7 @@ export async function dispatchCodexNativeHook(
   if (hookEventName === "Stop" && !hasNativeStopRuntimeSurface(cwd)) {
     return {
       hookEventName,
-      omxEventName: mapCodexHookEventToOmxEvent(hookEventName),
+      nomxEventName: mapCodexHookEventToOmxEvent(hookEventName),
       skillState: null,
       outputJson: null,
     };
@@ -10082,7 +10138,7 @@ export async function dispatchCodexNativeHook(
   const pointerContext = resolveSessionPointerContext(cwd);
   const stateDir = pointerContext.baseStateDir;
 
-  const omxEventName = mapCodexHookEventToOmxEvent(hookEventName);
+  const nomxEventName = mapCodexHookEventToOmxEvent(hookEventName);
   let skillState: SkillActiveState | null = null;
   let triageAdditionalContext: string | null = null;
   let goalWorkflowAdditionalContext: string | null = null;
@@ -10109,10 +10165,10 @@ export async function dispatchCodexNativeHook(
   }
   if (promptTurnContext?.status === "rejected") {
     await appendPromptSessionProvenanceRejection(pointerContext, promptTurnContext.diagnostic).catch(() => {});
-    return { hookEventName, omxEventName, skillState: null, outputJson: null };
+    return { hookEventName, nomxEventName, skillState: null, outputJson: null };
   }
   if (promptTurnContext?.status === "suppressed-target-child") {
-    return { hookEventName, omxEventName, skillState: null, outputJson: null };
+    return { hookEventName, nomxEventName, skillState: null, outputJson: null };
   }
   if (hookEventName !== "Stop") {
     await mkdir(stateDir, { recursive: true });
@@ -10122,7 +10178,7 @@ export async function dispatchCodexNativeHook(
     ? null
     : {
       stopReason: "session_pointer_unusable",
-      reason: `OMX cannot authorize Stop while the selected session pointer is ${pointer.status}; repair the pointer evidence before continuing.`,
+      reason: `NOMX cannot authorize Stop while the selected session pointer is ${pointer.status}; repair the pointer evidence before continuing.`,
     };
   let canonicalSessionId = safeString(currentSessionState?.session_id).trim();
   if (promptTurnContext?.status === "authorized") {
@@ -10217,7 +10273,7 @@ export async function dispatchCodexNativeHook(
         allowImplicitSessionSideEffects = false;
         stopAuthorizationFailure = {
           stopReason: "session_pointer_unusable",
-          reason: `OMX cannot authorize Stop while the selected session pointer is ${pointer.status}; repair the pointer evidence before continuing.`,
+          reason: `NOMX cannot authorize Stop while the selected session pointer is ${pointer.status}; repair the pointer evidence before continuing.`,
         };
       }
     }
@@ -10234,13 +10290,23 @@ export async function dispatchCodexNativeHook(
       currentSessionState,
       pointer.status === "absent",
     );
-    if (stopPayloadSessionId && !stopCanonicalSessionId) {
+    const trackedRootSessionId = stopPayloadSessionId
+      && !stopCanonicalSessionId
+      && await hasTrackedRootSessionEvidence(cwd, stopPayloadSessionId)
+      ? stopPayloadSessionId
+      : "";
+    if (trackedRootSessionId) {
+      canonicalSessionId = trackedRootSessionId;
+      resolvedNativeSessionId = trackedRootSessionId;
+      allowImplicitSessionSideEffects = true;
+      stopAuthorizationFailure = null;
+    } else if (stopPayloadSessionId && !stopCanonicalSessionId) {
       canonicalSessionId = "";
       allowImplicitSessionSideEffects = false;
       if (!stopAuthorizationFailure) {
         stopAuthorizationFailure = {
           stopReason: "session_scope_unmatched",
-          reason: `OMX cannot authorize Stop for unmatched session id ${stopPayloadSessionId}; the selected session pointer remains authoritative.`,
+          reason: `NOMX cannot authorize Stop for unmatched session id ${stopPayloadSessionId}; the selected session pointer remains authoritative.`,
         };
       }
     } else if (stopCanonicalSessionId) {
@@ -10303,7 +10369,7 @@ export async function dispatchCodexNativeHook(
         ?? await buildGoalWorkflowReconciliationPromptWarning(cwd, prompt).catch(() => null)
       : null;
     ultragoalSteeringAdditionalContext = prompt && !isSubagentPromptSubmit && allowImplicitSessionSideEffects && allowPromptGlobalSideEffects
-      ? await applyUserPromptUltragoalSteering(cwd, prompt).catch((error) => `OMX native UserPromptSubmit rejected bounded .omx/ultragoal steering for G002-cli-and-prompt-submit-bridge: ${error instanceof Error ? error.message : String(error)}`)
+      ? await applyUserPromptUltragoalSteering(cwd, prompt).catch((error) => `NOMX native UserPromptSubmit rejected bounded .nomx/ultragoal steering for G002-cli-and-prompt-submit-bridge: ${error instanceof Error ? error.message : String(error)}`)
       : null;
     let suppressActivationSeeding = !allowImplicitSessionSideEffects;
     if (promptTurnContext?.status === "authorized") {
@@ -10372,7 +10438,7 @@ export async function dispatchCodexNativeHook(
             const effectiveTurnId = turnId || nowIso;
             if (decision.lane === "HEAVY") {
               triageAdditionalContext =
-                "OMX native UserPromptSubmit triage detected a multi-step goal with no workflow keyword. This is advisory prompt-routing context only; it did not activate autopilot or initialize workflow state. Prefer the existing autopilot-style workflow if AGENTS.md/runtime conditions allow it, unless newer user context narrows or opts out.";
+                "NOMX native UserPromptSubmit triage detected a multi-step goal with no workflow keyword. This is advisory prompt-routing context only; it did not activate autopilot or initialize workflow state. Prefer the existing autopilot-style workflow if AGENTS.md/runtime conditions allow it, unless newer user context narrows or opts out.";
               const newState: TriageStateFile = {
                 version: 1,
                 last_triage: {
@@ -10391,16 +10457,16 @@ export async function dispatchCodexNativeHook(
             } else if (decision.lane === "LIGHT") {
               if (decision.destination === "explore") {
                 triageAdditionalContext =
-                  "OMX native UserPromptSubmit triage detected a read-only/question-shaped request with no workflow keyword. This is advisory prompt-routing context only. Prefer the explore role surface rather than escalating to autopilot.";
+                  "NOMX native UserPromptSubmit triage detected a read-only/question-shaped request with no workflow keyword. This is advisory prompt-routing context only. Prefer the explore role surface rather than escalating to autopilot.";
               } else if (decision.destination === "executor") {
                 triageAdditionalContext =
-                  "OMX native UserPromptSubmit triage detected a narrow edit-shaped request with no workflow keyword. This is advisory prompt-routing context only. Prefer the executor role surface rather than autopilot.";
+                  "NOMX native UserPromptSubmit triage detected a narrow edit-shaped request with no workflow keyword. This is advisory prompt-routing context only. Prefer the executor role surface rather than autopilot.";
               } else if (decision.destination === "designer") {
                 triageAdditionalContext =
-                  "OMX native UserPromptSubmit triage detected a visual/style request with no workflow keyword. This is advisory prompt-routing context only. Prefer the designer role surface.";
+                  "NOMX native UserPromptSubmit triage detected a visual/style request with no workflow keyword. This is advisory prompt-routing context only. Prefer the designer role surface.";
               } else if (decision.destination === "researcher") {
                 triageAdditionalContext =
-                  "OMX native UserPromptSubmit triage detected an external documentation/reference research request with no workflow keyword. This is advisory prompt-routing context only. Prefer the researcher role surface rather than repo-local explore or autopilot.";
+                  "NOMX native UserPromptSubmit triage detected an external documentation/reference research request with no workflow keyword. This is advisory prompt-routing context only. Prefer the researcher role surface rather than repo-local explore or autopilot.";
               }
               if (triageAdditionalContext !== null) {
                 const dest = decision.destination as "explore" | "executor" | "designer" | "researcher";
@@ -10429,7 +10495,7 @@ export async function dispatchCodexNativeHook(
         triageAdditionalContext = null;
       }
     }
-    const skipHudReconcileForDoctorSmoke = process.env.OMX_NATIVE_HOOK_DOCTOR_SMOKE === "1";
+    const skipHudReconcileForDoctorSmoke = process.env.NOMX_NATIVE_HOOK_DOCTOR_SMOKE === "1";
     const skipHudReconcileForTeamWorkerPane = !isSubagentPromptSubmit
       && await isConfirmedTeamWorkerPromptSubmitPane(cwd).catch(() => false);
     if (allowImplicitSessionSideEffects && allowPromptGlobalSideEffects && !skipHudReconcileForDoctorSmoke && !skipHudReconcileForTeamWorkerPane) {
@@ -10449,17 +10515,17 @@ export async function dispatchCodexNativeHook(
     }
   }
 
-  if (omxEventName && allowImplicitSessionSideEffects && allowPromptGlobalSideEffects && !skipCanonicalSessionStartContext && !suppressNoisySubagentLifecycleDispatch) {
+  if (nomxEventName && allowImplicitSessionSideEffects && allowPromptGlobalSideEffects && !skipCanonicalSessionStartContext && !suppressNoisySubagentLifecycleDispatch) {
     const baseContext = buildBaseContext(cwd, payload, hookEventName!, canonicalSessionId);
     if (resolvedNativeSessionId) {
       baseContext.native_session_id = resolvedNativeSessionId;
       baseContext.codex_session_id = resolvedNativeSessionId;
     }
     if (canonicalSessionId) {
-      baseContext.omx_session_id = canonicalSessionId;
+      baseContext.nomx_session_id = canonicalSessionId;
     }
     const event: HookEventEnvelope = buildNativeHookEvent(
-      omxEventName,
+      nomxEventName,
       baseContext,
       {
         session_id: eventSessionId,
@@ -10477,7 +10543,7 @@ export async function dispatchCodexNativeHook(
 
   if (hookEventName === "PreCompact") {
     // Codex native PreCompact currently accepts only the common continuation fields.
-    // Keep the OMX lifecycle dispatch above, but do not emit `hookSpecificOutput`
+    // Keep the NOMX lifecycle dispatch above, but do not emit `hookSpecificOutput`
     // unless Codex defines a supported PreCompact output contract.
   } else if ((hookEventName === "SessionStart" && !skipCanonicalSessionStartContext) || hookEventName === "UserPromptSubmit") {
     const additionalContext = hookEventName === "SessionStart"
@@ -10581,7 +10647,7 @@ export async function dispatchCodexNativeHook(
     } else {
       const failure = stopAuthorizationFailure ?? {
         stopReason: "session_pointer_unusable",
-        reason: "OMX cannot authorize Stop without a writable session authority.",
+        reason: "NOMX cannot authorize Stop without a writable session authority.",
       };
       outputJson = {
         decision: "block",
@@ -10594,28 +10660,28 @@ export async function dispatchCodexNativeHook(
 
   return {
     hookEventName,
-    omxEventName,
+    nomxEventName,
     skillState,
     outputJson,
   };
 }
 
 function hasNativeStopRuntimeSurface(cwd: string): boolean {
-  if (existsSync(join(cwd, ".omx"))) return true;
+  if (existsSync(join(cwd, ".nomx"))) return true;
   if (findGitLayout(cwd)) return true;
-  const omxRoot = safeString(process.env.OMX_ROOT).trim();
-  if (omxRoot && existsSync(join(omxRoot, ".omx"))) return true;
-  const stateRoot = safeString(process.env.OMX_STATE_ROOT).trim();
+  const nomxRoot = safeString(process.env.NOMX_ROOT).trim();
+  if (nomxRoot && existsSync(join(nomxRoot, ".nomx"))) return true;
+  const stateRoot = safeString(process.env.NOMX_STATE_ROOT).trim();
   if (stateRoot && existsSync(stateRoot)) return true;
   return [
-    process.env.OMX_SESSION_ID,
-    process.env.OMX_TEAM_INTERNAL_WORKER,
-    process.env.OMX_TEAM_WORKER,
-    process.env.OMX_TEAM_STATE_ROOT,
-    process.env.OMX_TEAM_LEADER_CWD,
-    process.env.OMX_NOTIFY_HOOK_TRUSTED_MANAGED_CWD,
-    process.env.OMX_TMUX_HUD_OWNER,
-    process.env.OMX_TMUX_HUD_LEADER_PANE,
+    process.env.NOMX_SESSION_ID,
+    process.env.NOMX_TEAM_INTERNAL_WORKER,
+    process.env.NOMX_TEAM_WORKER,
+    process.env.NOMX_TEAM_STATE_ROOT,
+    process.env.NOMX_TEAM_LEADER_CWD,
+    process.env.NOMX_NOTIFY_HOOK_TRUSTED_MANAGED_CWD,
+    process.env.NOMX_TMUX_HUD_OWNER,
+    process.env.NOMX_TMUX_HUD_LEADER_PANE,
   ].some((value) => safeString(value).trim() !== "");
 }
 
@@ -10698,7 +10764,7 @@ function buildMalformedStdinHookOutput(
   cwd = process.cwd(),
 ): Record<string, unknown> {
   const reason =
-    "OMX native hook received malformed JSON input. Preserve runtime state, inspect the emitting hook payload yourself, and retry with valid JSON.";
+    "NOMX native hook received malformed JSON input. Preserve runtime state, inspect the emitting hook payload yourself, and retry with valid JSON.";
   const systemMessage =
     `${reason} stdin JSON parsing failed inside codex-native-hook: ${parseError.message}.`;
   const inferredHookEventName = inferHookEventNameFromMalformedInput(rawInput);
@@ -10723,7 +10789,7 @@ function buildMalformedStdinHookOutput(
 async function buildOversizedStopActiveWorkflowOutput(cwd: string): Promise<Record<string, unknown> | null> {
   const currentSession = await readUsableSessionState(cwd);
   const currentSessionId = safeString(currentSession?.session_id).trim()
-    || safeString(process.env.OMX_SESSION_ID || process.env.CODEX_SESSION_ID).trim();
+    || safeString(process.env.NOMX_SESSION_ID || process.env.CODEX_SESSION_ID).trim();
   if (!currentSessionId) return null;
 
   if (await readCanonicalTerminalRunStateForStop(cwd, currentSessionId, "autopilot")) return null;
@@ -10733,13 +10799,13 @@ async function buildOversizedStopActiveWorkflowOutput(cwd: string): Promise<Reco
 
   const phase = formatPhase(autopilotState.current_phase);
   const reason =
-    `OMX native Stop received oversized stdin before parsing while the current session has active OMX autopilot state (phase: ${phase}); continue once with a compact response or reduce hook payload size so normal Stop gates can run.`;
+    `NOMX native Stop received oversized stdin before parsing while the current session has active NOMX autopilot state (phase: ${phase}); continue once with a compact response or reduce hook payload size so normal Stop gates can run.`;
   return {
     decision: "block",
     reason,
     stopReason: "native_stop_stdin_oversized_active_workflow",
     systemMessage:
-      "OMX native Stop rejected oversized stdin before parsing; active current-session workflow state is present, so Stop is blocked instead of silently allowing termination.",
+      "NOMX native Stop rejected oversized stdin before parsing; active current-session workflow state is present, so Stop is blocked instead of silently allowing termination.",
   };
 }
 
@@ -10752,7 +10818,7 @@ async function buildOversizedStdinHookOutput(
   cwd: string,
 ): Promise<Record<string, unknown>> {
   const systemMessage =
-    `OMX native hook rejected oversized stdin JSON before parsing; maxBytes=${MAX_NATIVE_STDIN_JSON_BYTES}.`;
+    `NOMX native hook rejected oversized stdin JSON before parsing; maxBytes=${MAX_NATIVE_STDIN_JSON_BYTES}.`;
   if (rawHookEventName === "PreToolUse") {
     return { systemMessage };
   }
@@ -10803,7 +10869,7 @@ async function logNativeHookCliError(
   payload: CodexHookPayload = {},
   details: Record<string, unknown> = {},
 ): Promise<void> {
-  const logsDir = join(cwd || process.cwd(), ".omx", "logs");
+  const logsDir = join(cwd || process.cwd(), ".nomx", "logs");
   await mkdir(logsDir, { recursive: true }).catch(() => {});
   const logPath = join(logsDir, `native-hook-${new Date().toISOString().split("T")[0]}.jsonl`);
   await appendFile(
@@ -10823,18 +10889,18 @@ async function logNativeHookCliError(
 
 function isStopDispatchFailureTestTrigger(payload: CodexHookPayload): boolean {
   return process.env.NODE_ENV === "test"
-    && process.env.OMX_NATIVE_HOOK_TEST_THROW_STOP_DISPATCH === "1"
+    && process.env.NOMX_NATIVE_HOOK_TEST_THROW_STOP_DISPATCH === "1"
     && readHookEventName(payload) === "Stop";
 }
 
 function isDispatchFailureTestTrigger(): boolean {
   return process.env.NODE_ENV === "test"
-    && process.env.OMX_NATIVE_HOOK_TEST_THROW_DISPATCH === "1";
+    && process.env.NOMX_NATIVE_HOOK_TEST_THROW_DISPATCH === "1";
 }
 
 function buildMalformedPreToolUseBlockTestOutput(payload: CodexHookPayload): Record<string, unknown> | null {
   if (process.env.NODE_ENV !== "test" || readHookEventName(payload) !== "PreToolUse") return null;
-  switch (process.env.OMX_NATIVE_HOOK_TEST_MALFORMED_PRETOOL_BLOCK) {
+  switch (process.env.NOMX_NATIVE_HOOK_TEST_MALFORMED_PRETOOL_BLOCK) {
     case "legacy":
       return {
         decision: "block",
@@ -10857,7 +10923,7 @@ function buildMalformedPreToolUseBlockTestOutput(payload: CodexHookPayload): Rec
 function buildStopDispatchFailureOutput(error: unknown): Record<string, unknown> {
   const detail = error instanceof Error ? error.message : String(error);
   const reason =
-    "OMX native Stop hook failed before normal continuation handling. Continue once more, preserve runtime state, inspect the hook logs, and retry with a valid Stop JSON response.";
+    "NOMX native Stop hook failed before normal continuation handling. Continue once more, preserve runtime state, inspect the hook logs, and retry with a valid Stop JSON response.";
   return {
     decision: "block",
     reason,

@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { describe, it } from 'node:test';
+import { describe, it, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
@@ -11,22 +11,22 @@ import type { NotificationConfig, NotificationPayload } from '../notifier.js';
 
 describe('loadNotificationConfig', () => {
   it('returns null when config file does not exist', async () => {
-    const fakePath = join(tmpdir(), `omx-test-${randomUUID()}`);
+    const fakePath = join(tmpdir(), `nomx-test-${randomUUID()}`);
     const config = await loadNotificationConfig(fakePath);
     assert.equal(config, null);
   });
 
   it('returns parsed config when file exists', async () => {
-    const tmpDir = join(tmpdir(), `omx-test-${randomUUID()}`);
-    const omxDir = join(tmpDir, '.omx');
-    mkdirSync(omxDir, { recursive: true });
+    const tmpDir = join(tmpdir(), `nomx-test-${randomUUID()}`);
+    const nomxDir = join(tmpDir, '.nomx');
+    mkdirSync(nomxDir, { recursive: true });
 
     const configData: NotificationConfig = {
       desktop: true,
       discord: { webhookUrl: 'https://discord.com/api/webhooks/test' },
       telegram: { botToken: '123:abc', chatId: '456' },
     };
-    writeFileSync(join(omxDir, 'notifications.json'), JSON.stringify(configData));
+    writeFileSync(join(nomxDir, 'notifications.json'), JSON.stringify(configData));
 
     try {
       const config = await loadNotificationConfig(tmpDir);
@@ -41,10 +41,10 @@ describe('loadNotificationConfig', () => {
   });
 
   it('returns null for invalid JSON', async () => {
-    const tmpDir = join(tmpdir(), `omx-test-${randomUUID()}`);
-    const omxDir = join(tmpDir, '.omx');
-    mkdirSync(omxDir, { recursive: true });
-    writeFileSync(join(omxDir, 'notifications.json'), 'not-json');
+    const tmpDir = join(tmpdir(), `nomx-test-${randomUUID()}`);
+    const nomxDir = join(tmpDir, '.nomx');
+    mkdirSync(nomxDir, { recursive: true });
+    writeFileSync(join(nomxDir, 'notifications.json'), 'not-json');
 
     try {
       const config = await loadNotificationConfig(tmpDir);
@@ -171,11 +171,23 @@ describe('NotificationPayload type', () => {
 
 describe('_sendJsonHttpsRequest', () => {
   async function withServer(
+    t: TestContext,
     handler: (req: IncomingMessage, res: ServerResponse) => void,
     run: (baseUrl: string) => Promise<void>,
   ): Promise<void> {
     const server = createServer(handler);
-    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      await new Promise<void>((resolve, reject) => {
+        server.once('error', reject);
+        server.listen(0, '127.0.0.1', resolve);
+      });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EPERM' || (error as NodeJS.ErrnoException).code === 'EACCES') {
+        t.skip('local TCP listeners are unavailable in this environment');
+        return;
+      }
+      throw error;
+    }
     try {
       const address = server.address() as AddressInfo;
       await run(`http://127.0.0.1:${address.port}`);
@@ -184,8 +196,8 @@ describe('_sendJsonHttpsRequest', () => {
     }
   }
 
-  it('rejects non-2xx HTTP responses', async () => {
-    await withServer((_req, res) => {
+  it('rejects non-2xx HTTP responses', async (t) => {
+    await withServer(t, (_req, res) => {
       res.statusCode = 500;
       res.end('failed');
     }, async (baseUrl) => {
@@ -200,8 +212,8 @@ describe('_sendJsonHttpsRequest', () => {
     });
   });
 
-  it('configures request timeout and rejects on timeout', async () => {
-    await withServer((_req, _res) => {
+  it('configures request timeout and rejects on timeout', async (t) => {
+    await withServer(t, (_req, _res) => {
       // Leave the response open so the client timeout fires.
     }, async (baseUrl) => {
       await assert.rejects(
@@ -216,8 +228,8 @@ describe('_sendJsonHttpsRequest', () => {
     });
   });
 
-  it('resolves for 2xx responses', async () => {
-    await withServer((_req, res) => {
+  it('resolves for 2xx responses', async (t) => {
+    await withServer(t, (_req, res) => {
       res.statusCode = 204;
       res.end();
     }, async (baseUrl) => {

@@ -19,8 +19,8 @@ describe('research workflow boundary guidance', () => {
 
   it('requires ralplan to synthesize prior research instead of embedding research automation by default', () => {
     const skill = read('skills/ralplan/SKILL.md');
-    assert.match(skill, /treat its approved artifact as evidence for the plan/i);
-    assert.match(skill, /Do not include Autoresearch as a final architecture or runtime component/i);
-    assert.match(skill, /synthesize the evidence into the `\$ralplan` ADR, risks, and verification steps/i);
+    assert.match(skill, /use `\$best-practice-research` as the bounded evidence wrapper/i);
+    assert.match(skill, /official\/upstream lookup before finalizing the planning handoff/i);
+    assert.match(skill, /execution does not start from repo-local recall alone/i);
   });
 });

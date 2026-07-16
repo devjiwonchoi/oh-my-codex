@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { evaluateRalphCompletionAuditEvidence } from '../completion-audit.js';
 
 test('rejects absolute completion-audit paths', async () => {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-audit-absolute-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-audit-absolute-'));
   try {
     const result = evaluateRalphCompletionAuditEvidence({ completion_audit_path: '/etc/hosts' }, cwd);
 
@@ -20,7 +20,7 @@ test('rejects absolute completion-audit paths', async () => {
 });
 
 test('rejects non-JSON completion-audit artifacts', async () => {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-audit-non-json-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-audit-non-json-'));
   try {
     await writeFile(join(cwd, 'audit.md'), 'passed with checklist and tests', 'utf-8');
 
@@ -35,8 +35,8 @@ test('rejects non-JSON completion-audit artifacts', async () => {
 });
 
 test('rejects completion-audit artifacts outside the workspace', async () => {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-audit-traversal-'));
-  const outside = await mkdtemp(join(tmpdir(), 'omx-ralph-audit-outside-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-audit-traversal-'));
+  const outside = await mkdtemp(join(tmpdir(), 'nomx-ralph-audit-outside-'));
   try {
     await writeFile(
       join(outside, 'audit.json'),
@@ -63,8 +63,8 @@ test('rejects completion-audit artifacts outside the workspace', async () => {
 });
 
 test('rejects completion-audit symlinks that resolve outside the workspace', async () => {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-audit-symlink-cwd-'));
-  const outside = await mkdtemp(join(tmpdir(), 'omx-ralph-audit-symlink-outside-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-audit-symlink-cwd-'));
+  const outside = await mkdtemp(join(tmpdir(), 'nomx-ralph-audit-symlink-outside-'));
   try {
     await writeFile(
       join(outside, 'audit.json'),
@@ -89,7 +89,7 @@ test('rejects completion-audit symlinks that resolve outside the workspace', asy
 });
 
 test('rejects malformed and empty completion-audit JSON artifacts', async () => {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-audit-invalid-json-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-audit-invalid-json-'));
   try {
     await writeFile(join(cwd, 'empty.json'), '', 'utf-8');
     await writeFile(join(cwd, 'invalid.json'), '{not json', 'utf-8');
@@ -107,7 +107,7 @@ test('rejects malformed and empty completion-audit JSON artifacts', async () => 
 });
 
 test('requires explicit passed=true in completion-audit evidence', async () => {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-audit-explicit-pass-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-audit-explicit-pass-'));
   try {
     await writeFile(
       join(cwd, 'audit.json'),
@@ -175,7 +175,7 @@ test('requires checklist and verification evidence in inline completion-audit st
 });
 
 test('accepts structured relative JSON completion-audit artifacts with evidence', async () => {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-audit-valid-json-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-audit-valid-json-'));
   try {
     await writeFile(
       join(cwd, 'audit.json'),

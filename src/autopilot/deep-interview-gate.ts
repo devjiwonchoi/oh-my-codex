@@ -210,14 +210,14 @@ function autopilotQuestionEnforcement(
 ): DeepInterviewQuestionEnforcementState | undefined {
   const wait = safeObject(state?.deep_interview_question) ?? safeObject(nestedState(state)?.deep_interview_question);
   if (!wait) return undefined;
-  if (safeString(wait.source) !== 'omx-question') return undefined;
+  if (safeString(wait.source) !== 'nomx-question') return undefined;
   const obligationId = safeString(wait.obligation_id);
   if (!obligationId) return undefined;
   const status = normalizeStatus(wait.status);
   if (status === 'waiting-for-user') {
     return {
       obligation_id: obligationId,
-      source: 'omx-question',
+      source: 'nomx-question',
       status: 'pending',
       lifecycle_outcome: 'askuserQuestion',
       requested_at: safeString(wait.requested_at) || safeString(wait.updated_at),
@@ -226,7 +226,7 @@ function autopilotQuestionEnforcement(
   if (status === 'satisfied') {
     return {
       obligation_id: obligationId,
-      source: 'omx-question',
+      source: 'nomx-question',
       status: 'satisfied',
       lifecycle_outcome: 'askuserQuestion',
       requested_at: safeString(wait.requested_at) || safeString(wait.updated_at),
@@ -238,7 +238,7 @@ function autopilotQuestionEnforcement(
     const clearReason = normalizeStatus(wait.clear_reason);
     return {
       obligation_id: obligationId,
-      source: 'omx-question',
+      source: 'nomx-question',
       status: 'cleared',
       lifecycle_outcome: 'askuserQuestion',
       requested_at: safeString(wait.requested_at) || safeString(wait.updated_at),

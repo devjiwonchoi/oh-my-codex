@@ -10,11 +10,11 @@ describe('prompt guidance contract', () => {
     });
   }
 
-  it('tracked AGENTS surfaces lock agent-owned reversible OMX/runtime actions', () => {
+  it('tracked AGENTS surfaces lock agent-owned reversible NOMX/runtime actions', () => {
     for (const surface of listTrackedAgentSurfaces()) {
       const content = loadSurface(surface);
       assert.match(content, /Do not ask or instruct humans to perform ordinary non-destructive, reversible actions/i);
-      assert.match(content, /Treat OMX runtime manipulation, state transitions, and ordinary command execution as agent responsibilities/i);
+      assert.match(content, /Treat NOMX runtime manipulation, state transitions, and ordinary command execution as agent responsibilities/i);
       assert.doesNotMatch(content, /Run `nomx setup` to install all components\. Run `nomx doctor` to verify installation\./);
     }
   });

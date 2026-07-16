@@ -34,7 +34,7 @@ describe('ultragoal steering fixture matrix', () => {
       assert.equal(fixture.proposal.evidence.trim().length > 0, true, fixture.case);
       assert.equal(fixture.proposal.rationale.trim().length > 0, true, fixture.case);
       assert.equal(fixture.proposal.idempotencyKey?.trim().length, fixture.proposal.idempotencyKey?.length, fixture.case);
-      assert.equal(fixture.before.codexObjective.includes('.omx/ultragoal/goals.json'), true, fixture.case);
+      assert.equal(fixture.before.codexObjective.includes('.nomx/ultragoal/goals.json'), true, fixture.case);
       assert.equal(fixture.expected.isDoneAfterMutation, false, fixture.case);
     }
   });

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { readStdin } from '../plugin-runner-stdin.js';
 
-const RESULT_PREFIX = '__OMX_PLUGIN_RESULT__ ';
+const RESULT_PREFIX = '__NOMX_PLUGIN_RESULT__ ';
 
 function getRunnerPath(): string {
   // Resolve from dist after build
@@ -95,7 +95,7 @@ describe('plugin-runner', () => {
   });
 
   it('preserves dispatcher-sized UTF-8 stdin payloads when multibyte bytes cross a stream boundary', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-runner-utf8-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-runner-utf8-'));
     try {
       const pluginPath = join(cwd, 'utf8-check.mjs');
       await writeFile(
@@ -187,7 +187,7 @@ describe('plugin-runner', () => {
   });
 
   it('emits invalid_export for plugin without onHookEvent', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-runner-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-runner-'));
     try {
       const pluginPath = join(cwd, 'no-export.mjs');
       await writeFile(pluginPath, 'export const x = 1;');
@@ -215,7 +215,7 @@ describe('plugin-runner', () => {
   });
 
   it('emits ok for valid plugin', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-runner-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-runner-'));
     try {
       const pluginPath = join(cwd, 'valid.mjs');
       await writeFile(pluginPath, 'export async function onHookEvent(event, sdk) {}');
@@ -244,7 +244,7 @@ describe('plugin-runner', () => {
   });
 
   it('handles bounded concurrent piped runner requests', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-runner-concurrent-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-runner-concurrent-'));
     try {
       const pluginPath = join(cwd, 'valid-concurrent.mjs');
       await writeFile(pluginPath, 'export async function onHookEvent() {}');
@@ -282,7 +282,7 @@ describe('plugin-runner', () => {
   });
 
   it('exits promptly when a successful plugin leaves handles open', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-runner-open-handle-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-runner-open-handle-'));
     try {
       const pluginPath = join(cwd, 'open-handle.mjs');
       await writeFile(
@@ -318,7 +318,7 @@ describe('plugin-runner', () => {
   });
 
   it('emits runner_error when plugin throws', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-runner-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-runner-'));
     try {
       const pluginPath = join(cwd, 'throws.mjs');
       await writeFile(pluginPath, 'export function onHookEvent() { throw new Error("boom"); }');
@@ -347,7 +347,7 @@ describe('plugin-runner', () => {
   });
 
   it('derives pluginId from path when not provided', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-runner-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-runner-'));
     try {
       const pluginPath = join(cwd, 'derived-name.mjs');
       await writeFile(pluginPath, 'export async function onHookEvent() {}');

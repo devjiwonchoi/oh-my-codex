@@ -18,13 +18,13 @@ describe('analyzePaneContent', () => {
     assert.ok(result.confidence >= 0.5);
   });
 
-  it('detects "omx" keyword', () => {
+  it('detects "nomx" keyword', () => {
     const result = analyzePaneContent('nomx session started');
     assert.equal(result.hasCodex, true);
   });
 
-  it('detects "oh-my-codex" keyword', () => {
-    const result = analyzePaneContent('oh-my-codex v1.0');
+  it('detects "nomx" keyword', () => {
+    const result = analyzePaneContent('nomx v1.0');
     assert.equal(result.hasCodex, true);
   });
 
@@ -81,7 +81,7 @@ describe('analyzePaneContent', () => {
   });
 
   it('caps confidence at 1.0', () => {
-    const result = analyzePaneContent('Codex $ > agent task running omx');
+    const result = analyzePaneContent('Codex $ > agent task running nomx');
     assert.ok(result.confidence <= 1.0);
   });
 

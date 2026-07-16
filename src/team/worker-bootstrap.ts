@@ -24,7 +24,7 @@ import { getTeamChildModel } from "../config/models.js";
 const TEAM_OVERLAY_START = "<!-- OMX:TEAM:WORKER:START -->";
 const TEAM_OVERLAY_END = "<!-- OMX:TEAM:WORKER:END -->";
 const SKILL_REFERENCE_PATTERN = /\/skills\/([^/\s`]+)\/SKILL\.md\b/g;
-const AGENTS_LOCK_PATH = [".omx", "state", "agents-md.lock"];
+const AGENTS_LOCK_PATH = [".nomx", "state", "agents-md.lock"];
 const LOCK_OWNER_FILE = "owner.json";
 const LOCK_TIMEOUT_MS = 5000;
 const LOCK_POLL_INTERVAL_MS = 100;
@@ -57,7 +57,7 @@ function buildWorkerRootAgentsBackupPath(
   const gitPath = tryReadGitValue(worktreePath, [
     "rev-parse",
     "--git-path",
-    "omx/root-agents-backup.json",
+    "nomx/root-agents-backup.json",
   ]);
   return gitPath
     ? gitPath
@@ -76,7 +76,7 @@ export function generateWorkerRootAgentsContent(
 ): string {
   return `# Team Worker Runtime Instructions
 
-This file is generated for a live OMX team worker run and is disposable.
+This file is generated for a live NOMX team worker run and is disposable.
 
 ## Worker Identity
 - Team: ${options.teamName}
@@ -105,7 +105,7 @@ ${renderCodeGraphInstructions(options.toolContext)}
 
    \`nomx team api send-message --input "{\"team_name\":\"${options.teamName}\",\"from_worker\":\"${options.workerName}\",\"to_worker\":\"leader-fixed\",\"body\":\"ACK: ${options.workerName} initialized\"}" --json\`
 
-4. Resolve canonical team state root in this order: \`OMX_TEAM_STATE_ROOT\` env -> worker identity \`team_state_root\` -> config/manifest \`team_state_root\` -> local cwd fallback.
+4. Resolve canonical team state root in this order: \`NOMX_TEAM_STATE_ROOT\` env -> worker identity \`team_state_root\` -> config/manifest \`team_state_root\` -> local cwd fallback.
 5. Read task files from \`${options.teamStateRoot}/team/${options.teamName}/tasks/task-<id>.json\` using bare \`task_id\` values in APIs.
 6. Use claim-safe lifecycle APIs only:
    - \`nomx team api claim-task --json\`
@@ -358,10 +358,10 @@ You are a team worker in team "${teamName}". Your identity and assigned tasks ar
    - \`<leader_cwd>/skills/worker/SKILL.md\` (repo fallback)
 3. Send an ACK to the lead using CLI interop \`nomx team api send-message --json\` (to_worker="leader-fixed") once initialized
 4. Resolve canonical team state root in this order:
-   - OMX_TEAM_STATE_ROOT env
+   - NOMX_TEAM_STATE_ROOT env
    - worker identity team_state_root
    - team config/manifest team_state_root
-   - local cwd fallback (.omx/state)
+   - local cwd fallback (.nomx/state)
 5. Read your task from <team_state_root>/team/${teamName}/tasks/task-<id>.json (example: task-1.json)
 6. Task id format:
    - State/MCP APIs use task_id: "<id>" (example: "1"), never "task-1"
@@ -538,7 +538,7 @@ export async function writeTeamWorkerInstructionsFile(
 
   const outPath = join(
     cwd,
-    ".omx",
+    ".nomx",
     "state",
     "team",
     teamName,
@@ -579,7 +579,7 @@ ${roleOverlay}`
       : roleOverlay.trimStart();
   const outPath = join(
     cwd,
-    ".omx",
+    ".nomx",
     "state",
     "team",
     teamName,
@@ -601,7 +601,7 @@ export async function removeTeamWorkerInstructionsFile(
 ): Promise<void> {
   const outPath = join(
     cwd,
-    ".omx",
+    ".nomx",
     "state",
     "team",
     teamName,
@@ -793,7 +793,7 @@ ${sections.join("\n")}`;
 
 /**
  * Generate initial inbox file content for worker bootstrap.
- * This is written to .omx/state/team/{team}/workers/{worker}/inbox.md by the lead.
+ * This is written to .nomx/state/team/{team}/workers/{worker}/inbox.md by the lead.
  */
 export function generateInitialInbox(
   workerName: string,
@@ -896,7 +896,7 @@ ${approvedContextSection}${workerGoalSection}
    \`nomx team api send-message --input "{\"team_name\":\"${teamName}\",\"from_worker\":\"${workerName}\",\"to_worker\":\"leader-fixed\",\"body\":\"ACK: ${workerName} initialized\"}" --json\`
 
 3. Start with the first non-blocked task
-4. Resolve canonical team state root in this order: \`OMX_TEAM_STATE_ROOT\` env -> worker identity \`team_state_root\` -> config/manifest \`team_state_root\` -> local cwd fallback.
+4. Resolve canonical team state root in this order: \`NOMX_TEAM_STATE_ROOT\` env -> worker identity \`team_state_root\` -> config/manifest \`team_state_root\` -> local cwd fallback.
 5. Read the task file for your selected task id at \`${teamStateRoot}/team/${teamName}/tasks/task-<id>.json\` (example: \`task-1.json\`)
 6. Task id format:
    - State/MCP APIs use \`task_id: "<id>"\` (example: \`"1"\`), not \`"task-1"\`.
@@ -987,7 +987,7 @@ export function generateTaskAssignmentInbox(
     : renderTeamWorkerGoalInstruction({
         teamName,
         workerName,
-        objective: `Complete assigned OMX team task ${taskOrId.id} with verified evidence, preserving leader-owned audit.`,
+        objective: `Complete assigned NOMX team task ${taskOrId.id} with verified evidence, preserving leader-owned audit.`,
         taskIds: [taskOrId.id],
         taskReferences: [{
           id: taskOrId.id,
@@ -1071,7 +1071,7 @@ function buildInstructionPath(...parts: string[]): string {
 export function generateTriggerMessage(
   workerName: string,
   teamName: string,
-  teamStateRoot: string = ".omx/state",
+  teamStateRoot: string = ".nomx/state",
 ): string {
   return buildTriggerDirective(workerName, teamName, teamStateRoot).text;
 }
@@ -1079,7 +1079,7 @@ export function generateTriggerMessage(
 export function buildTriggerDirective(
   workerName: string,
   teamName: string,
-  teamStateRoot: string = ".omx/state",
+  teamStateRoot: string = ".nomx/state",
 ): TeamReminderDirective {
   const inboxPath = buildInstructionPath(
     teamStateRoot,
@@ -1089,7 +1089,7 @@ export function buildTriggerDirective(
     workerName,
     "inbox.md",
   );
-  if (teamStateRoot !== ".omx/state") {
+  if (teamStateRoot !== ".nomx/state") {
     return {
       intent: "followup-relaunch",
       text: `Read ${inboxPath}, work now, report progress, continue assigned work or next feasible task.`,
@@ -1109,7 +1109,7 @@ export function generateMailboxTriggerMessage(
   workerName: string,
   teamName: string,
   count: number,
-  teamStateRoot: string = ".omx/state",
+  teamStateRoot: string = ".nomx/state",
 ): string {
   return buildMailboxTriggerDirective(workerName, teamName, count, teamStateRoot).text;
 }
@@ -1118,7 +1118,7 @@ export function buildMailboxTriggerDirective(
   workerName: string,
   teamName: string,
   count: number,
-  teamStateRoot: string = ".omx/state",
+  teamStateRoot: string = ".nomx/state",
 ): TeamReminderDirective {
   const n = Number.isFinite(count) ? Math.max(1, Math.floor(count)) : 1;
   const mailboxPath = buildInstructionPath(
@@ -1128,7 +1128,7 @@ export function buildMailboxTriggerDirective(
     "mailbox",
     workerName + ".json",
   );
-  if (teamStateRoot !== ".omx/state") {
+  if (teamStateRoot !== ".nomx/state") {
     return {
       intent: "pending-mailbox-review",
       text: `${n} new msg(s): read ${mailboxPath}, act, report progress, continue assigned work or next feasible task.`,
@@ -1143,7 +1143,7 @@ export function buildMailboxTriggerDirective(
 export function generateLeaderMailboxTriggerMessage(
   teamName: string,
   fromWorker: string,
-  teamStateRoot: string = ".omx/state",
+  teamStateRoot: string = ".nomx/state",
 ): string {
   return buildLeaderMailboxTriggerDirective(teamName, fromWorker, teamStateRoot).text;
 }
@@ -1151,7 +1151,7 @@ export function generateLeaderMailboxTriggerMessage(
 export function buildLeaderMailboxTriggerDirective(
   teamName: string,
   fromWorker: string,
-  teamStateRoot: string = ".omx/state",
+  teamStateRoot: string = ".nomx/state",
 ): TeamReminderDirective {
   const mailboxPath = buildInstructionPath(
     teamStateRoot,
@@ -1160,7 +1160,7 @@ export function buildLeaderMailboxTriggerDirective(
     "mailbox",
     "leader-fixed.json",
   );
-  if (teamStateRoot !== ".omx/state") {
+  if (teamStateRoot !== ".nomx/state") {
     return {
       intent: "pending-mailbox-review",
       text: `Read ${mailboxPath}; new msg from ${fromWorker}. Review it; decide next step.`,

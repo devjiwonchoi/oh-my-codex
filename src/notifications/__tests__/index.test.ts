@@ -9,7 +9,7 @@ const ENV_KEYS = ['CODEX_HOME', 'TMUX', 'TMUX_PANE', 'PATH'] as const;
 const originalFetch = globalThis.fetch;
 
 function writeNotificationConfig(codexHome: string): void {
-  writeFileSync(join(codexHome, '.omx-config.json'), JSON.stringify({
+  writeFileSync(join(codexHome, '.nomx-config.json'), JSON.stringify({
     notifications: {
       enabled: true,
       webhook: {
@@ -39,8 +39,8 @@ exit 2
 
 describe('notifyLifecycle tmux tail auto-capture', () => {
   let originalEnv: NodeJS.ProcessEnv;
-  const codexHome = mkdtempSync(join(tmpdir(), 'omx-notify-index-codex-home-'));
-  const fakeBinDir = mkdtempSync(join(tmpdir(), 'omx-notify-index-fake-bin-'));
+  const codexHome = mkdtempSync(join(tmpdir(), 'nomx-notify-index-codex-home-'));
+  const fakeBinDir = mkdtempSync(join(tmpdir(), 'nomx-notify-index-fake-bin-'));
 
   before(() => {
     originalEnv = { ...process.env };
@@ -82,7 +82,7 @@ describe('notifyLifecycle tmux tail auto-capture', () => {
         return new Response('', { status: 200 });
       };
 
-      const projectPath = mkdtempSync(join(tmpdir(), `omx-notify-index-project-${eventName}-`));
+      const projectPath = mkdtempSync(join(tmpdir(), `nomx-notify-index-project-${eventName}-`));
       const result = await notifyLifecycle(eventName, {
         sessionId: `sess-${eventName}-${Date.now()}`,
         projectPath,
@@ -110,7 +110,7 @@ describe('notifyLifecycle tmux tail auto-capture', () => {
     };
     writeNotificationConfig(codexHome);
 
-    const projectPath = mkdtempSync(join(tmpdir(), 'omx-notify-index-project-idle-'));
+    const projectPath = mkdtempSync(join(tmpdir(), 'nomx-notify-index-project-idle-'));
     const { notifyLifecycle } = await import('../index.js');
     const result = await notifyLifecycle('session-idle', {
       sessionId: `sess-idle-${Date.now()}`,

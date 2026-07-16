@@ -19,7 +19,7 @@ const TOKEN = 'abcdef0123456789abcdef0123456789';
 const TOKEN2 = '00112233445566778899aabbccddeeff';
 
 async function withCwd(fn: (cwd: string) => Promise<void>): Promise<void> {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-3181-bootstrap-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-3181-bootstrap-'));
   try {
     await fn(cwd);
   } finally {
@@ -156,7 +156,7 @@ describe('#3181 leader bootstrap tracker carrier', () => {
   it('fails closed (native_anchor_unavailable) when the tracker file exists but is corrupt', async () => {
     await withCwd(async (cwd) => {
       const path = subagentTrackingPath(cwd);
-      await mkdir(join(cwd, '.omx', 'state'), { recursive: true });
+      await mkdir(join(cwd, '.nomx', 'state'), { recursive: true });
       await writeFile(path, '{ this is not valid json');
       const result = attestLeaderThread(cwd, { sessionId: 'sess-a', leaderThreadId: 'leader-thread-a', source: 'native-pretooluse' });
       assert.deepEqual(result, { ok: false, reason: 'native_anchor_unavailable' });

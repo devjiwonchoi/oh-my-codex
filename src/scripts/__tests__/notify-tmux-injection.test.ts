@@ -8,7 +8,7 @@ import { readVisibleAllowedModes } from '../notify-hook/tmux-injection.js';
 
 describe('notify-hook tmux injection canonical skill gating', () => {
   it('reads canonical skill-active state from authoritative team state root', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-tmux-team-root-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-tmux-team-root-'));
     try {
       const teamStateRoot = join(wd, 'team-state-root');
       const sessionId = 'sess-team-root';
@@ -48,9 +48,9 @@ describe('notify-hook tmux injection canonical skill gating', () => {
   });
 
   it('treats missing session canonical state as session-scoped inactive instead of root fallback', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-tmux-missing-canonical-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-tmux-missing-canonical-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-current';
       await mkdir(join(stateDir, 'sessions', sessionId), { recursive: true });
       await writeFile(

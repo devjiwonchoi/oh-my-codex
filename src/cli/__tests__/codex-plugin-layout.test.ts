@@ -8,13 +8,13 @@ import { buildMergedConfig } from '../../config/generator.js';
 import type { CatalogManifest } from '../../catalog/schema.js';
 import { getSetupInstallableSkillNames } from '../../catalog/installable.js';
 import {
-  buildOmxPluginMcpManifest,
-  OMX_FIRST_PARTY_MCP_ENTRYPOINTS,
-  OMX_FIRST_PARTY_MCP_PLUGIN_TARGETS,
-  OMX_FIRST_PARTY_MCP_SERVER_NAMES,
-  OMX_PLUGIN_MCP_COMMAND,
-  OMX_PLUGIN_MCP_SERVE_SUBCOMMAND,
-} from '../../config/omx-first-party-mcp.js';
+  buildNomxPluginMcpManifest,
+  NOMX_FIRST_PARTY_MCP_ENTRYPOINTS,
+  NOMX_FIRST_PARTY_MCP_PLUGIN_TARGETS,
+  NOMX_FIRST_PARTY_MCP_SERVER_NAMES,
+  NOMX_PLUGIN_MCP_COMMAND,
+  NOMX_PLUGIN_MCP_SERVE_SUBCOMMAND,
+} from '../../config/nomx-first-party-mcp.js';
 
 type PackageJson = {
   version: string;
@@ -51,7 +51,7 @@ type Marketplace = {
 };
 
 const root = process.cwd();
-const pluginName = 'oh-my-codex';
+const pluginName = 'nomx';
 const pluginRoot = join(root, 'plugins', pluginName);
 const pluginManifestPath = join(pluginRoot, '.codex-plugin', 'plugin.json');
 const pluginMcpPath = join(pluginRoot, '.mcp.json');
@@ -59,7 +59,7 @@ const pluginAppsPath = join(pluginRoot, '.app.json');
 const pluginHooksPath = join(pluginRoot, 'hooks', 'hooks.json');
 const pluginHookLauncherPath = join(pluginRoot, 'hooks', 'codex-native-hook.mjs');
 const marketplacePath = join(root, '.agents', 'plugins', 'marketplace.json');
-const omxBin = join(root, 'dist', 'cli', 'nomx.js');
+const nomxBin = join(root, 'dist', 'cli', 'nomx.js');
 
 type PluginMcpManifest = {
   mcpServers?: Record<string, {
@@ -103,7 +103,7 @@ async function writeOmxShim(binDir: string): Promise<void> {
   if (process.platform === 'win32') {
     await writeFile(
       join(binDir, 'nomx.cmd'),
-      `@echo off\r\n"${process.execPath}" "${omxBin}" %*\r\n`,
+      `@echo off\r\n"${process.execPath}" "${nomxBin}" %*\r\n`,
       'utf-8',
     );
     return;
@@ -112,14 +112,14 @@ async function writeOmxShim(binDir: string): Promise<void> {
   const shimPath = join(binDir, 'nomx');
   await writeFile(
     shimPath,
-    `#!/bin/sh\nexec "${process.execPath}" "${omxBin}" "$@"\n`,
+    `#!/bin/sh\nexec "${process.execPath}" "${nomxBin}" "$@"\n`,
     'utf-8',
   );
   await chmod(shimPath, 0o755);
 }
 
 async function createPluginMirrorFixtureRoot(): Promise<string> {
-  const fixtureRoot = await mkdtemp(join(tmpdir(), 'omx-plugin-mirror-fixture-'));
+  const fixtureRoot = await mkdtemp(join(tmpdir(), 'nomx-plugin-mirror-fixture-'));
   await Promise.all([
     mkdir(join(fixtureRoot, 'plugins'), { recursive: true }),
     mkdir(join(fixtureRoot, 'src', 'catalog'), { recursive: true }),
@@ -148,7 +148,7 @@ async function assertSyncPluginRepairsMissingHooksPointer(): Promise<void> {
       encoding: 'utf-8',
       env: {
         ...process.env,
-        OMX_AUTO_UPDATE: '0',
+        NOMX_AUTO_UPDATE: '0',
       },
     });
 
@@ -176,7 +176,7 @@ async function assertSyncPluginCheckRejectsLauncherWithoutContract(): Promise<vo
     const launcher = await readFile(fixtureHookLauncherPath, 'utf-8');
     await writeFile(
       fixtureHookLauncherPath,
-      launcher.replace('omx-plugin-hook-launcher:v1', 'omx-plugin-hook-launcher:missing'),
+      launcher.replace('nomx-plugin-hook-launcher:v1', 'nomx-plugin-hook-launcher:missing'),
       'utf-8',
     );
 
@@ -185,7 +185,7 @@ async function assertSyncPluginCheckRejectsLauncherWithoutContract(): Promise<vo
       encoding: 'utf-8',
       env: {
         ...process.env,
-        OMX_AUTO_UPDATE: '0',
+        NOMX_AUTO_UPDATE: '0',
       },
     });
 
@@ -211,7 +211,7 @@ async function assertPluginHookEventsAlignWithLauncher(): Promise<void> {
 }
 
 async function assertPluginHookLaunchesPostCompactFromCache(): Promise<void> {
-  const cacheRoot = await mkdtemp(join(tmpdir(), 'omx-plugin-hook-cache-'));
+  const cacheRoot = await mkdtemp(join(tmpdir(), 'nomx-plugin-hook-cache-'));
   const cachePluginRoot = join(cacheRoot, pluginName, 'local');
   const shimDir = join(cacheRoot, 'bin');
   await cp(pluginRoot, cachePluginRoot, { recursive: true });
@@ -220,7 +220,7 @@ async function assertPluginHookLaunchesPostCompactFromCache(): Promise<void> {
   try {
     const payload = JSON.stringify({
       hook_event_name: 'PostCompact',
-      session_id: 'omx-plugin-hook-postcompact-smoke',
+      session_id: 'nomx-plugin-hook-postcompact-smoke',
       transcript_path: join(cacheRoot, 'missing-transcript.jsonl'),
       cwd: cacheRoot,
     });
@@ -231,15 +231,15 @@ async function assertPluginHookLaunchesPostCompactFromCache(): Promise<void> {
       env: {
         ...process.env,
         PATH: `${shimDir}${delimiter}${process.env.PATH || ''}`,
-        OMX_AUTO_UPDATE: '0',
-        OMX_NOTIFY_FALLBACK: '0',
-        OMX_HOOK_DERIVED_SIGNALS: '0',
-        OMX_ROOT: join(cacheRoot, '.omx-root'),
-        OMX_SESSION_ID: 'omx-plugin-hook-postcompact-smoke',
-        OMX_SOURCE_CWD: cacheRoot,
-        OMX_ENTRY_PATH: omxBin,
-        OMX_CODEX_LAUNCH_ID: 'omx-plugin-hook-postcompact-smoke-launch',
-        OMX_STARTUP_CWD: cacheRoot,
+        NOMX_AUTO_UPDATE: '0',
+        NOMX_NOTIFY_FALLBACK: '0',
+        NOMX_HOOK_DERIVED_SIGNALS: '0',
+        NOMX_ROOT: join(cacheRoot, '.nomx-root'),
+        NOMX_SESSION_ID: 'nomx-plugin-hook-postcompact-smoke',
+        NOMX_SOURCE_CWD: cacheRoot,
+        NOMX_ENTRY_PATH: nomxBin,
+        NOMX_CODEX_LAUNCH_ID: 'nomx-plugin-hook-postcompact-smoke-launch',
+        NOMX_STARTUP_CWD: cacheRoot,
       },
     });
 
@@ -252,7 +252,7 @@ async function assertPluginHookLaunchesPostCompactFromCache(): Promise<void> {
 }
 
 async function assertPluginHookDelegatesPostCompactToPinnedCommand(): Promise<void> {
-  const cacheRoot = await mkdtemp(join(tmpdir(), 'omx-plugin-hook-delegate-'));
+  const cacheRoot = await mkdtemp(join(tmpdir(), 'nomx-plugin-hook-delegate-'));
   const cachePluginRoot = join(cacheRoot, pluginName, 'local');
   const recorderPath = join(cacheRoot, 'record-hook.mjs');
   const argsPath = join(cacheRoot, 'recorded-args.json');
@@ -270,7 +270,7 @@ async function assertPluginHookDelegatesPostCompactToPinnedCommand(): Promise<vo
     ].join('\n'),
     'utf-8',
   );
-  await writeJson(join(cachePluginRoot, 'hooks', 'omx-command.json'), {
+  await writeJson(join(cachePluginRoot, 'hooks', 'nomx-command.json'), {
     command: process.execPath,
     argsPrefix: [recorderPath],
   });
@@ -278,7 +278,7 @@ async function assertPluginHookDelegatesPostCompactToPinnedCommand(): Promise<vo
   try {
     const payload = JSON.stringify({
       hook_event_name: 'PostCompact',
-      session_id: 'omx-plugin-hook-postcompact-delegate',
+      session_id: 'nomx-plugin-hook-postcompact-delegate',
       transcript_path: join(cacheRoot, 'missing-transcript.jsonl'),
       cwd: cacheRoot,
     });
@@ -288,15 +288,15 @@ async function assertPluginHookDelegatesPostCompactToPinnedCommand(): Promise<vo
       input: payload,
       env: {
         ...process.env,
-        OMX_AUTO_UPDATE: '0',
-        OMX_NOTIFY_FALLBACK: '0',
-        OMX_HOOK_DERIVED_SIGNALS: '0',
-        OMX_ROOT: join(cacheRoot, '.omx-root'),
-        OMX_SESSION_ID: 'omx-plugin-hook-postcompact-delegate',
-        OMX_SOURCE_CWD: cacheRoot,
-        OMX_ENTRY_PATH: omxBin,
-        OMX_CODEX_LAUNCH_ID: 'omx-plugin-hook-postcompact-delegate-launch',
-        OMX_STARTUP_CWD: cacheRoot,
+        NOMX_AUTO_UPDATE: '0',
+        NOMX_NOTIFY_FALLBACK: '0',
+        NOMX_HOOK_DERIVED_SIGNALS: '0',
+        NOMX_ROOT: join(cacheRoot, '.nomx-root'),
+        NOMX_SESSION_ID: 'nomx-plugin-hook-postcompact-delegate',
+        NOMX_SOURCE_CWD: cacheRoot,
+        NOMX_ENTRY_PATH: nomxBin,
+        NOMX_CODEX_LAUNCH_ID: 'nomx-plugin-hook-postcompact-delegate-launch',
+        NOMX_STARTUP_CWD: cacheRoot,
       },
     });
 
@@ -310,23 +310,23 @@ async function assertPluginHookDelegatesPostCompactToPinnedCommand(): Promise<vo
 }
 
 async function assertPluginCacheLaunchable(entrypoint: string): Promise<void> {
-  const cacheRoot = await mkdtemp(join(tmpdir(), 'omx-plugin-cache-'));
+  const cacheRoot = await mkdtemp(join(tmpdir(), 'nomx-plugin-cache-'));
   const cachePluginRoot = join(cacheRoot, pluginName, 'local');
   const shimDir = join(cacheRoot, 'bin');
   await cp(pluginRoot, cachePluginRoot, { recursive: true });
   await writeOmxShim(shimDir);
 
   try {
-    const result = spawnSync(OMX_PLUGIN_MCP_COMMAND, [OMX_PLUGIN_MCP_SERVE_SUBCOMMAND, entrypoint], {
+    const result = spawnSync(NOMX_PLUGIN_MCP_COMMAND, [NOMX_PLUGIN_MCP_SERVE_SUBCOMMAND, entrypoint], {
       cwd: cachePluginRoot,
       encoding: 'utf-8',
       input: '',
       env: {
         ...process.env,
         PATH: `${shimDir}${delimiter}${process.env.PATH || ''}`,
-        OMX_AUTO_UPDATE: '0',
-        OMX_NOTIFY_FALLBACK: '0',
-        OMX_HOOK_DERIVED_SIGNALS: '0',
+        NOMX_AUTO_UPDATE: '0',
+        NOMX_NOTIFY_FALLBACK: '0',
+        NOMX_HOOK_DERIVED_SIGNALS: '0',
       },
     });
 
@@ -345,7 +345,7 @@ function parseSingleJsonStdout(stdout: string): Record<string, unknown> {
 }
 
 async function withPluginCacheCopy<T>(run: (cachePluginRoot: string, cacheRoot: string) => Promise<T>): Promise<T> {
-  const cacheRoot = await mkdtemp(join(tmpdir(), 'omx-plugin-hook-cache-'));
+  const cacheRoot = await mkdtemp(join(tmpdir(), 'nomx-plugin-hook-cache-'));
   const cachePluginRoot = join(cacheRoot, pluginName, 'local');
   await cp(pluginRoot, cachePluginRoot, { recursive: true });
   try {
@@ -358,22 +358,22 @@ async function withPluginCacheCopy<T>(run: (cachePluginRoot: string, cacheRoot: 
 function pluginHookEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   const env = { ...process.env };
   for (const key of [
-    'OMX_TEAM_STATE_ROOT',
-    'OMX_ROOT',
-    'OMX_STATE_ROOT',
-    'OMX_SESSION_ID',
+    'NOMX_TEAM_STATE_ROOT',
+    'NOMX_ROOT',
+    'NOMX_STATE_ROOT',
+    'NOMX_SESSION_ID',
     'CODEX_SESSION_ID',
-    'OMX_ENTRY_PATH',
-    'OMX_CODEX_LAUNCH_ID',
-    'OMX_STARTUP_CWD',
+    'NOMX_ENTRY_PATH',
+    'NOMX_CODEX_LAUNCH_ID',
+    'NOMX_STARTUP_CWD',
   ]) {
     delete env[key];
   }
   return {
     ...env,
-    OMX_ENTRY_PATH: omxBin,
-    OMX_CODEX_LAUNCH_ID: 'omx-plugin-layout-launch',
-    OMX_STARTUP_CWD: root,
+    NOMX_ENTRY_PATH: nomxBin,
+    NOMX_CODEX_LAUNCH_ID: 'nomx-plugin-layout-launch',
+    NOMX_STARTUP_CWD: root,
     ...overrides,
   };
 }
@@ -405,7 +405,7 @@ describe('official Codex plugin layout', () => {
     assert.equal(manifest.skills, './skills/');
     assert.equal(manifest.mcpServers, './.mcp.json');
     assert.equal(manifest.apps, './.app.json');
-    assert.equal(manifest.interface?.displayName, 'oh-my-codex');
+    assert.equal(manifest.interface?.displayName, 'NOMX');
     assert.equal(manifest.interface?.category, 'Developer Tools');
     assert.ok(manifest.interface?.shortDescription, 'expected short interface description');
     assert.ok(manifest.interface?.longDescription, 'expected long interface description');
@@ -430,7 +430,7 @@ describe('official Codex plugin layout', () => {
       readJson<PluginAppsManifest>(pluginAppsPath),
       readJson<{ hooks?: Record<string, Array<{ matcher?: string; hooks?: Array<{ command?: string }> }>> }>(pluginHooksPath),
     ]);
-    const expectedPluginMcpManifest = buildOmxPluginMcpManifest();
+    const expectedPluginMcpManifest = buildNomxPluginMcpManifest();
 
     const pluginManifest = await readJson<PluginManifest>(pluginManifestPath);
     assert.equal(pluginManifest.agents, undefined);
@@ -453,15 +453,15 @@ describe('official Codex plugin layout', () => {
     assert.deepEqual(mcpManifest, expectedPluginMcpManifest);
 
     for (const [serverName, server] of Object.entries(mcpManifest.mcpServers ?? {})) {
-      assert.equal(server.command, OMX_PLUGIN_MCP_COMMAND, `${serverName} should run via nomx`);
+      assert.equal(server.command, NOMX_PLUGIN_MCP_COMMAND, `${serverName} should run via nomx`);
       assert.notEqual(server.command, 'node', `${serverName} should not depend on a bare node command`);
       assert.equal(server.enabled, false, `${serverName} should be disabled by default`);
       assert.equal(server.args?.length, 2, `${serverName} should have serve subcommand + public target args`);
-      assert.equal(server.args?.[0], OMX_PLUGIN_MCP_SERVE_SUBCOMMAND, `${serverName} should launch through nomx mcp-serve`);
+      assert.equal(server.args?.[0], NOMX_PLUGIN_MCP_SERVE_SUBCOMMAND, `${serverName} should launch through nomx mcp-serve`);
       const target = server.args?.[1];
       assert.ok(target, `${serverName} should declare a public target`);
       assert.equal(target?.includes('..'), false, `${serverName} should not depend on path traversal outside the plugin root`);
-      assert.equal(OMX_FIRST_PARTY_MCP_PLUGIN_TARGETS.includes(target ?? ''), true, `${serverName} should use a stable public OMX MCP target`);
+      assert.equal(NOMX_FIRST_PARTY_MCP_PLUGIN_TARGETS.includes(target ?? ''), true, `${serverName} should use a stable public NOMX MCP target`);
       assert.equal(target?.endsWith('-server.js'), false, `${serverName} should not expose internal dist filenames in plugin metadata`);
     }
   });
@@ -477,7 +477,7 @@ describe('official Codex plugin layout', () => {
     assert.doesNotMatch(launcher, /shell:\s*process\.platform === 'win32'/);
   });
 
-  it('no-ops plugin hooks when Codex was not launched through omx', async () => {
+  it('no-ops plugin hooks when Codex was not launched through nomx', async () => {
     await withPluginCacheCopy(async (cachePluginRoot, cacheRoot) => {
       const calledPath = join(cacheRoot, 'called.txt');
       const commandPath = join(cacheRoot, process.platform === 'win32' ? 'record-called.cmd' : 'record-called.sh');
@@ -492,9 +492,9 @@ describe('official Codex plugin layout', () => {
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: '$ralplan smoke' }),
         {
-          OMX_ENTRY_PATH: '',
-          OMX_CODEX_LAUNCH_ID: '',
-          OMX_NATIVE_HOOK_COMMAND: commandPath,
+          NOMX_ENTRY_PATH: '',
+          NOMX_CODEX_LAUNCH_ID: '',
+          NOMX_NATIVE_HOOK_COMMAND: commandPath,
         },
       );
 
@@ -506,9 +506,9 @@ describe('official Codex plugin layout', () => {
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'Stop', session_id: 'plain-codex-stop' }),
         {
-          OMX_ENTRY_PATH: '',
-          OMX_CODEX_LAUNCH_ID: '',
-          OMX_NATIVE_HOOK_COMMAND: commandPath,
+          NOMX_ENTRY_PATH: '',
+          NOMX_CODEX_LAUNCH_ID: '',
+          NOMX_NATIVE_HOOK_COMMAND: commandPath,
         },
       );
 
@@ -523,9 +523,9 @@ describe('official Codex plugin layout', () => {
           prompt: 'x'.repeat(2 * 1024 * 1024),
         }),
         {
-          OMX_ENTRY_PATH: '',
-          OMX_CODEX_LAUNCH_ID: '',
-          OMX_NATIVE_HOOK_COMMAND: commandPath,
+          NOMX_ENTRY_PATH: '',
+          NOMX_CODEX_LAUNCH_ID: '',
+          NOMX_NATIVE_HOOK_COMMAND: commandPath,
         },
       );
 
@@ -542,9 +542,9 @@ describe('official Codex plugin layout', () => {
           padding: 'x'.repeat(2 * 1024 * 1024),
         }),
         {
-          OMX_ENTRY_PATH: '',
-          OMX_CODEX_LAUNCH_ID: '',
-          OMX_NATIVE_HOOK_COMMAND: commandPath,
+          NOMX_ENTRY_PATH: '',
+          NOMX_CODEX_LAUNCH_ID: '',
+          NOMX_NATIVE_HOOK_COMMAND: commandPath,
         },
       );
 
@@ -567,10 +567,10 @@ describe('official Codex plugin layout', () => {
       }
 
       const inheritedEnv = {
-        OMX_ROOT: join(cacheRoot, '.omx-root'),
-        OMX_ENTRY_PATH: omxBin,
-        OMX_CODEX_LAUNCH_ID: 'inherited-launch-token',
-        OMX_NATIVE_HOOK_COMMAND: commandPath,
+        NOMX_ROOT: join(cacheRoot, '.nomx-root'),
+        NOMX_ENTRY_PATH: nomxBin,
+        NOMX_CODEX_LAUNCH_ID: 'inherited-launch-token',
+        NOMX_NATIVE_HOOK_COMMAND: commandPath,
       };
       const owner = runPluginNativeHook(
         cachePluginRoot,
@@ -606,7 +606,7 @@ describe('official Codex plugin layout', () => {
 
   it('emits Stop JSON when the plugin hook pinned launcher is invalid', async () => {
     await withPluginCacheCopy(async (cachePluginRoot) => {
-      await writeFile(join(cachePluginRoot, 'hooks', 'omx-command.json'), '{"command":', 'utf-8');
+      await writeFile(join(cachePluginRoot, 'hooks', 'nomx-command.json'), '{"command":', 'utf-8');
 
       const result = runPluginNativeHook(cachePluginRoot, JSON.stringify({
         hook_event_name: 'Stop',
@@ -627,7 +627,7 @@ describe('official Codex plugin layout', () => {
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'Stop', session_id: 'sess-plugin-missing-command-stop' }),
         {
-          OMX_NATIVE_HOOK_COMMAND: join(cacheRoot, 'bin', 'missing-omx-command'),
+          NOMX_NATIVE_HOOK_COMMAND: join(cacheRoot, 'bin', 'missing-nomx-command'),
         },
       );
 
@@ -644,7 +644,7 @@ describe('official Codex plugin layout', () => {
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'Stop', session_id: 'sess-plugin-false-command-stop' }),
         {
-          OMX_NATIVE_HOOK_COMMAND: process.platform === 'win32' ? 'cmd.exe /c exit 1' : '/usr/bin/false',
+          NOMX_NATIVE_HOOK_COMMAND: process.platform === 'win32' ? 'cmd.exe /c exit 1' : '/usr/bin/false',
         },
       );
 
@@ -668,7 +668,7 @@ describe('official Codex plugin layout', () => {
       const result = runPluginNativeHook(
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'Stop', session_id: 'sess-plugin-empty-ok-stop' }),
-        { OMX_NATIVE_HOOK_COMMAND: commandPath },
+        { NOMX_NATIVE_HOOK_COMMAND: commandPath },
       );
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -691,7 +691,7 @@ describe('official Codex plugin layout', () => {
       const result = runPluginNativeHook(
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'Stop', session_id: 'sess-plugin-partial-stop' }),
-        { OMX_NATIVE_HOOK_COMMAND: commandPath },
+        { NOMX_NATIVE_HOOK_COMMAND: commandPath },
       );
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -718,7 +718,7 @@ exit 7
       const result = runPluginNativeHook(
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'Stop', session_id: 'sess-plugin-valid-json-exit-stop' }),
-        { OMX_NATIVE_HOOK_COMMAND: commandPath },
+        { NOMX_NATIVE_HOOK_COMMAND: commandPath },
       );
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -750,7 +750,7 @@ printf '${childJson}\n'
       const result = runPluginNativeHook(
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'Stop', session_id: 'sess-plugin-complete-valid-json-stop' }),
-        { OMX_NATIVE_HOOK_COMMAND: commandPath },
+        { NOMX_NATIVE_HOOK_COMMAND: commandPath },
       );
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -779,7 +779,7 @@ printf '}\n'
       const result = runPluginNativeHook(
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'Stop', session_id: 'sess-plugin-pretty-valid-json-stop' }),
-        { OMX_NATIVE_HOOK_COMMAND: commandPath },
+        { NOMX_NATIVE_HOOK_COMMAND: commandPath },
       );
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -807,10 +807,10 @@ printf '{"decision":"block","stopReason":"autopilot_ultragoal"}\n'
         cachePluginRoot,
         JSON.stringify({
           hook_event_name: 'Stop',
-          session_id: 'omx-1783508412223-c32f1l',
+          session_id: 'nomx-1783508412223-c32f1l',
           cwd: cacheRoot,
         }),
-        { OMX_NATIVE_HOOK_COMMAND: commandPath },
+        { NOMX_NATIVE_HOOK_COMMAND: commandPath },
       );
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -838,7 +838,7 @@ printf 'trailing runtime noise\n'
       const result = runPluginNativeHook(
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'Stop', session_id: 'sess-plugin-trailing-noise-stop' }),
-        { OMX_NATIVE_HOOK_COMMAND: commandPath },
+        { NOMX_NATIVE_HOOK_COMMAND: commandPath },
       );
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -866,7 +866,7 @@ printf '{"decision":"block","stopReason":"second_json"}\n'
       const result = runPluginNativeHook(
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'Stop', session_id: 'sess-plugin-json-noise-json-stop' }),
-        { OMX_NATIVE_HOOK_COMMAND: commandPath },
+        { NOMX_NATIVE_HOOK_COMMAND: commandPath },
       );
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -898,7 +898,7 @@ printf '{"level":"info"}\n'
       const result = runPluginNativeHook(
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'Stop', session_id: 'sess-plugin-pretty-json-final-log-stop' }),
-        { OMX_NATIVE_HOOK_COMMAND: commandPath },
+        { NOMX_NATIVE_HOOK_COMMAND: commandPath },
       );
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -925,7 +925,7 @@ head -c 1100000 /dev/zero | tr '\0' x
       const result = runPluginNativeHook(
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'Stop', session_id: 'sess-plugin-oversized-stdout-stop' }),
-        { OMX_NATIVE_HOOK_COMMAND: commandPath },
+        { NOMX_NATIVE_HOOK_COMMAND: commandPath },
       );
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -938,7 +938,7 @@ head -c 1100000 /dev/zero | tr '\0' x
 
   it('emits Stop JSON for malformed Stop-looking stdin before invalid launcher failure', async () => {
     await withPluginCacheCopy(async (cachePluginRoot) => {
-      await writeFile(join(cachePluginRoot, 'hooks', 'omx-command.json'), '{"command":', 'utf-8');
+      await writeFile(join(cachePluginRoot, 'hooks', 'nomx-command.json'), '{"command":', 'utf-8');
 
       const result = runPluginNativeHook(cachePluginRoot, '{"hook_event_name":"Stop","session_id":"sess-plugin-malformed-stop",');
 
@@ -951,7 +951,7 @@ head -c 1100000 /dev/zero | tr '\0' x
 
   it('emits Stop JSON for the core-supported name alias before invalid launcher failure', async () => {
     await withPluginCacheCopy(async (cachePluginRoot) => {
-      await writeFile(join(cachePluginRoot, 'hooks', 'omx-command.json'), '{"command":', 'utf-8');
+      await writeFile(join(cachePluginRoot, 'hooks', 'nomx-command.json'), '{"command":', 'utf-8');
 
       const result = runPluginNativeHook(cachePluginRoot, '{"name":"Stop","session_id":"sess-plugin-malformed-name-stop",');
 
@@ -964,7 +964,7 @@ head -c 1100000 /dev/zero | tr '\0' x
 
   it('emits no stdout and exits zero when the plugin PreCompact pinned launcher is invalid', async () => {
     await withPluginCacheCopy(async (cachePluginRoot) => {
-      await writeFile(join(cachePluginRoot, 'hooks', 'omx-command.json'), '{"command":', 'utf-8');
+      await writeFile(join(cachePluginRoot, 'hooks', 'nomx-command.json'), '{"command":', 'utf-8');
 
       const result = runPluginNativeHook(cachePluginRoot, JSON.stringify({
         hook_event_name: 'PreCompact',
@@ -983,7 +983,7 @@ head -c 1100000 /dev/zero | tr '\0' x
         cachePluginRoot,
         JSON.stringify({ hook_event_name: 'PostCompact', session_id: 'sess-plugin-missing-command-postcompact' }),
         {
-          OMX_NATIVE_HOOK_COMMAND: join(cacheRoot, 'bin', 'missing-omx-command'),
+          NOMX_NATIVE_HOOK_COMMAND: join(cacheRoot, 'bin', 'missing-nomx-command'),
         },
       );
 
@@ -994,7 +994,7 @@ head -c 1100000 /dev/zero | tr '\0' x
 
   it('keeps non-Stop plugin hook launcher failures fail-closed without Stop JSON', async () => {
     await withPluginCacheCopy(async (cachePluginRoot) => {
-      await writeFile(join(cachePluginRoot, 'hooks', 'omx-command.json'), '{"command":', 'utf-8');
+      await writeFile(join(cachePluginRoot, 'hooks', 'nomx-command.json'), '{"command":', 'utf-8');
 
       const result = runPluginNativeHook(cachePluginRoot, JSON.stringify({
         hook_event_name: 'UserPromptSubmit',
@@ -1024,7 +1024,7 @@ head -c 1100000 /dev/zero | tr '\0' x
         tool_name: 'Edit',
         tool_input: { file_path: 'src/runtime.ts', old_string: 'a', new_string: 'b' },
       }), {
-        OMX_NATIVE_HOOK_COMMAND: commandPath,
+        NOMX_NATIVE_HOOK_COMMAND: commandPath,
       });
 
       assert.equal(result.status, 1, result.stderr || result.stdout);
@@ -1037,7 +1037,7 @@ head -c 1100000 /dev/zero | tr '\0' x
 
   it('does not classify valid non-Stop plugin JSON with nested Stop text as Stop', async () => {
     await withPluginCacheCopy(async (cachePluginRoot) => {
-      await writeFile(join(cachePluginRoot, 'hooks', 'omx-command.json'), '{"command":', 'utf-8');
+      await writeFile(join(cachePluginRoot, 'hooks', 'nomx-command.json'), '{"command":', 'utf-8');
 
       const result = runPluginNativeHook(cachePluginRoot, JSON.stringify({
         hook_event_name: 'PreToolUse',
@@ -1053,7 +1053,7 @@ head -c 1100000 /dev/zero | tr '\0' x
 
   it('does not classify malformed non-Stop plugin JSON with nested Stop text as Stop', async () => {
     await withPluginCacheCopy(async (cachePluginRoot) => {
-      await writeFile(join(cachePluginRoot, 'hooks', 'omx-command.json'), '{"command":', 'utf-8');
+      await writeFile(join(cachePluginRoot, 'hooks', 'nomx-command.json'), '{"command":', 'utf-8');
 
       const result = runPluginNativeHook(
         cachePluginRoot,
@@ -1079,8 +1079,8 @@ head -c 1100000 /dev/zero | tr '\0' x
   it('blocks oversized plugin Stop stdin when current session autopilot state is active', async () => {
     await withPluginCacheCopy(async (cachePluginRoot) => {
       const sessionId = 'sess-plugin-oversized-active';
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'session.json'), { session_id: sessionId });
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'session.json'), { session_id: sessionId });
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
         active: true,
         current_phase: 'execution',
       });
@@ -1097,12 +1097,12 @@ head -c 1100000 /dev/zero | tr '\0' x
   it('does not let unrelated terminal run-state suppress active plugin Autopilot oversized Stop blocking', async () => {
     await withPluginCacheCopy(async (cachePluginRoot) => {
       const sessionId = 'sess-plugin-oversized-unrelated-terminal';
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'session.json'), { session_id: sessionId });
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'session.json'), { session_id: sessionId });
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
         active: true,
         current_phase: 'execution',
       });
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'sessions', sessionId, 'run-state.json'), {
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'sessions', sessionId, 'run-state.json'), {
         mode: 'ralph',
         active: false,
         outcome: 'finish',
@@ -1120,12 +1120,12 @@ head -c 1100000 /dev/zero | tr '\0' x
   it('emits no-op JSON for oversized plugin Stop stdin when terminal Autopilot run-state shadows stale active state', async () => {
     await withPluginCacheCopy(async (cachePluginRoot) => {
       const sessionId = 'sess-plugin-oversized-terminal-autopilot';
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'session.json'), { session_id: sessionId });
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'session.json'), { session_id: sessionId });
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
         active: true,
         current_phase: 'execution',
       });
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'sessions', sessionId, 'run-state.json'), {
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'sessions', sessionId, 'run-state.json'), {
         mode: 'autopilot',
         active: false,
         outcome: 'blocked_on_user',
@@ -1138,17 +1138,17 @@ head -c 1100000 /dev/zero | tr '\0' x
     });
   });
 
-  it('detects active plugin Autopilot state for oversized Stop under OMX_ROOT', async () => {
+  it('detects active plugin Autopilot state for oversized Stop under NOMX_ROOT', async () => {
     await withPluginCacheCopy(async (cachePluginRoot, cacheRoot) => {
-      const sessionId = 'sess-plugin-oversized-omx-root';
-      const omxRoot = join(cacheRoot, 'boxed-root');
-      await writeJson(join(omxRoot, '.omx', 'state', 'session.json'), { session_id: sessionId });
-      await writeJson(join(omxRoot, '.omx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
+      const sessionId = 'sess-plugin-oversized-nomx-root';
+      const nomxRoot = join(cacheRoot, 'boxed-root');
+      await writeJson(join(nomxRoot, '.nomx', 'state', 'session.json'), { session_id: sessionId });
+      await writeJson(join(nomxRoot, '.nomx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
         active: true,
         current_phase: 'execution',
       });
       const oversizedStop = `{"hook_event_name":"Stop","cwd":"${cachePluginRoot}","session_id":"${sessionId}","padding":"${'x'.repeat(1024 * 1024 + 1)}`;
-      const result = runPluginNativeHook(cachePluginRoot, oversizedStop, { OMX_ROOT: omxRoot });
+      const result = runPluginNativeHook(cachePluginRoot, oversizedStop, { NOMX_ROOT: nomxRoot });
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
       const output = parseSingleJsonStdout(result.stdout);
@@ -1157,22 +1157,22 @@ head -c 1100000 /dev/zero | tr '\0' x
     });
   });
 
-  it('emits no-op JSON for oversized plugin Stop stdin when terminal OMX_ROOT Autopilot state overrides stale cwd active state', async () => {
+  it('emits no-op JSON for oversized plugin Stop stdin when terminal NOMX_ROOT Autopilot state overrides stale cwd active state', async () => {
     await withPluginCacheCopy(async (cachePluginRoot, cacheRoot) => {
-      const sessionId = 'sess-plugin-oversized-omx-root-terminal';
-      const omxRoot = join(cacheRoot, 'boxed-root-terminal');
-      await writeJson(join(omxRoot, '.omx', 'state', 'session.json'), { session_id: sessionId });
-      await writeJson(join(omxRoot, '.omx', 'state', 'sessions', sessionId, 'run-state.json'), {
+      const sessionId = 'sess-plugin-oversized-nomx-root-terminal';
+      const nomxRoot = join(cacheRoot, 'boxed-root-terminal');
+      await writeJson(join(nomxRoot, '.nomx', 'state', 'session.json'), { session_id: sessionId });
+      await writeJson(join(nomxRoot, '.nomx', 'state', 'sessions', sessionId, 'run-state.json'), {
         mode: 'autopilot',
         outcome: 'blocked_on_user',
       });
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'session.json'), { session_id: sessionId });
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'session.json'), { session_id: sessionId });
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
         active: true,
         current_phase: 'execution',
       });
       const oversizedStop = `{"hook_event_name":"Stop","cwd":"${cachePluginRoot}","session_id":"${sessionId}","padding":"${'x'.repeat(1024 * 1024 + 1)}`;
-      const result = runPluginNativeHook(cachePluginRoot, oversizedStop, { OMX_ROOT: omxRoot });
+      const result = runPluginNativeHook(cachePluginRoot, oversizedStop, { NOMX_ROOT: nomxRoot });
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
       assert.deepEqual(parseSingleJsonStdout(result.stdout), {});
@@ -1182,8 +1182,8 @@ head -c 1100000 /dev/zero | tr '\0' x
   it('emits no-op JSON for oversized plugin Stop stdin when Autopilot state is active but terminal by phase', async () => {
     await withPluginCacheCopy(async (cachePluginRoot) => {
       const sessionId = 'sess-plugin-oversized-terminal-phase';
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'session.json'), { session_id: sessionId });
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'session.json'), { session_id: sessionId });
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
         active: true,
         current_phase: 'complete',
       });
@@ -1198,11 +1198,11 @@ head -c 1100000 /dev/zero | tr '\0' x
   it('emits no-op JSON when stale plugin session state cwd does not match oversized Stop cwd', async () => {
     await withPluginCacheCopy(async (cachePluginRoot, cacheRoot) => {
       const sessionId = 'sess-plugin-oversized-stale-cwd';
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'session.json'), {
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'session.json'), {
         session_id: sessionId,
         cwd: join(cacheRoot, 'different-cwd'),
       });
-      await writeJson(join(cachePluginRoot, '.omx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
+      await writeJson(join(cachePluginRoot, '.nomx', 'state', 'sessions', sessionId, 'autopilot-state.json'), {
         active: true,
         current_phase: 'execution',
       });
@@ -1257,7 +1257,7 @@ process.stdin.on('end', () => {
         payload: 'keep these bytes unchanged',
       });
       const result = runPluginNativeHook(cachePluginRoot, input, {
-        OMX_NATIVE_HOOK_COMMAND: launcherPath,
+        NOMX_NATIVE_HOOK_COMMAND: launcherPath,
         CAPTURE_PATH: capturePath,
       });
 
@@ -1272,23 +1272,23 @@ process.stdin.on('end', () => {
     const defaultConfig = buildMergedConfig('', root, { includeTui: false });
     assert.doesNotMatch(
       defaultConfig,
-      /^\[mcp_servers\.omx_state\]$/m,
+      /^\[mcp_servers\.nomx_state\]$/m,
       'default setup config should stay CLI-first without first-party MCP tables',
     );
     const mergedConfig = buildMergedConfig('', root, { includeTui: false, includeFirstPartyMcp: true });
-    const setupManagedServers = [...mergedConfig.matchAll(/^\[mcp_servers\.(omx_[^\]]+)\]$/gm)]
+    const setupManagedServers = [...mergedConfig.matchAll(/^\[mcp_servers\.(nomx_[^\]]+)\]$/gm)]
       .map((match) => match[1])
       .sort();
 
     assert.deepEqual(
       setupManagedServers,
-      [...OMX_FIRST_PARTY_MCP_SERVER_NAMES].sort(),
-      'setup should expose the canonical first-party OMX MCP roster',
+      [...NOMX_FIRST_PARTY_MCP_SERVER_NAMES].sort(),
+      'setup should expose the canonical first-party NOMX MCP roster',
     );
     assert.deepEqual(setupManagedServers, Object.keys(mcpManifest.mcpServers ?? {}).sort());
 
     const targetToEntrypoint = new Map(
-      OMX_FIRST_PARTY_MCP_PLUGIN_TARGETS.map((target, index) => [target, OMX_FIRST_PARTY_MCP_ENTRYPOINTS[index]]),
+      NOMX_FIRST_PARTY_MCP_PLUGIN_TARGETS.map((target, index) => [target, NOMX_FIRST_PARTY_MCP_ENTRYPOINTS[index]]),
     );
 
     for (const [serverName, server] of Object.entries(mcpManifest.mcpServers ?? {})) {
@@ -1304,7 +1304,7 @@ process.stdin.on('end', () => {
   });
 
   it('launches plugin MCP public targets from a cache-style plugin root via the installed nomx CLI', async () => {
-    for (const target of OMX_FIRST_PARTY_MCP_PLUGIN_TARGETS) {
+    for (const target of NOMX_FIRST_PARTY_MCP_PLUGIN_TARGETS) {
       await assertPluginCacheLaunchable(target);
     }
   });
@@ -1321,7 +1321,7 @@ process.stdin.on('end', () => {
     const pluginEntries = await readdir(pluginRoot);
 
     assert.equal(pluginEntries.includes('.codex'), false, 'official plugin should not ship setup-owned .codex hook assets');
-    assert.equal(pluginEntries.includes('.omx'), false, 'official plugin should not ship runtime hook directories');
+    assert.equal(pluginEntries.includes('.nomx'), false, 'official plugin should not ship runtime hook directories');
     assert.equal(pluginEntries.includes('hooks.json'), false, 'official plugin hook metadata should stay under hooks/');
     assert.equal(pluginEntries.includes('hooks'), true, 'official plugin should ship plugin-scoped lifecycle hooks');
     await stat(pluginHookLauncherPath);
@@ -1331,11 +1331,11 @@ process.stdin.on('end', () => {
     const marketplace = await readJson<Marketplace>(marketplacePath);
     const entry = marketplace.plugins?.find((candidate) => candidate.name === pluginName);
 
-    assert.equal(marketplace.name, 'oh-my-codex-local');
-    assert.equal(marketplace.interface?.displayName, 'oh-my-codex Local Plugins');
-    assert.ok(entry, 'expected marketplace entry for oh-my-codex');
+    assert.equal(marketplace.name, 'nomx-local');
+    assert.equal(marketplace.interface?.displayName, 'NOMX Local Plugins');
+    assert.ok(entry, 'expected marketplace entry for nomx');
     assert.equal(entry.source?.source, 'local');
-    assert.equal(entry.source?.path, './plugins/oh-my-codex');
+    assert.equal(entry.source?.path, './plugins/nomx');
     assert.equal(entry.policy?.installation, 'AVAILABLE');
     assert.equal(entry.policy?.authentication, 'ON_INSTALL');
     assert.equal(entry.category, 'Developer Tools');
@@ -1382,10 +1382,10 @@ process.stdin.on('end', () => {
   });
 
   it('keeps marketplace-aware cache semantics in runtime skills without replacing full setup', async () => {
-    const staleCachePath = '~/.codex/plugins/cache/omc/oh-my-codex';
+    const staleCachePath = '~/.codex/plugins/cache/omc/nomx';
     const docsToCheck = [
       'skills/doctor/SKILL.md',
-      'plugins/oh-my-codex/skills/doctor/SKILL.md',
+      'plugins/nomx/skills/doctor/SKILL.md',
     ];
 
     for (const docPath of docsToCheck) {
@@ -1395,10 +1395,10 @@ process.stdin.on('end', () => {
 
     const combinedDocs = await Promise.all(docsToCheck.map((docPath) => readFile(join(root, docPath), 'utf-8')));
     const combined = combinedDocs.join('\n');
-    assert.match(combined, /plugins\/cache\/\$MARKETPLACE_NAME\/oh-my-codex\/\$VERSION\//);
-    assert.match(combined, /not a replacement for `npm install -g oh-my-codex` plus `nomx setup`/);
+    assert.match(combined, /plugins\/cache\/\$MARKETPLACE_NAME\/nomx\/\$VERSION\//);
+    assert.match(combined, /not a replacement for `npm install -g nomx` plus `nomx setup`/);
     assert.match(combined, /legacy setup installs native agents, while plugin setup archives stale legacy native-agent files/);
     assert.match(combined, /plugin-scoped companion metadata for optional MCP compatibility servers and apps/i);
-    assert.match(combined, /native\/runtime hooks and the rest of OMX runtime wiring stay setup-owned/i);
+    assert.match(combined, /native\/runtime hooks and the rest of NOMX runtime wiring stay setup-owned/i);
   });
 });

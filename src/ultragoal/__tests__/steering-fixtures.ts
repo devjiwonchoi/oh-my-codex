@@ -34,9 +34,9 @@ export interface SteeringFixturePlan {
   version: 1;
   createdAt: string;
   updatedAt: string;
-  briefPath: '.omx/ultragoal/brief.md';
-  goalsPath: '.omx/ultragoal/goals.json';
-  ledgerPath: '.omx/ultragoal/ledger.jsonl';
+  briefPath: '.nomx/ultragoal/brief.md';
+  goalsPath: '.nomx/ultragoal/goals.json';
+  ledgerPath: '.nomx/ultragoal/ledger.jsonl';
   codexGoalMode: 'aggregate';
   codexObjective: string;
   activeGoalId?: string;
@@ -87,7 +87,7 @@ export interface SteeringFixture {
 }
 
 const now = '2026-05-19T04:00:00.000Z';
-const codexObjective = 'Complete the durable ultragoal plan in .omx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .omx/ultragoal/ledger.jsonl as the audit trail.';
+const codexObjective = 'Complete the durable ultragoal plan in .nomx/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .nomx/ultragoal/ledger.jsonl as the audit trail.';
 
 function goal(id: string, title: string, objective = `${title} objective.`): SteeringFixtureGoal {
   return { id, title, objective, status: 'pending', attempt: 0, createdAt: now, updatedAt: now };
@@ -98,9 +98,9 @@ function plan(goals: SteeringFixtureGoal[], activeGoalId?: string): SteeringFixt
     version: 1,
     createdAt: now,
     updatedAt: now,
-    briefPath: '.omx/ultragoal/brief.md',
-    goalsPath: '.omx/ultragoal/goals.json',
-    ledgerPath: '.omx/ultragoal/ledger.jsonl',
+    briefPath: '.nomx/ultragoal/brief.md',
+    goalsPath: '.nomx/ultragoal/goals.json',
+    ledgerPath: '.nomx/ultragoal/ledger.jsonl',
     codexGoalMode: 'aggregate',
     codexObjective,
     activeGoalId,
@@ -109,7 +109,7 @@ function plan(goals: SteeringFixtureGoal[], activeGoalId?: string): SteeringFixt
 }
 
 const baseGoals = [
-  goal('G001-core-steering-model', 'Core steering model', 'Implement bounded dynamic steering for .omx/ultragoal ledger state.'),
+  goal('G001-core-steering-model', 'Core steering model', 'Implement bounded dynamic steering for .nomx/ultragoal ledger state.'),
   goal('G002-cli-bridge', 'CLI bridge', 'Expose structured steering through the ultragoal CLI.'),
   goal('G003-hook-bridge', 'Hook bridge', 'Bridge explicit UserPromptSubmit steering directives.'),
 ];

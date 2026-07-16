@@ -113,7 +113,7 @@ async function readRegularBytes(path: string): Promise<Buffer | null> {
 }
 
 function journalPath(root: string): string {
-	return join(root, ".omx", "native-hook-claim-journal.json");
+	return join(root, ".nomx", "native-hook-claim-journal.json");
 }
 
 export async function persistNativeHookClaimJournal(

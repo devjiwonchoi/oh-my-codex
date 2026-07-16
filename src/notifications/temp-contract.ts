@@ -1,5 +1,5 @@
-export const OMX_NOTIFY_TEMP_ENV = 'OMX_NOTIFY_TEMP';
-export const OMX_NOTIFY_TEMP_CONTRACT_ENV = 'OMX_NOTIFY_TEMP_CONTRACT';
+export const NOMX_NOTIFY_TEMP_ENV = 'NOMX_NOTIFY_TEMP';
+export const NOMX_NOTIFY_TEMP_CONTRACT_ENV = 'NOMX_NOTIFY_TEMP_CONTRACT';
 
 export type NotifyTempSource = 'none' | 'cli' | 'env' | 'providers';
 
@@ -41,10 +41,31 @@ export function parseNotifyTempContractFromArgs(
       continue;
     }
 
+    if (arg === '--custom') {
+      const value = args[index + 1]?.trim();
+      if (!value || value.startsWith('--')) {
+        warnings.push('notify temp: --custom requires a non-empty selector');
+        continue;
+      }
+      selectors.push(value.toLowerCase());
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--custom=')) {
+      const value = arg.slice('--custom='.length).trim();
+      if (!value) {
+        warnings.push('notify temp: --custom requires a non-empty selector');
+        continue;
+      }
+      selectors.push(`custom:${value.toLowerCase()}`);
+      continue;
+    }
+
     passthroughArgs.push(arg);
   }
 
-  const envActivated = env[OMX_NOTIFY_TEMP_ENV] === '1';
+  const envActivated = env[NOMX_NOTIFY_TEMP_ENV] === '1';
   const canonicalSelectors = toUnique(selectors);
   const providerActivated = canonicalSelectors.length > 0;
   const active = cliActivated || envActivated || providerActivated;
@@ -76,13 +97,13 @@ export function serializeNotifyTempContract(contract: NotifyTempContract): strin
 
 
 export function isNotifyTempEnvActive(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env[OMX_NOTIFY_TEMP_ENV] === '1';
+  return env[NOMX_NOTIFY_TEMP_ENV] === '1';
 }
 
 export function readNotifyTempContractFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): NotifyTempContract | null {
-  const raw = env[OMX_NOTIFY_TEMP_CONTRACT_ENV];
+  const raw = env[NOMX_NOTIFY_TEMP_CONTRACT_ENV];
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<NotifyTempContract>;

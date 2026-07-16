@@ -1,5 +1,5 @@
 /**
- * OMX Hermes Coordination MCP Server
+ * NOMX Hermes Coordination MCP Server
  * Small product-facing bridge for dispatch/status/artifact coordination.
  */
 
@@ -24,13 +24,13 @@ import {
 } from "./hermes-bridge.js";
 
 const server = new Server(
-  { name: "omx-hermes", version: "0.1.0" },
+  { name: "nomx-hermes", version: "0.1.0" },
   { capabilities: { tools: {} } },
 );
 
 export function buildHermesServerTools() {
-  const workingDirectory = { type: "string", description: "Bounded OMX project/worktree directory" };
-  const sessionId = { type: "string", description: "OMX session_id (A-Z, a-z, 0-9, _, -)" };
+  const workingDirectory = { type: "string", description: "Bounded NOMX project/worktree directory" };
+  const sessionId = { type: "string", description: "NOMX session_id (A-Z, a-z, 0-9, _, -)" };
   const allowMutation = {
     type: "boolean",
     description: "Must be true for mutating operations; read tools ignore it.",
@@ -38,12 +38,12 @@ export function buildHermesServerTools() {
   return [
     {
       name: "hermes_list_sessions",
-      description: "List known OMX session state for a bounded worktree without reading terminal UI.",
+      description: "List known NOMX session state for a bounded worktree without reading terminal UI.",
       inputSchema: { type: "object", properties: { workingDirectory } },
     },
     {
       name: "hermes_start_session",
-      description: "Start a new isolated OMX tmux session in disposable worktree mode for one bounded prompt.",
+      description: "Start a new isolated NOMX tmux session in disposable worktree mode for one bounded prompt.",
       inputSchema: {
         type: "object",
         properties: {
@@ -57,7 +57,7 @@ export function buildHermesServerTools() {
     },
     {
       name: "hermes_send_prompt",
-      description: "Queue one explicit prompt for a selected OMX exec session via the audited follow-up queue.",
+      description: "Queue one explicit prompt for a selected NOMX exec session via the audited follow-up queue.",
       inputSchema: {
         type: "object",
         properties: {
@@ -72,12 +72,12 @@ export function buildHermesServerTools() {
     },
     {
       name: "hermes_read_status",
-      description: "Read selected session/mode status JSON from OMX state files.",
+      description: "Read selected session/mode status JSON from NOMX state files.",
       inputSchema: { type: "object", properties: { workingDirectory, session_id: sessionId } },
     },
     {
       name: "hermes_read_tail",
-      description: "Read the bounded OMX session history log tail, not tmux scrollback.",
+      description: "Read the bounded NOMX session history log tail, not tmux scrollback.",
       inputSchema: { type: "object", properties: { workingDirectory, lines: { type: "number" } } },
     },
     {

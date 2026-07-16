@@ -9,17 +9,17 @@ import { fileURLToPath } from 'url';
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(testDir, '..', '..', '..');
-const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
+const nomxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
 
 function runOmx(cwd: string, ...args: string[]) {
-  return spawnSync(process.execPath, [omxBin, ...args], {
+  return spawnSync(process.execPath, [nomxBin, ...args], {
     cwd,
     encoding: 'utf-8',
   });
 }
 
 function runOmxWithEnv(cwd: string, env: NodeJS.ProcessEnv, ...args: string[]) {
-  return spawnSync(process.execPath, [omxBin, ...args], {
+  return spawnSync(process.execPath, [nomxBin, ...args], {
     cwd,
     encoding: 'utf-8',
     env: { ...process.env, ...env },
@@ -28,11 +28,11 @@ function runOmxWithEnv(cwd: string, env: NodeJS.ProcessEnv, ...args: string[]) {
 
 describe('CLI session-scoped state parity', () => {
   it('status and cancel include session-scoped states', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-session-scope-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-session-scope-'));
     try {
-      await mkdir(join(wd, '.omx', 'state'), { recursive: true });
-      await writeFile(join(wd, '.omx', 'state', 'session.json'), JSON.stringify({ session_id: 'sess1' }));
-      const scopedDir = join(wd, '.omx', 'state', 'sessions', 'sess1');
+      await mkdir(join(wd, '.nomx', 'state'), { recursive: true });
+      await writeFile(join(wd, '.nomx', 'state', 'session.json'), JSON.stringify({ session_id: 'sess1' }));
+      const scopedDir = join(wd, '.nomx', 'state', 'sessions', 'sess1');
       await mkdir(scopedDir, { recursive: true });
       await writeFile(join(scopedDir, 'team-state.json'), JSON.stringify({
         active: true,
@@ -57,10 +57,10 @@ describe('CLI session-scoped state parity', () => {
     }
   });
 
-  it('does not mutate an unmatched implicit OMX session, including force cleanup', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-cancel-unmatched-session-'));
+  it('does not mutate an unmatched implicit NOMX session, including force cleanup', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-cancel-unmatched-session-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'canonical-session';
       const sessionDir = join(stateDir, 'sessions', sessionId);
       const ralphPath = join(sessionDir, 'ralph-state.json');
@@ -74,13 +74,13 @@ describe('CLI session-scoped state parity', () => {
 
       const cancelResult = runOmxWithEnv(
         wd,
-        { OMX_SESSION_ID: 'unmatched-session' },
+        { NOMX_SESSION_ID: 'unmatched-session' },
         'cancel',
         '--force',
       );
 
       assert.equal(cancelResult.status, 0, cancelResult.stderr || cancelResult.stdout);
-      assert.match(cancelResult.stderr, /OMX_SESSION_ID is not bound to session\.json/);
+      assert.match(cancelResult.stderr, /NOMX_SESSION_ID is not bound to session\.json/);
       assert.match(cancelResult.stdout, /No active modes to cancel\./);
       assert.deepEqual(
         JSON.parse(await readFile(ralphPath, 'utf-8')),
@@ -96,9 +96,9 @@ describe('CLI session-scoped state parity', () => {
   });
 
   it('status does not report a root fallback mode as active after current-session clear', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-session-clear-fallback-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-session-clear-fallback-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-clear';
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
@@ -135,15 +135,15 @@ describe('CLI session-scoped state parity', () => {
   });
 
   it('cancels hook-visible run-dir session state when worktree state list-active is empty', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-run-dir-cancel-worktree-'));
-    const runsRoot = await mkdtemp(join(tmpdir(), 'omx-cli-run-dir-cancel-runs-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-run-dir-cancel-worktree-'));
+    const runsRoot = await mkdtemp(join(tmpdir(), 'nomx-cli-run-dir-cancel-runs-'));
     try {
       const sessionId = 'sess-run-dir-cancel';
       const runDir = join(runsRoot, 'run-20260610121751-b6c4');
-      const runStateDir = join(runDir, '.omx', 'state');
+      const runStateDir = join(runDir, '.nomx', 'state');
       const runSessionDir = join(runStateDir, 'sessions', sessionId);
       await mkdir(runSessionDir, { recursive: true });
-      await mkdir(join(wd, '.omx', 'state'), { recursive: true });
+      await mkdir(join(wd, '.nomx', 'state'), { recursive: true });
       await writeFile(join(runStateDir, 'session.json'), JSON.stringify({ session_id: sessionId }, null, 2));
       await writeFile(join(runSessionDir, 'autopilot-state.json'), JSON.stringify({
         active: true,
@@ -171,7 +171,7 @@ describe('CLI session-scoped state parity', () => {
       assert.equal(listResult.status, 0, listResult.stderr || listResult.stdout);
       assert.deepEqual(JSON.parse(listResult.stdout), { active_modes: [] });
 
-      const cancelResult = runOmxWithEnv(wd, { OMX_RUNS_DIR: runsRoot }, 'cancel');
+      const cancelResult = runOmxWithEnv(wd, { NOMX_RUNS_DIR: runsRoot }, 'cancel');
       assert.equal(cancelResult.status, 0, cancelResult.stderr || cancelResult.stdout);
       assert.match(cancelResult.stdout, /Cancelled: autopilot/);
       assert.doesNotMatch(cancelResult.stdout, /No active modes to cancel/);
@@ -199,15 +199,15 @@ describe('CLI session-scoped state parity', () => {
   });
 
   it('reports hook-visible run-dir session state in status when worktree state list-active is empty', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-run-dir-status-worktree-'));
-    const runsRoot = await mkdtemp(join(tmpdir(), 'omx-cli-run-dir-status-runs-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-run-dir-status-worktree-'));
+    const runsRoot = await mkdtemp(join(tmpdir(), 'nomx-cli-run-dir-status-runs-'));
     try {
       const sessionId = 'sess-run-dir-status';
       const runDir = join(runsRoot, 'run-20260610121751-c7d5');
-      const runStateDir = join(runDir, '.omx', 'state');
+      const runStateDir = join(runDir, '.nomx', 'state');
       const runSessionDir = join(runStateDir, 'sessions', sessionId);
       await mkdir(runSessionDir, { recursive: true });
-      await mkdir(join(wd, '.omx', 'state'), { recursive: true });
+      await mkdir(join(wd, '.nomx', 'state'), { recursive: true });
       await writeFile(join(runStateDir, 'session.json'), JSON.stringify({ session_id: sessionId }, null, 2));
       await writeFile(join(runSessionDir, 'autopilot-state.json'), JSON.stringify({
         active: true,
@@ -227,7 +227,7 @@ describe('CLI session-scoped state parity', () => {
       assert.equal(listResult.status, 0, listResult.stderr || listResult.stdout);
       assert.deepEqual(JSON.parse(listResult.stdout), { active_modes: [] });
 
-      const statusResult = runOmxWithEnv(wd, { OMX_RUNS_DIR: runsRoot }, 'status');
+      const statusResult = runOmxWithEnv(wd, { NOMX_RUNS_DIR: runsRoot }, 'status');
       assert.equal(statusResult.status, 0, statusResult.stderr || statusResult.stdout);
       assert.match(statusResult.stdout, /autopilot: ACTIVE \(phase: deep-interview\)/);
       assert.doesNotMatch(statusResult.stdout, /No active modes\./);
@@ -238,16 +238,16 @@ describe('CLI session-scoped state parity', () => {
   });
 
   it('finds hook-visible run-dir session state from an explicit worktree_cwd alias', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-run-dir-worktree-alias-source-'));
-    const worktree = await mkdtemp(join(tmpdir(), 'omx-cli-run-dir-worktree-alias-wt-'));
-    const runsRoot = await mkdtemp(join(tmpdir(), 'omx-cli-run-dir-worktree-alias-runs-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-run-dir-worktree-alias-source-'));
+    const worktree = await mkdtemp(join(tmpdir(), 'nomx-cli-run-dir-worktree-alias-wt-'));
+    const runsRoot = await mkdtemp(join(tmpdir(), 'nomx-cli-run-dir-worktree-alias-runs-'));
     try {
       const sessionId = 'sess-run-dir-worktree-alias';
       const runDir = join(runsRoot, 'run-20260610121751-a11a');
-      const runStateDir = join(runDir, '.omx', 'state');
+      const runStateDir = join(runDir, '.nomx', 'state');
       const runSessionDir = join(runStateDir, 'sessions', sessionId);
       await mkdir(runSessionDir, { recursive: true });
-      await mkdir(join(worktree, '.omx', 'state'), { recursive: true });
+      await mkdir(join(worktree, '.nomx', 'state'), { recursive: true });
       await mkdir(join(runsRoot, 'active-detached'), { recursive: true });
       await writeFile(join(runStateDir, 'session.json'), JSON.stringify({ session_id: sessionId }, null, 2));
       await writeFile(join(runSessionDir, 'autopilot-state.json'), JSON.stringify({
@@ -263,16 +263,16 @@ describe('CLI session-scoped state parity', () => {
         worktree_cwd: worktree,
         argv: ['--madmax', '--worktree', '--tmux'],
         run_dir: runDir,
-        tmux_session_name: 'omx-detached',
+        tmux_session_name: 'nomx-detached',
         session_id: sessionId,
         tmux_pane_id: '%42',
       })}\n`);
 
-      const statusResult = runOmxWithEnv(worktree, { OMX_RUNS_DIR: runsRoot }, 'status');
+      const statusResult = runOmxWithEnv(worktree, { NOMX_RUNS_DIR: runsRoot }, 'status');
       assert.equal(statusResult.status, 0, statusResult.stderr || statusResult.stdout);
       assert.match(statusResult.stdout, /autopilot: ACTIVE \(phase: deep-interview\)/);
 
-      const cancelResult = runOmxWithEnv(worktree, { OMX_RUNS_DIR: runsRoot }, 'cancel');
+      const cancelResult = runOmxWithEnv(worktree, { NOMX_RUNS_DIR: runsRoot }, 'cancel');
       assert.equal(cancelResult.status, 0, cancelResult.stderr || cancelResult.stdout);
       assert.match(cancelResult.stdout, /Cancelled: autopilot/);
 
@@ -287,9 +287,9 @@ describe('CLI session-scoped state parity', () => {
   });
 
   it('reports stale current-autopilot in status when no authoritative active modes exist', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-status-stale-current-autopilot-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-status-stale-current-autopilot-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({ session_id: 'sess-stale-autopilot' }, null, 2));
       const currentAutopilotPath = join(stateDir, 'current-autopilot.json');
@@ -317,9 +317,9 @@ describe('CLI session-scoped state parity', () => {
   });
 
   it('reports stale current-autopilot alongside inactive authoritative modes only', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-status-stale-current-autopilot-with-inactive-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-status-stale-current-autopilot-with-inactive-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-stale-autopilot-inactive';
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
@@ -350,9 +350,9 @@ describe('CLI session-scoped state parity', () => {
   });
 
   it('prefers authoritative active autopilot over stale current-autopilot in status', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-status-active-autopilot-precedence-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-status-active-autopilot-precedence-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-active-autopilot';
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
@@ -381,9 +381,9 @@ describe('CLI session-scoped state parity', () => {
   });
 
   it('ignores unreportable current-autopilot in status', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-status-unreportable-current-autopilot-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-status-unreportable-current-autopilot-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'current-autopilot.json'), JSON.stringify({ active: true }, null, 2));
 
@@ -397,9 +397,9 @@ describe('CLI session-scoped state parity', () => {
   });
 
   it('reports durable failed Ultragoal artifacts without advertising a cancellable active mode', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-status-failed-ultragoal-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-status-failed-ultragoal-'));
     try {
-      const ultragoalDir = join(wd, '.omx', 'ultragoal');
+      const ultragoalDir = join(wd, '.nomx', 'ultragoal');
       await mkdir(ultragoalDir, { recursive: true });
       await writeFile(join(ultragoalDir, 'goals.json'), JSON.stringify({
         version: 1,
@@ -428,12 +428,12 @@ describe('CLI session-scoped state parity', () => {
   });
 
   it('preserves active Ultragoal mode status when durable failed artifacts coexist', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-status-active-ultragoal-failed-artifact-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-status-active-ultragoal-failed-artifact-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-active-ultragoal-failed-artifact';
       const sessionDir = join(stateDir, 'sessions', sessionId);
-      const ultragoalDir = join(wd, '.omx', 'ultragoal');
+      const ultragoalDir = join(wd, '.nomx', 'ultragoal');
       await mkdir(sessionDir, { recursive: true });
       await mkdir(ultragoalDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({ session_id: sessionId }));
@@ -467,9 +467,9 @@ describe('CLI session-scoped state parity', () => {
   });
 
   it('cancels linked ultrawork when Ralph is active', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-ralph-link-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-ralph-link-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-link';
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
@@ -507,9 +507,9 @@ describe('CLI session-scoped state parity', () => {
   });
 
   it('does not mutate unrelated sessions when cancelling current session mode', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-cross-session-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-cross-session-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionA = join(stateDir, 'sessions', 'sessA');
       const sessionB = join(stateDir, 'sessions', 'sessB');
       await mkdir(sessionA, { recursive: true });
@@ -542,9 +542,9 @@ describe('CLI session-scoped state parity', () => {
     }
   });
   it('clears current-session autopilot and skill mirrors even when canonical root is inactive', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-cli-clear-stale-autopilot-mirror-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-cli-clear-stale-autopilot-mirror-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-stale-autopilot-mirror';
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });

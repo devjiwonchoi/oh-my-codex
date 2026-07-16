@@ -18,35 +18,35 @@ import {
 } from "../hermes-bridge.js";
 import { createQuestionRecord, markQuestionPrompting } from "../../question/state.js";
 
-const originalRoots = process.env.OMX_MCP_WORKDIR_ROOTS;
-const originalOmxRoot = process.env.OMX_ROOT;
-const originalOmxStateRoot = process.env.OMX_STATE_ROOT;
-const originalTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
-const originalSessionId = process.env.OMX_SESSION_ID;
+const originalRoots = process.env.NOMX_MCP_WORKDIR_ROOTS;
+const originalOmxRoot = process.env.NOMX_ROOT;
+const originalOmxStateRoot = process.env.NOMX_STATE_ROOT;
+const originalTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
+const originalSessionId = process.env.NOMX_SESSION_ID;
 const originalCodexSessionId = process.env.CODEX_SESSION_ID;
 const originalGenericSessionId = process.env.SESSION_ID;
 
 beforeEach(() => {
-  delete process.env.OMX_MCP_WORKDIR_ROOTS;
-  delete process.env.OMX_ROOT;
-  delete process.env.OMX_STATE_ROOT;
-  delete process.env.OMX_TEAM_STATE_ROOT;
-  delete process.env.OMX_SESSION_ID;
+  delete process.env.NOMX_MCP_WORKDIR_ROOTS;
+  delete process.env.NOMX_ROOT;
+  delete process.env.NOMX_STATE_ROOT;
+  delete process.env.NOMX_TEAM_STATE_ROOT;
+  delete process.env.NOMX_SESSION_ID;
   delete process.env.CODEX_SESSION_ID;
   delete process.env.SESSION_ID;
 });
 
 afterEach(() => {
-  if (typeof originalRoots === "string") process.env.OMX_MCP_WORKDIR_ROOTS = originalRoots;
-  else delete process.env.OMX_MCP_WORKDIR_ROOTS;
-  if (typeof originalOmxRoot === "string") process.env.OMX_ROOT = originalOmxRoot;
-  else delete process.env.OMX_ROOT;
-  if (typeof originalOmxStateRoot === "string") process.env.OMX_STATE_ROOT = originalOmxStateRoot;
-  else delete process.env.OMX_STATE_ROOT;
-  if (typeof originalTeamStateRoot === "string") process.env.OMX_TEAM_STATE_ROOT = originalTeamStateRoot;
-  else delete process.env.OMX_TEAM_STATE_ROOT;
-  if (typeof originalSessionId === "string") process.env.OMX_SESSION_ID = originalSessionId;
-  else delete process.env.OMX_SESSION_ID;
+  if (typeof originalRoots === "string") process.env.NOMX_MCP_WORKDIR_ROOTS = originalRoots;
+  else delete process.env.NOMX_MCP_WORKDIR_ROOTS;
+  if (typeof originalOmxRoot === "string") process.env.NOMX_ROOT = originalOmxRoot;
+  else delete process.env.NOMX_ROOT;
+  if (typeof originalOmxStateRoot === "string") process.env.NOMX_STATE_ROOT = originalOmxStateRoot;
+  else delete process.env.NOMX_STATE_ROOT;
+  if (typeof originalTeamStateRoot === "string") process.env.NOMX_TEAM_STATE_ROOT = originalTeamStateRoot;
+  else delete process.env.NOMX_TEAM_STATE_ROOT;
+  if (typeof originalSessionId === "string") process.env.NOMX_SESSION_ID = originalSessionId;
+  else delete process.env.NOMX_SESSION_ID;
   if (typeof originalCodexSessionId === "string") process.env.CODEX_SESSION_ID = originalCodexSessionId;
   else delete process.env.CODEX_SESSION_ID;
   if (typeof originalGenericSessionId === "string") process.env.SESSION_ID = originalGenericSessionId;
@@ -54,19 +54,19 @@ afterEach(() => {
 });
 
 async function tempWorkspace(name: string): Promise<string> {
-  delete process.env.OMX_ROOT;
-  delete process.env.OMX_STATE_ROOT;
-  delete process.env.OMX_TEAM_STATE_ROOT;
+  delete process.env.NOMX_ROOT;
+  delete process.env.NOMX_STATE_ROOT;
+  delete process.env.NOMX_TEAM_STATE_ROOT;
   return await realpath(await mkdtemp(join(await realpath(tmpdir()), name)));
 }
 
 describe("Hermes MCP bridge core", () => {
   it("lists session-scoped OMX state without exposing terminal internals", async () => {
-    const cwd = await tempWorkspace("omx-hermes-list-");
+    const cwd = await tempWorkspace("nomx-hermes-list-");
     try {
-      await mkdir(join(cwd, ".omx", "state", "sessions", "sess-a"), { recursive: true });
+      await mkdir(join(cwd, ".nomx", "state", "sessions", "sess-a"), { recursive: true });
       await writeFile(
-        join(cwd, ".omx", "state", "sessions", "sess-a", "ralph-state.json"),
+        join(cwd, ".nomx", "state", "sessions", "sess-a", "ralph-state.json"),
         JSON.stringify({ active: true, current_phase: "executing" }),
       );
 
@@ -83,11 +83,11 @@ describe("Hermes MCP bridge core", () => {
 
 
   it("projects status without leaking raw internal mode state", async () => {
-    const cwd = await tempWorkspace("omx-hermes-status-");
+    const cwd = await tempWorkspace("nomx-hermes-status-");
     try {
-      await mkdir(join(cwd, ".omx", "state", "sessions", "sess-a"), { recursive: true });
+      await mkdir(join(cwd, ".nomx", "state", "sessions", "sess-a"), { recursive: true });
       await writeFile(
-        join(cwd, ".omx", "state", "sessions", "sess-a", "ralph-state.json"),
+        join(cwd, ".nomx", "state", "sessions", "sess-a", "ralph-state.json"),
         JSON.stringify({
           active: true,
           current_phase: "verifying",
@@ -124,7 +124,7 @@ describe("Hermes MCP bridge core", () => {
 
 
   it("projects current session metadata without leaking process or tmux internals", async () => {
-    const cwd = await tempWorkspace("omx-hermes-current-status-");
+    const cwd = await tempWorkspace("nomx-hermes-current-status-");
     try {
       const result = await hermesReadStatus(
         { workingDirectory: cwd },
@@ -158,11 +158,11 @@ describe("Hermes MCP bridge core", () => {
   });
 
   it("reads a bounded session-history tail without tmux scrollback", async () => {
-    const cwd = await tempWorkspace("omx-hermes-tail-");
+    const cwd = await tempWorkspace("nomx-hermes-tail-");
     try {
-      await mkdir(join(cwd, ".omx", "logs"), { recursive: true });
+      await mkdir(join(cwd, ".nomx", "logs"), { recursive: true });
       await writeFile(
-        join(cwd, ".omx", "logs", "session-history.jsonl"),
+        join(cwd, ".nomx", "logs", "session-history.jsonl"),
         ["one", "two", "three"].map((message) => JSON.stringify({ message })).join("\n") + "\n",
       );
 
@@ -184,7 +184,7 @@ describe("Hermes MCP bridge core", () => {
   });
 
   it("lists question events and submits bounded answers with safe leader-pane resume injection", async () => {
-    const cwd = await tempWorkspace("omx-hermes-questions-");
+    const cwd = await tempWorkspace("nomx-hermes-questions-");
     try {
       const { record, recordPath } = await createQuestionRecord(cwd, {
         question: "Pick one",
@@ -273,16 +273,16 @@ describe("Hermes MCP bridge core", () => {
   });
 
   it("routes selected prompts to a bound tmux session when no active exec queue accepts input", async () => {
-    const cwd = await tempWorkspace("omx-hermes-tmux-prompt-");
+    const cwd = await tempWorkspace("nomx-hermes-tmux-prompt-");
     try {
-      await mkdir(join(cwd, ".omx", "state"), { recursive: true });
-      await writeFile(join(cwd, ".omx", "state", "session.json"), JSON.stringify({
+      await mkdir(join(cwd, ".nomx", "state"), { recursive: true });
+      await writeFile(join(cwd, ".nomx", "state", "session.json"), JSON.stringify({
         session_id: "sess-tmux",
         native_session_id: "native-tmux",
         started_at: "2026-05-11T00:00:00.000Z",
         cwd,
         pid: 12345,
-        tmux_session_name: "omx-detached-demo",
+        tmux_session_name: "nomx-detached-demo",
         tmux_pane_id: "%42",
       }));
       const tmuxCalls: string[][] = [];
@@ -296,7 +296,7 @@ describe("Hermes MCP bridge core", () => {
           execTmuxFileSync: (args) => {
             tmuxCalls.push(args);
             if (args[0] === "show-options") return "sess-tmux\n";
-            if (args[0] === "display-message") return "omx-detached-demo\n";
+            if (args[0] === "display-message") return "nomx-detached-demo\n";
             return "";
           },
         },
@@ -305,13 +305,13 @@ describe("Hermes MCP bridge core", () => {
       assert.equal(result.ok, true);
       assert.deepEqual(result.data, {
         session_id: "sess-tmux",
-        tmux_session_name: "omx-detached-demo",
+        tmux_session_name: "nomx-detached-demo",
         target: "%42",
         transport: "tmux_send_keys",
       });
       assert.deepEqual(tmuxCalls, [
-        ["has-session", "-t", "omx-detached-demo"],
-        ["show-options", "-qv", "-t", "omx-detached-demo", "@omx_instance_id"],
+        ["has-session", "-t", "nomx-detached-demo"],
+        ["show-options", "-qv", "-t", "nomx-detached-demo", "@nomx_instance_id"],
         ["display-message", "-p", "-t", "%42", "#{session_name}"],
         ["send-keys", "-t", "%42", "-l", "--", "continue with care"],
         ["send-keys", "-t", "%42", "C-m"],
@@ -324,15 +324,15 @@ describe("Hermes MCP bridge core", () => {
   });
 
   it("returns prompt_not_accepted when tmux pane delivery fails", async () => {
-    const cwd = await tempWorkspace("omx-hermes-tmux-prompt-fail-");
+    const cwd = await tempWorkspace("nomx-hermes-tmux-prompt-fail-");
     try {
-      await mkdir(join(cwd, ".omx", "state"), { recursive: true });
-      await writeFile(join(cwd, ".omx", "state", "session.json"), JSON.stringify({
+      await mkdir(join(cwd, ".nomx", "state"), { recursive: true });
+      await writeFile(join(cwd, ".nomx", "state", "session.json"), JSON.stringify({
         session_id: "sess-tmux",
         started_at: "2026-05-11T00:00:00.000Z",
         cwd,
         pid: 12345,
-        tmux_session_name: "omx-detached-demo",
+        tmux_session_name: "nomx-detached-demo",
         tmux_pane_id: "%42",
       }));
 
@@ -344,7 +344,7 @@ describe("Hermes MCP bridge core", () => {
           },
           execTmuxFileSync: (args) => {
             if (args[0] === "show-options") return "sess-tmux\n";
-            if (args[0] === "display-message") return "omx-detached-demo\n";
+            if (args[0] === "display-message") return "nomx-detached-demo\n";
             if (args[0] === "send-keys") throw new Error("pane closed");
             return "";
           },
@@ -353,7 +353,7 @@ describe("Hermes MCP bridge core", () => {
 
       assert.equal(result.ok, false);
       assert.equal(result.code, "prompt_not_accepted");
-      assert.match(result.error ?? "", /unsupported_session_kind:tmux_prompt_delivery_failed:omx-detached-demo:%42:tmux_send_failed/);
+      assert.match(result.error ?? "", /unsupported_session_kind:tmux_prompt_delivery_failed:nomx-detached-demo:%42:tmux_send_failed/);
       assert.doesNotMatch(result.error ?? "", /pane closed/);
       assert.doesNotMatch(result.error ?? "", /continue/);
       assert.doesNotMatch(result.error ?? "", /invalid_input/);
@@ -363,16 +363,16 @@ describe("Hermes MCP bridge core", () => {
   });
 
   it("rejects tmux prompt delivery when the stored target is not a pane id", async () => {
-    const cwd = await tempWorkspace("omx-hermes-tmux-invalid-pane-");
+    const cwd = await tempWorkspace("nomx-hermes-tmux-invalid-pane-");
     try {
-      await mkdir(join(cwd, ".omx", "state"), { recursive: true });
-      await writeFile(join(cwd, ".omx", "state", "session.json"), JSON.stringify({
+      await mkdir(join(cwd, ".nomx", "state"), { recursive: true });
+      await writeFile(join(cwd, ".nomx", "state", "session.json"), JSON.stringify({
         session_id: "sess-tmux",
         started_at: "2026-05-11T00:00:00.000Z",
         cwd,
         pid: 12345,
-        tmux_session_name: "omx-detached-demo",
-        tmux_pane_id: "omx-detached-demo",
+        tmux_session_name: "nomx-detached-demo",
+        tmux_pane_id: "nomx-detached-demo",
       }));
       const tmuxCalls: string[][] = [];
 
@@ -391,7 +391,7 @@ describe("Hermes MCP bridge core", () => {
 
       assert.equal(result.ok, false);
       assert.equal(result.code, "prompt_not_accepted");
-      assert.match(result.error ?? "", /unsupported_session_kind:invalid_tmux_pane_binding:omx-detached-demo/);
+      assert.match(result.error ?? "", /unsupported_session_kind:invalid_tmux_pane_binding:nomx-detached-demo/);
       assert.deepEqual(tmuxCalls, []);
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -399,15 +399,15 @@ describe("Hermes MCP bridge core", () => {
   });
 
   it("rejects tmux prompt delivery when the stored pane is not in the bound session", async () => {
-    const cwd = await tempWorkspace("omx-hermes-tmux-pane-mismatch-");
+    const cwd = await tempWorkspace("nomx-hermes-tmux-pane-mismatch-");
     try {
-      await mkdir(join(cwd, ".omx", "state"), { recursive: true });
-      await writeFile(join(cwd, ".omx", "state", "session.json"), JSON.stringify({
+      await mkdir(join(cwd, ".nomx", "state"), { recursive: true });
+      await writeFile(join(cwd, ".nomx", "state", "session.json"), JSON.stringify({
         session_id: "sess-tmux",
         started_at: "2026-05-11T00:00:00.000Z",
         cwd,
         pid: 12345,
-        tmux_session_name: "omx-detached-demo",
+        tmux_session_name: "nomx-detached-demo",
         tmux_pane_id: "%42",
       }));
 
@@ -427,22 +427,22 @@ describe("Hermes MCP bridge core", () => {
 
       assert.equal(result.ok, false);
       assert.equal(result.code, "prompt_not_accepted");
-      assert.match(result.error ?? "", /unsupported_session_kind:tmux_prompt_delivery_failed:omx-detached-demo:%42:pane_session_mismatch:%42:other-session/);
+      assert.match(result.error ?? "", /unsupported_session_kind:tmux_prompt_delivery_failed:nomx-detached-demo:%42:pane_session_mismatch:%42:other-session/);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it("rejects tmux prompt delivery when the tmux instance tag does not match session state", async () => {
-    const cwd = await tempWorkspace("omx-hermes-tmux-instance-mismatch-");
+    const cwd = await tempWorkspace("nomx-hermes-tmux-instance-mismatch-");
     try {
-      await mkdir(join(cwd, ".omx", "state"), { recursive: true });
-      await writeFile(join(cwd, ".omx", "state", "session.json"), JSON.stringify({
+      await mkdir(join(cwd, ".nomx", "state"), { recursive: true });
+      await writeFile(join(cwd, ".nomx", "state", "session.json"), JSON.stringify({
         session_id: "sess-tmux",
         started_at: "2026-05-11T00:00:00.000Z",
         cwd,
         pid: 12345,
-        tmux_session_name: "omx-detached-demo",
+        tmux_session_name: "nomx-detached-demo",
         tmux_pane_id: "%42",
       }));
 
@@ -461,14 +461,14 @@ describe("Hermes MCP bridge core", () => {
 
       assert.equal(result.ok, false);
       assert.equal(result.code, "prompt_not_accepted");
-      assert.match(result.error ?? "", /unsupported_session_kind:tmux_prompt_delivery_failed:omx-detached-demo:%42:tmux_instance_mismatch:omx-detached-demo:other-session/);
+      assert.match(result.error ?? "", /unsupported_session_kind:tmux_prompt_delivery_failed:nomx-detached-demo:%42:tmux_instance_mismatch:nomx-detached-demo:other-session/);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it("returns a clear unsupported-session-kind diagnostic when no exec or tmux binding can accept prompts", async () => {
-    const cwd = await tempWorkspace("omx-hermes-no-prompt-binding-");
+    const cwd = await tempWorkspace("nomx-hermes-no-prompt-binding-");
     try {
       const result = await hermesSendPrompt(
         { workingDirectory: cwd, session_id: "sess-missing", prompt: "continue", allow_mutation: true },
@@ -514,13 +514,13 @@ describe("Hermes MCP bridge core", () => {
   });
 
   it("starts sessions in tmux worktree mode and requires mutation opt-in", async () => {
-    const cwd = await tempWorkspace("omx-hermes-start-");
+    const cwd = await tempWorkspace("nomx-hermes-start-");
     try {
       const observed: Array<{ command: string; args: string[]; cwd?: string; env?: NodeJS.ProcessEnv }> = [];
       const result = await hermesStartSession(
         { workingDirectory: cwd, prompt: "$ralph fix it", worktreeName: "pkg/demo", allow_mutation: true },
         {
-          resolveOmxCliEntryPath: () => "/opt/omx/dist/cli/nomx.js",
+          resolveNomxCliEntryPath: () => "/opt/omx/dist/cli/nomx.js",
           spawnProcess: ((command: string, args: string[], options: { cwd?: string; env?: NodeJS.ProcessEnv }) => {
             observed.push({ command, args, cwd: options.cwd, env: options.env });
             return { pid: 4242, unref() {} };
@@ -532,7 +532,7 @@ describe("Hermes MCP bridge core", () => {
       assert.equal(observed[0]?.command, "/opt/omx/dist/cli/nomx.js");
       assert.deepEqual(observed[0]?.args, ["--tmux", "--worktree=pkg/demo", "$ralph fix it"]);
       assert.equal(observed[0]?.cwd, cwd);
-      assert.equal(observed[0]?.env?.OMX_HERMES_MCP_BRIDGE, "1");
+      assert.equal(observed[0]?.env?.NOMX_HERMES_MCP_BRIDGE, "1");
       assert.equal(observed[0]?.env?.TMUX, undefined);
       assert.equal(observed[0]?.env?.TMUX_PANE, undefined);
       assert.equal(result.data?.pid, 4242);
@@ -542,24 +542,24 @@ describe("Hermes MCP bridge core", () => {
   });
 
   it("lists and reads only safe result artifact paths", async () => {
-    const cwd = await tempWorkspace("omx-hermes-artifacts-");
+    const cwd = await tempWorkspace("nomx-hermes-artifacts-");
     try {
-      await mkdir(join(cwd, ".omx", "plans"), { recursive: true });
-      await writeFile(join(cwd, ".omx", "plans", "prd-demo.md"), "hello artifact");
+      await mkdir(join(cwd, ".nomx", "plans"), { recursive: true });
+      await writeFile(join(cwd, ".nomx", "plans", "prd-demo.md"), "hello artifact");
 
       const list = await hermesListArtifacts({ workingDirectory: cwd });
       assert.equal(list.ok, true);
-      assert.deepEqual(list.data?.artifacts, [{ path: ".omx/plans/prd-demo.md", bytes: 14 }]);
+      assert.deepEqual(list.data?.artifacts, [{ path: ".nomx/plans/prd-demo.md", bytes: 14 }]);
 
-      const read = await hermesReadArtifact({ workingDirectory: cwd, path: ".omx/plans/prd-demo.md", max_bytes: 5 });
+      const read = await hermesReadArtifact({ workingDirectory: cwd, path: ".nomx/plans/prd-demo.md", max_bytes: 5 });
       assert.equal(read.ok, true);
-      assert.deepEqual(read.data, { path: ".omx/plans/prd-demo.md", content: "hello", truncated: true });
+      assert.deepEqual(read.data, { path: ".nomx/plans/prd-demo.md", content: "hello", truncated: true });
 
       const rejected = await hermesReadArtifact({ workingDirectory: cwd, path: "package.json" });
       assert.equal(rejected.ok, false);
       assert.equal(rejected.code, "artifact_outside_safe_roots");
 
-      const traversal = await hermesReadArtifact({ workingDirectory: cwd, path: ".omx/plans/../../package.json" });
+      const traversal = await hermesReadArtifact({ workingDirectory: cwd, path: ".nomx/plans/../../package.json" });
       assert.equal(traversal.ok, false);
       assert.equal(traversal.code, "artifact_outside_safe_roots");
     } finally {
@@ -569,30 +569,30 @@ describe("Hermes MCP bridge core", () => {
 
 
   it("reads large artifacts with max_bytes truncation and reports stat sizes", async () => {
-    const cwd = await tempWorkspace("omx-hermes-large-artifact-");
+    const cwd = await tempWorkspace("nomx-hermes-large-artifact-");
     try {
-      await mkdir(join(cwd, ".omx", "plans"), { recursive: true });
+      await mkdir(join(cwd, ".nomx", "plans"), { recursive: true });
       const content = `${"a".repeat(1024 * 1024)}tail`;
-      await writeFile(join(cwd, ".omx", "plans", "large.md"), content);
+      await writeFile(join(cwd, ".nomx", "plans", "large.md"), content);
 
       const list = await hermesListArtifacts({ workingDirectory: cwd });
       assert.equal(list.ok, true);
-      assert.deepEqual(list.data?.artifacts, [{ path: ".omx/plans/large.md", bytes: content.length }]);
+      assert.deepEqual(list.data?.artifacts, [{ path: ".nomx/plans/large.md", bytes: content.length }]);
 
-      const read = await hermesReadArtifact({ workingDirectory: cwd, path: ".omx/plans/large.md", max_bytes: 8 });
+      const read = await hermesReadArtifact({ workingDirectory: cwd, path: ".nomx/plans/large.md", max_bytes: 8 });
       assert.equal(read.ok, true);
-      assert.deepEqual(read.data, { path: ".omx/plans/large.md", content: "aaaaaaaa", truncated: true });
+      assert.deepEqual(read.data, { path: ".nomx/plans/large.md", content: "aaaaaaaa", truncated: true });
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it("reads session-history tails from a bounded suffix", async () => {
-    const cwd = await tempWorkspace("omx-hermes-large-tail-");
+    const cwd = await tempWorkspace("nomx-hermes-large-tail-");
     try {
-      await mkdir(join(cwd, ".omx", "logs"), { recursive: true });
+      await mkdir(join(cwd, ".nomx", "logs"), { recursive: true });
       await writeFile(
-        join(cwd, ".omx", "logs", "session-history.jsonl"),
+        join(cwd, ".nomx", "logs", "session-history.jsonl"),
         `${"ignored\n".repeat(40_000)}one\ntwo\nthree\n`,
       );
 
@@ -606,13 +606,13 @@ describe("Hermes MCP bridge core", () => {
   });
 
   it("does not list artifacts from safe-root directories symlinked outside the worktree", async () => {
-    const cwd = await tempWorkspace("omx-hermes-list-root-symlink-");
-    const outside = await tempWorkspace("omx-hermes-list-root-outside-");
+    const cwd = await tempWorkspace("nomx-hermes-list-root-symlink-");
+    const outside = await tempWorkspace("nomx-hermes-list-root-outside-");
     try {
-      await mkdir(join(cwd, ".omx"), { recursive: true });
+      await mkdir(join(cwd, ".nomx"), { recursive: true });
       await mkdir(outside, { recursive: true });
       await writeFile(join(outside, "secret.md"), "outside artifact");
-      await symlink(outside, join(cwd, ".omx", "plans"));
+      await symlink(outside, join(cwd, ".nomx", "plans"));
 
       const result = await hermesListArtifacts({ workingDirectory: cwd });
 
@@ -625,13 +625,13 @@ describe("Hermes MCP bridge core", () => {
   });
 
   it("rejects session-history tails symlinked outside the worktree", async () => {
-    const cwd = await tempWorkspace("omx-hermes-tail-symlink-");
-    const outside = await tempWorkspace("omx-hermes-tail-outside-");
+    const cwd = await tempWorkspace("nomx-hermes-tail-symlink-");
+    const outside = await tempWorkspace("nomx-hermes-tail-outside-");
     try {
-      await mkdir(join(cwd, ".omx", "logs"), { recursive: true });
+      await mkdir(join(cwd, ".nomx", "logs"), { recursive: true });
       const outsideLog = join(outside, "session-history.jsonl");
       await writeFile(outsideLog, "secret\n");
-      await symlink(outsideLog, join(cwd, ".omx", "logs", "session-history.jsonl"));
+      await symlink(outsideLog, join(cwd, ".nomx", "logs", "session-history.jsonl"));
 
       const result = await hermesReadTail({ workingDirectory: cwd, lines: 1 });
 
@@ -645,15 +645,15 @@ describe("Hermes MCP bridge core", () => {
   });
 
   it("rejects safe-root artifact symlinks that resolve outside the worktree", async () => {
-    const cwd = await tempWorkspace("omx-hermes-artifact-symlink-");
-    const outside = await mkdtemp(join(tmpdir(), "omx-hermes-artifact-outside-"));
+    const cwd = await tempWorkspace("nomx-hermes-artifact-symlink-");
+    const outside = await mkdtemp(join(tmpdir(), "nomx-hermes-artifact-outside-"));
     try {
-      await mkdir(join(cwd, ".omx", "plans"), { recursive: true });
+      await mkdir(join(cwd, ".nomx", "plans"), { recursive: true });
       const outsideFile = join(outside, "host.md");
       await writeFile(outsideFile, "outside artifact");
-      await symlink(outsideFile, join(cwd, ".omx", "plans", "host.md"));
+      await symlink(outsideFile, join(cwd, ".nomx", "plans", "host.md"));
 
-      const result = await hermesReadArtifact({ workingDirectory: cwd, path: ".omx/plans/host.md" });
+      const result = await hermesReadArtifact({ workingDirectory: cwd, path: ".nomx/plans/host.md" });
       assert.equal(result.ok, false);
       assert.equal(result.code, "artifact_outside_safe_roots");
     } finally {
@@ -664,17 +664,17 @@ describe("Hermes MCP bridge core", () => {
 
 
   it("rejects workdir-root candidate symlinks that would expose outside artifacts", async () => {
-    const allowed = await tempWorkspace("omx-hermes-allowed-root-");
-    const outside = await tempWorkspace("omx-hermes-outside-root-");
+    const allowed = await tempWorkspace("nomx-hermes-allowed-root-");
+    const outside = await tempWorkspace("nomx-hermes-outside-root-");
     try {
-      await mkdir(join(outside, ".omx", "plans"), { recursive: true });
-      await writeFile(join(outside, ".omx", "plans", "secret.md"), "outside via workdir symlink");
+      await mkdir(join(outside, ".nomx", "plans"), { recursive: true });
+      await writeFile(join(outside, ".nomx", "plans", "secret.md"), "outside via workdir symlink");
       await symlink(outside, join(allowed, "link"));
-      process.env.OMX_MCP_WORKDIR_ROOTS = allowed;
+      process.env.NOMX_MCP_WORKDIR_ROOTS = allowed;
 
       const result = await hermesReadArtifact({
         workingDirectory: join(allowed, "link"),
-        path: ".omx/plans/secret.md",
+        path: ".nomx/plans/secret.md",
       });
 
       assert.equal(result.ok, false);
@@ -686,19 +686,19 @@ describe("Hermes MCP bridge core", () => {
     }
   });
 
-  it("rejects symlinked OMX_MCP_WORKDIR_ROOTS entries before reading artifacts", async () => {
-    const intended = await tempWorkspace("omx-hermes-intended-root-");
-    const outside = await tempWorkspace("omx-hermes-outside-root-");
+  it("rejects symlinked NOMX_MCP_WORKDIR_ROOTS entries before reading artifacts", async () => {
+    const intended = await tempWorkspace("nomx-hermes-intended-root-");
+    const outside = await tempWorkspace("nomx-hermes-outside-root-");
     try {
-      await mkdir(join(outside, ".omx", "plans"), { recursive: true });
-      await writeFile(join(outside, ".omx", "plans", "secret.md"), "outside via symlinked root");
+      await mkdir(join(outside, ".nomx", "plans"), { recursive: true });
+      await writeFile(join(outside, ".nomx", "plans", "secret.md"), "outside via symlinked root");
       const symlinkedRoot = join(intended, "allowed-link");
       await symlink(outside, symlinkedRoot);
-      process.env.OMX_MCP_WORKDIR_ROOTS = symlinkedRoot;
+      process.env.NOMX_MCP_WORKDIR_ROOTS = symlinkedRoot;
 
       const result = await hermesReadArtifact({
         workingDirectory: symlinkedRoot,
-        path: ".omx/plans/secret.md",
+        path: ".nomx/plans/secret.md",
       });
 
       assert.equal(result.ok, false);
@@ -711,7 +711,7 @@ describe("Hermes MCP bridge core", () => {
   });
 
   it("writes a bounded Hermes coordination report", async () => {
-    const cwd = await tempWorkspace("omx-hermes-report-");
+    const cwd = await tempWorkspace("nomx-hermes-report-");
     try {
       const result = await hermesReportStatus(
         {
@@ -719,7 +719,7 @@ describe("Hermes MCP bridge core", () => {
           session_id: "sess-a",
           status: "complete",
           summary: "PR opened",
-          pr_url: "https://github.com/Yeachan-Heo/oh-my-codex/pull/1",
+          pr_url: "https://github.com/Yeachan-Heo/nomx/pull/1",
           allow_mutation: true,
         },
         { now: () => new Date("2026-05-11T00:00:00.000Z") },
@@ -731,7 +731,7 @@ describe("Hermes MCP bridge core", () => {
         status: "complete",
         updated_at: "2026-05-11T00:00:00.000Z",
         summary: "PR opened",
-        pr_url: "https://github.com/Yeachan-Heo/oh-my-codex/pull/1",
+        pr_url: "https://github.com/Yeachan-Heo/nomx/pull/1",
       });
     } finally {
       await rm(cwd, { recursive: true, force: true });

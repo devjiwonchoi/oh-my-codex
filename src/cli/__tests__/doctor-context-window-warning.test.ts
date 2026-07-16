@@ -7,14 +7,14 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-const NOTICE_NAME = 'Legacy OMX context defaults';
+const NOTICE_NAME = 'Legacy NOMX context defaults';
 const NOTICE_COPY =
-  'config.toml contains unchanged OMX-seeded context defaults; rerun "nomx setup" to migrate them. Doctor did not rewrite config.';
+  'config.toml contains unchanged NOMX-seeded context defaults; rerun "nomx setup" to migrate them. Doctor did not rewrite config.';
 const SEEDED_PAIR = [
-  '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)',
+  '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)',
   'model_context_window = 250000',
   'model_auto_compact_token_limit = 200000',
-  '# End oh-my-codex seeded behavioral defaults',
+  '# End nomx seeded behavioral defaults',
 ].join('\n');
 
 function runOmx(
@@ -24,8 +24,8 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error?: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
-  const result = spawnSync(process.execPath, [omxBin, ...argv], {
+  const nomxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
+  const result = spawnSync(process.execPath, [nomxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
     env: { ...process.env, ...envOverrides },
@@ -54,7 +54,7 @@ async function withConfig(
   config: string,
   fn: (args: { wd: string; home: string; codexDir: string; configPath: string }) => Promise<void>,
 ): Promise<void> {
-  const wd = await mkdtemp(join(tmpdir(), 'omx-doctor-context-window-'));
+  const wd = await mkdtemp(join(tmpdir(), 'nomx-doctor-context-window-'));
   try {
     const home = join(wd, 'home');
     const codexDir = join(home, '.codex');
@@ -68,7 +68,7 @@ async function withConfig(
 }
 
 describe('nomx doctor seeded context defaults diagnostic', () => {
-  it('emits one read-only migration notice only for the unchanged exact OMX-owned pair', async () => {
+  it('emits one read-only migration notice only for the unchanged exact NOMX-owned pair', async () => {
     await withConfig(`${SEEDED_PAIR}\n`, async ({ wd, home, codexDir, configPath }) => {
       const before = await readFile(configPath, 'utf-8');
       const beforeHash = sha256(before);
@@ -97,7 +97,7 @@ describe('nomx doctor seeded context defaults diagnostic', () => {
   });
 
   it('suppresses the migration notice when Config cannot read the path', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-doctor-context-window-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-doctor-context-window-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -115,17 +115,17 @@ describe('nomx doctor seeded context defaults diagnostic', () => {
   it('is silent for non-exact, unowned, and unrelated context values', async () => {
     const silentConfigs = [
       'model_context_window = 250000\n',
-      '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)\nmodel_context_window = 250000\n# End oh-my-codex seeded behavioral defaults\n',
-      '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)\nmodel_context_window = 250001\nmodel_auto_compact_token_limit = 200000\n# End oh-my-codex seeded behavioral defaults\n',
-      '# altered marker\nmodel_context_window = 250000\nmodel_auto_compact_token_limit = 200000\n# End oh-my-codex seeded behavioral defaults\n',
+      '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)\nmodel_context_window = 250000\n# End nomx seeded behavioral defaults\n',
+      '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)\nmodel_context_window = 250001\nmodel_auto_compact_token_limit = 200000\n# End nomx seeded behavioral defaults\n',
+      '# altered marker\nmodel_context_window = 250000\nmodel_auto_compact_token_limit = 200000\n# End nomx seeded behavioral defaults\n',
       'model_context_window = 250000\nmodel_auto_compact_token_limit = 200000\n',
       'model_auto_compact_token_limit = 200000\n',
-      '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)\nmodel_context_window = 250000\nmodel_auto_compact_token_limit = 200000\nunexpected = true\n# End oh-my-codex seeded behavioral defaults\n',
+      '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)\nmodel_context_window = 250000\nmodel_auto_compact_token_limit = 200000\nunexpected = true\n# End nomx seeded behavioral defaults\n',
       'model = "o3"\nmodel_context_window = 1000000\nmodel_auto_compact_token_limit = 900000\n',
       'model = "arbitrary"\nmodel_context_window = 1\nmodel_auto_compact_token_limit = 2\n',
-      'model_auto_compact_token_limit = 777\n# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)\nmodel_context_window = 250000\n# End oh-my-codex seeded behavioral defaults\n',
-      'model_context_window = 640000\n# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)\nmodel_auto_compact_token_limit = 200000\n# End oh-my-codex seeded behavioral defaults\n',
-      'model_context_window = 999\n# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)\nmodel_context_window = 250000\nmodel_auto_compact_token_limit = 200000\n# End oh-my-codex seeded behavioral defaults\n',
+      'model_auto_compact_token_limit = 777\n# nomx seeded behavioral defaults (uninstall removes unchanged defaults)\nmodel_context_window = 250000\n# End nomx seeded behavioral defaults\n',
+      'model_context_window = 640000\n# nomx seeded behavioral defaults (uninstall removes unchanged defaults)\nmodel_auto_compact_token_limit = 200000\n# End nomx seeded behavioral defaults\n',
+      'model_context_window = 999\n# nomx seeded behavioral defaults (uninstall removes unchanged defaults)\nmodel_context_window = 250000\nmodel_auto_compact_token_limit = 200000\n# End nomx seeded behavioral defaults\n',
     ];
 
     for (const config of silentConfigs) {

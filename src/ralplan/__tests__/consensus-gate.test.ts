@@ -28,7 +28,7 @@ function trackerBackedConsensus(
         verdict: 'approve',
         session_id: sessionId,
         thread_id: 'thread-architect',
-        tracker_path: '.omx/state/subagent-tracking.json',
+        tracker_path: '.nomx/state/subagent-tracking.json',
         completed_at: '2026-07-13T10:00:00.000Z',
         ...overrides.architect,
       },
@@ -38,7 +38,7 @@ function trackerBackedConsensus(
         verdict: 'approve',
         session_id: sessionId,
         thread_id: 'thread-critic',
-        tracker_path: '.omx/state/subagent-tracking.json',
+        tracker_path: '.nomx/state/subagent-tracking.json',
         completed_at: '2026-07-13T10:05:00.000Z',
         ...overrides.critic,
       },
@@ -295,15 +295,15 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('ignores ambient root consensus unless the ambient session is bound to this cwd', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-local-'));
-    const ambientRoot = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-ambient-'));
-    const previousOmxRoot = process.env.OMX_ROOT;
-    const previousOmxStateRoot = process.env.OMX_STATE_ROOT;
-    const previousOmxTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-local-'));
+    const ambientRoot = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-ambient-'));
+    const previousOmxRoot = process.env.NOMX_ROOT;
+    const previousOmxStateRoot = process.env.NOMX_STATE_ROOT;
+    const previousOmxTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
     try {
-      process.env.OMX_ROOT = ambientRoot;
-      delete process.env.OMX_STATE_ROOT;
-      delete process.env.OMX_TEAM_STATE_ROOT;
+      process.env.NOMX_ROOT = ambientRoot;
+      delete process.env.NOMX_STATE_ROOT;
+      delete process.env.NOMX_TEAM_STATE_ROOT;
       const ambientStateDir = getBaseStateDir(cwd);
       await mkdir(ambientStateDir, { recursive: true });
       await writeFile(join(ambientStateDir, 'ralplan-state.json'), JSON.stringify({
@@ -320,28 +320,28 @@ describe('ralplan consensus gate state roots', () => {
       assert.equal(gate.complete, false);
       assert.equal(gate.blockedReason, 'missing_sequential_architect_then_critic_approval');
     } finally {
-      if (typeof previousOmxRoot === 'string') process.env.OMX_ROOT = previousOmxRoot;
-      else delete process.env.OMX_ROOT;
-      if (typeof previousOmxStateRoot === 'string') process.env.OMX_STATE_ROOT = previousOmxStateRoot;
-      else delete process.env.OMX_STATE_ROOT;
-      if (typeof previousOmxTeamStateRoot === 'string') process.env.OMX_TEAM_STATE_ROOT = previousOmxTeamStateRoot;
-      else delete process.env.OMX_TEAM_STATE_ROOT;
+      if (typeof previousOmxRoot === 'string') process.env.NOMX_ROOT = previousOmxRoot;
+      else delete process.env.NOMX_ROOT;
+      if (typeof previousOmxStateRoot === 'string') process.env.NOMX_STATE_ROOT = previousOmxStateRoot;
+      else delete process.env.NOMX_STATE_ROOT;
+      if (typeof previousOmxTeamStateRoot === 'string') process.env.NOMX_TEAM_STATE_ROOT = previousOmxTeamStateRoot;
+      else delete process.env.NOMX_TEAM_STATE_ROOT;
       await rm(cwd, { recursive: true, force: true });
       await rm(ambientRoot, { recursive: true, force: true });
     }
   });
 
-  it('reads tracker-backed consensus evidence from OMX_STATE_ROOT instead of cwd/.omx/state', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-cwd-'));
-    const boxedRoot = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-state-root-'));
-    const previousOmxRoot = process.env.OMX_ROOT;
-    const previousOmxStateRoot = process.env.OMX_STATE_ROOT;
-    const previousOmxTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
+  it('reads tracker-backed consensus evidence from NOMX_STATE_ROOT instead of cwd/.nomx/state', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-cwd-'));
+    const boxedRoot = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-state-root-'));
+    const previousOmxRoot = process.env.NOMX_ROOT;
+    const previousOmxStateRoot = process.env.NOMX_STATE_ROOT;
+    const previousOmxTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
     const sessionId = 'sess-boxed-consensus';
     try {
-      delete process.env.OMX_ROOT;
-      delete process.env.OMX_TEAM_STATE_ROOT;
-      process.env.OMX_STATE_ROOT = boxedRoot;
+      delete process.env.NOMX_ROOT;
+      delete process.env.NOMX_TEAM_STATE_ROOT;
+      process.env.NOMX_STATE_ROOT = boxedRoot;
       const baseStateDir = getBaseStateDir(cwd);
       const sessionDir = join(baseStateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
@@ -399,8 +399,8 @@ describe('ralplan consensus gate state roots', () => {
               verdict: 'approve',
               session_id: sessionId,
               thread_id: 'thread-architect',
-              artifact_path: '.omx/plans/architect.md',
-              tracker_path: '.omx/state/subagent-tracking.json',
+              artifact_path: '.nomx/plans/architect.md',
+              tracker_path: '.nomx/state/subagent-tracking.json',
               completed_at: '2026-06-11T16:29:30.000Z',
             },
             ralplan_critic_review: {
@@ -409,8 +409,8 @@ describe('ralplan consensus gate state roots', () => {
               verdict: 'approve',
               session_id: sessionId,
               thread_id: 'thread-critic',
-              artifact_path: '.omx/plans/critic.md',
-              tracker_path: '.omx/state/subagent-tracking.json',
+              artifact_path: '.nomx/plans/critic.md',
+              tracker_path: '.nomx/state/subagent-tracking.json',
               completed_at: '2026-06-11T16:30:00.000Z',
             },
           },
@@ -426,31 +426,31 @@ describe('ralplan consensus gate state roots', () => {
       assert.equal(gate.blockedReason, null);
       assert.match(String(gate.source), new RegExp(`${boxedRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
     } finally {
-      if (typeof previousOmxRoot === 'string') process.env.OMX_ROOT = previousOmxRoot;
-      else delete process.env.OMX_ROOT;
-      if (typeof previousOmxStateRoot === 'string') process.env.OMX_STATE_ROOT = previousOmxStateRoot;
-      else delete process.env.OMX_STATE_ROOT;
-      if (typeof previousOmxTeamStateRoot === 'string') process.env.OMX_TEAM_STATE_ROOT = previousOmxTeamStateRoot;
-      else delete process.env.OMX_TEAM_STATE_ROOT;
+      if (typeof previousOmxRoot === 'string') process.env.NOMX_ROOT = previousOmxRoot;
+      else delete process.env.NOMX_ROOT;
+      if (typeof previousOmxStateRoot === 'string') process.env.NOMX_STATE_ROOT = previousOmxStateRoot;
+      else delete process.env.NOMX_STATE_ROOT;
+      if (typeof previousOmxTeamStateRoot === 'string') process.env.NOMX_TEAM_STATE_ROOT = previousOmxTeamStateRoot;
+      else delete process.env.NOMX_TEAM_STATE_ROOT;
       await rm(cwd, { recursive: true, force: true });
       await rm(boxedRoot, { recursive: true, force: true });
     }
   });
 
   it('accepts ordered native reviews when runtime tracker lags but workspace tracker has completion evidence', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-runtime-lag-'));
-    const boxedRoot = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-runtime-root-'));
-    const previousOmxRoot = process.env.OMX_ROOT;
-    const previousOmxStateRoot = process.env.OMX_STATE_ROOT;
-    const previousOmxTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-runtime-lag-'));
+    const boxedRoot = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-runtime-root-'));
+    const previousOmxRoot = process.env.NOMX_ROOT;
+    const previousOmxStateRoot = process.env.NOMX_STATE_ROOT;
+    const previousOmxTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
     const sessionId = 'sess-runtime-lag-consensus';
     try {
-      delete process.env.OMX_ROOT;
-      delete process.env.OMX_TEAM_STATE_ROOT;
-      process.env.OMX_STATE_ROOT = boxedRoot;
+      delete process.env.NOMX_ROOT;
+      delete process.env.NOMX_TEAM_STATE_ROOT;
+      process.env.NOMX_STATE_ROOT = boxedRoot;
       const runtimeStateDir = getBaseStateDir(cwd);
       const runtimeSessionDir = join(runtimeStateDir, 'sessions', sessionId);
-      const workspaceStateDir = join(cwd, '.omx', 'state');
+      const workspaceStateDir = join(cwd, '.nomx', 'state');
       const workspaceSessionDir = join(workspaceStateDir, 'sessions', sessionId);
       await mkdir(runtimeSessionDir, { recursive: true });
       await mkdir(workspaceSessionDir, { recursive: true });
@@ -495,7 +495,7 @@ describe('ralplan consensus gate state roots', () => {
         active: false,
         current_phase: 'complete',
         planning_complete: true,
-        latest_plan_path: '.omx/plans/prd-clickstack-otel-consumer-20260707T043000Z.md',
+        latest_plan_path: '.nomx/plans/prd-clickstack-otel-consumer-20260707T043000Z.md',
         ralplan_consensus_gate: {
           complete: true,
           sequence: ['architect-review', 'critic-review'],
@@ -505,7 +505,7 @@ describe('ralplan consensus gate state roots', () => {
             verdict: 'approve',
             session_id: sessionId,
             thread_id: 'thread-architect',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
             completed_at: '2026-07-07T04:30:00.000Z',
           },
           ralplan_critic_review: {
@@ -514,7 +514,7 @@ describe('ralplan consensus gate state roots', () => {
             verdict: 'approve',
             session_id: sessionId,
             thread_id: 'thread-critic',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
             completed_at: '2026-07-07T04:31:00.000Z',
           },
         },
@@ -528,31 +528,31 @@ describe('ralplan consensus gate state roots', () => {
       assert.equal(gate.complete, true);
       assert.equal(gate.blockedReason, null);
     } finally {
-      if (typeof previousOmxRoot === 'string') process.env.OMX_ROOT = previousOmxRoot;
-      else delete process.env.OMX_ROOT;
-      if (typeof previousOmxStateRoot === 'string') process.env.OMX_STATE_ROOT = previousOmxStateRoot;
-      else delete process.env.OMX_STATE_ROOT;
-      if (typeof previousOmxTeamStateRoot === 'string') process.env.OMX_TEAM_STATE_ROOT = previousOmxTeamStateRoot;
-      else delete process.env.OMX_TEAM_STATE_ROOT;
+      if (typeof previousOmxRoot === 'string') process.env.NOMX_ROOT = previousOmxRoot;
+      else delete process.env.NOMX_ROOT;
+      if (typeof previousOmxStateRoot === 'string') process.env.NOMX_STATE_ROOT = previousOmxStateRoot;
+      else delete process.env.NOMX_STATE_ROOT;
+      if (typeof previousOmxTeamStateRoot === 'string') process.env.NOMX_TEAM_STATE_ROOT = previousOmxTeamStateRoot;
+      else delete process.env.NOMX_TEAM_STATE_ROOT;
       await rm(cwd, { recursive: true, force: true });
       await rm(boxedRoot, { recursive: true, force: true });
     }
   });
 
   it('rejects runtime tracker lag when workspace tracker also lacks completion evidence', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-runtime-lag-incomplete-'));
-    const boxedRoot = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-runtime-incomplete-root-'));
-    const previousOmxRoot = process.env.OMX_ROOT;
-    const previousOmxStateRoot = process.env.OMX_STATE_ROOT;
-    const previousOmxTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-runtime-lag-incomplete-'));
+    const boxedRoot = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-runtime-incomplete-root-'));
+    const previousOmxRoot = process.env.NOMX_ROOT;
+    const previousOmxStateRoot = process.env.NOMX_STATE_ROOT;
+    const previousOmxTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
     const sessionId = 'sess-runtime-lag-incomplete-consensus';
     try {
-      delete process.env.OMX_ROOT;
-      delete process.env.OMX_TEAM_STATE_ROOT;
-      process.env.OMX_STATE_ROOT = boxedRoot;
+      delete process.env.NOMX_ROOT;
+      delete process.env.NOMX_TEAM_STATE_ROOT;
+      process.env.NOMX_STATE_ROOT = boxedRoot;
       const runtimeStateDir = getBaseStateDir(cwd);
       const runtimeSessionDir = join(runtimeStateDir, 'sessions', sessionId);
-      const workspaceStateDir = join(cwd, '.omx', 'state');
+      const workspaceStateDir = join(cwd, '.nomx', 'state');
       await mkdir(runtimeSessionDir, { recursive: true });
       await mkdir(workspaceStateDir, { recursive: true });
       await writeFile(join(runtimeStateDir, 'session.json'), JSON.stringify({
@@ -587,7 +587,7 @@ describe('ralplan consensus gate state roots', () => {
             verdict: 'approve',
             session_id: sessionId,
             thread_id: 'thread-architect',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
             completed_at: '2026-07-07T04:30:00.000Z',
           },
           ralplan_critic_review: {
@@ -596,7 +596,7 @@ describe('ralplan consensus gate state roots', () => {
             verdict: 'approve',
             session_id: sessionId,
             thread_id: 'thread-critic',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
             completed_at: '2026-07-07T04:31:00.000Z',
           },
         },
@@ -611,28 +611,28 @@ describe('ralplan consensus gate state roots', () => {
       assert.equal(gate.blockedReason, 'native_subagent_consensus_evidence_missing');
       assert.match(gate.blockedDetails?.join(' ') ?? '', /thread-architect is not completed/);
     } finally {
-      if (typeof previousOmxRoot === 'string') process.env.OMX_ROOT = previousOmxRoot;
-      else delete process.env.OMX_ROOT;
-      if (typeof previousOmxStateRoot === 'string') process.env.OMX_STATE_ROOT = previousOmxStateRoot;
-      else delete process.env.OMX_STATE_ROOT;
-      if (typeof previousOmxTeamStateRoot === 'string') process.env.OMX_TEAM_STATE_ROOT = previousOmxTeamStateRoot;
-      else delete process.env.OMX_TEAM_STATE_ROOT;
+      if (typeof previousOmxRoot === 'string') process.env.NOMX_ROOT = previousOmxRoot;
+      else delete process.env.NOMX_ROOT;
+      if (typeof previousOmxStateRoot === 'string') process.env.NOMX_STATE_ROOT = previousOmxStateRoot;
+      else delete process.env.NOMX_STATE_ROOT;
+      if (typeof previousOmxTeamStateRoot === 'string') process.env.NOMX_TEAM_STATE_ROOT = previousOmxTeamStateRoot;
+      else delete process.env.NOMX_TEAM_STATE_ROOT;
       await rm(cwd, { recursive: true, force: true });
       await rm(boxedRoot, { recursive: true, force: true });
     }
   });
 
   it('accepts session-scoped tracker-backed reviews without an explicit sessionId option', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-discovered-session-'));
-    const boxedRoot = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-discovered-root-'));
-    const previousOmxRoot = process.env.OMX_ROOT;
-    const previousOmxStateRoot = process.env.OMX_STATE_ROOT;
-    const previousOmxTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-discovered-session-'));
+    const boxedRoot = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-discovered-root-'));
+    const previousOmxRoot = process.env.NOMX_ROOT;
+    const previousOmxStateRoot = process.env.NOMX_STATE_ROOT;
+    const previousOmxTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
     const sessionId = 'sess-discovered-consensus';
     try {
-      delete process.env.OMX_ROOT;
-      delete process.env.OMX_TEAM_STATE_ROOT;
-      process.env.OMX_STATE_ROOT = boxedRoot;
+      delete process.env.NOMX_ROOT;
+      delete process.env.NOMX_TEAM_STATE_ROOT;
+      process.env.NOMX_STATE_ROOT = boxedRoot;
       const baseStateDir = getBaseStateDir(cwd);
       const sessionDir = join(baseStateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
@@ -707,19 +707,19 @@ describe('ralplan consensus gate state roots', () => {
       assert.equal(gate.blockedReason, null);
       assert.match(String(gate.source), new RegExp(`${sessionId}/ralplan-state\\.json$`));
     } finally {
-      if (typeof previousOmxRoot === 'string') process.env.OMX_ROOT = previousOmxRoot;
-      else delete process.env.OMX_ROOT;
-      if (typeof previousOmxStateRoot === 'string') process.env.OMX_STATE_ROOT = previousOmxStateRoot;
-      else delete process.env.OMX_STATE_ROOT;
-      if (typeof previousOmxTeamStateRoot === 'string') process.env.OMX_TEAM_STATE_ROOT = previousOmxTeamStateRoot;
-      else delete process.env.OMX_TEAM_STATE_ROOT;
+      if (typeof previousOmxRoot === 'string') process.env.NOMX_ROOT = previousOmxRoot;
+      else delete process.env.NOMX_ROOT;
+      if (typeof previousOmxStateRoot === 'string') process.env.NOMX_STATE_ROOT = previousOmxStateRoot;
+      else delete process.env.NOMX_STATE_ROOT;
+      if (typeof previousOmxTeamStateRoot === 'string') process.env.NOMX_TEAM_STATE_ROOT = previousOmxTeamStateRoot;
+      else delete process.env.NOMX_TEAM_STATE_ROOT;
       await rm(cwd, { recursive: true, force: true });
       await rm(boxedRoot, { recursive: true, force: true });
     }
   });
 
   it('rejects stale top-level handoff consensus during a return-to-ralplan cycle', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-stale-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-stale-'));
     try {
       const gate = buildRalplanConsensusGateForCwd(cwd, {
         artifacts: {
@@ -752,9 +752,9 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('rejects stale local ralplan state consensus during a return-to-ralplan cycle', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-stale-local-state-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-stale-local-state-'));
     try {
-      const stateDir = join(cwd, '.omx', 'state');
+      const stateDir = join(cwd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
         current_phase: 'complete',
@@ -790,9 +790,9 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('ignores stale invalid local ralplan state consensus during a return-to-ralplan cycle', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-stale-invalid-local-state-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-stale-invalid-local-state-'));
     try {
-      const stateDir = join(cwd, '.omx', 'state');
+      const stateDir = join(cwd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
         current_phase: 'complete',
@@ -829,7 +829,7 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('preserves ordered invalid direct consensus in a return-to-ralplan cycle without review_cycle', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-ordered-invalid-return-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-ordered-invalid-return-'));
     try {
       const gate = buildRalplanConsensusGateForCwd(cwd, {
         artifacts: {
@@ -862,9 +862,9 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('rejects local nested handoff consensus when only the local container review_cycle advances', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-local-container-only-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-local-container-only-'));
     try {
-      const stateDir = join(cwd, '.omx', 'state');
+      const stateDir = join(cwd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
         current_phase: 'complete',
@@ -903,9 +903,9 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('accepts local nested handoff consensus when both reviews carry the advanced review_cycle', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-local-review-fresh-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-local-review-fresh-'));
     try {
-      const stateDir = join(cwd, '.omx', 'state');
+      const stateDir = join(cwd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
         current_phase: 'complete',
@@ -946,9 +946,9 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('rejects local state.handoff_artifacts consensus when only the local container review_cycle advances', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-local-state-container-only-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-local-state-container-only-'));
     try {
-      const stateDir = join(cwd, '.omx', 'state');
+      const stateDir = join(cwd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
         current_phase: 'complete',
@@ -989,9 +989,9 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('accepts local state.handoff_artifacts consensus when nested state and both reviews carry the advanced review_cycle', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-local-state-review-fresh-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-local-state-review-fresh-'));
     try {
-      const stateDir = join(cwd, '.omx', 'state');
+      const stateDir = join(cwd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
         current_phase: 'complete',
@@ -1037,7 +1037,7 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('rejects stale review history consensus during a return-to-ralplan cycle', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-stale-history-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-stale-history-'));
     try {
       const gate = buildRalplanConsensusGateForCwd(cwd, {
         artifacts: {
@@ -1066,7 +1066,7 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('rejects stale review array consensus during a return-to-ralplan cycle', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-stale-arrays-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-stale-arrays-'));
     try {
       const gate = buildRalplanConsensusGateForCwd(cwd, {
         artifacts: {
@@ -1092,7 +1092,7 @@ describe('ralplan consensus gate state roots', () => {
     }
   });
   it('accepts tracker-backed native Architect and Critic lanes with exact ledger role identities and strict order', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-native-ok-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-native-ok-'));
     const sessionId = 'sess-native-consensus-ok';
     try {
       await writeNativeSubagentTracking(cwd, sessionId);
@@ -1109,7 +1109,7 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('uses native mode as the role identity and permits truly roleless legacy native lanes', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-native-mode-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-native-mode-'));
     const sessionId = 'sess-native-consensus-mode';
     try {
       await writeNativeSubagentTracking(cwd, sessionId);
@@ -1152,7 +1152,7 @@ describe('ralplan consensus gate state roots', () => {
     }
   });
   it('reads a tracker candidate once before evaluating native pair and individual evidence', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-native-read-once-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-native-read-once-'));
     const sessionId = 'sess-native-consensus-read-once';
     try {
       await writeNativeSubagentTracking(cwd, sessionId);
@@ -1182,7 +1182,7 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('rejects a native lane when the ledger role does not match its review role', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-native-role-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-native-role-'));
     const sessionId = 'sess-native-consensus-role';
     try {
       await writeNativeSubagentTracking(cwd, sessionId, { architectRole: 'planner' });
@@ -1200,7 +1200,7 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('rejects a native lane when strict tracker order is missing or reversed', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-native-order-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-native-order-'));
     const missingSessionId = 'sess-native-consensus-missing-order';
     const reversedSessionId = 'sess-native-consensus-reversed-order';
     try {
@@ -1231,17 +1231,17 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('does not combine pair and individual native evidence from different tracker snapshots', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-native-snapshot-'));
-    const boxedRoot = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-native-snapshot-root-'));
-    const previousOmxStateRoot = process.env.OMX_STATE_ROOT;
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-native-snapshot-'));
+    const boxedRoot = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-native-snapshot-root-'));
+    const previousOmxStateRoot = process.env.NOMX_STATE_ROOT;
     const sessionId = 'sess-native-consensus-snapshot';
     try {
-      process.env.OMX_STATE_ROOT = boxedRoot;
+      process.env.NOMX_STATE_ROOT = boxedRoot;
       await writeNativeSubagentTracking(cwd, sessionId, { criticRole: 'planner' });
 
-      delete process.env.OMX_STATE_ROOT;
+      delete process.env.NOMX_STATE_ROOT;
       await writeNativeSubagentTracking(cwd, sessionId, { architectRole: 'planner' });
-      process.env.OMX_STATE_ROOT = boxedRoot;
+      process.env.NOMX_STATE_ROOT = boxedRoot;
 
       const gate = buildRalplanConsensusGateFromSources([{
         source: 'native-snapshot-mismatch',
@@ -1251,15 +1251,15 @@ describe('ralplan consensus gate state roots', () => {
       assert.equal(gate.complete, false);
       assert.equal(gate.blockedReason, 'native_subagent_consensus_evidence_missing');
     } finally {
-      if (previousOmxStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousOmxStateRoot;
+      if (previousOmxStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousOmxStateRoot;
       await rm(cwd, { recursive: true, force: true });
       await rm(boxedRoot, { recursive: true, force: true });
     }
   });
 
   it('accepts tracker-backed OMX-adapted Architect and Critic lanes only with valid ledger order and scoped routing evidence', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-adapted-ok-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-adapted-ok-'));
     const sessionId = 'sess-adapted-consensus-ok';
     try {
       await writeAdaptedSubagentTracking(cwd, sessionId);
@@ -1275,7 +1275,7 @@ describe('ralplan consensus gate state roots', () => {
     }
   });
   it('rejects an OMX-adapted lane when tracker order evidence is missing', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-adapted-no-order-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-adapted-no-order-'));
     const sessionId = 'sess-adapted-consensus-no-order';
     try {
       await writeAdaptedSubagentTracking(cwd, sessionId, { criticFirstSeenAt: null });
@@ -1293,7 +1293,7 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('rejects forged OMX-adapted artifact timestamps when tracker ledger order is reversed', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-adapted-reversed-order-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-adapted-reversed-order-'));
     const sessionId = 'sess-adapted-consensus-reversed-order';
     try {
       await writeAdaptedSubagentTracking(cwd, sessionId, {
@@ -1318,7 +1318,7 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('rejects an OMX-adapted lane when the ledger role does not match its review role', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-adapted-role-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-adapted-role-'));
     const sessionId = 'sess-adapted-consensus-role';
     try {
       await writeAdaptedSubagentTracking(cwd, sessionId, { architectRole: 'critic' });
@@ -1336,7 +1336,7 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('rejects OMX-adapted reviews that reuse one tracker thread', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-adapted-reused-thread-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-adapted-reused-thread-'));
     const sessionId = 'sess-adapted-consensus-reused-thread';
     try {
       await writeAdaptedSubagentTracking(cwd, sessionId);
@@ -1356,7 +1356,7 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('rejects OMX-adapted lanes without scoped role-routing-unavailable evidence', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-adapted-no-marker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-adapted-no-marker-'));
     const sessionId = 'sess-adapted-consensus-no-marker';
     try {
       await writeAdaptedSubagentTracking(cwd, sessionId, { writeRoleRoutingMarker: false });
@@ -1374,7 +1374,7 @@ describe('ralplan consensus gate state roots', () => {
   });
 
   it('rejects a native-provenance artifact that points to OMX-adapted ledger threads', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-consensus-adapted-native-claim-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-consensus-adapted-native-claim-'));
     const sessionId = 'sess-adapted-consensus-native-claim';
     try {
       await writeAdaptedSubagentTracking(cwd, sessionId);

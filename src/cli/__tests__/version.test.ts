@@ -7,12 +7,12 @@ import { join } from 'node:path';
 import { version } from '../version.js';
 
 describe('version', () => {
-  it('prints OMX version from this repository package.json', async () => {
+  it('prints NOMX version from this repository package.json', async () => {
     const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf-8')) as { version: string };
     const logs: string[] = [];
     const originalLog = console.log;
     const originalCodexHome = process.env.CODEX_HOME;
-    const codexHome = await mkdtemp(join(tmpdir(), 'omx-version-codex-home-'));
+    const codexHome = await mkdtemp(join(tmpdir(), 'nomx-version-codex-home-'));
     console.log = (...args: unknown[]) => logs.push(args.join(' '));
     process.env.CODEX_HOME = codexHome;
 
@@ -28,6 +28,6 @@ describe('version', () => {
       await rm(codexHome, { recursive: true, force: true });
     }
 
-    assert.equal(logs[0], `oh-my-codex v${pkg.version}`);
+    assert.equal(logs[0], `nomx v${pkg.version}`);
   });
 });

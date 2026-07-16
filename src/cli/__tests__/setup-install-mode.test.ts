@@ -27,10 +27,10 @@ import {
 } from "../setup.js";
 import { resolveSetupRefreshArgs } from "../update.js";
 import { uninstall } from "../uninstall.js";
-import { OMX_FIRST_PARTY_MCP_SERVER_NAMES } from "../../config/omx-first-party-mcp.js";
+import { NOMX_FIRST_PARTY_MCP_SERVER_NAMES } from "../../config/nomx-first-party-mcp.js";
 import {
-	OMX_DEVELOPER_INSTRUCTIONS,
-	OMX_PLUGIN_DEVELOPER_INSTRUCTIONS,
+	NOMX_DEVELOPER_INSTRUCTIONS,
+	NOMX_PLUGIN_DEVELOPER_INSTRUCTIONS,
 } from "../../config/generator.js";
 import {
 	materializePackagedOmxPluginCache,
@@ -42,6 +42,7 @@ import {
 	buildManagedCodexNativeHookWindowsShimContent,
 	buildManagedCodexNativeHookWindowsShimPath,
 } from "../../config/codex-hooks.js";
+import { createNomxRootMetadata } from "../../identity/schema.js";
 
 
 const packageRoot = process.cwd();
@@ -50,7 +51,7 @@ let fakeCodexBinDir: string | null = null;
 
 before(async () => {
 	previousPathForFakeCodex = process.env.PATH;
-	fakeCodexBinDir = await mkdtemp(join(tmpdir(), "omx-fake-codex-"));
+	fakeCodexBinDir = await mkdtemp(join(tmpdir(), "nomx-fake-codex-"));
 	const fakeCodexPath = join(fakeCodexBinDir, "codex");
 	await writeFile(
 		fakeCodexPath,
@@ -93,6 +94,19 @@ async function withTempCwd(wd: string, fn: () => Promise<void>): Promise<void> {
 	} finally {
 		process.chdir(previousCwd);
 	}
+}
+
+async function seedNomxRoot(wd: string): Promise<void> {
+	const root = join(wd, ".nomx");
+	await mkdir(root, { recursive: true });
+	await writeFile(
+		join(root, "identity.json"),
+		JSON.stringify(createNomxRootMetadata(root)),
+	);
+}
+
+function userSetupScopePath(wd: string): string {
+	return join(wd, "home", ".nomx", "setup-scope.json");
 }
 
 async function runSetupWithCapturedLogs(
@@ -146,7 +160,7 @@ async function withDriveQualifiedWindowsCodexHome<T>(
 	const previousCwd = process.cwd();
 	const previousHome = process.env.HOME;
 	const previousCodexHome = process.env.CODEX_HOME;
-	const codexHomeDir = "C:\\Users\\omx\\.codex";
+	const codexHomeDir = "C:\\Users\\nomx\\.codex";
 	process.chdir(wd);
 	process.env.HOME = wd;
 	process.env.CODEX_HOME = codexHomeDir;
@@ -167,7 +181,7 @@ async function withDriveQualifiedWindowsCodexHome<T>(
 
 describe("notify setup scope", () => {
 	it("does not write unsupported project-scope notify", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-project-no-notify-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-project-no-notify-"));
 		try {
 			await withTempCwd(wd, async () => {
 				await setup({ scope: "project", installMode: "legacy" });
@@ -180,8 +194,8 @@ describe("notify setup scope", () => {
 		}
 	});
 
-	it("preserves existing user project-scope notify while suppressing OMX notify", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-project-user-notify-"));
+	it("preserves existing user project-scope notify while suppressing NOMX notify", async () => {
+		const wd = await mkdtemp(join(tmpdir(), "nomx-project-user-notify-"));
 		try {
 			await mkdir(join(wd, ".codex"), { recursive: true });
 			await writeFile(
@@ -193,7 +207,7 @@ describe("notify setup scope", () => {
 			});
 			const config = await readFile(join(wd, ".codex", "config.toml"), "utf-8");
 			assert.match(config, /^notify = \["node", "\/tmp\/notify-hook\.js"\]$/m);
-			assert.doesNotMatch(config, /oh-my-codex.*notify-hook\.js/);
+			assert.doesNotMatch(config, /nomx.*notify-hook\.js/);
 			assert.match(config, /^approval_policy = "never"$/m);
 		} finally {
 			await rm(wd, { recursive: true, force: true });
@@ -201,7 +215,7 @@ describe("notify setup scope", () => {
 	});
 
 	it("wraps and restores an existing user notify", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-user-notify-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-user-notify-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await mkdir(codexHomeDir, { recursive: true });
@@ -220,12 +234,12 @@ describe("notify setup scope", () => {
 				);
 				const metadataPath = join(
 					codexHomeDir,
-					".omx",
+					".nomx",
 					"notify-dispatch.json",
 				);
 				const metadata = JSON.parse(await readFile(metadataPath, "utf-8"));
 				assert.deepEqual(metadata.previousNotify, ["node", "/tmp/user-notify.js"]);
-				assert.deepEqual(metadata.omxNotify?.slice(0, 1), ["node"]);
+				assert.deepEqual(metadata.nomxNotify?.slice(0, 1), ["node"]);
 
 				await withTempCwd(wd, async () => {
 					await setup({ scope: "user" });
@@ -259,17 +273,17 @@ describe("notify setup scope", () => {
 		}
 	});
 
-	it("does not preserve stale OMX dispatcher metadata as previous notify", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-stale-dispatcher-notify-"));
+	it("does not preserve stale NOMX dispatcher metadata as previous notify", async () => {
+		const wd = await mkdtemp(join(tmpdir(), "nomx-stale-dispatcher-notify-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await mkdir(codexHomeDir, { recursive: true });
 				const metadataPath = join(
 					codexHomeDir,
-					".omx",
+					".nomx",
 					"notify-dispatch.json",
 				);
-				const stalePkgRoot = join(wd, "old-global", "oh-my-codex");
+				const stalePkgRoot = join(wd, "old-global", "nomx");
 				const staleDispatcher = join(
 					stalePkgRoot,
 					"dist",
@@ -284,7 +298,7 @@ describe("notify setup scope", () => {
 				await writeFile(
 					metadataPath,
 					JSON.stringify({
-						managedBy: "oh-my-codex",
+						managedBy: "nomx",
 						version: 1,
 						previousNotify: [
 							"node",
@@ -292,7 +306,7 @@ describe("notify setup scope", () => {
 							"--metadata",
 							metadataPath,
 						],
-						omxNotify: [
+						nomxNotify: [
 							"node",
 							join(stalePkgRoot, "dist", "scripts", "notify-hook.js"),
 						],
@@ -314,16 +328,16 @@ describe("notify setup scope", () => {
 	});
 
 	it("does not preserve nested encoded stale turn-ended previous notify metadata", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-stale-nested-wrapper-notify-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-stale-nested-wrapper-notify-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await mkdir(codexHomeDir, { recursive: true });
 				const metadataPath = join(
 					codexHomeDir,
-					".omx",
+					".nomx",
 					"notify-dispatch.json",
 				);
-				const stalePkgRoot = join(wd, "old-global", "oh-my-codex");
+				const stalePkgRoot = join(wd, "old-global", "nomx");
 				const staleDispatcher = join(
 					stalePkgRoot,
 					"dist",
@@ -346,7 +360,7 @@ describe("notify setup scope", () => {
 				await writeFile(
 					metadataPath,
 					JSON.stringify({
-						managedBy: "oh-my-codex",
+						managedBy: "nomx",
 						version: 1,
 						previousNotify: [
 							"node",
@@ -355,7 +369,7 @@ describe("notify setup scope", () => {
 							"--previous-notify",
 							JSON.stringify(nestedWrapper),
 						],
-						omxNotify: [
+						nomxNotify: [
 							"node",
 							join(stalePkgRoot, "dist", "scripts", "notify-hook.js"),
 						],
@@ -377,17 +391,17 @@ describe("notify setup scope", () => {
 		}
 	});
 
-	it("does not preserve stale turn-ended wrappers with OMX previous notify metadata", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-stale-wrapper-notify-"));
+	it("does not preserve stale turn-ended wrappers with NOMX previous notify metadata", async () => {
+		const wd = await mkdtemp(join(tmpdir(), "nomx-stale-wrapper-notify-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await mkdir(codexHomeDir, { recursive: true });
 				const metadataPath = join(
 					codexHomeDir,
-					".omx",
+					".nomx",
 					"notify-dispatch.json",
 				);
-				const stalePkgRoot = join(wd, "old-global", "oh-my-codex");
+				const stalePkgRoot = join(wd, "old-global", "nomx");
 				const staleDispatcher = join(
 					stalePkgRoot,
 					"dist",
@@ -403,7 +417,7 @@ describe("notify setup scope", () => {
 				await writeFile(
 					metadataPath,
 					JSON.stringify({
-						managedBy: "oh-my-codex",
+						managedBy: "nomx",
 						version: 1,
 						previousNotify: [
 							"node",
@@ -417,7 +431,7 @@ describe("notify setup scope", () => {
 								metadataPath,
 							]),
 						],
-						omxNotify: [
+						nomxNotify: [
 							"node",
 							join(stalePkgRoot, "dist", "scripts", "notify-hook.js"),
 						],
@@ -440,13 +454,13 @@ describe("notify setup scope", () => {
 	});
 
 	it("repairs reporter-shaped SkyComputerUseClient dispatcher metadata on rerun", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-reporter-wrapper-notify-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-reporter-wrapper-notify-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await mkdir(codexHomeDir, { recursive: true });
 				const metadataPath = join(
 					codexHomeDir,
-					".omx",
+					".nomx",
 					"notify-dispatch.json",
 				);
 				const stalePkgRoot = join(wd, "pkg-without-managed-name");
@@ -467,7 +481,7 @@ approval_policy = "on-failure"
 				await writeFile(
 					metadataPath,
 					JSON.stringify({
-						managedBy: "oh-my-codex",
+						managedBy: "nomx",
 						version: 1,
 						previousNotify: [
 							staleTurnEndedWrapper,
@@ -480,7 +494,7 @@ approval_policy = "on-failure"
 								metadataPath,
 							]),
 						],
-						omxNotify: [
+						nomxNotify: [
 							"node",
 							join(stalePkgRoot, "dist", "scripts", "notify-hook.js"),
 						],
@@ -502,8 +516,8 @@ approval_policy = "on-failure"
 		}
 	});
 
-	it("does not wrap stale global OMX notify hooks as user notify commands", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-stale-hook-notify-"));
+	it("does not wrap stale global NOMX notify hooks as user notify commands", async () => {
+		const wd = await mkdtemp(join(tmpdir(), "nomx-stale-hook-notify-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await mkdir(codexHomeDir, { recursive: true });
@@ -512,7 +526,7 @@ approval_policy = "on-failure"
 					"homebrew",
 					"lib",
 					"node_modules",
-					"oh-my-codex",
+					"nomx",
 					"dist",
 					"scripts",
 					"notify-hook.js",
@@ -529,7 +543,7 @@ approval_policy = "on-failure"
 				const config = await readFile(join(codexHomeDir, "config.toml"), "utf-8");
 				assert.match(config, /^notify = \["node", ".*notify-hook\.js"\]$/m);
 				assert.doesNotMatch(config, /notify-dispatcher\.js/);
-				assert.doesNotMatch(config, /lib\/node_modules\/oh-my-codex\/dist\/scripts\/notify-hook\.js/);
+				assert.doesNotMatch(config, /lib\/node_modules\/nomx\/dist\/scripts\/notify-hook\.js/);
 			});
 		} finally {
 			await rm(wd, { recursive: true, force: true });
@@ -545,7 +559,7 @@ async function assertProjectPluginModeArtifacts(wd: string): Promise<void> {
 	assert.match(config, /^goals = true$/m);
 	assert.doesNotMatch(config, /developer_instructions|notify-hook/g);
 	assert.equal(
-		existsSync(join(wd, ".codex", "skills", "ask", "SKILL.md")),
+		existsSync(join(wd, ".codex", "skills", "plan", "SKILL.md")),
 		false,
 	);
 	assert.equal(existsSync(join(wd, ".codex", "agents", "planner.toml")), true);
@@ -553,7 +567,7 @@ async function assertProjectPluginModeArtifacts(wd: string): Promise<void> {
 	assert.equal(existsSync(join(wd, "AGENTS.md")), true);
 
 	const persisted = JSON.parse(
-		await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+		await readFile(join(wd, ".nomx", "setup-scope.json"), "utf-8"),
 	) as { scope: string; installMode?: string };
 	assert.deepEqual(persisted, {
 		scope: "project",
@@ -589,13 +603,13 @@ async function seedPluginCacheFromInstalledSkills(
 		"plugins",
 		"cache",
 		"local-marketplace",
-		"oh-my-codex",
+		"nomx",
 		"local",
 	);
 	await mkdir(join(artifactPath, ".codex-plugin"), { recursive: true });
 	await writeFile(
 		join(artifactPath, ".codex-plugin", "plugin.json"),
-		JSON.stringify({ name: "oh-my-codex", version: "local" }),
+		JSON.stringify({ name: "nomx", version: "local" }),
 	);
 	const manifest = JSON.parse(
 		await readFile(
@@ -603,14 +617,15 @@ async function seedPluginCacheFromInstalledSkills(
 			"utf-8",
 		),
 	) as { skills: Array<{ name: string; status?: string }> };
-	const installableSkillNames = new Set([
-		...manifest.skills
+	const installableSkillNames = new Set(
+		manifest.skills
 			.filter(
-				(skill) => skill.status === "active" || skill.status === "internal",
+				(skill) =>
+					(skill.status === "active" || skill.status === "internal") &&
+					existsSync(join(codexHomeDir, "skills", skill.name)),
 			)
 			.map((skill) => skill.name),
-		"wiki",
-	]);
+	);
 	await mkdir(join(artifactPath, "skills"), { recursive: true });
 	await Promise.all(
 		[...installableSkillNames].map((skillName) =>
@@ -630,14 +645,14 @@ async function seedStalePluginDiscoveryCache(codexHomeDir: string): Promise<stri
 		codexHomeDir,
 		"plugins",
 		"cache",
-		"oh-my-codex-local",
-		"oh-my-codex",
+		"nomx-local",
+		"nomx",
 	);
 	await mkdir(join(artifactPath, ".codex-plugin"), { recursive: true });
 	await writeFile(
 		join(artifactPath, ".codex-plugin", "plugin.json"),
 		JSON.stringify(
-			{ name: "oh-my-codex", version: "0.0.0", skills: "./skills/" },
+			{ name: "nomx", version: "0.0.0", skills: "./skills/" },
 			null,
 			2,
 		),
@@ -652,18 +667,18 @@ async function seedOldVersionedPluginDiscoveryCache(codexHomeDir: string): Promi
 		codexHomeDir,
 		"plugins",
 		"cache",
-		"oh-my-codex-local",
-		"oh-my-codex",
+		"nomx-local",
+		"nomx",
 		"0.0.0",
 	);
 	await mkdir(dirname(artifactPath), { recursive: true });
-	await cp(join(packageRoot, "plugins", "oh-my-codex"), artifactPath, {
+	await cp(join(packageRoot, "plugins", "nomx"), artifactPath, {
 		recursive: true,
 	});
 	await writeFile(
 		join(artifactPath, ".codex-plugin", "plugin.json"),
 		JSON.stringify(
-			{ name: "oh-my-codex", version: "0.0.0", skills: "./skills/", hooks: "./hooks/hooks.json" },
+			{ name: "nomx", version: "0.0.0", skills: "./skills/", hooks: "./hooks/hooks.json" },
 			null,
 			2,
 		) + "\n",
@@ -677,11 +692,11 @@ async function seedOldVersionedPluginDiscoveryCache(codexHomeDir: string): Promi
 async function seedSameVersionPluginCacheWithStaleHooks(codexHomeDir: string): Promise<string> {
 	const cacheDir = await packagedPluginCacheDir(codexHomeDir);
 	await mkdir(dirname(cacheDir), { recursive: true });
-	await cp(join(packageRoot, "plugins", "oh-my-codex"), cacheDir, {
+	await cp(join(packageRoot, "plugins", "nomx"), cacheDir, {
 		recursive: true,
 	});
 	await writeFile(
-		join(cacheDir, "hooks", "omx-command.json"),
+		join(cacheDir, "hooks", "nomx-command.json"),
 		JSON.stringify({ command: process.execPath, argsPrefix: [join(packageRoot, "dist", "cli", "nomx.js")] }, null, 2) + "\n",
 	);
 	const hooksPath = join(cacheDir, "hooks", "hooks.json");
@@ -697,11 +712,11 @@ async function seedSameVersionPluginCacheWithStaleHooks(codexHomeDir: string): P
 async function seedSameVersionPluginCacheWithStaleLauncher(codexHomeDir: string): Promise<string> {
 	const cacheDir = await packagedPluginCacheDir(codexHomeDir);
 	await mkdir(dirname(cacheDir), { recursive: true });
-	await cp(join(packageRoot, "plugins", "oh-my-codex"), cacheDir, {
+	await cp(join(packageRoot, "plugins", "nomx"), cacheDir, {
 		recursive: true,
 	});
 	await writeFile(
-		join(cacheDir, "hooks", "omx-command.json"),
+		join(cacheDir, "hooks", "nomx-command.json"),
 		JSON.stringify({ command: "/stale/node", argsPrefix: ["/stale/nomx.js"] }, null, 2) + "\n",
 	);
 	return cacheDir;
@@ -710,7 +725,7 @@ async function seedSameVersionPluginCacheWithStaleLauncher(codexHomeDir: string)
 async function packagedPluginCacheDir(codexHomeDir: string): Promise<string> {
 	const manifest = JSON.parse(
 		await readFile(
-			join(packageRoot, "plugins", "oh-my-codex", ".codex-plugin", "plugin.json"),
+			join(packageRoot, "plugins", "nomx", ".codex-plugin", "plugin.json"),
 			"utf-8",
 		),
 	) as { version: string };
@@ -718,21 +733,21 @@ async function packagedPluginCacheDir(codexHomeDir: string): Promise<string> {
 		codexHomeDir,
 		"plugins",
 		"cache",
-		"oh-my-codex-local",
-		"oh-my-codex",
+		"nomx-local",
+		"nomx",
 		manifest.version,
 	);
 }
 
 describe("nomx setup install mode behavior", () => {
 	it("summarizes and keeps persisted setup preferences when review chooses keep", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
-					await mkdir(join(wd, ".omx"), { recursive: true });
+					await seedNomxRoot(wd);
 					await writeFile(
-						join(wd, ".omx", "setup-scope.json"),
+						join(wd, ".nomx", "setup-scope.json"),
 						JSON.stringify({ scope: "user", installMode: "legacy" }),
 					);
 
@@ -754,11 +769,11 @@ describe("nomx setup install mode behavior", () => {
 					);
 					assert.match(
 						output,
-						/Using setup scope: user \(from \.omx\/setup-scope\.json\)/,
+						/Using setup scope: user \(from \.nomx\/setup-scope\.json\)/,
 					);
 					assert.match(
 						output,
-						/Using setup install mode: legacy \(from \.omx\/setup-scope\.json\)/,
+						/Using setup install mode: legacy \(from \.nomx\/setup-scope\.json\)/,
 					);
 				});
 			});
@@ -768,13 +783,13 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("uses persisted choices as defaults when review changes setup preferences", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
-					await mkdir(join(wd, ".omx"), { recursive: true });
+					await seedNomxRoot(wd);
 					await writeFile(
-						join(wd, ".omx", "setup-scope.json"),
+						join(wd, ".nomx", "setup-scope.json"),
 						JSON.stringify({ scope: "user", installMode: "legacy" }),
 					);
 
@@ -791,7 +806,7 @@ describe("nomx setup install mode behavior", () => {
 					});
 
 					const persisted = JSON.parse(
-						await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+						await readFile(userSetupScopePath(wd), "utf-8"),
 					) as { scope: string; installMode?: string };
 					assert.deepEqual(persisted, {
 						scope: "user",
@@ -806,13 +821,13 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("clears user-scope install mode when review switches setup to project scope", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
-					await mkdir(join(wd, ".omx"), { recursive: true });
+					await seedNomxRoot(wd);
 					await writeFile(
-						join(wd, ".omx", "setup-scope.json"),
+						join(wd, ".nomx", "setup-scope.json"),
 						JSON.stringify({ scope: "user", installMode: "plugin" }),
 					);
 
@@ -825,7 +840,7 @@ describe("nomx setup install mode behavior", () => {
 					});
 
 					const persisted = JSON.parse(
-						await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+						await readFile(join(wd, ".nomx", "setup-scope.json"), "utf-8"),
 					) as { scope: string; installMode?: string };
 					assert.deepEqual(persisted, { scope: "project", mcpMode: "none" });
 				});
@@ -836,13 +851,13 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("reviews persisted scope when only install mode is provided", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
-					await mkdir(join(wd, ".omx"), { recursive: true });
+					await seedNomxRoot(wd);
 					await writeFile(
-						join(wd, ".omx", "setup-scope.json"),
+						join(wd, ".nomx", "setup-scope.json"),
 						JSON.stringify({ scope: "project" }),
 					);
 
@@ -861,7 +876,7 @@ describe("nomx setup install mode behavior", () => {
 
 					assert.equal(reviewed, true);
 					const persisted = JSON.parse(
-						await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+						await readFile(userSetupScopePath(wd), "utf-8"),
 					) as { scope: string; installMode?: string };
 					assert.deepEqual(persisted, {
 						scope: "user",
@@ -876,13 +891,13 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("reviews persisted install mode when only user scope is provided", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
-					await mkdir(join(wd, ".omx"), { recursive: true });
+					await seedNomxRoot(wd);
 					await writeFile(
-						join(wd, ".omx", "setup-scope.json"),
+						join(wd, ".nomx", "setup-scope.json"),
 						JSON.stringify({ scope: "user", installMode: "legacy" }),
 					);
 
@@ -901,7 +916,7 @@ describe("nomx setup install mode behavior", () => {
 
 					assert.equal(reviewed, true);
 					const persisted = JSON.parse(
-						await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+						await readFile(userSetupScopePath(wd), "utf-8"),
 					) as { scope: string; installMode?: string };
 					assert.deepEqual(persisted, {
 						scope: "user",
@@ -916,13 +931,13 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("ignores persisted setup preferences when review chooses reset", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
-					await mkdir(join(wd, ".omx"), { recursive: true });
+					await seedNomxRoot(wd);
 					await writeFile(
-						join(wd, ".omx", "setup-scope.json"),
+						join(wd, ".nomx", "setup-scope.json"),
 						JSON.stringify({ scope: "project", installMode: "plugin" }),
 					);
 
@@ -939,7 +954,7 @@ describe("nomx setup install mode behavior", () => {
 					});
 
 					const persisted = JSON.parse(
-						await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+						await readFile(userSetupScopePath(wd), "utf-8"),
 					) as { scope: string; installMode?: string };
 					assert.deepEqual(persisted, {
 						scope: "user",
@@ -954,7 +969,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("installs native agent TOML files in plugin mode so agent_type roles are available", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				const output = await runSetupWithCapturedLogs(wd, {
@@ -965,7 +980,7 @@ describe("nomx setup install mode behavior", () => {
 				assert.match(output, /Next steps:/);
 				assert.match(
 					output,
-					/Registered Codex marketplace oh-my-codex-local supplies OMX skills and workflow surfaces/,
+					/Registered Codex marketplace nomx-local supplies NOMX skills and workflow surfaces/,
 				);
 				assert.match(output, /Native agent role TOML files written to \.codex\/agents\//);
 
@@ -982,7 +997,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("omits Team plugin skills and native team executor when plugin mode disables Team", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-no-team-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-no-team-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1000,8 +1015,8 @@ describe("nomx setup install mode behavior", () => {
 					codexHomeDir,
 					"plugins",
 					"cache",
-					"oh-my-codex-local",
-					"oh-my-codex",
+					"nomx-local",
+					"nomx",
 					pkg.version,
 					"skills",
 				);
@@ -1017,7 +1032,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("keeps legacy-mode next steps describing native agent TOML output", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				const output = await runSetupWithCapturedLogs(wd, {
@@ -1028,7 +1043,7 @@ describe("nomx setup install mode behavior", () => {
 				assert.match(output, /Next steps:/);
 				assert.match(
 					output,
-					/Native agent role TOML files written to \.codex\/agents\/; use explicit agent_type when spawning OMX roles/,
+					/Native agent role TOML files written to \.codex\/agents\/; use explicit agent_type when spawning NOMX roles/,
 				);
 			});
 		} finally {
@@ -1037,7 +1052,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("persists user install mode choices alongside setup scope", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
@@ -1046,7 +1061,7 @@ describe("nomx setup install mode behavior", () => {
 			});
 
 			const persisted = JSON.parse(
-				await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+				await readFile(userSetupScopePath(wd), "utf-8"),
 			) as { scope: string; installMode?: string; mcpMode?: string };
 			assert.deepEqual(persisted, {
 				scope: "user",
@@ -1059,14 +1074,14 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("defaults setup to no first-party MCP blocks", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-mcp-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-mcp-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					await setup({ scope: "user", installMode: "legacy" });
 				});
 				const config = await readFile(join(codexHomeDir, "config.toml"), "utf-8");
-				assert.doesNotMatch(config, /^\[mcp_servers\.omx_state\]$/m);
+				assert.doesNotMatch(config, /^\[mcp_servers\.nomx_state\]$/m);
 			});
 		} finally {
 			await rm(wd, { recursive: true, force: true });
@@ -1074,16 +1089,16 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("emits first-party MCP blocks when compat MCP mode is requested", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-mcp-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-mcp-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					await setup({ scope: "user", installMode: "legacy", mcpMode: "compat" });
 				});
 				const config = await readFile(join(codexHomeDir, "config.toml"), "utf-8");
-				assert.match(config, /^\[mcp_servers\.omx_state\]$/m);
+				assert.match(config, /^\[mcp_servers\.nomx_state\]$/m);
 				const persisted = JSON.parse(
-					await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+					await readFile(userSetupScopePath(wd), "utf-8"),
 				) as { mcpMode?: string };
 				assert.equal(persisted.mcpMode, "compat");
 			});
@@ -1093,14 +1108,14 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("warns and preserves existing first-party MCP registrations in non-interactive default setup", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-mcp-preserve-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-mcp-preserve-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				const configPath = join(codexHomeDir, "config.toml");
 				await writeFile(
 					configPath,
 					[
-						"[mcp_servers.omx_state]",
+						"[mcp_servers.nomx_state]",
 						'command = "node"',
 						'args = ["/tmp/state-server.js"]',
 						"",
@@ -1114,8 +1129,8 @@ describe("nomx setup install mode behavior", () => {
 					installMode: "legacy",
 				});
 				const config = await readFile(configPath, "utf-8");
-				assert.match(output, /deprecated first-party OMX MCP registrations were detected but preserved/);
-				assert.match(config, /^\[mcp_servers\.omx_state\]$/m);
+				assert.match(output, /deprecated first-party NOMX MCP registrations were detected but preserved/);
+				assert.match(config, /^\[mcp_servers\.nomx_state\]$/m);
 				assert.match(config, /^\[mcp_servers\.user_tool\]$/m);
 			});
 		} finally {
@@ -1124,18 +1139,18 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("removes existing first-party MCP registrations only when the interactive migration prompt is accepted", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-mcp-remove-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-mcp-remove-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				const configPath = join(codexHomeDir, "config.toml");
 				await writeFile(
 					configPath,
 					[
-						"[mcp_servers.omx_state]",
+						"[mcp_servers.nomx_state]",
 						'command = "node"',
 						'args = ["/tmp/state-server.js"]',
 						"",
-						"[mcp_servers.omx_team_run]",
+						"[mcp_servers.nomx_team_run]",
 						'command = "node"',
 						"",
 						"[mcp_servers.user_tool]",
@@ -1147,14 +1162,14 @@ describe("nomx setup install mode behavior", () => {
 					scope: "user",
 					installMode: "legacy",
 					firstPartyMcpRemovalPrompt: async (_path, kinds) => {
-						assert.deepEqual(kinds, ["config.toml [mcp_servers.omx_*]"]);
+						assert.deepEqual(kinds, ["config.toml [mcp_servers.nomx_*]"]);
 						return true;
 					},
 				});
 				const config = await readFile(configPath, "utf-8");
-				assert.match(output, /Deprecated first-party OMX MCP registrations will be removed/);
-				assert.doesNotMatch(config, /^\[mcp_servers\.omx_state\]$/m);
-				assert.doesNotMatch(config, /^\[mcp_servers\.omx_team_run\]$/m);
+				assert.match(output, /Deprecated first-party NOMX MCP registrations will be removed/);
+				assert.doesNotMatch(config, /^\[mcp_servers\.nomx_state\]$/m);
+				assert.doesNotMatch(config, /^\[mcp_servers\.nomx_team_run\]$/m);
 				assert.match(config, /^\[mcp_servers\.user_tool\]$/m);
 			});
 		} finally {
@@ -1163,13 +1178,13 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves existing first-party MCP registrations when the interactive migration prompt is declined", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-mcp-decline-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-mcp-decline-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				const configPath = join(codexHomeDir, "config.toml");
 				await writeFile(
 					configPath,
-					"[mcp_servers.omx_memory]\ncommand = \"node\"\n\n[mcp_servers.user_tool]\ncommand = \"user-tool\"\n",
+					"[mcp_servers.nomx_memory]\ncommand = \"node\"\n\n[mcp_servers.user_tool]\ncommand = \"user-tool\"\n",
 				);
 				await withTempCwd(wd, async () => {
 					await setup({
@@ -1179,7 +1194,7 @@ describe("nomx setup install mode behavior", () => {
 					});
 				});
 				const config = await readFile(configPath, "utf-8");
-				assert.match(config, /^\[mcp_servers\.omx_memory\]$/m);
+				assert.match(config, /^\[mcp_servers\.nomx_memory\]$/m);
 				assert.match(config, /^\[mcp_servers\.user_tool\]$/m);
 			});
 		} finally {
@@ -1187,8 +1202,8 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 
-	it("defaults to plugin mode when an installed oh-my-codex plugin cache is discovered", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+	it("defaults to plugin mode when an installed nomx plugin cache is discovered", async () => {
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1196,19 +1211,19 @@ describe("nomx setup install mode behavior", () => {
 						codexHomeDir,
 						"plugins",
 						"cache",
-						"oh-my-codex-local",
-						"oh-my-codex",
+						"nomx-local",
+						"nomx",
 					);
 					await mkdir(join(pluginDir, ".codex-plugin"), { recursive: true });
 					await writeFile(
 						join(pluginDir, ".codex-plugin", "plugin.json"),
-						JSON.stringify({ name: "oh-my-codex", version: "local" }),
+						JSON.stringify({ name: "nomx", version: "local" }),
 					);
 
 					await setup({ scope: "user" });
 
 					const persisted = JSON.parse(
-						await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+						await readFile(userSetupScopePath(wd), "utf-8"),
 					) as { scope: string; installMode?: string };
 					assert.deepEqual(persisted, {
 						scope: "user",
@@ -1216,7 +1231,7 @@ describe("nomx setup install mode behavior", () => {
 						mcpMode: "none",
 					});
 					assert.equal(
-						existsSync(join(codexHomeDir, "skills", "ask", "SKILL.md")),
+						existsSync(join(codexHomeDir, "skills", "plan", "SKILL.md")),
 						false,
 					);
 					assert.equal(existsSync(join(codexHomeDir, "hooks.json")), false);
@@ -1227,8 +1242,8 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 
-	it("defaults project setup to plugin mode when an installed oh-my-codex plugin cache is discovered", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+	it("defaults project setup to plugin mode when an installed nomx plugin cache is discovered", async () => {
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1236,13 +1251,13 @@ describe("nomx setup install mode behavior", () => {
 						codexHomeDir,
 						"plugins",
 						"cache",
-						"oh-my-codex-local",
-						"oh-my-codex",
+						"nomx-local",
+						"nomx",
 					);
 					await mkdir(join(pluginDir, ".codex-plugin"), { recursive: true });
 					await writeFile(
 						join(pluginDir, ".codex-plugin", "plugin.json"),
-						JSON.stringify({ name: "oh-my-codex", version: "local" }),
+						JSON.stringify({ name: "nomx", version: "local" }),
 					);
 
 					await setup({ scope: "project" });
@@ -1256,7 +1271,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("invalidates stale plugin discovery caches so updated plugin skills refresh", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1268,7 +1283,7 @@ describe("nomx setup install mode behavior", () => {
 
 					assert.equal(existsSync(join(cacheDir, "skills", "old-only", "SKILL.md")), false);
 					assert.equal(
-						existsSync(join(await packagedPluginCacheDir(codexHomeDir), "skills", "ask", "SKILL.md")),
+						existsSync(join(await packagedPluginCacheDir(codexHomeDir), "skills", "plan", "SKILL.md")),
 						true,
 					);
 					assert.match(
@@ -1287,7 +1302,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("invalidates old versioned plugin cache dirs while materializing the current cache", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1302,8 +1317,8 @@ describe("nomx setup install mode behavior", () => {
 					assert.equal(existsSync(join(currentCacheDir, ".codex-plugin", "plugin.json")), true);
 					assert.equal(existsSync(join(currentCacheDir, "hooks", "hooks.json")), true);
 					assert.equal(existsSync(join(currentCacheDir, "hooks", "codex-native-hook.mjs")), true);
-					assert.equal(existsSync(join(currentCacheDir, "hooks", "omx-command.json")), true);
-					assert.equal(existsSync(join(currentCacheDir, "skills", "ask", "SKILL.md")), true);
+					assert.equal(existsSync(join(currentCacheDir, "hooks", "nomx-command.json")), true);
+					assert.equal(existsSync(join(currentCacheDir, "skills", "plan", "SKILL.md")), true);
 					assert.match(output, /Invalidated 1 stale Codex plugin discovery cache entry/);
 					assert.match(output, /Installed local Codex plugin cache/);
 					assert.doesNotMatch(output, /Retained .* old versioned Codex plugin cache/);
@@ -1314,7 +1329,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("invalidates same-version plugin caches when hook file contents drift", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1338,7 +1353,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("invalidates same-version plugin caches when the pinned hook launcher drifts", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1349,7 +1364,7 @@ describe("nomx setup install mode behavior", () => {
 					});
 
 					const launcher = JSON.parse(
-						await readFile(join(cacheDir, "hooks", "omx-command.json"), "utf-8"),
+						await readFile(join(cacheDir, "hooks", "nomx-command.json"), "utf-8"),
 					) as { command?: string; argsPrefix?: string[] };
 					assert.equal(launcher.command, process.execPath);
 					assert.deepEqual(launcher.argsPrefix, [join(packageRoot, "dist", "cli", "nomx.js")]);
@@ -1362,14 +1377,14 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("materializes replacement plugin caches without removing the existing cache root", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				const cacheDir = await seedSameVersionPluginCacheWithStaleHooks(codexHomeDir);
 				const staleOnlyPath = join(cacheDir, "stale-only.txt");
 				await writeFile(staleOnlyPath, "stale\n");
 				const packagedMarketplace = await resolvePackagedOmxMarketplace(packageRoot);
-				assert.ok(packagedMarketplace, "expected packaged OMX plugin marketplace fixture");
+				assert.ok(packagedMarketplace, "expected packaged NOMX plugin marketplace fixture");
 
 				let observedPreparedCache = false;
 				await materializePackagedOmxPluginCache(codexHomeDir, packagedMarketplace, {
@@ -1386,7 +1401,7 @@ describe("nomx setup install mode behavior", () => {
 				assert.equal(existsSync(cacheDir), true);
 				assert.equal(existsSync(join(cacheDir, ".codex-plugin", "plugin.json")), true);
 				assert.equal(existsSync(join(cacheDir, "hooks", "codex-native-hook.mjs")), true);
-				assert.equal(existsSync(join(cacheDir, "hooks", "omx-command.json")), true);
+				assert.equal(existsSync(join(cacheDir, "hooks", "nomx-command.json")), true);
 				assert.equal(existsSync(staleOnlyPath), false, "overlay cleanup should remove stale files after refreshed files are present");
 			});
 		} finally {
@@ -1395,7 +1410,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("reports stale plugin discovery cache invalidation during dry-run without deleting it", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1418,7 +1433,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("reports plugin cache materialization during dry-run without writing cache", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1437,7 +1452,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("does not prompt for install mode during project-scoped setup", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		let promptCalls = 0;
 		try {
 			await withIsolatedUserHome(wd, async () => {
@@ -1454,7 +1469,7 @@ describe("nomx setup install mode behavior", () => {
 
 			assert.equal(promptCalls, 0);
 			const persisted = JSON.parse(
-				await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+				await readFile(join(wd, ".nomx", "setup-scope.json"), "utf-8"),
 			) as { scope: string; installMode?: string };
 			assert.deepEqual(persisted, { scope: "project", mcpMode: "none" });
 		} finally {
@@ -1463,7 +1478,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("defaults project setup to plugin mode after user plugin setup installs plugin cache", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
@@ -1472,7 +1487,7 @@ describe("nomx setup install mode behavior", () => {
 					await setup({ scope: "project" });
 
 					const persisted = JSON.parse(
-						await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+						await readFile(join(wd, ".nomx", "setup-scope.json"), "utf-8"),
 					) as { scope: string; installMode?: string };
 					assert.deepEqual(persisted, {
 						scope: "project",
@@ -1481,14 +1496,14 @@ describe("nomx setup install mode behavior", () => {
 					});
 					assert.equal(existsSync(join(wd, ".codex", "hooks.json")), false);
 					assert.equal(
-						existsSync(join(wd, ".codex", "skills", "ask", "SKILL.md")),
+						existsSync(join(wd, ".codex", "skills", "plan", "SKILL.md")),
 						false,
 					);
 
 					await setup({ scope: "project" });
 
 					const repeatedPersisted = JSON.parse(
-						await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+						await readFile(join(wd, ".nomx", "setup-scope.json"), "utf-8"),
 					) as { scope: string; installMode?: string };
 					assert.deepEqual(repeatedPersisted, {
 						scope: "project",
@@ -1511,7 +1526,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("does not reuse stale project install mode for user-scoped setup", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1520,7 +1535,7 @@ describe("nomx setup install mode behavior", () => {
 					await setup({ scope: "user" });
 
 					const persisted = JSON.parse(
-						await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+						await readFile(userSetupScopePath(wd), "utf-8"),
 					) as { scope: string; installMode?: string };
 					assert.deepEqual(persisted, {
 						scope: "user",
@@ -1528,7 +1543,7 @@ describe("nomx setup install mode behavior", () => {
 						mcpMode: "none",
 					});
 					assert.equal(
-						existsSync(join(codexHomeDir, "skills", "ask", "SKILL.md")),
+						existsSync(join(codexHomeDir, "skills", "plan", "SKILL.md")),
 						true,
 					);
 					assert.equal(
@@ -1547,7 +1562,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("registers the local Codex plugin marketplace without reintroducing legacy assets", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1561,9 +1576,9 @@ describe("nomx setup install mode behavior", () => {
 							'source_type = "local"',
 							'source = "/tmp/other"',
 							"",
-							"[marketplaces.oh-my-codex-local]",
+							"[marketplaces.nomx-local]",
 							'source_type = "local"',
-							'source = "/tmp/stale-oh-my-codex"',
+							'source = "/tmp/stale-nomx"',
 							"",
 						].join("\n"),
 					);
@@ -1580,27 +1595,27 @@ describe("nomx setup install mode behavior", () => {
 						plugins?: Record<string, { enabled?: boolean }>;
 					};
 					assert.equal(
-						parsed.marketplaces?.["oh-my-codex-local"]?.source_type,
+						parsed.marketplaces?.["nomx-local"]?.source_type,
 						"local",
 					);
 					assert.equal(
-						parsed.marketplaces?.["oh-my-codex-local"]?.source,
+						parsed.marketplaces?.["nomx-local"]?.source,
 						packageRoot,
 					);
 					assert.equal(parsed.marketplaces?.other?.source_type, "local");
 					assert.equal(parsed.marketplaces?.other?.source, "/tmp/other");
 					assert.equal(
-						(config.match(/^\[marketplaces\.oh-my-codex-local\]$/gm) ?? [])
+						(config.match(/^\[marketplaces\.nomx-local\]$/gm) ?? [])
 							.length,
 						1,
 					);
 					assert.equal(
-						(config.match(/^\[plugins\."oh-my-codex@oh-my-codex-local"\]$/gm) ?? [])
+						(config.match(/^\[plugins\."nomx@nomx-local"\]$/gm) ?? [])
 							.length,
 						1,
 					);
 					assert.equal(
-						parsed.plugins?.["oh-my-codex@oh-my-codex-local"]?.enabled,
+						parsed.plugins?.["nomx@nomx-local"]?.enabled,
 						true,
 					);
 					const cacheDir = await packagedPluginCacheDir(codexHomeDir);
@@ -1609,7 +1624,7 @@ describe("nomx setup install mode behavior", () => {
 						true,
 					);
 					assert.equal(
-						existsSync(join(cacheDir, "skills", "ask", "SKILL.md")),
+						existsSync(join(cacheDir, "skills", "plan", "SKILL.md")),
 						true,
 					);
 					assert.match(config, /^plugin_hooks = true$/m);
@@ -1617,7 +1632,7 @@ describe("nomx setup install mode behavior", () => {
 					assert.doesNotMatch(config, /^codex_hooks = true$/m);
 					assert.doesNotMatch(config, /\[mcp_servers\./);
 					assert.equal(
-						existsSync(join(codexHomeDir, "skills", "ask", "SKILL.md")),
+						existsSync(join(codexHomeDir, "skills", "plan", "SKILL.md")),
 						false,
 					);
 					assert.equal(
@@ -1636,7 +1651,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("enables the local Codex plugin while preserving plugin subtable policy", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1644,10 +1659,10 @@ describe("nomx setup install mode behavior", () => {
 					await writeFile(
 						configPath,
 						[
-							"[plugins.\"oh-my-codex@oh-my-codex-local\"]",
+							"[plugins.\"nomx@nomx-local\"]",
 							"enabled = false",
 							"",
-							"[plugins.\"oh-my-codex@oh-my-codex-local\".mcp_servers.omx_state]",
+							"[plugins.\"nomx@nomx-local\".mcp_servers.nomx_state]",
 							"enabled = false",
 							"",
 						].join("\n"),
@@ -1668,17 +1683,17 @@ describe("nomx setup install mode behavior", () => {
 					};
 
 					assert.equal(
-						(config.match(/^\[plugins\."oh-my-codex@oh-my-codex-local"\]$/gm) ?? [])
+						(config.match(/^\[plugins\."nomx@nomx-local"\]$/gm) ?? [])
 							.length,
 						1,
 					);
 					assert.equal(
-						parsed.plugins?.["oh-my-codex@oh-my-codex-local"]?.enabled,
+						parsed.plugins?.["nomx@nomx-local"]?.enabled,
 						true,
 					);
 					assert.equal(
-						parsed.plugins?.["oh-my-codex@oh-my-codex-local"]?.mcp_servers
-							?.omx_state?.enabled,
+						parsed.plugins?.["nomx@nomx-local"]?.mcp_servers
+							?.nomx_state?.enabled,
 						false,
 					);
 				});
@@ -1689,7 +1704,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("registers plugin MCP subtables only when compat MCP mode is requested", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1708,8 +1723,8 @@ describe("nomx setup install mode behavior", () => {
 						>;
 					};
 					assert.equal(
-						parsed.plugins?.["oh-my-codex@oh-my-codex-local"]?.mcp_servers
-							?.omx_state?.enabled,
+						parsed.plugins?.["nomx@nomx-local"]?.mcp_servers
+							?.nomx_state?.enabled,
 						true,
 					);
 
@@ -1726,8 +1741,8 @@ describe("nomx setup install mode behavior", () => {
 						>;
 					};
 					assert.equal(
-						parsed.plugins?.["oh-my-codex@oh-my-codex-local"]?.mcp_servers
-							?.omx_state?.enabled,
+						parsed.plugins?.["nomx@nomx-local"]?.mcp_servers
+							?.nomx_state?.enabled,
 						true,
 					);
 				});
@@ -1738,20 +1753,20 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("removes plugin MCP registrations only when the migration prompt is accepted", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-plugin-mcp-remove-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-plugin-mcp-remove-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				const configPath = join(codexHomeDir, "config.toml");
 				await writeFile(
 					configPath,
 					[
-						"[mcp_servers.omx_state]",
+						"[mcp_servers.nomx_state]",
 						'command = "node"',
 						"",
-						'[plugins."oh-my-codex@oh-my-codex-local"]',
+						'[plugins."nomx@nomx-local"]',
 						"enabled = true",
 						"",
-						'[plugins."oh-my-codex@oh-my-codex-local".mcp_servers.omx_memory]',
+						'[plugins."nomx@nomx-local".mcp_servers.nomx_memory]',
 						"enabled = true",
 						"",
 					].join("\n"),
@@ -1762,7 +1777,7 @@ describe("nomx setup install mode behavior", () => {
 						installMode: "plugin",
 						firstPartyMcpRemovalPrompt: async (_path, kinds) => {
 							assert.deepEqual(kinds, [
-								"config.toml [mcp_servers.omx_*]",
+								"config.toml [mcp_servers.nomx_*]",
 								"plugin mcp_servers overrides",
 							]);
 							return true;
@@ -1770,8 +1785,8 @@ describe("nomx setup install mode behavior", () => {
 					});
 				});
 				const config = await readFile(configPath, "utf-8");
-				assert.doesNotMatch(config, /mcp_servers\.omx_state/);
-				assert.doesNotMatch(config, /mcp_servers\.omx_memory/);
+				assert.doesNotMatch(config, /mcp_servers\.nomx_state/);
+				assert.doesNotMatch(config, /mcp_servers\.nomx_memory/);
 			});
 		} finally {
 			await rm(wd, { recursive: true, force: true });
@@ -1779,14 +1794,14 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves plugin-mode top-level MCP registrations without duplicating them when removal is declined", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-plugin-mcp-preserve-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-plugin-mcp-preserve-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				const configPath = join(codexHomeDir, "config.toml");
 				await writeFile(
 					configPath,
 					[
-						"[mcp_servers.omx_state]",
+						"[mcp_servers.nomx_state]",
 						'command = "node"',
 						"",
 						"[mcp_servers.user_tool]",
@@ -1802,7 +1817,7 @@ describe("nomx setup install mode behavior", () => {
 					});
 				});
 				const config = await readFile(configPath, "utf-8");
-				assert.equal(config.match(/^\[mcp_servers\.omx_state\]$/gm)?.length, 1);
+				assert.equal(config.match(/^\[mcp_servers\.nomx_state\]$/gm)?.length, 1);
 				assert.match(config, /^\[mcp_servers\.user_tool\]$/m);
 			});
 		} finally {
@@ -1811,7 +1826,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("reports plugin marketplace registration during dry-run without mutating config", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1824,7 +1839,7 @@ describe("nomx setup install mode behavior", () => {
 
 					assert.match(
 						output,
-						/Would register local Codex plugin marketplace oh-my-codex-local/,
+						/Would register local Codex plugin marketplace nomx-local/,
 					);
 					assert.equal(
 						await readFile(configPath, "utf-8"),
@@ -1838,7 +1853,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("uses plugin-scoped hooks when plugin mode is selected", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1860,7 +1875,7 @@ describe("nomx setup install mode behavior", () => {
 						/developer_instructions|notify-hook/g,
 					);
 					assert.equal(
-						existsSync(join(codexHomeDir, "skills", "ask", "SKILL.md")),
+						existsSync(join(codexHomeDir, "skills", "plan", "SKILL.md")),
 						false,
 					);
 					assert.equal(
@@ -1880,7 +1895,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("can opt into plugin AGENTS.md and developer_instructions defaults", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -1893,7 +1908,7 @@ describe("nomx setup install mode behavior", () => {
 
 					assert.equal(existsSync(join(codexHomeDir, "hooks.json")), false);
 					assert.equal(
-						existsSync(join(codexHomeDir, "skills", "ask", "SKILL.md")),
+						existsSync(join(codexHomeDir, "skills", "plan", "SKILL.md")),
 						false,
 					);
 					assert.equal(
@@ -1910,11 +1925,11 @@ describe("nomx setup install mode behavior", () => {
 						"utf-8",
 					);
 					assert.match(config, /developer_instructions\s*=/);
-					assert.match(config, /<nomx version=\\"1\\">You have oh-my-codex installed through Codex plugin mode/);
-					assert.ok(config.includes("detail.</omx>"));
+					assert.match(config, /<nomx version=\\"1\\">You have nomx installed through Codex plugin mode/);
+					assert.ok(config.includes("detail.</nomx>"));
 					assert.match(
 						config,
-						/Registered Codex plugin marketplace surfaces supply OMX workflows and plugin-scoped companion resources/,
+						/Registered Codex plugin marketplace surfaces supply NOMX workflows and plugin-scoped companion resources/,
 					);
 					assert.match(config, /User-installed skills may still live under ~\/.codex\/skills/);
 					assert.match(
@@ -1923,14 +1938,14 @@ describe("nomx setup install mode behavior", () => {
 					);
 					assert.match(
 						config,
-						/When the native surface exposes `agent_type` role routing, set `agent_type` to an installed role and never omit it for OMX work/i,
+						/When the native surface exposes `agent_type` role routing, set `agent_type` to an installed role and never omit it for NOMX work/i,
 					);
 					assert.match(config, /role_routing_unavailable/i);
 					assert.match(config, /do not fabricate `agent_type`/i);
-					assert.match(config, /OMX adapted role-pass protocol/i);
+					assert.match(config, /NOMX adapted role-pass protocol/i);
 					assert.match(
 						config,
-						/pre-validated role intent in the OMX subagent ledger/i,
+						/pre-validated role intent in the NOMX subagent ledger/i,
 					);
 					assert.match(config, /never fake the role via a prompt label/i);
 					assert.doesNotMatch(config, /Native subagents live in \.codex\/agents/);
@@ -1938,7 +1953,7 @@ describe("nomx setup install mode behavior", () => {
 					assert.match(config, /^plugin_hooks = true$/m);
 					assert.doesNotMatch(config, /notify-hook/);
 					assert.doesNotMatch(config, /^\s*\[mcp_servers[.\]]/m);
-					assert.doesNotMatch(config, /mcp_servers\.omx_state/);
+					assert.doesNotMatch(config, /mcp_servers\.nomx_state/);
 
 					const agentsMd = await readFile(
 						join(codexHomeDir, "AGENTS.md"),
@@ -1946,11 +1961,11 @@ describe("nomx setup install mode behavior", () => {
 					);
 					assert.match(
 						agentsMd,
-						/oh-my-codex - Intelligent Multi-Agent Orchestration/,
+						/nomx - Intelligent Multi-Agent Orchestration/,
 					);
-					assert.match(agentsMd, /<!-- omx:generated:agents-md -->/);
-					assert.match(agentsMd, /<!-- OMX:MODELS:START -->/);
-					assert.match(agentsMd, /<!-- OMX:MODELS:END -->/);
+					assert.match(agentsMd, /<!-- nomx:generated:agents-md -->/);
+					assert.match(agentsMd, /<!-- NOMX:MODELS:START -->/);
+					assert.match(agentsMd, /<!-- NOMX:MODELS:END -->/);
 					assert.match(agentsMd, /<guidance_schema_contract>/);
 					assert.match(agentsMd, /<execution_protocols>/);
 					assert.match(
@@ -1959,7 +1974,7 @@ describe("nomx setup install mode behavior", () => {
 					);
 					assert.match(
 						agentsMd,
-						/Registered Codex plugin marketplace surfaces supply OMX workflows and plugin-scoped companion resources/,
+						/Registered Codex plugin marketplace surfaces supply NOMX workflows and plugin-scoped companion resources/,
 					);
 					assert.match(agentsMd, /User-installed skills may still live under `~\/.codex\/skills`/);
 					assert.match(
@@ -1976,7 +1991,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("uses project-scoped plugin AGENTS.md wording without legacy prompt or agent paths", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
@@ -1990,7 +2005,7 @@ describe("nomx setup install mode behavior", () => {
 					const agentsMd = await readFile(join(wd, "AGENTS.md"), "utf-8");
 					assert.match(
 						agentsMd,
-						/Registered Codex plugin marketplace surfaces supply OMX workflows and plugin-scoped companion resources/,
+						/Registered Codex plugin marketplace surfaces supply NOMX workflows and plugin-scoped companion resources/,
 					);
 					assert.match(
 						agentsMd,
@@ -2007,7 +2022,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves custom developer_instructions without prompting", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -2041,14 +2056,14 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves current wrapped developer_instructions without prompting", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					const configPath = join(codexHomeDir, "config.toml");
 					await writeFile(
 						configPath,
-						`developer_instructions = ${JSON.stringify(OMX_PLUGIN_DEVELOPER_INSTRUCTIONS)}\n`,
+						`developer_instructions = ${JSON.stringify(NOMX_PLUGIN_DEVELOPER_INSTRUCTIONS)}\n`,
 					);
 
 					let promptCount = 0;
@@ -2063,7 +2078,7 @@ describe("nomx setup install mode behavior", () => {
 
 					assert.equal(promptCount, 0);
 					const config = await readFile(configPath, "utf-8");
-					assert.match(config, /<nomx version=\\"1\\">You have oh-my-codex installed through Codex plugin mode/);
+					assert.match(config, /<nomx version=\\"1\\">You have nomx installed through Codex plugin mode/);
 					assert.equal(
 						(config.match(/^developer_instructions\s*=/gm) ?? []).length,
 						1,
@@ -2076,13 +2091,13 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("migrates historical unwrapped developer_instructions after prompting", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					const configPath = join(codexHomeDir, "config.toml");
 					const latestUnwrapped =
-						"You have oh-my-codex installed through Codex plugin mode. AGENTS.md is the orchestration brain and main control surface. Follow AGENTS.md for skill/keyword routing and $name workflow invocation. When spawning native subagents, set `agent_type` to an installed role and never omit it for OMX work. Registered Codex plugin marketplace surfaces supply OMX workflows and plugin-scoped companion resources when the plugin is installed; native agent roles are installed as setup-owned Codex agent TOML files in plugin mode so agent_type routing works. User-installed skills may still live under ~/.codex/skills. Use outcome-first, concise progress updates: state the target result, constraints, validation evidence, and stop condition before adding process detail.";
+						"You have nomx installed through Codex plugin mode. AGENTS.md is the orchestration brain and main control surface. Follow AGENTS.md for skill/keyword routing and $name workflow invocation. When spawning native subagents, set `agent_type` to an installed role and never omit it for NOMX work. Registered Codex plugin marketplace surfaces supply NOMX workflows and plugin-scoped companion resources when the plugin is installed; native agent roles are installed as setup-owned Codex agent TOML files in plugin mode so agent_type routing works. User-installed skills may still live under ~/.codex/skills. Use outcome-first, concise progress updates: state the target result, constraints, validation evidence, and stop condition before adding process detail.";
 					await writeFile(
 						configPath,
 						`developer_instructions = ${JSON.stringify(latestUnwrapped)}\n`,
@@ -2102,14 +2117,14 @@ describe("nomx setup install mode behavior", () => {
 					const config = await readFile(configPath, "utf-8");
 					assert.match(
 						config,
-						/<nomx version=\\"1\\">You have oh-my-codex installed through Codex plugin mode/,
+						/<nomx version=\\"1\\">You have nomx installed through Codex plugin mode/,
 					);
 					assert.match(
 						config,
-						/When the native surface exposes `agent_type` role routing, set `agent_type` to an installed role and never omit it for OMX work/i,
+						/When the native surface exposes `agent_type` role routing, set `agent_type` to an installed role and never omit it for NOMX work/i,
 					);
 					assert.match(config, /role_routing_unavailable/i);
-					assert.match(config, /OMX adapted role-pass protocol/i);
+					assert.match(config, /NOMX adapted role-pass protocol/i);
 					assert.equal(
 						(config.match(/^developer_instructions\s*=/gm) ?? []).length,
 						1,
@@ -2122,14 +2137,14 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("updates managed classic developer_instructions during plugin migration", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					const configPath = join(codexHomeDir, "config.toml");
 					await writeFile(
 						configPath,
-						`developer_instructions = ${JSON.stringify(OMX_DEVELOPER_INSTRUCTIONS)}\n`,
+						`developer_instructions = ${JSON.stringify(NOMX_DEVELOPER_INSTRUCTIONS)}\n`,
 					);
 
 					let promptCount = 0;
@@ -2146,11 +2161,11 @@ describe("nomx setup install mode behavior", () => {
 					const config = await readFile(configPath, "utf-8");
 					assert.match(
 						config,
-						/<nomx version=\\"1\\">You have oh-my-codex installed through Codex plugin mode/,
+						/<nomx version=\\"1\\">You have nomx installed through Codex plugin mode/,
 					);
 					assert.doesNotMatch(
 						config,
-						/You have oh-my-codex installed\\. AGENTS\\.md/,
+						/You have nomx installed\\. AGENTS\\.md/,
 					);
 					assert.equal(
 						(config.match(/^developer_instructions\s*=/gm) ?? []).length,
@@ -2164,14 +2179,14 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves managed classic developer_instructions when plugin migration refresh is declined", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					const configPath = join(codexHomeDir, "config.toml");
 					await writeFile(
 						configPath,
-						`developer_instructions = ${JSON.stringify(OMX_DEVELOPER_INSTRUCTIONS)}\n`,
+						`developer_instructions = ${JSON.stringify(NOMX_DEVELOPER_INSTRUCTIONS)}\n`,
 					);
 
 					await setup({
@@ -2181,7 +2196,7 @@ describe("nomx setup install mode behavior", () => {
 					});
 
 					const config = await readFile(configPath, "utf-8");
-					assert.match(config, /You have oh-my-codex installed\. AGENTS\.md/);
+					assert.match(config, /You have nomx installed\. AGENTS\.md/);
 					assert.doesNotMatch(config, /<nomx version=/);
 					assert.equal(
 						(config.match(/^developer_instructions\s*=/gm) ?? []).length,
@@ -2195,12 +2210,12 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves edited classic developer_instructions containing the legacy phrase", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					const configPath = join(codexHomeDir, "config.toml");
-					const edited = `${OMX_DEVELOPER_INSTRUCTIONS}\nCustom local rule: keep this line.`;
+					const edited = `${NOMX_DEVELOPER_INSTRUCTIONS}\nCustom local rule: keep this line.`;
 					await writeFile(
 						configPath,
 						`developer_instructions = ${JSON.stringify(edited)}\n`,
@@ -2218,7 +2233,7 @@ describe("nomx setup install mode behavior", () => {
 
 					assert.equal(promptCount, 0);
 					const config = await readFile(configPath, "utf-8");
-					assert.match(config, /You have oh-my-codex installed\. AGENTS\.md/);
+					assert.match(config, /You have nomx installed\. AGENTS\.md/);
 					assert.match(config, /Custom local rule: keep this line/);
 					assert.doesNotMatch(config, /<nomx version=/);
 					assert.equal(
@@ -2233,12 +2248,12 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves edited wrapper developer_instructions as custom without prompting", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					const configPath = join(codexHomeDir, "config.toml");
-					const edited = '<nomx version="1">Custom instructions</omx>';
+					const edited = '<nomx version="1">Custom instructions</nomx>';
 					await writeFile(
 						configPath,
 						`developer_instructions = ${JSON.stringify(edited)}\n`,
@@ -2257,7 +2272,7 @@ describe("nomx setup install mode behavior", () => {
 					assert.equal(promptCount, 0);
 					const config = await readFile(configPath, "utf-8");
 					assert.match(config, /Custom instructions/);
-					assert.doesNotMatch(config, /Registered Codex plugin marketplace surfaces supply OMX workflows/);
+					assert.doesNotMatch(config, /Registered Codex plugin marketplace surfaces supply NOMX workflows/);
 					assert.equal(
 						(config.match(/^developer_instructions\s*=/gm) ?? []).length,
 						1,
@@ -2270,12 +2285,12 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves changed-version wrapper developer_instructions as custom without prompting", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					const configPath = join(codexHomeDir, "config.toml");
-					const edited = '<nomx version="2">Custom instructions</omx>';
+					const edited = '<nomx version="2">Custom instructions</nomx>';
 					await writeFile(
 						configPath,
 						`developer_instructions = ${JSON.stringify(edited)}\n`,
@@ -2294,7 +2309,7 @@ describe("nomx setup install mode behavior", () => {
 					assert.equal(promptCount, 0);
 					const config = await readFile(configPath, "utf-8");
 					assert.match(config, /version=\\"2\\">Custom instructions/);
-					assert.doesNotMatch(config, /Registered Codex plugin marketplace surfaces supply OMX workflows/);
+					assert.doesNotMatch(config, /Registered Codex plugin marketplace surfaces supply NOMX workflows/);
 					assert.equal(
 						(config.match(/^developer_instructions\s*=/gm) ?? []).length,
 						1,
@@ -2307,7 +2322,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("does not refresh custom developer_instructions from plugin policy prompt", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -2341,7 +2356,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("does not add developer_instructions in non-interactive plugin mode", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -2363,7 +2378,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("uses legacy codex_hooks only when the installed Codex reports that hook feature", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -2389,7 +2404,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("removes legacy setup-managed hook wrappers when plugin-scoped hooks are supported", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -2465,14 +2480,14 @@ describe("nomx setup install mode behavior", () => {
 		] as const;
 		try {
 			for (const representation of representations) {
-				const wd = await mkdtemp(join(tmpdir(), `omx-plugin-trust-${representation.name}-`));
+				const wd = await mkdtemp(join(tmpdir(), `nomx-plugin-trust-${representation.name}-`));
 				try {
 					await withIsolatedUserHome(wd, async (codexHomeDir) => {
 						await withTempCwd(wd, async () => {
 							const configPath = join(codexHomeDir, "config.toml");
 							const hooksPath = join(codexHomeDir, "hooks.json");
 							const shimPath = buildManagedCodexNativeHookWindowsShimPath(codexHomeDir);
-							const metadataPath = join(codexHomeDir, ".omx", "notify-dispatch.json");
+							const metadataPath = join(codexHomeDir, ".nomx", "notify-dispatch.json");
 							const hooks = `${JSON.stringify(
 								buildManagedCodexHooksConfig(packageRoot, {
 									platform: "win32",
@@ -2494,14 +2509,14 @@ describe("nomx setup install mode behavior", () => {
 								'model = "foreign"',
 								"",
 								"# ============================================================",
-								"# oh-my-codex (OMX) Configuration",
+								"# nomx (NOMX) Configuration",
 								"# Managed by nomx setup - manual edits preserved on next setup",
 								"# ============================================================",
 								"",
 								...representation.render(key, trust.trusted_hash),
 								"",
 								"# ============================================================",
-								"# End oh-my-codex",
+								"# End nomx",
 								"",
 							].join("\n");
 							const metadata = Buffer.from('{"managedBy":"foreign"}\n', "utf-8");
@@ -2534,11 +2549,11 @@ describe("nomx setup install mode behavior", () => {
 							assert.deepEqual(await readFile(shimPath), shim);
 							assert.deepEqual(await readFile(metadataPath), metadata);
 							assert.deepEqual(
-								(await readdir(codexHomeDir)).filter((entry) => entry.includes(".omx-")),
+								(await readdir(codexHomeDir)).filter((entry) => entry.includes(".nomx-")),
 								[],
 							);
 							assert.deepEqual(
-								(await readdir(wd)).filter((entry) => entry.includes(".omx-")),
+								(await readdir(wd)).filter((entry) => entry.includes(".nomx-")),
 								[],
 							);
 						});
@@ -2566,19 +2581,19 @@ describe("nomx setup install mode behavior", () => {
 		] as const;
 		try {
 			for (const fixture of fixtures) {
-				const wd = await mkdtemp(join(tmpdir(), `omx-plugin-marker-${fixture.name}-`));
+				const wd = await mkdtemp(join(tmpdir(), `nomx-plugin-marker-${fixture.name}-`));
 				try {
 					await withIsolatedUserHome(wd, async (codexHomeDir) => {
 						await withTempCwd(wd, async () => {
 							const configPath = join(codexHomeDir, "config.toml");
 							const hooksPath = join(codexHomeDir, "hooks.json");
 							const shimPath = buildManagedCodexNativeHookWindowsShimPath(codexHomeDir);
-							const metadataPath = join(codexHomeDir, ".omx", "notify-dispatch.json");
+							const metadataPath = join(codexHomeDir, ".nomx", "notify-dispatch.json");
 							const config = [
 								'model = "foreign"',
 								"",
 								"# ============================================================",
-								"# oh-my-codex (OMX) Configuration",
+								"# nomx (NOMX) Configuration",
 								"# Managed by nomx setup - manual edits preserved on next setup",
 								"# ============================================================",
 								"",
@@ -2586,7 +2601,7 @@ describe("nomx setup install mode behavior", () => {
 								'trusted_hash = "sha256:foreign"',
 								"",
 								"# ============================================================",
-								"# End oh-my-codex",
+								"# End nomx",
 								"",
 							].join("\n");
 							const shim = Buffer.from(
@@ -2624,11 +2639,11 @@ describe("nomx setup install mode behavior", () => {
 								assert.deepEqual(await readFile(hooksPath), Buffer.from(fixture.hooks, "utf-8"));
 							}
 							assert.deepEqual(
-								(await readdir(codexHomeDir)).filter((entry) => entry.includes(".omx-")),
+								(await readdir(codexHomeDir)).filter((entry) => entry.includes(".nomx-")),
 								[],
 							);
 							assert.deepEqual(
-								(await readdir(wd)).filter((entry) => entry.includes(".omx-")),
+								(await readdir(wd)).filter((entry) => entry.includes(".nomx-")),
 								[],
 							);
 						});
@@ -2642,7 +2657,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("treats normalized managed Windows shim identity as exact and every distinct target as ambiguous", () => {
-		const shimBasename = "omx-native-hook-windows-shim.ps1";
+		const shimBasename = "nomx-native-hook-windows-shim.ps1";
 		const targetShimPath = `C:\\Users\\alice\\.codex\\hooks\\${shimBasename}`;
 		const futureCommand = (shimPath: string) =>
 			`& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File '${shimPath}'`;
@@ -2678,7 +2693,7 @@ describe("nomx setup install mode behavior", () => {
 			decideWindowsNativeHookShimReference(
 				JSON.stringify({
 					hooks: {
-						FutureEvent: [{ hooks: [{ type: "command", command: "& $env:OMX_SHIM" }] }],
+						FutureEvent: [{ hooks: [{ type: "command", command: "& $env:NOMX_SHIM" }] }],
 					},
 				}),
 				targetShimPath,
@@ -2686,9 +2701,9 @@ describe("nomx setup install mode behavior", () => {
 			"ambiguous",
 		);
 		for (const command of [
-			"& %OMX_SHIM%",
-			"& !OMX_SHIM!",
-			"& $(Get-Item env:OMX_SHIM)",
+			"& %NOMX_SHIM%",
+			"& !NOMX_SHIM!",
+			"& $(Get-Item env:NOMX_SHIM)",
 		]) {
 			assert.equal(
 				decideWindowsNativeHookShimReference(
@@ -2707,7 +2722,7 @@ describe("nomx setup install mode behavior", () => {
 			`Write-Output "don't"; & $env:HOOK_SCRIPT; Write-Output "user's"`,
 			"Invoke-Expression '& $env:HOOK_SCRIPT'",
 			"cmd /c 'call %HOOK_SCRIPT%'",
-			`& ('C:\\Users\\alice\\.codex\\hooks\\omx-native-hook-windows-' + 'shim.ps1')`,
+			`& ('C:\\Users\\alice\\.codex\\hooks\\nomx-native-hook-windows-' + 'shim.ps1')`,
 			"& (Get-Content C:\\shim-path.txt)",
 		]) {
 			assert.equal(
@@ -2731,7 +2746,7 @@ describe("nomx setup install mode behavior", () => {
 							hooks: [{
 								type: "command",
 								command:
-									"& 'C:\\%OMX_INERT%\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'D:\\tools\\unrelated-$env:INERT.ps1'",
+									"& 'C:\\%NOMX_INERT%\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'D:\\tools\\unrelated-$env:INERT.ps1'",
 							}],
 						}],
 					},
@@ -2744,13 +2759,13 @@ describe("nomx setup install mode behavior", () => {
 			`\\Users\\alice\\.codex\\hooks\\${shimBasename}`,
 			`C:Users\\alice\\.codex\\hooks\\${shimBasename}`,
 			`C:\\\\Users\\alice\\.codex\\hooks\\${shimBasename}`,
-			String.raw`\Users\ALICE~1\.codex\hooks\OMX-NA~1.PS1`,
-			String.raw`C:Users\ALICE~1\.codex\hooks\OMX-NA~1.PS1`,
+			String.raw`\Users\ALICE~1\.codex\hooks\NOMX-NA~1.PS1`,
+			String.raw`C:Users\ALICE~1\.codex\hooks\NOMX-NA~1.PS1`,
 			`\\\\?\\C:\\Users\\alice\\.codex\\hooks\\${shimBasename}`,
 			`C:\\$env:USERPROFILE\\hooks\\${shimBasename}`,
 			`.\\hooks\\${shimBasename}`,
 			`D:\\aliases\\${shimBasename}. `,
-			`C:\\Users\\ALICE~1\\.codex\\hooks\\OMX-NA~1.PS1`,
+			`C:\\Users\\ALICE~1\\.codex\\hooks\\NOMX-NA~1.PS1`,
 		]) {
 			assert.equal(
 				decideWindowsNativeHookShimReference(futureHooks(ambiguousPath), targetShimPath),
@@ -2772,7 +2787,7 @@ describe("nomx setup install mode behavior", () => {
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		try {
 			for (const mutationKind of ["hooks", "config"] as const) {
-				const wd = await mkdtemp(join(tmpdir(), `omx-plugin-preserved-shim-${mutationKind}-`));
+				const wd = await mkdtemp(join(tmpdir(), `nomx-plugin-preserved-shim-${mutationKind}-`));
 				let resetFailureInjector: (() => void) | undefined;
 				try {
 					await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -2790,7 +2805,7 @@ describe("nomx setup install mode behavior", () => {
 									hooks: {
 										...managed.hooks,
 										FutureEvent: [{
-											hooks: [{ type: "command", command: "& $env:OMX_SHIM" }],
+											hooks: [{ type: "command", command: "& $env:NOMX_SHIM" }],
 										}],
 									},
 								}, null, 2)}\n`,
@@ -2846,7 +2861,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("rolls back when a preserved Windows shim drifts after staged cleanup finalization", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-plugin-preserved-shim-finalization-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-plugin-preserved-shim-finalization-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		let resetFailureInjector: (() => void) | undefined;
 		try {
@@ -2865,7 +2880,7 @@ describe("nomx setup install mode behavior", () => {
 							hooks: {
 								...managed.hooks,
 								FutureEvent: [{
-									hooks: [{ type: "command", command: "& $env:OMX_SHIM" }],
+									hooks: [{ type: "command", command: "& $env:NOMX_SHIM" }],
 								}],
 							},
 						}, null, 2)}\n`,
@@ -2910,7 +2925,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("preserves a drive-qualified shim for a drive-less future reference and aborts stale plugin transitions", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-plugin-drive-qualified-future-shim-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-plugin-drive-qualified-future-shim-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		let resetFailureInjector: (() => void) | undefined;
 		try {
@@ -2922,7 +2937,7 @@ describe("nomx setup install mode behavior", () => {
 					platform: "win32",
 					codexHomeDir,
 				});
-				const driveLessFutureShimPath = "\\Users\\omx\\.codex\\hooks\\omx-native-hook-windows-shim.ps1";
+				const driveLessFutureShimPath = "\\Users\\nomx\\.codex\\hooks\\nomx-native-hook-windows-shim.ps1";
 				const futureHooks = `${JSON.stringify({
 					...managed,
 					hooks: {
@@ -2980,7 +2995,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("preserves a shim referenced by a Unicode-escaped future hook event", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-plugin-future-shim-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-plugin-future-shim-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -3035,7 +3050,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("preserves a shim referenced through a normalized Windows path alias", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-plugin-shim-path-alias-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-plugin-shim-path-alias-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -3044,7 +3059,7 @@ describe("nomx setup install mode behavior", () => {
 					const shimPath = buildManagedCodexNativeHookWindowsShimPath(codexHomeDir);
 					const shimAlias = shimPath
 						.replace(/[\\/]+hooks[\\/]+/i, "\\hooks\\\\.\\")
-						.replace(/omx-native-hook-windows-shim\.ps1$/i, "OMX-NATIVE-HOOK-WINDOWS-SHIM.PS1")
+						.replace(/nomx-native-hook-windows-shim\.ps1$/i, "NOMX-NATIVE-HOOK-WINDOWS-SHIM.PS1")
 						.replace(/\\/g, "/");
 					const managed = buildManagedCodexHooksConfig(packageRoot, {
 						platform: "win32",
@@ -3088,7 +3103,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("preserves a shim for a distinct absolute -File target", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-plugin-quoted-inert-shim-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-plugin-quoted-inert-shim-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -3109,7 +3124,7 @@ describe("nomx setup install mode behavior", () => {
 									hooks: [{
 										type: "command",
 										command:
-											"& 'C:\\%OMX_INERT%\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'D:\\tools\\unrelated-$env:INERT.ps1'",
+											"& 'C:\\%NOMX_INERT%\\powershell.exe' -NoProfile -ExecutionPolicy Bypass -File 'D:\\tools\\unrelated-$env:INERT.ps1'",
 									}],
 								}],
 							},
@@ -3138,7 +3153,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("does not retain a shim for inert future-event metadata", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-plugin-future-shim-metadata-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-plugin-future-shim-metadata-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -3191,7 +3206,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("orders Windows plugin-transition mutations as hooks, shim, then config", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-windows-hook-removal-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-windows-hook-removal-"));
 		const forwardOrder: string[] = [];
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		let resetFailureInjector: (() => void) | undefined;
@@ -3236,7 +3251,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("rolls back Windows plugin-transition artifacts in exact reverse order", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-windows-hook-rollback-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-windows-hook-rollback-"));
 		const forwardOrder: string[] = [];
 		const restorationOrder: string[] = [];
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
@@ -3295,7 +3310,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves foreign native hook enablement when transitioning from plugin fallback", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -3347,7 +3362,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("keeps native hooks enabled for pre-existing foreign hooks in plugin-scoped setup", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -3394,7 +3409,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves same-key user hook trust state in plugin-scoped setup", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -3460,13 +3475,13 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("honors persisted project-scoped plugin mode on repeat setup", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withTempCwd(wd, async () => {
 				await setup({ scope: "project", installMode: "plugin" });
 
 				const persisted = JSON.parse(
-					await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+					await readFile(join(wd, ".nomx", "setup-scope.json"), "utf-8"),
 				) as { scope: string; installMode?: string };
 				assert.deepEqual(persisted, {
 					scope: "project",
@@ -3477,7 +3492,7 @@ describe("nomx setup install mode behavior", () => {
 				await setup({ scope: "project" });
 
 				assert.equal(
-					existsSync(join(wd, ".codex", "skills", "ask", "SKILL.md")),
+				existsSync(join(wd, ".codex", "skills", "plan", "SKILL.md")),
 					false,
 				);
 				assert.equal(
@@ -3496,23 +3511,23 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("lets explicit project legacy setup clear persisted project plugin mode", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withTempCwd(wd, async () => {
-				await mkdir(join(wd, ".omx"), { recursive: true });
+				await seedNomxRoot(wd);
 				await writeFile(
-					join(wd, ".omx", "setup-scope.json"),
+					join(wd, ".nomx", "setup-scope.json"),
 					JSON.stringify({ scope: "project", installMode: "plugin" }),
 				);
 
 				await setup({ scope: "project", installMode: "legacy" });
 
 				const persisted = JSON.parse(
-					await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+					await readFile(join(wd, ".nomx", "setup-scope.json"), "utf-8"),
 				) as { scope: string; installMode?: string };
 				assert.deepEqual(persisted, { scope: "project", mcpMode: "none" });
 				assert.equal(
-					existsSync(join(wd, ".codex", "skills", "ask", "SKILL.md")),
+				existsSync(join(wd, ".codex", "skills", "plan", "SKILL.md")),
 					true,
 				);
 				assert.equal(
@@ -3530,20 +3545,20 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("lets explicit user legacy setup override persisted user plugin mode", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
-					await mkdir(join(wd, ".omx"), { recursive: true });
+					await seedNomxRoot(wd);
 					await writeFile(
-						join(wd, ".omx", "setup-scope.json"),
+						join(wd, ".nomx", "setup-scope.json"),
 						JSON.stringify({ scope: "user", installMode: "plugin" }),
 					);
 
 					await setup({ installMode: "legacy" });
 
 					const persisted = JSON.parse(
-						await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+						await readFile(userSetupScopePath(wd), "utf-8"),
 					) as { scope: string; installMode?: string };
 					assert.deepEqual(persisted, {
 						scope: "user",
@@ -3551,7 +3566,7 @@ describe("nomx setup install mode behavior", () => {
 						mcpMode: "none",
 					});
 					assert.equal(
-						existsSync(join(codexHomeDir, "skills", "ask", "SKILL.md")),
+						existsSync(join(codexHomeDir, "skills", "plan", "SKILL.md")),
 						true,
 					);
 					assert.equal(
@@ -3570,7 +3585,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("dedupes plugin-mode hook trust state when switching user setup back to legacy", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -3582,10 +3597,10 @@ describe("nomx setup install mode behavior", () => {
 						.split(/\r?\n/)
 						.filter(
 							(line) =>
-								line.trim() !== "# OMX-owned Codex hook trust state" &&
+								line.trim() !== "# NOMX-owned Codex hook trust state" &&
 								line.trim() !==
 									"# Trusts only setup-managed codex-native-hook.js wrappers." &&
-								line.trim() !== "# End OMX-owned Codex hook trust state",
+								line.trim() !== "# End NOMX-owned Codex hook trust state",
 						)
 						.join("\n");
 					await writeFile(configPath, staleUnfencedPluginConfig);
@@ -3608,10 +3623,10 @@ describe("nomx setup install mode behavior", () => {
 					);
 					assert.match(
 						legacyConfig,
-						/# OMX-owned Codex hook trust state[\s\S]*# End OMX-owned Codex hook trust state/,
+						/# NOMX-owned Codex hook trust state[\s\S]*# End NOMX-owned Codex hook trust state/,
 					);
 					const persisted = JSON.parse(
-						await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+						await readFile(userSetupScopePath(wd), "utf-8"),
 					) as { scope: string; installMode?: string };
 					assert.deepEqual(persisted, {
 						scope: "user",
@@ -3626,7 +3641,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("uses project-scoped plugin hooks when plugin mode is explicitly requested", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withTempCwd(wd, async () => {
 				await setup({ scope: "project", installMode: "plugin" });
@@ -3639,7 +3654,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("honors persisted project plugin mode on repeat setup", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withTempCwd(wd, async () => {
 				await setup({ scope: "project", installMode: "plugin" });
@@ -3653,7 +3668,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("prints plugin-mode next steps without legacy-only claims", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
@@ -3668,7 +3683,7 @@ describe("nomx setup install mode behavior", () => {
 					assert.doesNotMatch(pluginOutput, /user-scope skill delivery mode/);
 					assert.doesNotMatch(
 						pluginOutput,
-						/use explicit agent_type when spawning OMX roles/,
+						/use explicit agent_type when spawning NOMX roles/,
 					);
 					assert.doesNotMatch(
 						pluginOutput,
@@ -3684,7 +3699,7 @@ describe("nomx setup install mode behavior", () => {
 					);
 					assert.match(
 						pluginOutput,
-						/Registered Codex marketplace oh-my-codex-local supplies OMX skills and workflow surfaces/,
+						/Registered Codex marketplace nomx-local supplies NOMX skills and workflow surfaces/,
 					);
 					assert.match(
 						pluginOutput,
@@ -3726,7 +3741,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("removes legacy user components when plugin mode is selected", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -3735,7 +3750,7 @@ describe("nomx setup install mode behavior", () => {
 					const askSkillPath = join(
 						codexHomeDir,
 						"skills",
-						"ask",
+						"plan",
 						"SKILL.md",
 					);
 					const promptPath = join(codexHomeDir, "prompts", "executor.md");
@@ -3764,7 +3779,7 @@ describe("nomx setup install mode behavior", () => {
 						/^\s*(?:notify)\s*=|^\s*\[mcp_servers[.\]]/m,
 					);
 					assert.match(config, /^developer_instructions\s*=/m);
-					assert.match(config, /You have oh-my-codex installed\. AGENTS\.md/);
+					assert.match(config, /You have nomx installed\. AGENTS\.md/);
 				});
 			});
 		} finally {
@@ -3773,7 +3788,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves existing AGENTS.md when plugin AGENTS defaults are declined", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -3781,7 +3796,7 @@ describe("nomx setup install mode behavior", () => {
 
 					const agentsMdPath = join(codexHomeDir, "AGENTS.md");
 					const before = await readFile(agentsMdPath, "utf-8");
-					assert.match(before, /<!-- omx:generated:agents-md -->/);
+					assert.match(before, /<!-- nomx:generated:agents-md -->/);
 
 					await setup({
 						scope: "user",
@@ -3798,7 +3813,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("repairs existing AGENTS.md during non-interactive plugin force setup", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -3809,9 +3824,9 @@ describe("nomx setup install mode behavior", () => {
 					await setup({ scope: "user", installMode: "plugin", force: true });
 
 					const after = await readFile(agentsMdPath, "utf-8");
-					assert.match(after, /<!-- omx:generated:agents-md -->/);
-					assert.match(after, /oh-my-codex - Intelligent Multi-Agent Orchestration/);
-					const backupRoot = join(wd, "home", ".omx", "backups", "setup");
+					assert.match(after, /<!-- nomx:generated:agents-md -->/);
+					assert.match(after, /nomx - Intelligent Multi-Agent Orchestration/);
+					const backupRoot = join(wd, "home", ".nomx", "backups", "setup");
 					const backupRuns = await readdir(backupRoot);
 					assert.equal(
 						backupRuns.some((entry) =>
@@ -3827,7 +3842,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("archives stale legacy prompts and preserves modified native agents when plugin mode refreshes", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -3840,7 +3855,7 @@ describe("nomx setup install mode behavior", () => {
 						"---\ndescription: stale legacy executor prompt\n---\n\nold executor body\n",
 					);
 					const staleAgentToml = [
-						"# oh-my-codex agent: planner",
+						"# nomx agent: planner",
 						'name = "planner"',
 						'description = "stale legacy generated planner"',
 						'developer_instructions = """old planner body"""',
@@ -3857,14 +3872,14 @@ describe("nomx setup install mode behavior", () => {
 					assert.equal(await readFile(agentPath, "utf-8"), staleAgentToml);
 					assert.match(
 						output,
-						/Archived and removed .* legacy OMX-managed prompt file/,
+						/Archived and removed .* legacy NOMX-managed prompt file/,
 					);
 					assert.match(
 						output,
 						/Native agent role refresh complete/,
 					);
 
-					const backupRoot = join(wd, "home", ".omx", "backups", "setup");
+					const backupRoot = join(wd, "home", ".nomx", "backups", "setup");
 					const backupRuns = await readdir(backupRoot);
 					assert.ok(backupRuns.length > 0);
 					assert.equal(
@@ -3891,7 +3906,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves unmanaged native agent TOMLs with obsolete skill_ref during plugin refresh", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -3917,7 +3932,7 @@ describe("nomx setup install mode behavior", () => {
 					await writeFile(
 						generatedAgentPath,
 						[
-							"# oh-my-codex agent: ghost",
+							"# nomx agent: ghost",
 							'name = "ghost"',
 							'description = "obsolete generated reviewer"',
 							'skill_ref = "ghost"',
@@ -3937,7 +3952,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("counts plugin cleanup skill directory backups in the setup summary", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -3964,15 +3979,15 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("removes matching legacy user skills even when plugin readiness is proven", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					await setup({ scope: "user", installMode: "legacy" });
 					await seedPluginCacheFromInstalledSkills(codexHomeDir);
 
-					const askSkillDir = join(codexHomeDir, "skills", "ask");
-					const wikiSkillDir = join(codexHomeDir, "skills", "wiki");
+					const askSkillDir = join(codexHomeDir, "skills", "plan");
+					const wikiSkillDir = join(codexHomeDir, "skills", "doctor");
 					assert.equal(existsSync(askSkillDir), true);
 					assert.equal(existsSync(wikiSkillDir), true);
 
@@ -3995,7 +4010,7 @@ describe("nomx setup install mode behavior", () => {
 						/skills: updated=0, unchanged=0, backed_up=\d+, skipped=0, removed=\d+/,
 					);
 
-					const backupSetupRoot = join(wd, "home", ".omx", "backups", "setup");
+					const backupSetupRoot = join(wd, "home", ".nomx", "backups", "setup");
 					const backupTimestamps = await readdir(backupSetupRoot);
 					assert.equal(backupTimestamps.length, 1);
 					const backupSkillsDir = join(
@@ -4005,8 +4020,8 @@ describe("nomx setup install mode behavior", () => {
 						"skills",
 					);
 					const backedUpSkillNames = await readdir(backupSkillsDir);
-					assert.ok(backedUpSkillNames.includes("ask"));
-					assert.ok(backedUpSkillNames.includes("wiki"));
+					assert.ok(backedUpSkillNames.includes("plan"));
+					assert.ok(backedUpSkillNames.includes("doctor"));
 					assert.match(
 						setupOutput,
 						new RegExp(
@@ -4021,7 +4036,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("preserves customized legacy user skills during plugin cleanup", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-install-mode-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-install-mode-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -4031,10 +4046,10 @@ describe("nomx setup install mode behavior", () => {
 					const askSkillPath = join(
 						codexHomeDir,
 						"skills",
-						"ask",
+						"plan",
 						"SKILL.md",
 					);
-					const wikiSkillDir = join(codexHomeDir, "skills", "wiki");
+					const wikiSkillDir = join(codexHomeDir, "skills", "doctor");
 					await writeFile(askSkillPath, "# customized ask\n");
 
 					await setup({ scope: "user", installMode: "plugin" });
@@ -4051,7 +4066,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("fails plugin hook-removal preflight before creating unrelated setup artifacts", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-preflight-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-preflight-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -4100,7 +4115,7 @@ describe("nomx setup install mode behavior", () => {
 					);
 					assert.equal(await readFile(hooksPath, "utf-8"), hooksContent);
 					assert.equal(await readFile(configPath, "utf-8"), configContent);
-					assert.equal(existsSync(join(wd, ".omx")), false);
+					assert.equal(existsSync(join(wd, ".nomx")), false);
 					assert.equal(existsSync(join(codexHomeDir, "prompts")), false);
 					assert.equal(existsSync(join(codexHomeDir, "agents")), false);
 				});
@@ -4110,7 +4125,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("rejects symlinked Codex transaction ancestors without writing foreign storage", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-symlinked-codex-home-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-symlinked-codex-home-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
@@ -4129,7 +4144,7 @@ describe("nomx setup install mode behavior", () => {
 						/ancestor .*symbolic link/,
 					);
 					assert.deepEqual(await readdir(foreignCodexHome), ["sentinel.txt"]);
-					assert.equal(existsSync(join(wd, ".omx")), false);
+					assert.equal(existsSync(join(wd, ".nomx")), false);
 				});
 			});
 		} finally {
@@ -4137,14 +4152,14 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("rejects a symlinked native artifact parent before touching its target", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-symlinked-native-parent-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-symlinked-native-parent-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					const foreignMetadataDir = join(wd, "foreign-native-metadata");
 					await mkdir(foreignMetadataDir);
 					await writeFile(join(foreignMetadataDir, "sentinel.txt"), "foreign\n");
-					await symlink(foreignMetadataDir, join(codexHomeDir, ".omx"));
+					await symlink(foreignMetadataDir, join(codexHomeDir, ".nomx"));
 
 					await assert.rejects(
 						setup({
@@ -4157,7 +4172,7 @@ describe("nomx setup install mode behavior", () => {
 					assert.deepEqual(await readdir(foreignMetadataDir), ["sentinel.txt"]);
 					assert.equal(existsSync(join(codexHomeDir, "config.toml")), false);
 					assert.equal(existsSync(join(codexHomeDir, "hooks.json")), false);
-					assert.equal(existsSync(join(wd, ".omx")), false);
+					assert.equal(existsSync(join(wd, ".nomx")), false);
 				});
 			});
 		} finally {
@@ -4165,12 +4180,12 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("revalidates native artifact parent topology immediately before mutation", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-stale-native-parent-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-stale-native-parent-"));
 		let resetFailureInjector: (() => void) | undefined;
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
-					const metadataParent = join(codexHomeDir, ".omx");
+					const metadataParent = join(codexHomeDir, ".nomx");
 					let injected = false;
 					resetFailureInjector = setNativeHookTransactionFailureInjectorForTest(
 						(stage) => {
@@ -4201,7 +4216,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("rejects a modified Windows hook shim during setup preflight", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-windows-shim-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-windows-shim-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -4222,7 +4237,7 @@ describe("nomx setup install mode behavior", () => {
 					assert.equal(await readFile(shimPath, "utf-8"), modifiedShim);
 					assert.equal(existsSync(join(codexHomeDir, "hooks.json")), false);
 					assert.equal(existsSync(join(codexHomeDir, "config.toml")), false);
-					assert.equal(existsSync(join(wd, ".omx")), false);
+					assert.equal(existsSync(join(wd, ".nomx")), false);
 				});
 			});
 		} finally {
@@ -4232,7 +4247,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("writes hooks, notification metadata, then config/trust and rolls all writes back when config replacement fails", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-hook-transaction-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-hook-transaction-"));
 		const writeOrder: string[] = [];
 		const resetFailureInjector = setNativeHookTransactionFailureInjectorForTest(
 			(stage, artifact) => {
@@ -4267,7 +4282,7 @@ describe("nomx setup install mode behavior", () => {
 						'notify = ["node", "/tmp/user-notify.js"]\n',
 					);
 					assert.equal(
-						existsSync(join(codexHomeDir, ".omx", "notify-dispatch.json")),
+						existsSync(join(codexHomeDir, ".nomx", "notify-dispatch.json")),
 						false,
 					);
 				});
@@ -4278,7 +4293,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("writes the Windows shim, hooks, notification metadata, then config/trust and rolls all writes back", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-windows-hook-transaction-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-windows-hook-transaction-"));
 		const writeOrder: string[] = [];
 		const resetFailureInjector = setNativeHookTransactionFailureInjectorForTest(
 			(stage, artifact) => {
@@ -4316,7 +4331,7 @@ describe("nomx setup install mode behavior", () => {
 						'notify = ["node", "/tmp/user-notify.js"]\n',
 					);
 					assert.equal(
-						existsSync(join(codexHomeDir, ".omx", "notify-dispatch.json")),
+						existsSync(join(codexHomeDir, ".nomx", "notify-dispatch.json")),
 						false,
 					);
 				});
@@ -4365,7 +4380,7 @@ describe("nomx setup install mode behavior", () => {
 			},
 		] as const;
 		for (const fixture of fixtures) {
-			const wd = await mkdtemp(join(tmpdir(), "omx-setup-stale-native-"));
+			const wd = await mkdtemp(join(tmpdir(), "nomx-setup-stale-native-"));
 			let resetFailureInjector: (() => void) | undefined;
 			try {
 				await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -4404,7 +4419,7 @@ describe("nomx setup install mode behavior", () => {
 						} else {
 							assert.deepEqual(await readFile(hooksPath), fixture.expectedHooks);
 						}
-						assert.equal(existsSync(join(wd, ".omx")), false);
+						assert.equal(existsSync(join(wd, ".nomx")), false);
 						assert.equal(existsSync(join(codexHomeDir, "agents")), false);
 					});
 				});
@@ -4415,7 +4430,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("aborts when notification metadata changes after planning", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-stale-notify-metadata-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-stale-notify-metadata-"));
 		let resetFailureInjector: (() => void) | undefined;
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -4424,7 +4439,7 @@ describe("nomx setup install mode behavior", () => {
 					const hooksPath = join(codexHomeDir, "hooks.json");
 					const metadataPath = join(
 						codexHomeDir,
-						".omx",
+						".nomx",
 						"notify-dispatch.json",
 					);
 					const configBefore = 'notify = ["node", "/tmp/user-notify.js"]\n';
@@ -4468,7 +4483,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("aborts when the Windows shim changes after planning", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-stale-windows-shim-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-stale-windows-shim-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		let resetFailureInjector: (() => void) | undefined;
 		try {
@@ -4524,7 +4539,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("never deletes plugin hooks from a stale snapshot", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-plugin-stale-hooks-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-plugin-stale-hooks-"));
 		let resetFailureInjector: (() => void) | undefined;
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -4563,7 +4578,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("never rolls back a concurrent foreign hook replacement", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-stale-rollback-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-stale-rollback-"));
 		let resetFailureInjector: (() => void) | undefined;
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -4610,7 +4625,7 @@ describe("nomx setup install mode behavior", () => {
 			{ stage: "before_readback", kind: "config" },
 		] as const;
 		for (const failure of failures) {
-			const wd = await mkdtemp(join(tmpdir(), "omx-setup-transaction-rollback-"));
+			const wd = await mkdtemp(join(tmpdir(), "nomx-setup-transaction-rollback-"));
 			const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 			let resetFailureInjector: (() => void) | undefined;
 			try {
@@ -4623,7 +4638,7 @@ describe("nomx setup install mode behavior", () => {
 							buildManagedCodexNativeHookWindowsShimContent("", {
 								nodePath: "C:\\Historical Node\\node.exe",
 								hookScriptPath:
-									"C:\\Historical Install\\oh-my-codex\\dist\\scripts\\codex-native-hook.js",
+									"C:\\Historical Install\\nomx\\dist\\scripts\\codex-native-hook.js",
 							}),
 							"utf-8",
 						);
@@ -4663,7 +4678,7 @@ describe("nomx setup install mode behavior", () => {
 						assert.deepEqual(await readFile(hooksPath), hooksBefore, failure.stage);
 						assert.deepEqual(await readFile(configPath), configBefore, failure.stage);
 						assert.equal(
-							existsSync(join(codexHomeDir, ".omx", "notify-dispatch.json")),
+							existsSync(join(codexHomeDir, ".nomx", "notify-dispatch.json")),
 							false,
 							failure.stage,
 						);
@@ -4680,14 +4695,14 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("fails closed when a managed dispatcher metadata snapshot is not valid UTF-8", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-invalid-notify-metadata-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-invalid-notify-metadata-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					const configPath = join(codexHomeDir, "config.toml");
 					const metadataPath = join(
 						codexHomeDir,
-						".omx",
+						".nomx",
 						"notify-dispatch.json",
 					);
 					const dispatcherPath = join(
@@ -4721,7 +4736,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("keeps consulted unchanged notification metadata in the native transaction preconditions", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-notify-precondition-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-notify-precondition-"));
 		let resetFailureInjector: (() => void) | undefined;
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -4730,7 +4745,7 @@ describe("nomx setup install mode behavior", () => {
 					const hooksPath = join(codexHomeDir, "hooks.json");
 					const metadataPath = join(
 						codexHomeDir,
-						".omx",
+						".nomx",
 						"notify-dispatch.json",
 					);
 					await writeFile(
@@ -4779,12 +4794,12 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("rejects config decisions whose MCP-removal callback changed the planned config snapshot", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-stale-config-decision-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-stale-config-decision-"));
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
 				await withTempCwd(wd, async () => {
 					const configPath = join(codexHomeDir, "config.toml");
-					const configBefore = '[mcp_servers.omx_state]\ncommand = "node"\n';
+					const configBefore = '[mcp_servers.nomx_state]\ncommand = "node"\n';
 					const foreignConfig = 'model = "foreign"\n';
 					await writeFile(configPath, configBefore);
 
@@ -4802,7 +4817,7 @@ describe("nomx setup install mode behavior", () => {
 					);
 					assert.equal(await readFile(configPath, "utf-8"), foreignConfig);
 					assert.equal(existsSync(join(codexHomeDir, "hooks.json")), false);
-					assert.equal(existsSync(join(codexHomeDir, ".omx")), false);
+					assert.equal(existsSync(join(codexHomeDir, ".nomx")), false);
 				});
 			});
 		} finally {
@@ -4813,7 +4828,7 @@ describe("nomx setup install mode behavior", () => {
 	it("fails closed for pre-existing native transaction write temporaries", async () => {
 		const fixtures = ["regular file", "symlink"] as const;
 		for (const fixture of fixtures) {
-			const wd = await mkdtemp(join(tmpdir(), "omx-setup-temp-collision-"));
+			const wd = await mkdtemp(join(tmpdir(), "nomx-setup-temp-collision-"));
 			let resetTemporaryPath: (() => void) | undefined;
 			try {
 				await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -4860,7 +4875,7 @@ describe("nomx setup install mode behavior", () => {
 	it("fails closed when a non-throwing injector replaces an owned write temporary", async () => {
 		const fixtures = ["regular file", "symlink"] as const;
 		for (const fixture of fixtures) {
-			const wd = await mkdtemp(join(tmpdir(), "omx-setup-write-temp-replacement-"));
+			const wd = await mkdtemp(join(tmpdir(), "nomx-setup-write-temp-replacement-"));
 			let resetFailureInjector: (() => void) | undefined;
 			let resetTemporaryPath: (() => void) | undefined;
 			try {
@@ -4928,7 +4943,7 @@ describe("nomx setup install mode behavior", () => {
 	it("fails closed when a non-throwing injector replaces an owned staged deletion", async () => {
 		const fixtures = ["regular file", "symlink"] as const;
 		for (const fixture of fixtures) {
-			const wd = await mkdtemp(join(tmpdir(), "omx-setup-staged-delete-replacement-"));
+			const wd = await mkdtemp(join(tmpdir(), "nomx-setup-staged-delete-replacement-"));
 			const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 			let resetFailureInjector: (() => void) | undefined;
 			let resetTemporaryPath: (() => void) | undefined;
@@ -5005,7 +5020,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("rolls back a renamed native hook when post-rename verification fails", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-post-rename-rollback-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-post-rename-rollback-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("linux");
 		let resetFailureInjector: (() => void) | undefined;
 		try {
@@ -5049,7 +5064,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("preserves a concurrent replacement after staged source removal for manual recovery", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-post-remove-manual-recovery-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-post-remove-manual-recovery-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("linux");
 		let resetFailureInjector: (() => void) | undefined;
 		let resetTemporaryPath: (() => void) | undefined;
@@ -5115,7 +5130,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("never removes a concurrent replacement while rolling back a newly created artifact", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-rollback-remove-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-rollback-remove-"));
 		let resetFailureInjector: (() => void) | undefined;
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -5157,7 +5172,7 @@ describe("nomx setup install mode behavior", () => {
 	});
 
 	it("does not roll back when the second staged-deletion copy drifts after the first cleanup", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-staged-deletion-cleanup-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-staged-deletion-cleanup-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		let resetFailureInjector: (() => void) | undefined;
 		let resetTemporaryPath: (() => void) | undefined;
@@ -5244,7 +5259,7 @@ describe("nomx setup install mode behavior", () => {
 			},
 		] as const;
 		for (const fixture of fixtures) {
-			const wd = await mkdtemp(join(tmpdir(), `omx-setup-applied-${fixture.name}-`));
+			const wd = await mkdtemp(join(tmpdir(), `nomx-setup-applied-${fixture.name}-`));
 			const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 			let resetFailureInjector: (() => void) | undefined;
 			try {
@@ -5322,7 +5337,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("preserves a same-byte foreign replacement made immediately after a native-hook rename", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-immediate-post-rename-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-immediate-post-rename-"));
 		let resetFailureInjector: (() => void) | undefined;
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -5369,7 +5384,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("preflights every staged native-hook recovery copy before rollback", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-rollback-recovery-preflight-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-rollback-recovery-preflight-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		let resetFailureInjector: (() => void) | undefined;
 		let resetTemporaryPath: (() => void) | undefined;
@@ -5419,7 +5434,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("stops later native-hook rollback restores when the first restored artifact drifts", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-rollback-restored-drift-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-rollback-restored-drift-"));
 		const resetPlatform = setNativeHookTransactionPlatformForTest("win32");
 		let resetFailureInjector: (() => void) | undefined;
 		try {
@@ -5473,7 +5488,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("preserves a foreign inode injected after final setup rename validation", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-final-rename-claim-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-final-rename-claim-"));
 		let resetFailureInjector: (() => void) | undefined;
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -5511,7 +5526,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("preserves a foreign inode injected after final setup removal validation", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-final-remove-claim-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-final-remove-claim-"));
 		let resetFailureInjector: (() => void) | undefined;
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -5553,7 +5568,7 @@ describe("nomx setup install mode behavior", () => {
 		}
 	});
 	it("preserves a foreign inode injected after final setup rollback validation", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-final-restore-claim-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-final-restore-claim-"));
 		let resetFailureInjector: (() => void) | undefined;
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -5596,7 +5611,7 @@ describe("nomx setup install mode behavior", () => {
 
 describe("late setup failure transaction boundary", () => {
 	it("does not commit config or hooks when a later setup phase fails", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-late-failure-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-late-failure-"));
 		let resetLateFailure: (() => void) | undefined;
 		try {
 			await withIsolatedUserHome(wd, async (codexHomeDir) => {
@@ -5634,22 +5649,23 @@ describe("late setup failure transaction boundary", () => {
 
 describe("persisted merge policy lifecycle", () => {
 	it("preserves matching policy through review and lets explicit sets override reset or a scope change", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-merge-policy-lifecycle-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-merge-policy-lifecycle-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
-					await mkdir(join(wd, ".omx"), { recursive: true });
-					const statePath = join(wd, ".omx", "setup-scope.json");
-					await writeFile(statePath, JSON.stringify({ scope: "user", installMode: "legacy", mergeAgents: true }));
+					await seedNomxRoot(wd);
+					const projectStatePath = join(wd, ".nomx", "setup-scope.json");
+					const userStatePath = userSetupScopePath(wd);
+					await writeFile(projectStatePath, JSON.stringify({ scope: "user", installMode: "legacy", mergeAgents: true }));
 
 					await setup({ persistedSetupReviewPrompt: async () => "review", setupScopePrompt: async () => "user", installModePrompt: async () => "legacy" });
-					assert.equal((JSON.parse(await readFile(statePath, "utf-8")) as { mergeAgents?: boolean }).mergeAgents, true);
+					assert.equal((JSON.parse(await readFile(userStatePath, "utf-8")) as { mergeAgents?: boolean }).mergeAgents, true);
 
 					await setup({ persistedSetupReviewPrompt: async () => "reset", scope: "user", mergeAgents: false });
-					assert.equal((JSON.parse(await readFile(statePath, "utf-8")) as { mergeAgents?: boolean }).mergeAgents, false);
+					assert.equal((JSON.parse(await readFile(userStatePath, "utf-8")) as { mergeAgents?: boolean }).mergeAgents, false);
 
 					await setup({ persistedSetupReviewPrompt: async () => "review", scope: "project", installMode: "legacy", mergeAgents: true });
-					const changedScope = JSON.parse(await readFile(statePath, "utf-8")) as { scope: string; mergeAgents?: boolean };
+					const changedScope = JSON.parse(await readFile(projectStatePath, "utf-8")) as { scope: string; mergeAgents?: boolean };
 					assert.equal(changedScope.scope, "project");
 					assert.equal(changedScope.mergeAgents, true);
 				});
@@ -5660,12 +5676,12 @@ describe("persisted merge policy lifecycle", () => {
 	});
 
 	it("removes an explicit policy when clear succeeds", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-merge-policy-clear-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-merge-policy-clear-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
-					await mkdir(join(wd, ".omx"), { recursive: true });
-					const statePath = join(wd, ".omx", "setup-scope.json");
+					await seedNomxRoot(wd);
+					const statePath = join(wd, ".nomx", "setup-scope.json");
 					await writeFile(statePath, JSON.stringify({ scope: "project", mergeAgents: true }));
 
 					await setup({
@@ -5683,11 +5699,11 @@ describe("persisted merge policy lifecycle", () => {
 	});
 
 	it("covers persisted and explicit merge policy precedence across force", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-setup-merge-policy-force-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-setup-merge-policy-force-"));
 		try {
 			await withIsolatedUserHome(wd, async () => {
 				await withTempCwd(wd, async () => {
-					const statePath = join(wd, ".omx", "setup-scope.json");
+					const statePath = join(wd, ".nomx", "setup-scope.json");
 					const agentsPath = join(wd, "AGENTS.md");
 					const rows = [
 						{ name: "persisted true + force", stored: true, policy: undefined, keepsCustom: true, persisted: true, refresh: "--merge-agents" },
@@ -5699,9 +5715,9 @@ describe("persisted merge policy lifecycle", () => {
 					];
 
 					for (const row of rows) {
-						await rm(join(wd, ".omx"), { recursive: true, force: true });
+						await rm(join(wd, ".nomx"), { recursive: true, force: true });
 						await rm(join(wd, ".codex"), { recursive: true, force: true });
-						await mkdir(join(wd, ".omx"), { recursive: true });
+						await seedNomxRoot(wd);
 						await writeFile(
 							statePath,
 							JSON.stringify({ scope: "project", ...(row.stored === undefined ? {} : { mergeAgents: row.stored }) }),

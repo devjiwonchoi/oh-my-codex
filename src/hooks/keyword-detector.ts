@@ -1,10 +1,10 @@
 /**
  * Keyword Detection Engine
  *
- * In OMC/legacy OMX flows, this logic detects workflow keywords and can inject
+ * In OMC/legacy NOMX flows, this logic detects workflow keywords and can inject
  * prompt-side routing guidance.
  *
- * In current OMX, native `UserPromptSubmit` is the canonical execution surface:
+ * In current NOMX, native `UserPromptSubmit` is the canonical execution surface:
  * this module owns the keyword registry, runtime gating, and hook-seeded
  * skill/workflow state. AGENTS.md now carries the behavioral fallback contract
  * rather than the full keyword/state table.
@@ -63,7 +63,7 @@ export interface KeywordMatch {
   priority: number;
 }
 
-export type KeywordReservedInput = 'omx-question-answered' | 'prompts' | null;
+export type KeywordReservedInput = 'nomx-question-answered' | 'prompts' | null;
 
 /** Stable diagnostic precedence for explicit candidates. */
 export const KEYWORD_INERT_DIAGNOSTIC_ORDER = Object.freeze([
@@ -226,7 +226,7 @@ export interface DeepInterviewModeState {
 
 function slugifyAutopilotTask(text: string): string {
   const slug = text
-    .replace(/(?:^|\s)\$?(?:oh-my-codex:)?autopilot\b/gi, ' ')
+    .replace(/(?:^|\s)\$?(?:nomx:)?autopilot\b/gi, ' ')
     .replace(/[^A-Za-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .toLowerCase()
@@ -245,9 +245,9 @@ function utcCompactTimestamp(nowIso: string): string {
 
 function isSafeAutopilotContextSnapshotPath(value: unknown): value is string {
   const path = safeString(value).trim();
-  const contextPrefix = '.omx/context/';
+  const contextPrefix = '.nomx/context/';
   const snapshotName = path.startsWith(contextPrefix) ? path.slice(contextPrefix.length) : '';
-  return path.startsWith('.omx/context/')
+  return path.startsWith('.nomx/context/')
     && path.endsWith('.md')
     && !isAbsolute(path)
     && !path.split('/').includes('..')
@@ -257,7 +257,7 @@ function isSafeAutopilotContextSnapshotPath(value: unknown): value is string {
 }
 
 function isAutopilotRecoverySnapshotPath(path: string): boolean {
-  return path.startsWith('.omx/context/autopilot-recovery-');
+  return path.startsWith('.nomx/context/autopilot-recovery-');
 }
 
 const MAX_REUSABLE_AUTOPILOT_CONTEXT_SNAPSHOT_BYTES = 1024 * 1024;
@@ -347,16 +347,16 @@ const AUTOPILOT_CONTEXT_RECOVERY_REASON_MESSAGES: Record<AutopilotContextRecover
 
 async function ensureSafeAutopilotContextDir(sourceCwd: string): Promise<string> {
   const rootRealPath = await realpath(sourceCwd);
-  const omxDir = join(sourceCwd, '.omx');
-  await mkdir(omxDir, { recursive: true });
-  if ((await lstat(omxDir)).isSymbolicLink()) {
+  const nomxDir = join(sourceCwd, '.nomx');
+  await mkdir(nomxDir, { recursive: true });
+  if ((await lstat(nomxDir)).isSymbolicLink()) {
     throw new Error('Unsafe Autopilot context directory: .nomx is a symbolic link');
   }
 
-  const contextDir = join(omxDir, 'context');
+  const contextDir = join(nomxDir, 'context');
   await mkdir(contextDir, { recursive: true });
   if ((await lstat(contextDir)).isSymbolicLink()) {
-    throw new Error('Unsafe Autopilot context directory: .omx/context is a symbolic link');
+    throw new Error('Unsafe Autopilot context directory: .nomx/context is a symbolic link');
   }
 
   const contextRealPath = await realpath(contextDir);
@@ -378,7 +378,7 @@ async function writeUniqueAutopilotContextSnapshot(
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const suffix = attempt === 0 ? '' : `-${attempt + 1}`;
     const filename = `${slug}-${timestamp}${suffix}.md`;
-    const relativePath = `.omx/context/${filename}`;
+    const relativePath = `.nomx/context/${filename}`;
     const absolutePath = resolve(contextDir, filename);
     try {
       await writeFile(absolutePath, body, { encoding: 'utf-8', flag: 'wx' });
@@ -640,13 +640,13 @@ function resolveSeedStateFilePath(
   if (scope !== 'root' && sessionId?.trim()) {
     return {
       absolutePath: join(stateDir, 'sessions', sessionId, `${mode}-state.json`),
-      relativePath: `.omx/state/sessions/${sessionId}/${mode}-state.json`,
+      relativePath: `.nomx/state/sessions/${sessionId}/${mode}-state.json`,
     };
   }
 
   return {
     absolutePath: join(stateDir, `${mode}-state.json`),
-    relativePath: `.omx/state/${mode}-state.json`,
+    relativePath: `.nomx/state/${mode}-state.json`,
   };
 }
 
@@ -884,7 +884,7 @@ const DEEP_INTERVIEW_MANAGEMENT_MENTION_PATTERN = /\b(?:clear|cleanup|clean\s+up
  * "team" requires explicit orchestration phrasing so a generic
  * reference in prose doesn't spin up the skill.
  *
- * "stop" / "abort" require a bare imperative or explicit OMX mode reference so
+ * "stop" / "abort" require a bare imperative or explicit NOMX mode reference so
  * test-log lines like "stop retrying" or "request aborted" do not trigger cancel.
  *
  * "parallel" requires an explicit instruction to run in parallel mode so that
@@ -906,7 +906,7 @@ const KEYWORD_INTENT_PATTERNS: Record<IntentKeyword, RegExp[]> = {
   ],
   stop: [
     /^(?:please\s+)?stop(?:\s+now)?\s*[.!]?\s*$/i,
-    /\bcancelomx\b/i,
+    /\bcancelnomx\b/i,
     /(?:^|[^\w])\$(?:stop|cancel|abort)\b/i,
     /(?:^|\s)\/(?:cancel|stop|abort)(?=[\s,!?;]|$)/i,
     /\bstop\s+(?:the\s+)?(?:agent|ralph|autopilot|team|ultrawork|execution|current\s+(?:mode|task|run))\b/i,
@@ -914,7 +914,7 @@ const KEYWORD_INTENT_PATTERNS: Record<IntentKeyword, RegExp[]> = {
   ],
   abort: [
     /^(?:please\s+)?abort(?:\s+now)?\s*[.!]?\s*$/i,
-    /\bcancelomx\b/i,
+    /\bcancelnomx\b/i,
     /(?:^|[^\w])\$(?:stop|cancel|abort)\b/i,
     /(?:^|\s)\/(?:cancel|stop|abort)(?=[\s,!?;]|$)/i,
     /\babort\s+(?:the\s+)?(?:agent|ralph|autopilot|team|ultrawork|execution|current\s+(?:mode|task|run))\b/i,
@@ -943,7 +943,7 @@ const KEYWORD_INTENT_PATTERNS: Record<IntentKeyword, RegExp[]> = {
   ],
 };
 
-const EXPLICIT_TOKEN_START = /\$(?:(?:[Oo][Hh]-[Mm][Yy]-[Cc][Oo][Dd][Ee][Xx]):)?([A-Za-z][A-Za-z0-9_-]*)/gyu;
+const EXPLICIT_TOKEN_START = /\$(?:(?:[Nn][Oo][Mm][Xx]):)?([A-Za-z][A-Za-z0-9_-]*)/gyu;
 const TOKEN_CONTINUATION = /[\p{L}\p{N}\p{M}\p{Pc}\p{Pd}]/u;
 const SAFE_TOKEN_WHITESPACE = /[\p{Zs}\t\n\r\f\v\u2028\u2029]/u;
 const EXPLICIT_TOKEN_BOUNDARY_PUNCTUATION = /[,;؛!?:؟)\]}"'”’»›」』—–…。、،]/u;
@@ -981,7 +981,7 @@ const POSTPOSED_NEGATIVE_PREDICATE = /\s+(?:(?:is|are|was|were|should|must|can|c
 const PROMPTS_TOKEN_PATTERN = /\/[Pp][Rr][Oo][Mm][Pp][Tt][Ss]:[\w.-]+/gu;
 const COORDINATED_WORKFLOW_SUBJECT = '(?:(?:the|a|an)\\s+)?(?:autopilot|deep(?:[- ]+)interview|ralph|ralplan|ultrawork|ulw|ultragoal|ultraqa|coordinated\\s+team|team|consensus\\s+plan|code\\s+review|wiki|prometheus(?:-strict)?)';
 const COORDINATED_SUBJECT_JOINER = '(?:and|or|nor|as\\s+well\\s+as|along\\s+with|together\\s+with|&)';
-const EXPLICIT_POSTPOSED_SUBJECT = '\\$(?:oh-my-codex:)?[A-Za-z][A-Za-z0-9_-]*';
+const EXPLICIT_POSTPOSED_SUBJECT = '\\$(?:nomx:)?[A-Za-z][A-Za-z0-9_-]*';
 const COORDINATED_POSTPOSED_SEPARATOR_SOURCE = `\\s*(?:(?:[,，،、]|/)\\s*(?:${COORDINATED_SUBJECT_JOINER}\\s+)?|${COORDINATED_SUBJECT_JOINER}\\s+)`;
 const COORDINATED_EXPLICIT_POSTPOSED_SEPARATOR = new RegExp(COORDINATED_POSTPOSED_SEPARATOR_SOURCE, 'iyu');
 const COORDINATED_EXPLICIT_POSTPOSED_SUBJECT = new RegExp(
@@ -2039,7 +2039,7 @@ function listItemDocumentationTokenRange(text: string, candidateStart: number, b
   const tokenStart = directiveTarget !== null && directiveTarget < end && text[directiveTarget] === '$'
     ? directiveTarget
     : leading.cursor;
-  const tokenSequence = /^(?:(?:\$(?:oh-my-codex:)?[A-Za-z][A-Za-z0-9_-]*)|(?:\/prompts:[\w.-]+))(?:(?:\s*,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+|\s*\/\s*)(?:(?:\$(?:oh-my-codex:)?[A-Za-z][A-Za-z0-9_-]*)|(?:\/prompts:[\w.-]+)))*/iu.exec(text.slice(tokenStart, end));
+  const tokenSequence = /^(?:(?:\$(?:nomx:)?[A-Za-z][A-Za-z0-9_-]*)|(?:\/prompts:[\w.-]+))(?:(?:\s*,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+|\s*\/\s*)(?:(?:\$(?:nomx:)?[A-Za-z][A-Za-z0-9_-]*)|(?:\/prompts:[\w.-]+)))*/iu.exec(text.slice(tokenStart, end));
   if (!tokenSequence || !LIST_DOCUMENTATION_SUFFIX.test(text.slice(tokenStart + tokenSequence[0].length, end))) return null;
   return { start: tokenStart, end: tokenStart + tokenSequence[0].length };
 }
@@ -2411,7 +2411,7 @@ function scanExplicitCandidates(text: string): ExplicitCandidateScan[] {
     }
     if (hasOddImmediateBackslashes(text, start)) reasons.add('escaped');
     const canonicalToken = canonicalEnd === end ? (canonicalMatch?.[1] ?? '').toLowerCase() : '';
-    const normalizedToken = canonicalToken || rawKeyword.replace(/^\$(?:(?:[Oo][Hh]-[Mm][Yy]-[Cc][Oo][Dd][Ee][Xx]):)?/u, '').toLowerCase();
+    const normalizedToken = canonicalToken || rawKeyword.replace(/^\$(?:(?:[Nn][Oo][Mm][Xx]):)?/u, '').toLowerCase();
     const definition = canonicalToken ? getExplicitSkillDefinition(canonicalToken) : undefined;
     candidates.push({
       rawKeyword,
@@ -2556,7 +2556,7 @@ function isCompactSlashDocumentationCandidate(candidate: ExplicitCandidateScan):
   const parts = candidate.rawKeyword.split('/');
   if (parts.length < 2) return false;
   return parts.every((part) => {
-    const match = /^\$(?:(?:[Oo][Hh]-[Mm][Yy]-[Cc][Oo][Dd][Ee][Xx]):)?([A-Za-z][A-Za-z0-9_-]*)$/u.exec(part);
+    const match = /^\$(?:(?:[Nn][Oo][Mm][Xx]):)?([A-Za-z][A-Za-z0-9_-]*)$/u.exec(part);
     return match !== null && getExplicitSkillDefinition((match[1] ?? '').toLowerCase()) !== undefined;
   });
 }
@@ -3328,7 +3328,7 @@ function detectImplicitKeywords(
   });
 }
 
-function hasOmxQuestionAnsweredPrefix(text: string): boolean {
+function hasNomxQuestionAnsweredPrefix(text: string): boolean {
   return /^\s*\[nomx question answered\]/i.test(text);
 }
 
@@ -3374,10 +3374,10 @@ export function classifyKeywordInput(text: string): KeywordInputClassification {
     });
   }
 
-  const markedQuestionAnswer = hasOmxQuestionAnsweredPrefix(normalizedText);
+  const markedQuestionAnswer = hasNomxQuestionAnsweredPrefix(normalizedText);
   const directPromptsInvocation = hasDirectPromptsInvocation(normalizedText, collectInertRangeIndexes(normalizedText), referenceIndex);
   const reservedInput: KeywordReservedInput = markedQuestionAnswer
-    ? 'omx-question-answered'
+    ? 'nomx-question-answered'
     : directPromptsInvocation
       ? 'prompts'
       : null;
@@ -3452,7 +3452,7 @@ function shouldReusePreviousSkillForContinuation(
   return isActiveSkillContinuationPrompt(text)
     || isNamedActiveSkillContinuationPrompt(text, previousSkill)
     || (
-      classification.reservedInput === 'omx-question-answered'
+      classification.reservedInput === 'nomx-question-answered'
       && (previousSkill === 'autopilot' || previousSkill === 'deep-interview')
     );
 }
@@ -3689,7 +3689,7 @@ function resolveContinuationKeywordMatch(
     return fallbackMatch;
   }
 
-  const markedQuestionAnswerContinuation = classification.reservedInput === 'omx-question-answered'
+  const markedQuestionAnswerContinuation = classification.reservedInput === 'nomx-question-answered'
     && (previousSkill === 'autopilot' || previousSkill === 'deep-interview');
   if (classification.reservedInput || (!markedQuestionAnswerContinuation && classification.hasExplicitLikeInvocation)) {
     return markedQuestionAnswerContinuation
@@ -3858,7 +3858,7 @@ export async function recordSkillActivation(input: RecordSkillActivationInput): 
       );
       await persistDeepInterviewModeState(input.stateDir, applyProvenanceOwner(state), nowIso, previous, input);
     } catch (error) {
-      console.warn('[omx] warning: failed to persist keyword activation state', error);
+      console.warn('[nomx] warning: failed to persist keyword activation state', error);
     }
 
     return applyProvenanceOwner(state);
@@ -3880,7 +3880,7 @@ export async function recordSkillActivation(input: RecordSkillActivationInput): 
   const matchedModeTerminal = matchedSeedConfig
     ? isResettableTerminalModeState(matchedModeState as Record<string, unknown> | null, matchedSeedConfig.mode)
     : false;
-  if (classification.reservedInput === 'omx-question-answered' && matchedModeTerminal) return null;
+  if (classification.reservedInput === 'nomx-question-answered' && matchedModeTerminal) return null;
   const preserveActivatedAt = sameSkill && !matchedModeTerminal && (sameKeyword || sameSkillContinuation);
   const previousEntries = listActiveSkills(previous ?? {});
   const previousWorkflowEntries = previousEntries.filter((entry) => (
@@ -3897,7 +3897,7 @@ export async function recordSkillActivation(input: RecordSkillActivationInput): 
   const trackedMatchSkill = isTrackedWorkflowMatch ? match.skill : null;
   const markedQuestionAnswerContinuation = sameSkill
     && (match.skill === 'autopilot' || match.skill === 'deep-interview')
-    && classification.reservedInput === 'omx-question-answered';
+    && classification.reservedInput === 'nomx-question-answered';
   const workflowMatches: TrackedWorkflowMode[] = isTrackedWorkflowMatch && !markedQuestionAnswerContinuation
     ? classification.explicitMatches
       .map((entry) => entry.skill)
@@ -4160,7 +4160,7 @@ export async function recordSkillActivation(input: RecordSkillActivationInput): 
       await persistDeepInterviewModeState(input.stateDir, nextState, nowIso, previous, input);
       return nextState;
     } catch (error) {
-      console.warn('[omx] warning: failed to persist keyword activation state', error);
+      console.warn('[nomx] warning: failed to persist keyword activation state', error);
     }
 
     return workflowState;
@@ -4217,7 +4217,7 @@ export async function recordSkillActivation(input: RecordSkillActivationInput): 
     await persistDeepInterviewModeState(input.stateDir, ownedNextState, nowIso, previous, input);
     return ownedNextState;
   } catch (error) {
-    console.warn('[omx] warning: failed to persist keyword activation state', error);
+    console.warn('[nomx] warning: failed to persist keyword activation state', error);
   }
 
   return state;
@@ -4227,7 +4227,7 @@ export async function recordSkillActivation(input: RecordSkillActivationInput): 
  * Pre-execution gate — ported from OMC src/hooks/keyword-detector/index.ts
  *
  * In OMC these functions run at prompt time in bridge.ts (mandatory enforcement).
- * In OMX they generate AGENTS.md instructions and serve as test infrastructure.
+ * In NOMX they generate AGENTS.md instructions and serve as test infrastructure.
  * See task-size-detector.ts for full advisory-nature documentation.
  */
 

@@ -641,7 +641,7 @@ export async function listStateStatuses(
       statuses.ultragoal = {
         active: ultragoal.active,
         phase: ultragoal.status,
-        path: join(cwd, '.omx', 'ultragoal', 'goals.json'),
+        path: join(cwd, '.nomx', 'ultragoal', 'goals.json'),
         data: ultragoal,
         source: 'ultragoal-artifacts',
       };

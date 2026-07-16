@@ -48,8 +48,8 @@ export function analyzePaneContent(content: string): PaneAnalysis {
 
   const hasCodex =
     lower.includes('codex') ||
-    lower.includes('omx') ||
-    lower.includes('oh-my-codex') ||
+    lower.includes('nomx') ||
+    lower.includes('nomx') ||
     lower.includes('openai');
 
   const hasRateLimitMessage =

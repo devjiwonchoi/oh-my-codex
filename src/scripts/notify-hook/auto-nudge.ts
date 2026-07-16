@@ -71,7 +71,7 @@ function normalizeInputLock(raw) {
 export function normalizeBlockedAutoApprovalInput(text) {
   return safeString(text)
     .toLowerCase()
-    .replace(/\[omx_tmux_inject\]/gi, '')
+    .replace(/\[nomx_tmux_inject\]/gi, '')
     .replace(/[^a-z]+/g, ' ')
     .trim();
 }
@@ -500,7 +500,7 @@ export function resolveEffectiveAutoNudgeResponse(response) {
 
 export async function loadAutoNudgeConfig() {
   const codexHomePath = process.env.CODEX_HOME || join(homedir(), '.codex');
-  const configPath = join(codexHomePath, '.omx-config.json');
+  const configPath = join(codexHomePath, '.nomx-config.json');
   const raw = await readJsonIfExists(configPath, null);
   if (!raw || typeof raw !== 'object') return normalizeAutoNudgeConfig(null);
   return normalizeAutoNudgeConfig(raw.autoNudge);
@@ -509,7 +509,7 @@ export async function loadAutoNudgeConfig() {
 async function localTmuxInjectionDisabled(cwd) {
   const normalizedCwd = safeString(cwd).trim();
   if (!normalizedCwd) return false;
-  const raw = await readJsonIfExists(join(normalizedCwd, '.omx', 'tmux-hook.json'), null);
+  const raw = await readJsonIfExists(join(normalizedCwd, '.nomx', 'tmux-hook.json'), null);
   return tmuxHookExplicitlyDisablesInjection(raw);
 }
 
@@ -545,7 +545,7 @@ export async function capturePane(paneId, lines = 10) {
 }
 
 export async function resolveNudgePaneTarget(stateDir: any, cwd = '', payload: any = undefined, context: ResolvedPromptTurnContext | null = null) {
-  const allowTeamWorker = safeString(process.env.OMX_TEAM_WORKER || '').trim() !== '';
+  const allowTeamWorker = safeString(process.env.NOMX_TEAM_WORKER || '').trim() !== '';
   const managedCurrentPane = context
     ? await resolveManagedCurrentPaneAtPromptContext(cwd, context)
     : await resolveManagedCurrentPane(cwd, payload, { allowTeamWorker });

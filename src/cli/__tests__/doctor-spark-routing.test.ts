@@ -9,10 +9,10 @@ import { checkSparkRouting } from '../doctor.js';
 const SPARK_DEFAULT = 'gpt-5.6-luna';
 
 const SPARK_ENV_KEYS = [
-  'OMX_DEFAULT_SPARK_MODEL',
-  'OMX_SPARK_MODEL',
-  'OMX_DEFAULT_STANDARD_MODEL',
-  'OMX_DEFAULT_FRONTIER_MODEL',
+  'NOMX_DEFAULT_SPARK_MODEL',
+  'NOMX_SPARK_MODEL',
+  'NOMX_DEFAULT_STANDARD_MODEL',
+  'NOMX_DEFAULT_FRONTIER_MODEL',
 ] as const;
 
 const saved = new Map<string, string | undefined>();
@@ -37,7 +37,7 @@ beforeEach(() => {
     saved.set(key, process.env[key]);
     delete process.env[key];
   }
-  workDir = mkdtempSync(join(tmpdir(), 'omx-doctor-spark-'));
+  workDir = mkdtempSync(join(tmpdir(), 'nomx-doctor-spark-'));
   mkdirSync(join(workDir, 'agents'), { recursive: true });
 });
 
@@ -66,24 +66,24 @@ describe('checkSparkRouting', () => {
     assert.match(result.message, /spark=/);
   });
 
-  it('reports .omx-config.json as the source for its Spark env override', () => {
-    writeFileSync(join(workDir, '.omx-config.json'), JSON.stringify({
-      env: { OMX_DEFAULT_SPARK_MODEL: 'spark-from-omx-config' },
+  it('reports .nomx-config.json as the source for its Spark env override', () => {
+    writeFileSync(join(workDir, '.nomx-config.json'), JSON.stringify({
+      env: { NOMX_DEFAULT_SPARK_MODEL: 'spark-from-nomx-config' },
     }));
-    writeExploreToml('name = "explore"\nmodel = "spark-from-omx-config"\n');
+    writeExploreToml('name = "explore"\nmodel = "spark-from-nomx-config"\n');
 
     const result = checkSparkRouting(makePaths(workDir));
-    assert.match(result.message, /source: \.omx-config\.json env/);
+    assert.match(result.message, /source: \.nomx-config\.json env/);
   });
 
   it('reports models.team_low_complexity as the source for a low-complexity Spark override', () => {
-    writeFileSync(join(workDir, '.omx-config.json'), JSON.stringify({
+    writeFileSync(join(workDir, '.nomx-config.json'), JSON.stringify({
       models: { team_low_complexity: 'custom-spark' },
     }));
     writeExploreToml('name = "explore"\nmodel = "custom-spark"\n');
 
     const result = checkSparkRouting(makePaths(workDir));
-    assert.match(result.message, /source: \.omx-config\.json models\.team_low_complexity/);
+    assert.match(result.message, /source: \.nomx-config\.json models\.team_low_complexity/);
   });
 
   it('warns when the Spark-lane agent toml is missing', () => {
@@ -102,7 +102,7 @@ describe('checkSparkRouting', () => {
   });
 
   it('passes and reports intentional explore model override instead of stale spark guidance', () => {
-    writeFileSync(join(workDir, '.omx-config.json'), JSON.stringify({
+    writeFileSync(join(workDir, '.nomx-config.json'), JSON.stringify({
       agentModels: {
         explore: 'gpt-5.6-sol-explore',
       },

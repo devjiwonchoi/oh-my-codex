@@ -49,9 +49,9 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, "..", "..", "..");
-  const omxBin = join(repoRoot, "dist", "cli", "nomx.js");
+  const nomxBin = join(repoRoot, "dist", "cli", "nomx.js");
   const resolvedHome = envOverrides.HOME ?? process.env.HOME;
-  const result = spawnSync(process.execPath, [omxBin, ...argv], {
+  const result = spawnSync(process.execPath, [nomxBin, ...argv], {
     cwd,
     encoding: "utf-8",
     env: {
@@ -105,13 +105,13 @@ function hookCommands(entries: HookRegistration[] | undefined): string[] {
 function countManagedHooks(entries: HookRegistration[] | undefined): number {
   return hookCommands(entries).filter((command) =>
     command.includes("codex-native-hook.js")
-    || command.includes("omx-native-hook-windows-shim.ps1")
+    || command.includes("nomx-native-hook-windows-shim.ps1")
   ).length;
 }
 
 function hasManagedHookCommand(command: string): boolean {
   return command.includes("codex-native-hook.js")
-    || command.includes("omx-native-hook-windows-shim.ps1");
+    || command.includes("nomx-native-hook-windows-shim.ps1");
 }
 
 function cloneRegistration(entry: HookRegistration): HookRegistration {
@@ -120,7 +120,7 @@ function cloneRegistration(entry: HookRegistration): HookRegistration {
 
 describe("nomx setup/uninstall shared ownership for native hooks", () => {
   it("setup merges managed wrappers into an existing user-owned hooks.json", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-hooks-existing-user-file-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-hooks-existing-user-file-"));
     try {
       const home = join(wd, "home");
       const codexDir = join(wd, ".codex");
@@ -182,7 +182,7 @@ describe("nomx setup/uninstall shared ownership for native hooks", () => {
   });
 
   it("keeps all final trust coordinates stable across a no-op rerun with interleaved foreign groups", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-hooks-final-coordinates-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-hooks-final-coordinates-"));
     try {
       const home = join(wd, "home");
       const codexDir = join(wd, ".codex");
@@ -228,8 +228,8 @@ describe("nomx setup/uninstall shared ownership for native hooks", () => {
     }
   });
 
-  it("setup preserves user hooks while deduping stale OMX wrappers", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-hooks-ownership-"));
+  it("setup preserves user hooks while deduping stale NOMX wrappers", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-hooks-ownership-"));
     try {
       const home = join(wd, "home");
       await mkdir(home, { recursive: true });
@@ -300,8 +300,8 @@ describe("nomx setup/uninstall shared ownership for native hooks", () => {
     }
   });
 
-  it("uninstall removes only OMX-managed wrappers and preserves user hook content", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-uninstall-hooks-ownership-"));
+  it("uninstall removes only NOMX-managed wrappers and preserves user hook content", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-uninstall-hooks-ownership-"));
     try {
       const home = join(wd, "home");
       await mkdir(home, { recursive: true });
@@ -349,7 +349,7 @@ describe("nomx setup/uninstall shared ownership for native hooks", () => {
       assert.equal(
         allCommands.some(hasManagedHookCommand),
         false,
-        "uninstall should strip only OMX-managed wrappers",
+        "uninstall should strip only NOMX-managed wrappers",
       );
 
       const config = await readFile(configPath, "utf-8");
@@ -372,7 +372,7 @@ describe("nomx setup/uninstall shared ownership for native hooks", () => {
     }
   });
   it("plugin transition preserves historical multi-agent configuration and custom roles", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-plugin-config-preservation-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-plugin-config-preservation-"));
     try {
       const home = join(wd, "home");
       const codexDir = join(wd, ".codex");
@@ -420,7 +420,7 @@ describe("nomx setup/uninstall shared ownership for native hooks", () => {
     }
   });
   it("preserves malformed hooks.json bytes and creates no native setup artifacts", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-invalid-hooks-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-invalid-hooks-"));
     try {
       const home = join(wd, "home");
       const codexDir = join(wd, ".codex");
@@ -436,7 +436,7 @@ describe("nomx setup/uninstall shared ownership for native hooks", () => {
       assert.match(`${result.stderr}\n${result.stdout}`, /invalid UTF-8/);
       assert.deepEqual(await readFile(hooksPath), invalidBytes);
       assert.equal(existsSync(join(codexDir, "config.toml")), false);
-      assert.equal(existsSync(join(wd, ".omx")), false);
+      assert.equal(existsSync(join(wd, ".nomx")), false);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }

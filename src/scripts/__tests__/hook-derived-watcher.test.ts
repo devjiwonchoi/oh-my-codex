@@ -47,8 +47,8 @@ describe('hook-derived-watcher', () => {
     assert.doesNotMatch(source, /stat\(path\)\.catch\(\(\) => \(\{ size: 0 \}\)\)/);
   });
 
-  it('stores watcher state and logs under boxed runtime root when OMX_ROOT is set', async () => {
-    const base = await mkdtemp(join(tmpdir(), 'omx-hook-derived-boxed-'));
+  it('stores watcher state and logs under boxed runtime root when NOMX_ROOT is set', async () => {
+    const base = await mkdtemp(join(tmpdir(), 'nomx-hook-derived-boxed-'));
     const homeDir = join(base, 'home');
     const cwd = join(base, 'cwd');
     const boxedRoot = join(base, 'boxed-runtime');
@@ -65,10 +65,10 @@ describe('hook-derived-watcher', () => {
           env: {
             ...process.env,
             HOME: homeDir,
-            OMX_ROOT: boxedRoot,
+            NOMX_ROOT: boxedRoot,
             OMXBOX_ACTIVE: '1',
-            OMX_SOURCE_CWD: cwd,
-            OMX_HOOK_DERIVED_SIGNALS: '1',
+            NOMX_SOURCE_CWD: cwd,
+            NOMX_HOOK_DERIVED_SIGNALS: '1',
           },
           encoding: 'utf8',
         },
@@ -76,14 +76,14 @@ describe('hook-derived-watcher', () => {
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
       assert.equal(
-        existsSync(join(boxedRoot, '.omx', 'state', 'hook-derived-watcher-state.json')),
+        existsSync(join(boxedRoot, '.nomx', 'state', 'hook-derived-watcher-state.json')),
         true,
       );
       assert.equal(
-        existsSync(join(cwd, '.omx', 'state', 'hook-derived-watcher-state.json')),
+        existsSync(join(cwd, '.nomx', 'state', 'hook-derived-watcher-state.json')),
         false,
       );
-      const logDir = join(boxedRoot, '.omx', 'logs');
+      const logDir = join(boxedRoot, '.nomx', 'logs');
       const logNames = await readdir(logDir);
       assert.equal(logNames.some((name) => name.startsWith('hook-derived-watcher-')), true);
     } finally {
@@ -92,17 +92,17 @@ describe('hook-derived-watcher', () => {
   });
 
   it('dispatches needs-input for assistant_message content arrays', async () => {
-    const base = await mkdtemp(join(tmpdir(), 'omx-hook-derived-array-'));
+    const base = await mkdtemp(join(tmpdir(), 'nomx-hook-derived-array-'));
     const homeDir = join(base, 'home');
     const cwd = join(base, 'cwd');
-    const hookLogPath = join(cwd, '.omx', 'hook-events.jsonl');
+    const hookLogPath = join(cwd, '.nomx', 'hook-events.jsonl');
 
     try {
       await mkdir(todaySessionDir(homeDir), { recursive: true });
-      await mkdir(join(cwd, '.omx', 'hooks'), { recursive: true });
+      await mkdir(join(cwd, '.nomx', 'hooks'), { recursive: true });
 
       await writeFile(
-        join(cwd, '.omx', 'hooks', 'capture-needs-input.mjs'),
+        join(cwd, '.nomx', 'hooks', 'capture-needs-input.mjs'),
         `import { appendFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
@@ -155,8 +155,8 @@ export async function onHookEvent(event) {
           env: {
             ...process.env,
             HOME: homeDir,
-            OMX_HOOK_DERIVED_SIGNALS: '1',
-            OMX_HOOK_PLUGINS: '1',
+            NOMX_HOOK_DERIVED_SIGNALS: '1',
+            NOMX_HOOK_PLUGINS: '1',
           },
           encoding: 'utf8',
         },
@@ -182,17 +182,17 @@ export async function onHookEvent(event) {
   });
 
   it('preserves multibyte assistant text split across polling reads', async () => {
-    const base = await mkdtemp(join(tmpdir(), 'omx-hook-derived-utf8-'));
+    const base = await mkdtemp(join(tmpdir(), 'nomx-hook-derived-utf8-'));
     const homeDir = join(base, 'home');
     const cwd = join(base, 'cwd');
-    const hookLogPath = join(cwd, '.omx', 'hook-events.jsonl');
+    const hookLogPath = join(cwd, '.nomx', 'hook-events.jsonl');
 
     try {
       await mkdir(todaySessionDir(homeDir), { recursive: true });
-      await mkdir(join(cwd, '.omx', 'hooks'), { recursive: true });
+      await mkdir(join(cwd, '.nomx', 'hooks'), { recursive: true });
 
       await writeFile(
-        join(cwd, '.omx', 'hooks', 'capture-needs-input.mjs'),
+        join(cwd, '.nomx', 'hooks', 'capture-needs-input.mjs'),
         `import { appendFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
@@ -225,13 +225,13 @@ export async function onHookEvent(event) {
           env: {
             ...process.env,
             HOME: homeDir,
-            OMX_HOOK_DERIVED_SIGNALS: '1',
-            OMX_HOOK_PLUGINS: '1',
+            NOMX_HOOK_DERIVED_SIGNALS: '1',
+            NOMX_HOOK_PLUGINS: '1',
           },
         },
       );
 
-      const watcherStatePath = join(cwd, '.omx', 'state', 'hook-derived-watcher-state.json');
+      const watcherStatePath = join(cwd, '.nomx', 'state', 'hook-derived-watcher-state.json');
       await waitFor(async () => {
         try {
           const state = JSON.parse(await readFile(watcherStatePath, 'utf-8'));

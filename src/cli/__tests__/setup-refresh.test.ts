@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { setup } from "../setup.js";
 import TOML from "@iarna/toml";
+import { createNomxRootMetadata } from "../../identity/schema.js";
 
 const TEST_CODEX_PROBES = {
   codexFeaturesProbe: () => null,
@@ -21,7 +22,7 @@ const TEST_CODEX_PROBES = {
 } satisfies Parameters<typeof setup>[0];
 
 const EXPECTED_PROJECT_GITIGNORE = [
-  ".omx/",
+  ".nomx/",
   ".codex/*",
   "!.codex/agents/",
   "!.codex/agents/**",
@@ -47,6 +48,7 @@ async function runSetupWithCapturedLogs(
   cwd: string,
   options: Parameters<typeof setup>[0],
 ): Promise<string> {
+  await seedExistingNomxRoot(cwd);
   const previousCwd = process.cwd();
   const logs: string[] = [];
   const originalLog = console.log;
@@ -63,11 +65,19 @@ async function runSetupWithCapturedLogs(
   }
 }
 
+async function seedExistingNomxRoot(cwd: string): Promise<void> {
+  const root = join(cwd, ".nomx");
+  const identityPath = join(root, "identity.json");
+  if (!existsSync(root) || existsSync(identityPath)) return;
+  await writeFile(identityPath, JSON.stringify(createNomxRootMetadata(root)));
+}
+
 describe("nomx setup refresh summary and dry-run behavior", () => {
   async function runSetupInTempDir(
     wd: string,
     options: Parameters<typeof setup>[0],
   ): Promise<void> {
+    await seedExistingNomxRoot(wd);
     const previousCwd = process.cwd();
     process.chdir(wd);
     try {
@@ -78,13 +88,13 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   }
 
   it("prints per-category summary and verbose changed-file detail", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await runSetupInTempDir(wd, { scope: "project" });
 
-      const skillPath = join(wd, ".codex", "skills", "omx-setup", "SKILL.md");
-      await writeFile(skillPath, "# locally modified omx-setup\n");
+      const skillPath = join(wd, ".codex", "skills", "plan", "SKILL.md");
+      await writeFile(skillPath, "# locally modified plan\n");
 
       const output = await runSetupWithCapturedLogs(wd, {
         scope: "project",
@@ -96,20 +106,20 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
       assert.match(output, /native_agents: updated=/);
       assert.match(output, /agents_md: updated=/);
       assert.match(output, /config: updated=/);
-      assert.match(output, /updated skill omx-setup\/SKILL\.md/);
+      assert.match(output, /updated skill plan\/SKILL\.md/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it("does not overwrite or create backups during dry-run", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await runSetupInTempDir(wd, { scope: "project" });
 
-      const skillPath = join(wd, ".codex", "skills", "omx-setup", "SKILL.md");
-      const customized = "# locally modified omx-setup\n";
+      const skillPath = join(wd, ".codex", "skills", "plan", "SKILL.md");
+      const customized = "# locally modified plan\n";
       await writeFile(skillPath, customized);
 
       const output = await runSetupWithCapturedLogs(wd, {
@@ -117,7 +127,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
         dryRun: true,
       });
       assert.equal(await readFile(skillPath, "utf-8"), customized);
-      assert.equal(existsSync(join(wd, ".omx", "backups", "setup")), false);
+      assert.equal(existsSync(join(wd, ".nomx", "backups", "setup")), false);
       assert.match(output, /skills: updated=/);
       assert.match(output, /skills: .*backed_up=1/);
     } finally {
@@ -125,8 +135,8 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
     }
   });
 
-  it("creates .gitignore with OMX project ignore rules during project-scoped setup", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+  it("creates .gitignore with NOMX project ignore rules during project-scoped setup", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
       await runSetupInTempDir(wd, { scope: "project" });
 
@@ -140,22 +150,18 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("installs goal workflow skills during project-scoped legacy setup", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
       await runSetupInTempDir(wd, { scope: "project", installMode: "legacy" });
 
-      for (const skillName of [
-        "performance-goal",
-        "autoresearch-goal",
-        "ultragoal",
-      ]) {
+      for (const skillName of ["ultragoal"]) {
         const skillPath = join(wd, ".codex", "skills", skillName, "SKILL.md");
         assert.equal(
           existsSync(skillPath),
           true,
           `expected nomx setup to install ${skillName}`,
         );
-        assert.match(await readFile(skillPath, "utf-8"), /^description: "\[OMX\] /m);
+        assert.match(await readFile(skillPath, "utf-8"), /^description: "\[NOMX\] /m);
       }
 
       const config = await readFile(join(wd, ".codex", "config.toml"), "utf-8");
@@ -166,7 +172,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("omits Team skills and generated guidance when Team mode is disabled", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-no-team-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-no-team-"));
     try {
       await runSetupInTempDir(wd, {
         scope: "project",
@@ -195,7 +201,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
       assert.equal(existsSync(join(wd, ".codex", "agents", "executor.toml")), true);
 
       const persisted = JSON.parse(
-        await readFile(join(wd, ".omx", "setup-scope.json"), "utf-8"),
+        await readFile(join(wd, ".nomx", "setup-scope.json"), "utf-8"),
       ) as { teamMode?: string };
       assert.equal(persisted.teamMode, "disabled");
 
@@ -212,7 +218,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("removes managed Team guidance and role files when Team mode is disabled on refresh", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-disable-team-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-disable-team-"));
     try {
       await runSetupInTempDir(wd, {
         scope: "project",
@@ -241,8 +247,8 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
     }
   });
 
-  it("appends missing OMX project ignore rules to an existing project .gitignore without duplicating them", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+  it("appends missing NOMX project ignore rules to an existing project .gitignore without duplicating them", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
       await writeFile(join(wd, ".gitignore"), "node_modules/\n");
 
@@ -251,55 +257,55 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
 
       const gitignore = await readFile(join(wd, ".gitignore"), "utf-8");
       assert.equal(gitignore, `node_modules/\n${EXPECTED_PROJECT_GITIGNORE}`);
-      assert.equal(gitignore.match(/^\.omx\/$/gm)?.length ?? 0, 1);
+      assert.equal(gitignore.match(/^\.nomx\/$/gm)?.length ?? 0, 1);
       assert.equal(gitignore.match(/^\.codex\/\*$/gm)?.length ?? 0, 1);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it("does not add .omx/ to project .gitignore when Git already ignores it locally", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-local-ignore-"));
+  it("does not add .nomx/ to project .gitignore when Git already ignores it locally", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-local-ignore-"));
     try {
       const initResult = spawnSync("git", ["init", "-q"], { cwd: wd });
       assert.equal(initResult.status, 0);
       await writeFile(join(wd, ".gitignore"), "node_modules/\n");
-      await writeFile(join(wd, ".git", "info", "exclude"), ".omx/\n");
+      await writeFile(join(wd, ".git", "info", "exclude"), ".nomx/\n");
 
       await runSetupInTempDir(wd, { scope: "project" });
 
       const gitignore = await readFile(join(wd, ".gitignore"), "utf-8");
       assert.equal(gitignore, `node_modules/\n${EXPECTED_PROJECT_GITIGNORE_WITHOUT_OMX}`);
-      assert.equal(gitignore.match(/^\.omx\/$/gm)?.length ?? 0, 0);
+      assert.equal(gitignore.match(/^\.nomx\/$/gm)?.length ?? 0, 0);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it("creates .gitignore without .omx/ when only local Git excludes already ignore it", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-local-ignore-"));
+  it("creates .gitignore without .nomx/ when only local Git excludes already ignore it", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-local-ignore-"));
     try {
       const initResult = spawnSync("git", ["init", "-q"], { cwd: wd });
       assert.equal(initResult.status, 0);
-      await writeFile(join(wd, ".git", "info", "exclude"), ".omx/\n");
+      await writeFile(join(wd, ".git", "info", "exclude"), ".nomx/\n");
 
       await runSetupInTempDir(wd, { scope: "project" });
 
       const gitignore = await readFile(join(wd, ".gitignore"), "utf-8");
       assert.equal(gitignore, EXPECTED_PROJECT_GITIGNORE_WITHOUT_OMX);
-      assert.equal(gitignore.match(/^\.omx\/$/gm)?.length ?? 0, 0);
+      assert.equal(gitignore.match(/^\.nomx\/$/gm)?.length ?? 0, 0);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it("creates .gitignore without .omx/ when global Git excludes already ignore it", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-global-ignore-"));
+  it("creates .gitignore without .nomx/ when global Git excludes already ignore it", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-global-ignore-"));
     const excludesFile = join(wd, "global-ignore");
     try {
       const initResult = spawnSync("git", ["init", "-q"], { cwd: wd });
       assert.equal(initResult.status, 0);
-      await writeFile(excludesFile, ".omx/\n");
+      await writeFile(excludesFile, ".nomx/\n");
       const configResult = spawnSync(
         "git",
         ["config", "core.excludesfile", excludesFile],
@@ -311,14 +317,14 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
 
       const gitignore = await readFile(join(wd, ".gitignore"), "utf-8");
       assert.equal(gitignore, EXPECTED_PROJECT_GITIGNORE_WITHOUT_OMX);
-      assert.equal(gitignore.match(/^\.omx\/$/gm)?.length ?? 0, 0);
+      assert.equal(gitignore.match(/^\.nomx\/$/gm)?.length ?? 0, 0);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it("ignores project-local config while keeping .codex agents, skills, and prompts trackable", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
       const initResult = spawnSync("git", ["init", "-q"], { cwd: wd });
       assert.equal(initResult.status, 0);
@@ -341,7 +347,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
           ".codex/config.toml",
           ".codex/agents/local.toml",
           ".codex/prompts/local.md",
-          ".codex/skills/omx-setup/SKILL.md",
+          ".codex/skills/plan/SKILL.md",
           ".codex/skills/.system/cache.json",
         ],
         { cwd: wd, encoding: "utf-8" },
@@ -350,7 +356,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
       assert.match(status.stdout, /^!! \.codex\/config\.toml$/m);
       assert.match(status.stdout, /^\?\? \.codex\/agents\/local\.toml$/m);
       assert.match(status.stdout, /^\?\? \.codex\/prompts\/local\.md$/m);
-      assert.match(status.stdout, /^\?\? \.codex\/skills\/omx-setup\/SKILL\.md$/m);
+      assert.match(status.stdout, /^\?\? \.codex\/skills\/plan\/SKILL\.md$/m);
       assert.match(status.stdout, /^!! \.codex\/skills\/\.system\/cache\.json$/m);
     } finally {
       await rm(wd, { recursive: true, force: true });
@@ -358,9 +364,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("replaces legacy .codex/ ignores so the project allowlist can take effect", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await writeFile(join(wd, ".gitignore"), ".omx/\n.codex/\n");
+      await writeFile(join(wd, ".gitignore"), ".nomx/\n.codex/\n");
 
       await runSetupInTempDir(wd, { scope: "project" });
 
@@ -373,9 +379,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("creates backup files under the scope-specific setup backup root when refreshing modified managed files", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await runSetupInTempDir(wd, { scope: "project" });
 
       const promptPath = join(wd, ".codex", "prompts", "executor.md");
@@ -384,7 +390,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
 
       await runSetupInTempDir(wd, { scope: "project" });
 
-      const backupsRoot = join(wd, ".omx", "backups", "setup");
+      const backupsRoot = join(wd, ".nomx", "backups", "setup");
       assert.equal(existsSync(backupsRoot), true);
       const timestamps = await readdir(backupsRoot);
       assert.ok(timestamps.length >= 1);
@@ -403,18 +409,18 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("offers an upgrade from gpt-5.3-codex to gpt-5.6-sol when accepted", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await mkdir(join(wd, ".codex"), { recursive: true });
       await writeFile(
         join(wd, ".codex", "config.toml"),
         [
           'model = "gpt-5.3-codex"',
-          '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)',
+          '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)',
           "model_context_window = 250000",
           "model_auto_compact_token_limit = 200000",
-          "# End oh-my-codex seeded behavioral defaults",
+          "# End nomx seeded behavioral defaults",
           "",
         ].join("\n"),
       );
@@ -443,9 +449,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("offers an upgrade from gpt-5.5 to gpt-5.6-sol when accepted", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await mkdir(join(wd, ".codex"), { recursive: true });
       await writeFile(join(wd, ".codex", "config.toml"), 'model = "gpt-5.5"\n');
 
@@ -467,9 +473,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("preserves gpt-5.3-codex when the upgrade prompt is declined", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await mkdir(join(wd, ".codex"), { recursive: true });
       await writeFile(
         join(wd, ".codex", "config.toml"),
@@ -492,9 +498,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("preserves gpt-5.3-codex in non-interactive runs without prompting", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await mkdir(join(wd, ".codex"), { recursive: true });
       await writeFile(
         join(wd, ".codex", "config.toml"),
@@ -514,9 +520,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("seeds [tui].status_line for Codex CLI >= 0.107.0 while preserving an existing customization", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await mkdir(join(wd, ".codex"), { recursive: true });
       await writeFile(
         join(wd, ".codex", "config.toml"),
@@ -542,9 +548,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("seeds default [tui].status_line on fresh setup for Codex CLI >= 0.107.0", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
 
       await runSetupInTempDir(wd, {
         scope: "project",
@@ -563,12 +569,12 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("keeps forced HUD config overwrite and generated status_line preset in sync", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await mkdir(join(wd, ".codex"), { recursive: true });
       await writeFile(
-        join(wd, ".omx", "hud-config.json"),
+        join(wd, ".nomx", "hud-config.json"),
         JSON.stringify({
           preset: "focused",
           statusLine: { preset: "minimal" },
@@ -578,7 +584,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
         join(wd, ".codex", "config.toml"),
         [
           "[tui]",
-          "# omx:managed-status-line",
+          "# nomx:managed-status-line",
           'status_line = ["model-with-reasoning", "git-branch"]',
           "",
         ].join("\n"),
@@ -590,7 +596,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
       });
 
       const hudConfig = JSON.parse(
-        await readFile(join(wd, ".omx", "hud-config.json"), "utf-8"),
+        await readFile(join(wd, ".nomx", "hud-config.json"), "utf-8"),
       ) as { preset?: unknown };
       assert.equal(hudConfig.preset, "focused");
 
@@ -609,12 +615,12 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("preserves user-owned status_line during forced setup", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await mkdir(join(wd, ".codex"), { recursive: true });
       await writeFile(
-        join(wd, ".omx", "hud-config.json"),
+        join(wd, ".nomx", "hud-config.json"),
         JSON.stringify({
           preset: "focused",
           statusLine: { preset: "minimal" },
@@ -651,10 +657,10 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
     }
   });
 
-  it("keeps OMX-managed [tui] writes for older Codex CLI versions", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+  it("keeps NOMX-managed [tui] writes for older Codex CLI versions", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
 
       const output = await runSetupWithCapturedLogs(wd, {
         scope: "project",
@@ -670,9 +676,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("syncs shared MCP registry entries into config.toml during setup", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       const registryPath = join(wd, "mcp-registry.json");
       await writeFile(
         registryPath,
@@ -688,7 +694,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
       });
 
       const config = await readFile(join(wd, ".codex", "config.toml"), "utf-8");
-      assert.match(config, /oh-my-codex \(OMX\) Shared MCP Registry Sync/);
+      assert.match(config, /nomx \(NOMX\) Shared MCP Registry Sync/);
       assert.match(config, /^\[mcp_servers\.eslint\]$/m);
       assert.match(config, /^command = "npx"$/m);
       assert.match(config, /^startup_timeout_sec = 9$/m);
@@ -698,9 +704,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("syncs shared MCP registry entries during plugin-mode compat setup", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       const registryPath = join(wd, "mcp-registry.json");
       await writeFile(
         registryPath,
@@ -717,13 +723,13 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
       });
 
       const config = await readFile(join(wd, ".codex", "config.toml"), "utf-8");
-      assert.match(config, /oh-my-codex \(OMX\) Shared MCP Registry Sync/);
+      assert.match(config, /nomx \(NOMX\) Shared MCP Registry Sync/);
       assert.match(config, /^\[mcp_servers\.eslint\]$/m);
       assert.match(config, /^command = "npx"$/m);
       assert.match(config, /^startup_timeout_sec = 9$/m);
       assert.match(
         config,
-        /^\[plugins\."oh-my-codex@oh-my-codex-local"\.mcp_servers\.omx_state\]$/m,
+        /^\[plugins\."nomx@nomx-local"\.mcp_servers\.nomx_state\]$/m,
       );
       assert.match(config, /^enabled = true$/m);
     } finally {
@@ -732,9 +738,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("does not sync shared MCP registry entries without compat MCP mode", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       const registryPath = join(wd, "mcp-registry.json");
       await writeFile(
         registryPath,
@@ -749,7 +755,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
       });
 
       const config = await readFile(join(wd, ".codex", "config.toml"), "utf-8");
-      assert.doesNotMatch(config, /oh-my-codex \(OMX\) Shared MCP Registry Sync/);
+      assert.doesNotMatch(config, /nomx \(NOMX\) Shared MCP Registry Sync/);
       assert.doesNotMatch(config, /^\[mcp_servers\.eslint\]$/m);
     } finally {
       await rm(wd, { recursive: true, force: true });
@@ -757,9 +763,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("backfills launcher-backed MCP startup timeouts during setup refresh", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await mkdir(join(wd, ".codex"), { recursive: true });
       await writeFile(
         join(wd, ".codex", "config.toml"),
@@ -781,15 +787,15 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
     }
   });
 
-  it("warns and preserves retired omx_team_run config until interactive removal is confirmed", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+  it("warns and preserves retired nomx_team_run config until interactive removal is confirmed", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await mkdir(join(wd, ".codex"), { recursive: true });
       await writeFile(
         join(wd, ".codex", "config.toml"),
         [
-          '[mcp_servers.omx_team_run]',
+          '[mcp_servers.nomx_team_run]',
           'command = "node"',
           'args = ["./dist/cli/team-mcp.js"]',
           "",
@@ -801,23 +807,23 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
       const config = await readFile(join(wd, ".codex", "config.toml"), "utf-8");
       assert.match(
         output,
-        /deprecated first-party OMX MCP registrations were detected but preserved/,
+        /deprecated first-party NOMX MCP registrations were detected but preserved/,
       );
-      assert.match(config, /^\[mcp_servers\.omx_team_run\]$/m);
+      assert.match(config, /^\[mcp_servers\.nomx_team_run\]$/m);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it("syncs shared MCP registry entries into ~/.claude/settings.json for user scope", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     const previousHome = process.env.HOME;
     const previousCodexHome = process.env.CODEX_HOME;
     try {
       process.env.HOME = wd;
       delete process.env.CODEX_HOME;
 
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await mkdir(join(wd, ".claude"), { recursive: true });
       await writeFile(
         join(wd, ".claude", "settings.json"),
@@ -897,14 +903,14 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("does not sync shared MCP registry entries into Claude settings without compat MCP mode", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     const previousHome = process.env.HOME;
     const previousCodexHome = process.env.CODEX_HOME;
     try {
       process.env.HOME = wd;
       delete process.env.CODEX_HOME;
 
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await mkdir(join(wd, ".claude"), { recursive: true });
       const existingSettings = JSON.stringify({ uiTheme: "dark" }, null, 2) + "\n";
       await writeFile(join(wd, ".claude", "settings.json"), existingSettings);
@@ -935,14 +941,14 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("does not write ~/.claude/settings.json during project-scoped setup", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     const previousHome = process.env.HOME;
     const previousCodexHome = process.env.CODEX_HOME;
     try {
       process.env.HOME = wd;
       delete process.env.CODEX_HOME;
 
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       const registryPath = join(wd, "mcp-registry.json");
       await writeFile(
         registryPath,
@@ -968,14 +974,14 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("ignores legacy ~/.omc/mcp-registry.json during setup by default", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-"));
     const previousHome = process.env.HOME;
     const previousCodexHome = process.env.CODEX_HOME;
     try {
       process.env.HOME = wd;
       delete process.env.CODEX_HOME;
 
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await mkdir(join(wd, ".omc"), { recursive: true });
       await writeFile(
         join(wd, ".omc", "mcp-registry.json"),
@@ -1001,9 +1007,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
     }
   });
   it("omits legacy defaults on fresh setup and removes an exact marked pair on refresh", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-defaults-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-defaults-"));
     try {
-      await mkdir(join(wd, ".omx", "state"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "state"), { recursive: true });
       await runSetupInTempDir(wd, { scope: "project" });
       const configPath = join(wd, ".codex", "config.toml");
       const fresh = await readFile(configPath, "utf-8");
@@ -1014,10 +1020,10 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
         configPath,
         [
           'model = "gpt-5.6-sol"',
-          '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)',
+          '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)',
           "model_context_window = 250000",
           "model_auto_compact_token_limit = 200000",
-          "# End oh-my-codex seeded behavioral defaults",
+          "# End nomx seeded behavioral defaults",
           'approval_policy = "on-failure"',
           "",
         ].join("\n"),
@@ -1035,8 +1041,8 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
   });
 
   it("removes exact singleton markers only with one explicit opposite root sibling", async () => {
-    const start = "# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)";
-    const end = "# End oh-my-codex seeded behavioral defaults";
+    const start = "# nomx seeded behavioral defaults (uninstall removes unchanged defaults)";
+    const end = "# End nomx seeded behavioral defaults";
     const cases = [
       {
         baseline: ['# explicit auto sibling', '  model_auto_compact_token_limit   =   777', '[user_table]', 'label = "context-singleton"', ''].join("\n"),
@@ -1054,9 +1060,9 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
       },
     ] as const;
     for (const fixture of cases) {
-      const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-defaults-"));
+      const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-defaults-"));
       try {
-        await mkdir(join(wd, ".omx", "state"), { recursive: true });
+        await mkdir(join(wd, ".nomx", "state"), { recursive: true });
         await mkdir(join(wd, ".codex"), { recursive: true });
         const configPath = join(wd, ".codex", "config.toml");
 
@@ -1089,35 +1095,35 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
         markers: false,
       },
       {
-        lines: ['# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', "model_context_window = 123456", "model_auto_compact_token_limit = 200000", "# End oh-my-codex seeded behavioral defaults", "[user_table]", 'label = "edited"'],
+        lines: ['# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', "model_context_window = 123456", "model_auto_compact_token_limit = 200000", "# End nomx seeded behavioral defaults", "[user_table]", 'label = "edited"'],
         preservedLines: ["model_context_window = 123456", "model_auto_compact_token_limit = 200000", "[user_table]", 'label = "edited"'],
         markers: false,
       },
       {
-        lines: ["model_auto_compact_token_limit = 1", "model_auto_compact_token_limit = 2", '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', "model_context_window = 250000", "# End oh-my-codex seeded behavioral defaults", "[user_table]", 'label = "ambiguous"'],
+        lines: ["model_auto_compact_token_limit = 1", "model_auto_compact_token_limit = 2", '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', "model_context_window = 250000", "# End nomx seeded behavioral defaults", "[user_table]", 'label = "ambiguous"'],
         preservedLines: ["model_auto_compact_token_limit = 1", "model_auto_compact_token_limit = 2", "model_context_window = 250000", "[user_table]", 'label = "ambiguous"'],
         markers: true,
       },
       {
-        lines: ["model_context_window = 999", '# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', "model_context_window = 250000", "model_auto_compact_token_limit = 200000", "# End oh-my-codex seeded behavioral defaults", "[user_table]", 'label = "pair-duplicate-before"'],
+        lines: ["model_context_window = 999", '# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', "model_context_window = 250000", "model_auto_compact_token_limit = 200000", "# End nomx seeded behavioral defaults", "[user_table]", 'label = "pair-duplicate-before"'],
         preservedLines: ["model_context_window = 999", "model_context_window = 250000", "model_auto_compact_token_limit = 200000", "[user_table]", 'label = "pair-duplicate-before"'],
         markers: true,
       },
       {
-        lines: ['# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', "model_context_window = 250000", "model_auto_compact_token_limit = 200000", "# End oh-my-codex seeded behavioral defaults", "model_auto_compact_token_limit = 999", "[user_table]", 'label = "pair-duplicate-after"'],
+        lines: ['# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', "model_context_window = 250000", "model_auto_compact_token_limit = 200000", "# End nomx seeded behavioral defaults", "model_auto_compact_token_limit = 999", "[user_table]", 'label = "pair-duplicate-after"'],
         preservedLines: ["model_context_window = 250000", "model_auto_compact_token_limit = 200000", "model_auto_compact_token_limit = 999", "[user_table]", 'label = "pair-duplicate-after"'],
         markers: true,
       },
       {
-        lines: ['# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)', "model_context_window = 250000", "# End oh-my-codex seeded behavioral defaults", "[user_table]", 'label = "after-table"', "model_auto_compact_token_limit = 777"],
+        lines: ['# nomx seeded behavioral defaults (uninstall removes unchanged defaults)', "model_context_window = 250000", "# End nomx seeded behavioral defaults", "[user_table]", 'label = "after-table"', "model_auto_compact_token_limit = 777"],
         preservedLines: ["model_context_window = 250000", "[user_table]", 'label = "after-table"', "model_auto_compact_token_limit = 777"],
         markers: false,
       },
     ];
     for (const fixture of cases) {
-      const wd = await mkdtemp(join(tmpdir(), "omx-setup-refresh-defaults-"));
+      const wd = await mkdtemp(join(tmpdir(), "nomx-setup-refresh-defaults-"));
       try {
-        await mkdir(join(wd, ".omx", "state"), { recursive: true });
+        await mkdir(join(wd, ".nomx", "state"), { recursive: true });
         await mkdir(join(wd, ".codex"), { recursive: true });
         const configPath = join(wd, ".codex", "config.toml");
         const original = `${fixture.lines.join("\n")}\n`;
@@ -1146,7 +1152,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
       { name: "hooks.json", path: [".codex", "hooks.json"] },
     ] as const;
     for (const fixture of fixtures) {
-      const wd = await mkdtemp(join(tmpdir(), "omx-setup-invalid-utf8-"));
+      const wd = await mkdtemp(join(tmpdir(), "nomx-setup-invalid-utf8-"));
       try {
         const artifactPath = join(wd, ...fixture.path);
         const invalidBytes = Buffer.from([0x7b, 0x80, 0x7d, 0x0a]);
@@ -1161,7 +1167,7 @@ describe("nomx setup refresh summary and dry-run behavior", () => {
         assert.deepEqual(await readFile(artifactPath), invalidBytes, fixture.name);
         assert.equal(existsSync(join(wd, ".codex", "config.toml")), fixture.name === "config.toml");
         assert.equal(existsSync(join(wd, ".codex", "hooks.json")), fixture.name === "hooks.json");
-        assert.equal(existsSync(join(wd, ".omx")), false);
+        assert.equal(existsSync(join(wd, ".nomx")), false);
         assert.equal(existsSync(join(wd, "AGENTS.md")), false);
       } finally {
         await rm(wd, { recursive: true, force: true });

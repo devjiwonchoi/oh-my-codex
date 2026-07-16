@@ -38,7 +38,7 @@ import {
 import type { ResolvedPromptTurnContext } from '../../hooks/prompt-session-provenance.js';
 
 function isHudPaneStartCommand(startCommand: any): boolean {
-  return /\bomx\b.*\bhud\b.*--watch/i.test(safeString(startCommand));
+  return /\bnomx\b.*\bhud\b.*--watch/i.test(safeString(startCommand));
 }
 
 async function resolvePaneCwdMismatch(paneId: string, expectedCwd: any): Promise<any | null> {
@@ -298,7 +298,7 @@ export async function resolveSessionToPane(sessionName: any): Promise<string | n
 }
 
 export async function resolvePaneTarget(target: any, expectedCwd: any, modePane: any, cwd: string, payload: any): Promise<any> {
-  const requiresManagedOwnership = safeString(cwd).trim() !== '' && safeString(payload?.session_id || payload?.['session-id'] || process.env.OMX_SESSION_ID || '').trim() !== '';
+  const requiresManagedOwnership = safeString(cwd).trim() !== '' && safeString(payload?.session_id || payload?.['session-id'] || process.env.NOMX_SESSION_ID || '').trim() !== '';
   const managedContext = requiresManagedOwnership
     ? await resolveManagedSessionContext(cwd, payload, { allowTeamWorker: false })
     : { managed: false, reason: 'not_required', invocationSessionId: '', sessionState: null, expectedTmuxSessionName: '', currentTmuxSessionName: '' };
@@ -419,8 +419,8 @@ export async function handleTmuxInjection({ payload, cwd, stateDir, logsDir, con
   logsDir: string;
   context?: ResolvedPromptTurnContext | null;
 }): Promise<void> {
-  const omxDir = join(cwd, '.omx');
-  const configPath = join(omxDir, 'tmux-hook.json');
+  const nomxDir = join(cwd, '.nomx');
+  const configPath = join(nomxDir, 'tmux-hook.json');
   const hookStatePath = join(stateDir, 'tmux-hook-state.json');
   const nowIso = new Date().toISOString();
   if (context && context.status !== 'authorized') return;

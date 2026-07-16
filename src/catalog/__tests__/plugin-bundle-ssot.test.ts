@@ -10,7 +10,7 @@ import {
 	isDirectCliInvocation,
 	syncPluginMirror,
 } from "../../scripts/sync-plugin-mirror.js";
-import { buildOmxPluginMcpManifest } from "../../config/omx-first-party-mcp.js";
+import { buildNomxPluginMcpManifest } from "../../config/nomx-first-party-mcp.js";
 
 const root = process.cwd();
 
@@ -63,7 +63,7 @@ describe("plugin bundle SSOT contract", () => {
 		assert.deepEqual(result.mirroredSkillNames, expectedSkillNames);
 		assert.equal(result.mirroredSkillNames.includes("worker"), true);
 		const pluginMcp = JSON.parse(
-			await readFile(join(root, "plugins", "oh-my-codex", ".mcp.json"), "utf-8"),
+			await readFile(join(root, "plugins", "nomx", ".mcp.json"), "utf-8"),
 		) as { mcpServers?: Record<string, { enabled?: boolean }> };
 		assert.deepEqual(
 			Object.values(pluginMcp.mcpServers ?? {}).map((server) => server.enabled),
@@ -73,13 +73,13 @@ describe("plugin bundle SSOT contract", () => {
 	});
 
 	it("builds disabled plugin MCP metadata by default with explicit compat opt-in", () => {
-		const defaultManifest = buildOmxPluginMcpManifest();
+		const defaultManifest = buildNomxPluginMcpManifest();
 		assert.deepEqual(
 			Object.values(defaultManifest.mcpServers).map((server) => server.enabled),
 			Object.values(defaultManifest.mcpServers).map(() => false),
 		);
 
-		const compatManifest = buildOmxPluginMcpManifest({ enabled: true });
+		const compatManifest = buildNomxPluginMcpManifest({ enabled: true });
 		assert.deepEqual(
 			Object.values(compatManifest.mcpServers).map((server) => server.enabled),
 			Object.values(compatManifest.mcpServers).map(() => true),
@@ -90,7 +90,7 @@ describe("plugin bundle SSOT contract", () => {
 		const fixtureRoot = await copyBundleFixture();
 		try {
 			await writeFile(
-				join(fixtureRoot, "plugins", "oh-my-codex", ".mcp.json"),
+				join(fixtureRoot, "plugins", "nomx", ".mcp.json"),
 				`${JSON.stringify({ mcpServers: {} }, null, 2)}\n`,
 			);
 
@@ -107,7 +107,7 @@ describe("plugin bundle SSOT contract", () => {
 		const fixtureRoot = await copyBundleFixture();
 		try {
 			await writeFile(
-				join(fixtureRoot, "plugins", "oh-my-codex", ".mcp.json"),
+				join(fixtureRoot, "plugins", "nomx", ".mcp.json"),
 				`${JSON.stringify({ mcpServers: {} }, null, 2)}\n`,
 			);
 

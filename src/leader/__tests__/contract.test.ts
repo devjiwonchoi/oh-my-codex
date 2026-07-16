@@ -44,7 +44,7 @@ describe('leader conductor contract', () => {
   it('exports the exact canonical conductor block without ledger/reuse guidance', () => {
     assert.deepEqual(LEADER_CONDUCTOR_REUSE_AND_LEDGER_RULES, [
       'Conductor mode is a Main-root contract only; typed subagents never receive this block.',
-      'Use .omx/state/subagent-tracking.json as the source of truth for saved subagent ids and recovery order.',
+      'Use .nomx/state/subagent-tracking.json as the source of truth for saved subagent ids and recovery order.',
       'On SessionStart, eagerly attempt resume_agent(<subagent id>) for every saved subagent id before spawning any replacement agent.',
       'ralplan consensus planning may activate Conductor; autopilot rework stays exempt.',
     ]);
@@ -67,7 +67,7 @@ describe('leader conductor contract', () => {
         'Conductor reuse and ledger guidance:',
         `- ${LEADER_CONDUCTOR_SILVER_RULE}`,
         '- Conductor mode is a Main-root contract only; typed subagents never receive this block.',
-        '- Use .omx/state/subagent-tracking.json as the source of truth for saved subagent ids and recovery order.',
+        '- Use .nomx/state/subagent-tracking.json as the source of truth for saved subagent ids and recovery order.',
         '- On SessionStart, eagerly attempt resume_agent(<subagent id>) for every saved subagent id before spawning any replacement agent.',
         '- ralplan consensus planning may activate Conductor; autopilot rework stays exempt.',
       ].join('\n'),
@@ -75,12 +75,12 @@ describe('leader conductor contract', () => {
   });
 
   it('classifies and authorizes Conductor writes by phase/lane/action/artifact, not path alone', () => {
-    const stateLedger = classifyConductorArtifactKind('.omx/state/sessions/sess-1/subagent-tracking.json');
+    const stateLedger = classifyConductorArtifactKind('.nomx/state/sessions/sess-1/subagent-tracking.json');
     assert.equal(stateLedger, 'ledger');
-    assert.equal(classifyConductorArtifactKind('.omx/state/subagent-tracking.json'), 'ledger');
+    assert.equal(classifyConductorArtifactKind('.nomx/state/subagent-tracking.json'), 'ledger');
     assert.equal(classifyConductorArtifactKind('src/subagent-tracking.json'), 'implementation-source-package-git');
     assert.equal(classifyConductorArtifactKind('subagent-tracking.json'), 'implementation-source-package-git');
-    assert.equal(classifyConductorArtifactKind('.omx/plans/subagent-tracking.json'), 'substantive-plan-spec-interview-review-qa');
+    assert.equal(classifyConductorArtifactKind('.nomx/plans/subagent-tracking.json'), 'substantive-plan-spec-interview-review-qa');
     assert.equal(authorizeConductorAction({
       phase: 'autopilot-supervision',
       laneKind: 'main-conductor',
@@ -88,7 +88,7 @@ describe('leader conductor contract', () => {
       artifactKind: stateLedger,
     }).allowed, true);
 
-    const plan = classifyConductorArtifactKind('.omx/plans/conductor-main-root-orchestration-fix.md');
+    const plan = classifyConductorArtifactKind('.nomx/plans/conductor-main-root-orchestration-fix.md');
     assert.equal(plan, 'substantive-plan-spec-interview-review-qa');
     assert.equal(authorizeConductorAction({
       phase: 'ralplan',
@@ -123,7 +123,7 @@ describe('leader conductor contract', () => {
     assert.equal(NATIVE_SUBAGENT_SUPPORT_BLOCKER_FILE, 'native-subagent-support.json');
     assert.equal(
       resolveNativeSubagentSupportStatus({
-        payload: { omx_runtime_capabilities: { native_subagents: false, multi_agent_v1: false } },
+        payload: { nomx_runtime_capabilities: { native_subagents: false, multi_agent_v1: false } },
       }).status,
       'unsupported',
     );
@@ -147,7 +147,7 @@ describe('leader conductor contract', () => {
 
   it('resolves role routing unavailability from explicit capability and scoped marker evidence', () => {
     const capabilityEvidence = resolveNativeSubagentSupportStatus({
-      payload: { omx_runtime_capabilities: { native_subagents: true, multi_agent_v1: true, role_routing: false } },
+      payload: { nomx_runtime_capabilities: { native_subagents: true, multi_agent_v1: true, role_routing: false } },
     });
     assert.equal(capabilityEvidence.status, 'role_routing_unavailable');
     assert.equal(capabilityEvidence.source, 'hook_payload_capability');
@@ -373,27 +373,27 @@ describe('leader conductor contract', () => {
   });
   it('builds and parses App-compatible native role-intent task names', () => {
     const taskName = buildRoleIntentSpawnTaskName('abc123');
-    assert.equal(taskName, 'omx_role_intent_abc123');
+    assert.equal(taskName, 'nomx_role_intent_abc123');
     assert.equal(taskName, `${ROLE_INTENT_SPAWN_TASK_NAME_PREFIX}abc123`);
     assert.match(taskName, NATIVE_SPAWN_TASK_NAME_PATTERN);
 
-    assert.equal(isAppCompatibleSpawnTaskName('omx-role-intent:9f8e'), false);
-    assert.equal(isAppCompatibleSpawnTaskName('omx_role_intent_DEADBEEF'), false);
-    assert.equal(isAppCompatibleSpawnTaskName('omx_role_intent_dead-beef'), false);
-    assert.equal(isAppCompatibleSpawnTaskName('omx_role_intent_dead:beef'), false);
-    assert.equal(isAppCompatibleSpawnTaskName('omx_role_intent_deadbeef'), true);
+    assert.equal(isAppCompatibleSpawnTaskName('nomx-role-intent:9f8e'), false);
+    assert.equal(isAppCompatibleSpawnTaskName('nomx_role_intent_DEADBEEF'), false);
+    assert.equal(isAppCompatibleSpawnTaskName('nomx_role_intent_dead-beef'), false);
+    assert.equal(isAppCompatibleSpawnTaskName('nomx_role_intent_dead:beef'), false);
+    assert.equal(isAppCompatibleSpawnTaskName('nomx_role_intent_deadbeef'), true);
     assert.equal(ROLE_INTENT_CORRELATION_TOKEN_PATTERN.test('abc123'), true);
     assert.equal(ROLE_INTENT_CORRELATION_TOKEN_PATTERN.test('abc_def'), false);
     assert.throws(() => buildRoleIntentSpawnTaskName('abc_def'), /Invalid role-intent correlation token/);
 
-    assert.equal(parseRoleIntentCorrelationToken('omx_role_intent_a3118'), 'a3118');
-    assert.equal(parseRoleIntentCorrelationToken(['omx_role_intent_a3118']), undefined);
-    assert.equal(parseRoleIntentCorrelationToken({ toString: () => 'omx_role_intent_a3118' }), undefined);
-    assert.equal(parseRoleIntentCorrelationToken(' omx_role_intent_a3118'), undefined);
-    assert.equal(parseRoleIntentCorrelationToken('omx_role_intent_a3118 '), undefined);
-    assert.equal(parseRoleIntentCorrelationToken('omx-role-intent:deadbeef'), undefined);
-    assert.equal(parseRoleIntentCorrelationToken('omx_role_intent_abc_def'), undefined);
-    assert.equal(parseRoleIntentCorrelationToken('omx_role_intent_DEADBEEF'), undefined);
+    assert.equal(parseRoleIntentCorrelationToken('nomx_role_intent_a3118'), 'a3118');
+    assert.equal(parseRoleIntentCorrelationToken(['nomx_role_intent_a3118']), undefined);
+    assert.equal(parseRoleIntentCorrelationToken({ toString: () => 'nomx_role_intent_a3118' }), undefined);
+    assert.equal(parseRoleIntentCorrelationToken(' nomx_role_intent_a3118'), undefined);
+    assert.equal(parseRoleIntentCorrelationToken('nomx_role_intent_a3118 '), undefined);
+    assert.equal(parseRoleIntentCorrelationToken('nomx-role-intent:deadbeef'), undefined);
+    assert.equal(parseRoleIntentCorrelationToken('nomx_role_intent_abc_def'), undefined);
+    assert.equal(parseRoleIntentCorrelationToken('nomx_role_intent_DEADBEEF'), undefined);
     assert.equal(parseRoleIntentCorrelationToken(''), undefined);
     assert.equal(parseRoleIntentCorrelationToken(42), undefined);
     assert.equal(parseRoleIntentCorrelationToken(null), undefined);
@@ -405,7 +405,7 @@ describe('leader conductor contract', () => {
   });
 
   it('canonicalizes symlinked and nonexistent-leaf origins while rejecting ELOOP identities', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-contract-canonical-origin-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-contract-canonical-origin-'));
     const realWorkspace = join(root, 'real-workspace');
     const aliasWorkspace = join(root, 'alias-workspace');
     const loopA = join(root, 'loop-a');

@@ -4,7 +4,7 @@
  * runs startTeam/monitorTeam/shutdownTeam, writes structured JSON result
  * to stdout.
  *
- * Spawned by OMX team orchestration entrypoints when a background team run starts.
+ * Spawned by NOMX team orchestration entrypoints when a background team run starts.
  */
 
 import { createInterface } from 'readline';
@@ -21,7 +21,7 @@ import { resolveCodexHomeForLaunch } from '../cli/codex-home.js';
 
 async function promptStaleCleanup(summary: StaleTeamSummary): Promise<boolean> {
   process.stderr.write(
-    `\n[omx] Stale artifacts from previous team "${summary.teamName}":\n` +
+    `\n[nomx] Stale artifacts from previous team "${summary.teamName}":\n` +
     `  Worktrees: ${summary.worktreePaths.join(', ')}\n` +
     `  State dir: ${summary.statePath}\n` +
     (summary.hasDirtyWorktrees
@@ -102,10 +102,10 @@ async function writePanesFile(
   paneIds: string[],
   leaderPaneId: string,
 ): Promise<void> {
-  const omxJobsDir = process.env.OMX_JOBS_DIR;
-  if (!jobId || !omxJobsDir) return;
+  const nomxJobsDir = process.env.NOMX_JOBS_DIR;
+  if (!jobId || !nomxJobsDir) return;
 
-  const panesPath = join(omxJobsDir, `${jobId}-panes.json`);
+  const panesPath = join(nomxJobsDir, `${jobId}-panes.json`);
   await writeFile(
     panesPath + '.tmp',
     JSON.stringify({ paneIds: [...paneIds], leaderPaneId }),
@@ -388,15 +388,15 @@ async function main(): Promise<void> {
   process.on('SIGINT', () => handleShutdown('SIGINT'));
   process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 
-  // Start the team — OMX's startTeam takes individual parameters
+  // Start the team — NOMX's startTeam takes individual parameters
   const agentType = resolveRuntimeCliAgentType(rawAgentType);
   const task = resolveRuntimeCliTask(input);
   try {
     const providerMap = resolveRuntimeCliProviderMap(agentTypes, workerCount);
-    const previousCliMap = process.env.OMX_TEAM_WORKER_CLI_MAP;
+    const previousCliMap = process.env.NOMX_TEAM_WORKER_CLI_MAP;
     try {
       if (providerMap) {
-        process.env.OMX_TEAM_WORKER_CLI_MAP = providerMap;
+        process.env.NOMX_TEAM_WORKER_CLI_MAP = providerMap;
       }
       runtime = await startTeam(
         teamName,
@@ -416,8 +416,8 @@ async function main(): Promise<void> {
       );
     } finally {
       if (providerMap) {
-        if (typeof previousCliMap === 'string') process.env.OMX_TEAM_WORKER_CLI_MAP = previousCliMap;
-        else delete process.env.OMX_TEAM_WORKER_CLI_MAP;
+        if (typeof previousCliMap === 'string') process.env.NOMX_TEAM_WORKER_CLI_MAP = previousCliMap;
+        else delete process.env.NOMX_TEAM_WORKER_CLI_MAP;
       }
     }
   } catch (err) {
@@ -425,8 +425,8 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Persist pane IDs when a background launcher provides an OMX job ID.
-  const jobId = process.env.OMX_JOB_ID;
+  // Persist pane IDs when a background launcher provides an NOMX job ID.
+  const jobId = process.env.NOMX_JOB_ID;
   try {
     const livePanes = await loadLivePaneState(teamName, cwd);
     if (livePanes) {
@@ -506,7 +506,7 @@ async function main(): Promise<void> {
   }
 }
 
-const shouldAutoStart = process.env.OMX_RUNTIME_CLI_DISABLE_AUTO_START !== '1';
+const shouldAutoStart = process.env.NOMX_RUNTIME_CLI_DISABLE_AUTO_START !== '1';
 
 if (shouldAutoStart) {
   main().catch(err => {

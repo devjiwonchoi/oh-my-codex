@@ -37,12 +37,12 @@ const ALL_SERVERS: readonly McpServerName[] = [
 ] as const;
 
 const SERVER_DISABLE_ENV: Record<McpServerName, string> = {
-  state: 'OMX_STATE_SERVER_DISABLE_AUTO_START',
-  memory: 'OMX_MEMORY_SERVER_DISABLE_AUTO_START',
-  code_intel: 'OMX_CODE_INTEL_SERVER_DISABLE_AUTO_START',
-  trace: 'OMX_TRACE_SERVER_DISABLE_AUTO_START',
-  wiki: 'OMX_WIKI_SERVER_DISABLE_AUTO_START',
-  hermes: 'OMX_HERMES_SERVER_DISABLE_AUTO_START',
+  state: 'NOMX_STATE_SERVER_DISABLE_AUTO_START',
+  memory: 'NOMX_MEMORY_SERVER_DISABLE_AUTO_START',
+  code_intel: 'NOMX_CODE_INTEL_SERVER_DISABLE_AUTO_START',
+  trace: 'NOMX_TRACE_SERVER_DISABLE_AUTO_START',
+  wiki: 'NOMX_WIKI_SERVER_DISABLE_AUTO_START',
+  hermes: 'NOMX_HERMES_SERVER_DISABLE_AUTO_START',
 };
 
 const SERVER_ENTRYPOINTS: Array<{ server: McpServerName; file: string }> = [
@@ -50,19 +50,18 @@ const SERVER_ENTRYPOINTS: Array<{ server: McpServerName; file: string }> = [
   { server: 'memory', file: 'src/mcp/memory-server.ts' },
   { server: 'code_intel', file: 'src/mcp/code-intel-server.ts' },
   { server: 'trace', file: 'src/mcp/trace-server.ts' },
-  { server: 'wiki', file: 'src/mcp/wiki-server.ts' },
   { server: 'hermes', file: 'src/mcp/hermes-server.ts' },
 ];
 
 describe('mcp bootstrap auto-start guard', () => {
-  it('allows auto-start by default for every OMX MCP server', () => {
+  it('allows auto-start by default for every NOMX MCP server', () => {
     for (const server of ALL_SERVERS) {
       assert.equal(shouldAutoStartMcpServer(server, {}), true, `${server} should auto-start by default`);
     }
   });
 
   it('disables all servers when global disable flag is set', () => {
-    const env = { OMX_MCP_SERVER_DISABLE_AUTO_START: '1' };
+    const env = { NOMX_MCP_SERVER_DISABLE_AUTO_START: '1' };
 
     for (const server of ALL_SERVERS) {
       assert.equal(shouldAutoStartMcpServer(server, env), false, `${server} should honor global disable flag`);
@@ -199,11 +198,11 @@ describe('mcp duplicate sibling detection', () => {
 
   it('extracts same-entrypoint markers from command lines', () => {
     assert.equal(
-      extractMcpEntrypointMarker('node /tmp/oh-my-codex/dist/mcp/state-server.js'),
+      extractMcpEntrypointMarker('node /tmp/nomx/dist/mcp/state-server.js'),
       'state-server.js',
     );
     assert.equal(
-      extractMcpEntrypointMarker('node C:\\\\tmp\\\\oh-my-codex\\\\dist\\\\mcp\\\\trace-server.ts'),
+      extractMcpEntrypointMarker('node C:\\\\tmp\\\\nomx\\\\dist\\\\mcp\\\\trace-server.ts'),
       'trace-server.ts',
     );
     assert.equal(
@@ -337,9 +336,9 @@ describe('mcp duplicate sibling detection', () => {
 
   it('keeps Windows path semantics when matching duplicate sibling commands', () => {
     const processes = [
-      { pid: 101, ppid: 55, command: 'node C:\\Users\\me\\AppData\\Local\\oh-my-codex\\dist\\mcp\\state-server.cjs' },
-      { pid: 140, ppid: 55, command: 'node C:/Users/me/AppData/Local/oh-my-codex/dist/mcp/state-server.cjs' },
-      { pid: 150, ppid: 55, command: 'node C:\\Users\\me\\AppData\\Local\\oh-my-codex\\dist\\mcp\\memory-server.cjs' },
+      { pid: 101, ppid: 55, command: 'node C:\\Users\\me\\AppData\\Local\\nomx\\dist\\mcp\\state-server.cjs' },
+      { pid: 140, ppid: 55, command: 'node C:/Users/me/AppData/Local/nomx/dist/mcp/state-server.cjs' },
+      { pid: 150, ppid: 55, command: 'node C:\\Users\\me\\AppData\\Local\\nomx\\dist\\mcp\\memory-server.cjs' },
     ];
 
     const older = analyzeDuplicateSiblingState(processes, 101, 55, 'state-server.cjs');
@@ -656,22 +655,22 @@ describe('mcp duplicate sibling detection', () => {
 describe('mcp lifecycle telemetry diagnostics', () => {
   it('resolves platform log directories and honors the disable switch', () => {
     assert.equal(
-      resolveMcpLifecycleLogDir({ OMX_MCP_LIFECYCLE_LOG: 'off' }, '/home/test', 'linux'),
+      resolveMcpLifecycleLogDir({ NOMX_MCP_LIFECYCLE_LOG: 'off' }, '/home/test', 'linux'),
       null,
     );
     assert.equal(
       resolveMcpLifecycleLogDir({ XDG_STATE_HOME: '/state' }, '/home/test', 'linux'),
-      join('/state', 'oh-my-codex', 'mcp'),
+      join('/state', 'nomx', 'mcp'),
     );
     assert.equal(
       resolveMcpLifecycleLogDir({}, '/Users/test', 'darwin'),
-      join('/Users/test', 'Library', 'Logs', 'oh-my-codex', 'mcp'),
+      join('/Users/test', 'Library', 'Logs', 'nomx', 'mcp'),
     );
   });
 
   it('writes bounded JSONL lifecycle diagnostics outside the repo cwd', async () => {
-    const logDir = await mkdtemp(join(tmpdir(), 'omx-mcp-lifecycle-'));
-    const env = { OMX_MCP_LIFECYCLE_LOG_DIR: logDir };
+    const logDir = await mkdtemp(join(tmpdir(), 'nomx-mcp-lifecycle-'));
+    const env = { NOMX_MCP_LIFECYCLE_LOG_DIR: logDir };
 
     writeMcpLifecycleTelemetry({
       event: 'marker_resolution_failed',

@@ -20,7 +20,7 @@ interface RunnerResult {
   error?: string;
 }
 
-const RESULT_PREFIX = '__OMX_PLUGIN_RESULT__ ';
+const RESULT_PREFIX = '__NOMX_PLUGIN_RESULT__ ';
 
 function emitResult(result: RunnerResult): void {
   writeSync(process.stdout.fd, `${RESULT_PREFIX}${JSON.stringify(result)}\n`);

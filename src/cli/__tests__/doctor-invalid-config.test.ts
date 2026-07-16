@@ -13,8 +13,8 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error?: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
-  const r = spawnSync(process.execPath, [omxBin, ...argv], {
+  const nomxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
+  const r = spawnSync(process.execPath, [nomxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
     env: { ...process.env, ...envOverrides },
@@ -28,7 +28,7 @@ function shouldSkipForSpawnPermissions(err?: string): boolean {
 
 describe('nomx doctor invalid config detection', () => {
   it('fails when config.toml contains duplicate [tui] tables', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-doctor-invalid-config-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-doctor-invalid-config-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -74,14 +74,14 @@ theme = "base16-ocean-light"
   });
 
   it('fails strict load validation when hooks.json contains top-level state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-doctor-hooks-json-state-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-doctor-hooks-json-state-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
       await mkdir(codexDir, { recursive: true });
       await writeFile(
         join(codexDir, 'config.toml'),
-        'omx_enabled = true\nhooks = true\n',
+        'nomx_enabled = true\nhooks = true\n',
       );
       await writeFile(
         join(codexDir, 'hooks.json'),
@@ -120,12 +120,12 @@ theme = "base16-ocean-light"
     }
   });
   it('fails closed when hooks.json contains invalid UTF-8 bytes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-doctor-hooks-json-invalid-utf8-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-doctor-hooks-json-invalid-utf8-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
       await mkdir(codexDir, { recursive: true });
-      await writeFile(join(codexDir, 'config.toml'), 'omx_enabled = true\nhooks = true\n');
+      await writeFile(join(codexDir, 'config.toml'), 'nomx_enabled = true\nhooks = true\n');
       await writeFile(join(codexDir, 'hooks.json'), Buffer.from([0x7b, 0xff, 0x7d]));
 
       const res = runOmx(wd, ['doctor'], { HOME: home, CODEX_HOME: codexDir });
@@ -142,7 +142,7 @@ theme = "base16-ocean-light"
   });
 
   it('preserves a UTF-8 BOM so strict hooks validation rejects it', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-doctor-hooks-json-bom-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-doctor-hooks-json-bom-'));
     try {
       const home = join(wd, 'home');
       const codexDir = join(home, '.codex');
@@ -152,7 +152,7 @@ theme = "base16-ocean-light"
         Buffer.from('{"hooks":{}}\n', 'utf-8'),
       ]);
       await mkdir(codexDir, { recursive: true });
-      await writeFile(join(codexDir, 'config.toml'), 'omx_enabled = true\nhooks = true\n');
+      await writeFile(join(codexDir, 'config.toml'), 'nomx_enabled = true\nhooks = true\n');
       await writeFile(hooksPath, hooks);
 
       const res = runOmx(wd, ['doctor'], { HOME: home, CODEX_HOME: codexDir });

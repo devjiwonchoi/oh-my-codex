@@ -1,39 +1,17 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function readProjectAgents(startDir: string): string {
-	let currentDir = startDir;
-
-	while (true) {
-		const candidate = join(currentDir, "AGENTS.md");
-		if (existsSync(candidate)) {
-			const content = readFileSync(candidate, "utf-8");
-			if (!/Team Worker Runtime Instructions/i.test(content)) {
-				return content;
-			}
-		}
-
-		const parentDir = dirname(currentDir);
-		if (parentDir === currentDir) {
-			break;
-		}
-		currentDir = parentDir;
-	}
-
-	return readFileSync(join(startDir, "AGENTS.md"), "utf-8");
-}
-
 const deepInterviewSkill = readFileSync(
 	join(__dirname, "../../../skills/deep-interview/SKILL.md"),
 	"utf-8",
 );
 const pluginDeepInterviewSkill = readFileSync(
-	join(__dirname, "../../../plugins/oh-my-codex/skills/deep-interview/SKILL.md"),
+	join(__dirname, "../../../plugins/nomx/skills/deep-interview/SKILL.md"),
 	"utf-8",
 );
 const autopilotSkill = readFileSync(
@@ -44,11 +22,6 @@ const templateAgents = readFileSync(
 	join(__dirname, "../../../templates/AGENTS.md"),
 	"utf-8",
 );
-const rootAgentsPath = join(__dirname, "../../../AGENTS.md");
-const rootAgents = existsSync(rootAgentsPath)
-	? readProjectAgents(join(__dirname, "../../.."))
-	: null;
-
 describe("deep-interview Ouroboros contract", () => {
 	it("includes ambiguity gate math and intent-first scoring", () => {
 		assert.match(deepInterviewSkill, /ambiguity/i);
@@ -282,7 +255,7 @@ describe("deep-interview Ouroboros contract", () => {
 		);
 		assert.match(
 			deepInterviewSkill,
-			/OMX_QUESTION_RETURN_PANE=\$TMUX_PANE/i,
+			/NOMX_QUESTION_RETURN_PANE=\$TMUX_PANE/i,
 		);
 		assert.match(
 			deepInterviewSkill,
@@ -381,8 +354,6 @@ describe("deep-interview Ouroboros contract", () => {
 	it("suggests Ultragoal as the default durable follow-up with team and explicit Ralph fallback lanes", () => {
 		assert.match(deepInterviewSkill, /Goal-mode follow-ups/i);
 		assert.match(deepInterviewSkill, /\$ultragoal[\s\S]*general goal-oriented follow-up/i);
-		assert.match(deepInterviewSkill, /\$autoresearch-goal[\s\S]*research project/i);
-		assert.match(deepInterviewSkill, /\$performance-goal[\s\S]*(optimization|performance) project/i);
 		assert.match(deepInterviewSkill, /Recommend `\$ultragoal`[\s\S]*default durable goal-mode follow-up/i);
 		assert.match(deepInterviewSkill, /keep `\$ralph` only as an explicit fallback/i);
 		assert.match(deepInterviewSkill, /supersedes Ralph for goal tracking/i);
@@ -393,7 +364,7 @@ describe("deep-interview Ouroboros contract", () => {
 		);
 		assert.match(
 			deepInterviewSkill,
-			/Expected Output:[\s\S]*\.omx\/ultragoal\/brief\.md[\s\S]*\.omx\/ultragoal\/goals\.json[\s\S]*\.omx\/ultragoal\/ledger\.jsonl/i,
+			/Expected Output:[\s\S]*\.nomx\/ultragoal\/brief\.md[\s\S]*\.nomx\/ultragoal\/goals\.json[\s\S]*\.nomx\/ultragoal\/ledger\.jsonl/i,
 		);
 		assert.match(
 			deepInterviewSkill,
@@ -405,9 +376,9 @@ describe("deep-interview Ouroboros contract", () => {
 		);
 	});
 
-	it("uses OMX-native output paths", () => {
-		assert.match(deepInterviewSkill, /\.omx\/interviews\//);
-		assert.match(deepInterviewSkill, /\.omx\/specs\//);
+	it("uses NOMX-native output paths", () => {
+		assert.match(deepInterviewSkill, /\.nomx\/interviews\//);
+		assert.match(deepInterviewSkill, /\.nomx\/specs\//);
 	});
 
 	it("requires prompt-safe summary gating for oversized initial context", () => {
@@ -437,42 +408,11 @@ describe("deep-interview Ouroboros contract", () => {
 		);
 		assert.match(
 			deepInterviewSkill,
-			/\.omx\/context\/\{slug\}-\{timestamp\}\.md/,
+			/\.nomx\/context\/\{slug\}-\{timestamp\}\.md/,
 		);
 		assert.match(deepInterviewSkill, /context_snapshot_path/i);
 	});
 
-	it("documents the autoresearch specialization contract", () => {
-		assert.match(deepInterviewSkill, /Autoresearch specialization/i);
-		assert.match(deepInterviewSkill, /Accepted seed inputs/i);
-		assert.match(deepInterviewSkill, /topic/i);
-		assert.match(deepInterviewSkill, /evaluator/i);
-		assert.match(deepInterviewSkill, /keep-policy/i);
-		assert.match(deepInterviewSkill, /slug/i);
-		assert.match(deepInterviewSkill, /mission clarity/i);
-		assert.match(deepInterviewSkill, /evaluator readiness/i);
-		assert.match(
-			deepInterviewSkill,
-			/\.omx\/specs\/deep-interview-autoresearch-\{slug\}\.md/i,
-		);
-		assert.match(deepInterviewSkill, /Mission Draft/i);
-		assert.match(deepInterviewSkill, /Evaluator Draft/i);
-		assert.match(deepInterviewSkill, /Launch Readiness/i);
-		assert.match(deepInterviewSkill, /Seed Inputs/i);
-		assert.match(deepInterviewSkill, /Confirmation Bridge/i);
-		assert.match(deepInterviewSkill, /refine further/i);
-		assert.match(deepInterviewSkill, /launch/i);
-		assert.match(
-			deepInterviewSkill,
-			/do not run direct CLI launch or detached\/split tmux launch, and only hand off to `\$autoresearch` after explicit confirmation/i,
-		);
-		assert.match(deepInterviewSkill, /<\.\.\.>/i);
-		assert.match(deepInterviewSkill, /TODO/i);
-		assert.match(deepInterviewSkill, /TBD/i);
-		assert.match(deepInterviewSkill, /REPLACE_ME/i);
-		assert.match(deepInterviewSkill, /CHANGEME/i);
-		assert.match(deepInterviewSkill, /your-command-here/i);
-	});
 });
 
 describe("cross-skill and AGENTS coherence for deep-interview", () => {
@@ -485,19 +425,15 @@ describe("cross-skill and AGENTS coherence for deep-interview", () => {
 		assert.equal(pluginDeepInterviewSkill, deepInterviewSkill);
 	});
 
-	it("tracked AGENTS surfaces include ouroboros keyword and updated description", () => {
-		if (rootAgents != null) {
-			assert.match(rootAgents, /ouroboros/i);
-			assert.match(rootAgents, /Socratic deep interview/i);
-		}
+	it("canonical AGENTS template includes ouroboros keyword and updated description", () => {
 		assert.match(templateAgents, /ouroboros/i);
-		assert.match(templateAgents, /Socratic deep interview/i);
+		assert.match(templateAgents, /Socratic requirements clarification/i);
 	});
 
 	it("makes template AGENTS explicit about surface-aware deep-interview questioning", () => {
-		assert.match(templateAgents, /deep-interview is active in attached-tmux OMX CLI\/runtime.*`nomx question`/i);
+		assert.match(templateAgents, /deep-interview is active in attached-tmux NOMX CLI\/runtime.*`nomx question`/i);
 		assert.match(templateAgents, /after launching `nomx question` in a background terminal, wait for that terminal to finish and read the JSON answer before continuing/i);
-		assert.match(templateAgents, /OMX_QUESTION_RETURN_PANE=\$TMUX_PANE/i);
+		assert.match(templateAgents, /NOMX_QUESTION_RETURN_PANE=\$TMUX_PANE/i);
 		assert.match(templateAgents, /Outside tmux or native surfaces that cannot render `nomx question` should use the native structured question path when available/i);
 		assert.match(templateAgents, /ask exactly one concise plain-text question and wait for the answer/i);
 	});

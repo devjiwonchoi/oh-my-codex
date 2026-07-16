@@ -183,12 +183,12 @@ async function runDescriptorCommand(
 
 async function loadStateDescriptor(): Promise<McpCliDescriptor> {
   const { buildStateServerTools, handleStateToolCall } = await importWithAutoStartDisabled(
-    "OMX_STATE_SERVER_DISABLE_AUTO_START",
+    "NOMX_STATE_SERVER_DISABLE_AUTO_START",
     async () => await import("../mcp/state-server.js"),
   );
   return {
     commandName: "state",
-    title: "JSON CLI surface for OMX state operations.",
+    title: "JSON CLI surface for NOMX state operations.",
     tools: buildStateServerTools().map(({ name, description }) => ({ name, description })),
     aliases: {
       read: "state_read",
@@ -207,7 +207,7 @@ async function loadMemoryDescriptor(
   title: string,
 ): Promise<McpCliDescriptor> {
   const { buildMemoryServerTools, handleMemoryToolCall } = await importWithAutoStartDisabled(
-    "OMX_MEMORY_SERVER_DISABLE_AUTO_START",
+    "NOMX_MEMORY_SERVER_DISABLE_AUTO_START",
     async () => await import("../mcp/memory-server.js"),
   );
   return {
@@ -237,12 +237,12 @@ async function loadMemoryDescriptor(
 
 async function loadTraceDescriptor(): Promise<McpCliDescriptor> {
   const { buildTraceServerTools, handleTraceToolCall } = await importWithAutoStartDisabled(
-    "OMX_TRACE_SERVER_DISABLE_AUTO_START",
+    "NOMX_TRACE_SERVER_DISABLE_AUTO_START",
     async () => await import("../mcp/trace-server.js"),
   );
   return {
     commandName: "trace",
-    title: "JSON CLI surface for OMX trace operations.",
+    title: "JSON CLI surface for NOMX trace operations.",
     tools: buildTraceServerTools().map(({ name, description }) => ({ name, description })),
     aliases: {
       timeline: "trace_timeline",
@@ -254,12 +254,12 @@ async function loadTraceDescriptor(): Promise<McpCliDescriptor> {
 
 async function loadCodeIntelDescriptor(): Promise<McpCliDescriptor> {
   const { buildCodeIntelServerTools, handleCodeIntelToolCall } = await importWithAutoStartDisabled(
-    "OMX_CODE_INTEL_SERVER_DISABLE_AUTO_START",
+    "NOMX_CODE_INTEL_SERVER_DISABLE_AUTO_START",
     async () => await import("../mcp/code-intel-server.js"),
   );
   return {
     commandName: "code-intel",
-    title: "JSON CLI surface for OMX code-intel operations.",
+    title: "JSON CLI surface for NOMX code-intel operations.",
     tools: buildCodeIntelServerTools().map(({ name, description }) => ({ name, description })),
     handle: handleCodeIntelToolCall,
   };
@@ -276,7 +276,7 @@ export async function mcpParityCommand(
     case "notepad":
       await runDescriptorCommand(
         args,
-        async () => await loadMemoryDescriptor("notepad", "notepad_", "JSON CLI surface for OMX notepad operations."),
+        async () => await loadMemoryDescriptor("notepad", "notepad_", "JSON CLI surface for NOMX notepad operations."),
       );
       return;
     case "project-memory":
@@ -285,7 +285,7 @@ export async function mcpParityCommand(
         async () => await loadMemoryDescriptor(
           "project-memory",
           "project_memory_",
-          "JSON CLI surface for OMX project-memory operations.",
+          "JSON CLI surface for NOMX project-memory operations.",
         ),
       );
       return;
@@ -308,7 +308,7 @@ export async function executeMcpParityCommand(
     case "notepad":
       return await executeDescriptorCommand(
         args,
-        async () => await loadMemoryDescriptor("notepad", "notepad_", "JSON CLI surface for OMX notepad operations."),
+        async () => await loadMemoryDescriptor("notepad", "notepad_", "JSON CLI surface for NOMX notepad operations."),
       );
     case "project-memory":
       return await executeDescriptorCommand(
@@ -316,7 +316,7 @@ export async function executeMcpParityCommand(
         async () => await loadMemoryDescriptor(
           "project-memory",
           "project_memory_",
-          "JSON CLI surface for OMX project-memory operations.",
+          "JSON CLI surface for NOMX project-memory operations.",
         ),
       );
     case "trace":

@@ -17,40 +17,26 @@ function skillNames(): string[] {
 }
 
 describe('skill catalog hygiene', () => {
-  it('keeps deprecated public compatibility shims non-routing', () => {
-    const names = skillNames();
-    const shims = [
-      { name: 'swarm', canonical: /\$team|nomx team/i },
-      { name: 'ask-claude', canonical: /\$ask claude|nomx ask claude/i },
-      { name: 'ask-gemini', canonical: /\$ask gemini|nomx ask gemini/i },
-      { name: 'frontend-ui-ux', canonical: /\$design|\$visual-ralph/i },
-      { name: 'review', canonical: /\$code-review|code review/i },
-      { name: 'ralph-init', canonical: /\$ralph|PRD\/test-spec/i },
-    ];
-
-    for (const { name, canonical } of shims) {
-      assert(names.includes(name), `${name} should remain as a public compatibility shim`);
-      const content = skillContent(name);
-      assert.match(
-        content,
-        /Hard-deprecated/i,
-        `${name} should remain only as a hard-deprecated compatibility shim`,
-      );
-      assert.match(
-        content,
-        /Do not invoke or route this skill/i,
-        `${name} should be non-routing compatibility guidance`,
-      );
-      assert.match(
-        content,
-        canonical,
-        `${name} should point to its canonical replacement surface`,
-      );
-    }
+  it('ships only the supported core workflow skills', () => {
+    assert.deepEqual(skillNames(), [
+      'autopilot',
+      'best-practice-research',
+      'code-review',
+      'deep-interview',
+      'doctor',
+      'plan',
+      'ralph',
+      'ralplan',
+      'team',
+      'ultragoal',
+      'ultraqa',
+      'ultrawork',
+      'worker',
+    ]);
   });
 
   it('keeps the cleanup subset free of obsolete prompt/tool boilerplate', () => {
-    const cleanupSubset = ['analyze', 'deep-interview', 'ecomode', 'git-master', 'plan', 'tdd', 'ultraqa', 'ultrawork', 'web-clone'];
+    const cleanupSubset = ['deep-interview', 'plan', 'ultraqa', 'ultrawork'];
     const obsolete = [
       /ToolSearch\(/,
       /mcp__[^\s`]+/,
@@ -73,21 +59,18 @@ describe('skill catalog hygiene', () => {
     const primaryWorkflows = [
       'autopilot',
       'code-review',
-      'ecomode',
       'plan',
       'ralph',
-      'tdd',
       'ultraqa',
       'ultrawork',
-      'wiki',
     ];
     const mcpFirstPatterns = [
-      /Use `omx_state` MCP tools/i,
-      /Use the `omx_state` MCP server tools/i,
+      /Use `nomx_state` MCP tools/i,
+      /Use the `nomx_state` MCP server tools/i,
       /Before first MCP tool use, call `ToolSearch\("mcp"\)`/i,
       /If ToolSearch finds no MCP tools/i,
       /state_write MCP tool/i,
-      /write subsequent updates via omx_state MCP/i,
+      /write subsequent updates via nomx_state MCP/i,
       /nomx state clear --mode/i,
       /nomx state state_write/i,
       /state_(?:read|write)\(mode=/i,

@@ -70,7 +70,7 @@ export async function readNotifySessionMetadata(baseStateDir: string): Promise<S
 }
 
 function readOmxSessionIdFromEnvironment(env: NodeJS.ProcessEnv = process.env): string | undefined {
-  const candidate = safeString(env.OMX_SESSION_ID).trim();
+  const candidate = safeString(env.NOMX_SESSION_ID).trim();
   if (!candidate) return undefined;
   try {
     return validateSessionId(candidate);
@@ -94,7 +94,7 @@ export function getOmxSessionIdFromEnvironment(): string | undefined {
 }
 
 function readSessionIdFromEnvironment(): string | undefined {
-  for (const candidate of [process.env.OMX_SESSION_ID, process.env.CODEX_SESSION_ID, process.env.SESSION_ID]) {
+  for (const candidate of [process.env.NOMX_SESSION_ID, process.env.CODEX_SESSION_ID, process.env.SESSION_ID]) {
     if (typeof candidate !== 'string') continue;
     const trimmed = candidate.trim();
     if (!trimmed) continue;

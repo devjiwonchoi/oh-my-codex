@@ -1,11 +1,11 @@
 import {
-  OMX_FIRST_PARTY_MCP_ENTRYPOINTS,
-  OMX_FIRST_PARTY_MCP_PLUGIN_TARGETS,
-  OMX_PLUGIN_MCP_SERVE_SUBCOMMAND,
-} from "../config/omx-first-party-mcp.js";
+  NOMX_FIRST_PARTY_MCP_ENTRYPOINTS,
+  NOMX_FIRST_PARTY_MCP_PLUGIN_TARGETS,
+  NOMX_PLUGIN_MCP_SERVE_SUBCOMMAND,
+} from "../config/nomx-first-party-mcp.js";
 import { MCP_ENTRYPOINT_MARKER_ENV } from "../mcp/bootstrap.js";
 
-type McpServeEntrypoint = (typeof OMX_FIRST_PARTY_MCP_ENTRYPOINTS)[number];
+type McpServeEntrypoint = (typeof NOMX_FIRST_PARTY_MCP_ENTRYPOINTS)[number];
 
 type McpServeLoader = () => Promise<unknown>;
 type McpServeLoaderMap = Record<McpServeEntrypoint, McpServeLoader>;
@@ -17,12 +17,12 @@ interface McpServeCommandOptions {
 }
 
 const MCP_SERVE_USAGE = [
-  `Usage: nomx ${OMX_PLUGIN_MCP_SERVE_SUBCOMMAND} <target>`,
+  `Usage: nomx ${NOMX_PLUGIN_MCP_SERVE_SUBCOMMAND} <target>`,
   "",
-  "Launch an OMX stdio MCP server target via the installed nomx CLI.",
+  "Launch an NOMX stdio MCP server target via the installed nomx CLI.",
   "Intended for plugin-scoped MCP metadata and other runtime launchers.",
   "",
-  `Supported targets: ${OMX_FIRST_PARTY_MCP_PLUGIN_TARGETS.join(", ")}`,
+  `Supported targets: ${NOMX_FIRST_PARTY_MCP_PLUGIN_TARGETS.join(", ")}`,
 ].join("\n");
 
 const MCP_SERVE_LOADERS: McpServeLoaderMap = {

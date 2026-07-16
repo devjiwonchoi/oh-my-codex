@@ -16,7 +16,7 @@ export function captureTmuxPaneFromEnv(env: NodeJS.ProcessEnv = process.env): st
 }
 
 export function captureTmuxWindowForPane(pane: string, env: NodeJS.ProcessEnv = process.env): string | null {
-  if (!pane || !env.TMUX || env.OMX_TMUX_HUD_OWNER !== '1') return null;
+  if (!pane || !env.TMUX || env.NOMX_TMUX_HUD_OWNER !== '1') return null;
   try {
     const tmux = env.TMUX_BINARY || 'tmux';
     const windowId = execFileSync(tmux, ['display-message', '-p', '-t', pane, '#{window_id}'], {

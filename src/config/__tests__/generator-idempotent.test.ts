@@ -1,6 +1,6 @@
 /**
  * Idempotency tests for config.toml generator (issue #384)
- * Verifies that repeated `nomx setup` runs do not duplicate OMX sections.
+ * Verifies that repeated `nomx setup` runs do not duplicate NOMX sections.
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -27,7 +27,7 @@ import {
   buildManagedCodexHookTrustState,
   planManagedCodexHooksMerge,
 } from "../codex-hooks.js";
-import { OMX_FIRST_PARTY_MCP_SERVER_NAMES } from "../omx-first-party-mcp.js";
+import { NOMX_FIRST_PARTY_MCP_SERVER_NAMES } from "../nomx-first-party-mcp.js";
 
 /** Count occurrences of a pattern in text */
 function count(text: string, pattern: RegExp): number {
@@ -63,25 +63,25 @@ async function writeSetupGeneratedHookTrustFixture(wd: string): Promise<{
   };
 }
 
-/** Assert the current OMX block appears exactly once */
+/** Assert the current NOMX block appears exactly once */
 function assertSingleOmxBlock(
   toml: string,
   options: { includeFirstPartyMcp?: boolean } = {},
 ): void {
   assert.equal(
-    count(toml, /# oh-my-codex \(OMX\) Configuration/g),
+    count(toml, /# nomx \(NOMX\) Configuration/g),
     1,
-    "OMX marker should appear once",
+    "NOMX marker should appear once",
   );
   assert.equal(
-    count(toml, /^# End oh-my-codex$/gm),
+    count(toml, /^# End nomx$/gm),
     1,
     "End marker should appear once",
   );
   if (options.includeFirstPartyMcp) {
     assertFirstPartyMcpBlocks(toml);
   } else {
-    for (const name of OMX_FIRST_PARTY_MCP_SERVER_NAMES) {
+    for (const name of NOMX_FIRST_PARTY_MCP_SERVER_NAMES) {
       assert.equal(
         count(toml, new RegExp(`^\\[mcp_servers\\.${name}\\]$`, "gm")),
         0,
@@ -90,9 +90,9 @@ function assertSingleOmxBlock(
     }
   }
   assert.equal(
-    count(toml, /^\[mcp_servers\.omx_team_run\]$/gm),
+    count(toml, /^\[mcp_servers\.nomx_team_run\]$/gm),
     0,
-    "[mcp_servers.omx_team_run] should not be emitted",
+    "[mcp_servers.nomx_team_run] should not be emitted",
   );
   assert.doesNotMatch(
     toml,
@@ -148,7 +148,7 @@ function assertFirstPartyMcpBlocks(toml: string): void {
   const parsed = TOML.parse(toml) as {
     mcp_servers?: Record<string, { command?: unknown }>;
   };
-  for (const name of OMX_FIRST_PARTY_MCP_SERVER_NAMES) {
+  for (const name of NOMX_FIRST_PARTY_MCP_SERVER_NAMES) {
     assert.equal(
       count(toml, new RegExp(`^\\[mcp_servers\\.${name}\\]$`, "gm")),
       1,
@@ -194,12 +194,12 @@ function assertSingleManagedHookTrustState(toml: string): void {
     ],
   );
   assert.equal(
-    count(toml, /^# OMX-owned Codex hook trust state$/gm),
+    count(toml, /^# NOMX-owned Codex hook trust state$/gm),
     1,
     "managed hook trust fence should appear once",
   );
   assert.equal(
-    count(toml, /^# End OMX-owned Codex hook trust state$/gm),
+    count(toml, /^# End NOMX-owned Codex hook trust state$/gm),
     1,
     "managed hook trust end fence should appear once",
   );
@@ -212,7 +212,7 @@ function assertSingleManagedHookTrustState(toml: string): void {
 
 describe("Codex transient TUI NUX cleanup", () => {
   it("removes only model availability NUX counters from project-local config", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-codex-nux-cleanup-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-codex-nux-cleanup-"));
     try {
       const configPath = join(wd, "config.toml");
       await writeFile(configPath, [
@@ -251,7 +251,7 @@ describe("Codex transient TUI NUX cleanup", () => {
   });
 
   it("is a no-op when project config has no Codex NUX counters", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-codex-nux-noop-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-codex-nux-noop-"));
     try {
       const configPath = join(wd, "config.toml");
       const original = [
@@ -273,8 +273,8 @@ describe("Codex transient TUI NUX cleanup", () => {
 });
 
 describe("config generator idempotency (#384)", () => {
-  it("first run creates config with all current OMX sections", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+  it("first run creates config with all current NOMX sections", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       await mergeConfig(configPath, wd);
@@ -351,7 +351,7 @@ describe("config generator idempotency (#384)", () => {
       "",
     ].join("\n");
 
-    const merged = buildMergedConfig(existing, "/tmp/omx");
+    const merged = buildMergedConfig(existing, "/tmp/nomx");
     assert.match(merged, /^multi_agent = false$/m);
     assert.match(merged, /^max_threads = 8$/m);
     assert.match(merged, /^max_depth = 3$/m);
@@ -370,10 +370,10 @@ describe("config generator idempotency (#384)", () => {
       (parsed.agents?.["review bot"] as { config_file?: string } | undefined)?.config_file,
       "/custom/review.toml",
     );
-    assert.equal(buildMergedConfig(merged, "/tmp/omx"), merged);
+    assert.equal(buildMergedConfig(merged, "/tmp/nomx"), merged);
   });
 
-  it("can preserve multi_agent while stripping other OMX feature flags", () => {
+  it("can preserve multi_agent while stripping other NOMX feature flags", () => {
     const stripped = stripOmxFeatureFlags(
       "[features]\nmulti_agent = false\nchild_agents_md = true\nhooks = true\ngoals = true\n",
       { preserveMultiAgent: true },
@@ -383,7 +383,7 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("emits first-party MCP blocks only when explicitly enabled", () => {
-    const toml = buildMergedConfig("", "/tmp/omx", {
+    const toml = buildMergedConfig("", "/tmp/nomx", {
       includeFirstPartyMcp: true,
     });
 
@@ -399,10 +399,10 @@ describe("config generator idempotency (#384)", () => {
         "enabled = true",
         "",
       ].join("\n"),
-      "/tmp/omx",
+      "/tmp/nomx",
       { includeFirstPartyMcp: true },
     );
-    const noMcpConfig = buildMergedConfig(compatConfig, "/tmp/omx", {
+    const noMcpConfig = buildMergedConfig(compatConfig, "/tmp/nomx", {
       includeFirstPartyMcp: false,
     });
 
@@ -420,7 +420,7 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("second run updates without duplicating any section", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
 
@@ -439,7 +439,7 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("triple run stays clean", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
 
@@ -455,10 +455,10 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("cleans up legacy config without markers", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
-      // Simulate a legacy config written without OMX markers
+      // Simulate a legacy config written without NOMX markers
       // Note: [tui] is intentionally excluded — orphan-strip does not
       // claim [tui] to avoid deleting user-owned TUI settings.
       const legacy = [
@@ -472,12 +472,12 @@ describe("config generator idempotency (#384)", () => {
         "multi_agent = true",
         "goals = false",
         "",
-        "[mcp_servers.omx_state]",
+        "[mcp_servers.nomx_state]",
         'command = "node"',
         'args = ["/old/path/state-server.js"]',
         "enabled = true",
         "",
-        "[mcp_servers.omx_memory]",
+        "[mcp_servers.nomx_memory]",
         'command = "node"',
         'args = ["/old/path/memory-server.js"]',
         "enabled = true",
@@ -502,16 +502,16 @@ describe("config generator idempotency (#384)", () => {
     }
   });
 
-  it("cleans up orphaned OMX sections outside marker block", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+  it("cleans up orphaned NOMX sections outside marker block", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       // Config with both orphaned sections AND a marker block
       const mixed = [
         'model = "o3"',
         "",
-        "# OMX State Management MCP Server",
-        "[mcp_servers.omx_state]",
+        "# NOMX State Management MCP Server",
+        "[mcp_servers.nomx_state]",
         'command = "node"',
         'args = ["/orphaned/state-server.js"]',
         "enabled = true",
@@ -520,17 +520,17 @@ describe("config generator idempotency (#384)", () => {
         'name = "kept"',
         "",
         "# ============================================================",
-        "# oh-my-codex (OMX) Configuration",
+        "# nomx (NOMX) Configuration",
         "# Managed by nomx setup",
         "# ============================================================",
         "",
-        "[mcp_servers.omx_state]",
+        "[mcp_servers.nomx_state]",
         'command = "node"',
         'args = ["/marker-block/state-server.js"]',
         "enabled = true",
         "",
         "# ============================================================",
-        "# End oh-my-codex",
+        "# End nomx",
         "",
       ].join("\n");
       await writeFile(configPath, mixed);
@@ -547,12 +547,12 @@ describe("config generator idempotency (#384)", () => {
     }
   });
 
-  it("preserves user-owned omx-prefixed MCP servers that are not first-party", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+  it("preserves user-owned nomx-prefixed MCP servers that are not first-party", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       const userMcp = [
-        "[mcp_servers.omx_custom]",
+        "[mcp_servers.nomx_custom]",
         'command = "node"',
         'args = ["/user/custom-server.js"]',
         "enabled = true",
@@ -566,8 +566,8 @@ describe("config generator idempotency (#384)", () => {
       assertSingleOmxBlock(toml);
       assert.match(
         toml,
-        /^\[mcp_servers\.omx_custom\]$/m,
-        "user-owned omx-prefixed MCP server preserved",
+        /^\[mcp_servers\.nomx_custom\]$/m,
+        "user-owned nomx-prefixed MCP server preserved",
       );
       assert.match(toml, /^args = \["\/user\/custom-server\.js"\]$/m);
     } finally {
@@ -575,8 +575,8 @@ describe("config generator idempotency (#384)", () => {
     }
   });
 
-  it("preserves user content between OMX re-runs", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+  it("preserves user content between NOMX re-runs", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
 
@@ -609,7 +609,7 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("handles config with only orphaned agents sections", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       const orphanedAgents = [
@@ -617,7 +617,7 @@ describe("config generator idempotency (#384)", () => {
         "multi_agent = true",
         "goals = false",
         "",
-        "# OMX Native Agent Roles (Codex multi-agent)",
+        "# NOMX Native Agent Roles (Codex multi-agent)",
         "",
         "[agents.executor]",
         'description = "old executor"',
@@ -648,8 +648,8 @@ describe("config generator idempotency (#384)", () => {
     }
   });
 
-  it("preserves non-OMX agent sections", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+  it("preserves non-NOMX agent sections", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       const userAgents = [
@@ -694,7 +694,7 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("preserves a user-owned status_line in an existing [tui] section", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       const userTui = [
@@ -722,7 +722,7 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("seeds the default status_line into a fresh [tui] section", () => {
-    const toml = buildMergedConfig("", "/tmp/omx");
+    const toml = buildMergedConfig("", "/tmp/nomx");
 
     assert.equal(count(toml, /^\[tui\]$/gm), 1, "[tui] should appear once");
     assert.match(
@@ -734,7 +734,7 @@ describe("config generator idempotency (#384)", () => {
   it("seeds the default status_line into an existing [tui] section without one", () => {
     const toml = buildMergedConfig(
       ["[tui]", 'theme = "night"', ""].join("\n"),
-      "/tmp/omx",
+      "/tmp/nomx",
     );
 
     assert.equal(count(toml, /^\[tui\]$/gm), 1, "[tui] should appear once");
@@ -756,7 +756,7 @@ describe("config generator idempotency (#384)", () => {
         "]",
         "",
       ].join("\n"),
-      "/tmp/omx",
+      "/tmp/nomx",
     );
 
     assert.equal(count(toml, /^\[tui\]$/gm), 1, "[tui] should appear once");
@@ -779,13 +779,13 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("preserves a customized managed-block status_line when refreshing setup", () => {
-    const firstRun = buildMergedConfig("", "/tmp/omx");
+    const firstRun = buildMergedConfig("", "/tmp/nomx");
     const customized = firstRun.replace(
       /^status_line = \["model-with-reasoning", "git-branch", "context-remaining", "total-input-tokens", "total-output-tokens", "five-hour-limit", "weekly-limit"\]$/m,
       'status_line = ["git-branch", "context-remaining"]',
     );
 
-    const refreshed = buildMergedConfig(customized, "/tmp/omx");
+    const refreshed = buildMergedConfig(customized, "/tmp/nomx");
 
     assert.equal(count(refreshed, /^\[tui\]$/gm), 1, "[tui] should appear once");
     assert.match(
@@ -800,19 +800,19 @@ describe("config generator idempotency (#384)", () => {
     );
   });
 
-  it("skips emitting an OMX [tui] table when includeTui is disabled", () => {
-    const toml = buildMergedConfig("", "/tmp/omx", {
+  it("skips emitting an NOMX [tui] table when includeTui is disabled", () => {
+    const toml = buildMergedConfig("", "/tmp/nomx", {
       includeTui: false,
     });
 
     assert.doesNotMatch(toml, /^\[tui\]$/m);
-    assert.doesNotMatch(toml, /^\[mcp_servers\.omx_state\]$/m);
+    assert.doesNotMatch(toml, /^\[mcp_servers\.nomx_state\]$/m);
     assert.match(toml, /^\[shell_environment_policy\.set\]$/m);
     assert.match(toml, /^USE_OMX_EXPLORE_CMD = "0"$/m);
   });
 
   it('seeds USE_OMX_EXPLORE_CMD=0 into generated config by default', () => {
-    const toml = buildMergedConfig('', '/tmp/omx');
+    const toml = buildMergedConfig('', '/tmp/nomx');
 
     assert.doesNotMatch(toml, /^\[env\]$/m);
     assert.match(toml, /^\[shell_environment_policy\.set\]$/m);
@@ -822,7 +822,7 @@ describe("config generator idempotency (#384)", () => {
   it('migrates existing [env] keys and explicit explore routing opt-outs', () => {
     const toml = buildMergedConfig(
       ['[env]', 'FOO = "bar"', 'USE_OMX_EXPLORE_CMD = "0"', ''].join('\n'),
-      '/tmp/omx',
+      '/tmp/nomx',
     );
 
     assert.doesNotMatch(toml, /^\[env\]$/m);
@@ -844,7 +844,7 @@ describe("config generator idempotency (#384)", () => {
         "]",
         "",
       ].join("\n"),
-      "/tmp/omx",
+      "/tmp/nomx",
     );
 
     assert.doesNotMatch(toml, /^\[env\]$/m);
@@ -858,8 +858,8 @@ describe("config generator idempotency (#384)", () => {
     assert.doesNotThrow(() => TOML.parse(toml));
   });
 
-  it("replaces an existing OMX notify entry without leaving orphan fragments behind", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+  it("replaces an existing NOMX notify entry without leaving orphan fragments behind", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       const existing = [
@@ -887,7 +887,7 @@ describe("config generator idempotency (#384)", () => {
     }
   });
   it("does not seed context defaults and preserves explicit context settings", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       await writeFile(
@@ -913,8 +913,8 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("removes exact legacy source spans with LF, CRLF, and EOF variants", () => {
-    const start = "# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)";
-    const end = "# End oh-my-codex seeded behavioral defaults";
+    const start = "# nomx seeded behavioral defaults (uninstall removes unchanged defaults)";
+    const end = "# End nomx seeded behavioral defaults";
     const fixtures = [
       {
         input: `before\n${start}\nmodel_context_window = 250000\nmodel_auto_compact_token_limit = 200000\n${end}\nafter`,
@@ -938,8 +938,8 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("strips bounded customized or siblingless singleton markers and preserves ambiguity", () => {
-    const start = "# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)";
-    const end = "# End oh-my-codex seeded behavioral defaults";
+    const start = "# nomx seeded behavioral defaults (uninstall removes unchanged defaults)";
+    const end = "# End nomx seeded behavioral defaults";
     const customized = `before\r\n${start}\r\nmodel_context_window = 123\r\n${end}\r\nafter`;
     assert.equal(
       stripOmxSeededBehavioralDefaults(customized),
@@ -959,8 +959,8 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("preserves every byte inside noncanonical bounded blocks", () => {
-    const start = "# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)";
-    const end = "# End oh-my-codex seeded behavioral defaults";
+    const start = "# nomx seeded behavioral defaults (uninstall removes unchanged defaults)";
+    const end = "# End nomx seeded behavioral defaults";
     const bodies = [
       ["model_context_window = 250000", "# user comment", "model_auto_compact_token_limit = 200000"],
       ["model_context_window = 250000", "", "model_auto_compact_token_limit = 200000"],
@@ -983,8 +983,8 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("fails closed for duplicate assignments and malformed marker topologies", () => {
-    const start = "# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)";
-    const end = "# End oh-my-codex seeded behavioral defaults";
+    const start = "# nomx seeded behavioral defaults (uninstall removes unchanged defaults)";
+    const end = "# End nomx seeded behavioral defaults";
     const pair = [start, "model_context_window = 250000", "model_auto_compact_token_limit = 200000", end];
     const unchanged = [
       ["model_context_window = 999", ...pair, "after"].join("\n"),
@@ -1005,8 +1005,8 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("ignores marker-shaped text inside TOML values and fails closed on stray markers", () => {
-    const start = "# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)";
-    const end = "# End oh-my-codex seeded behavioral defaults";
+    const start = "# nomx seeded behavioral defaults (uninstall removes unchanged defaults)";
+    const end = "# End nomx seeded behavioral defaults";
     const stringContent = [
       'developer_instructions = """',
       start,
@@ -1033,8 +1033,8 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("migrates before reconstruction without incremental normalization", () => {
-    const start = "# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)";
-    const end = "# End oh-my-codex seeded behavioral defaults";
+    const start = "# nomx seeded behavioral defaults (uninstall removes unchanged defaults)";
+    const end = "# End nomx seeded behavioral defaults";
     const fixtures = [
       {
         baseline: 'approval_policy = "on-failure"\n[features]\nweb_search = true\n',
@@ -1051,17 +1051,17 @@ describe("config generator idempotency (#384)", () => {
     ];
 
     for (const fixture of fixtures) {
-      const baseline = buildMergedConfig(fixture.baseline, "/tmp/omx");
-      const migrated = buildMergedConfig(fixture.migrated, "/tmp/omx");
+      const baseline = buildMergedConfig(fixture.baseline, "/tmp/nomx");
+      const migrated = buildMergedConfig(fixture.migrated, "/tmp/nomx");
       assert.equal(migrated, baseline);
-      assert.equal(buildMergedConfig(migrated, "/tmp/omx"), migrated);
+      assert.equal(buildMergedConfig(migrated, "/tmp/nomx"), migrated);
       assert.doesNotMatch(migrated, /seeded behavioral defaults/);
       assert.doesNotThrow(() => TOML.parse(migrated));
     }
   });
 
   it("does not write retired global [agents] defaults", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       await mergeConfig(configPath, wd);
@@ -1076,38 +1076,38 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("repairs config with duplicate [tui] sections from upgrade", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       // Simulate a broken config left by an older nomx setup: an orphaned
-      // [tui] outside the OMX block AND another [tui] inside the block.
+      // [tui] outside the NOMX block AND another [tui] inside the block.
       const broken = [
         '[mcp_servers.figma]',
         'url = "https://mcp.figma.com/mcp"',
         '',
-        '# OMX TUI StatusLine (Codex CLI v0.101.0+)',
+        '# NOMX TUI StatusLine (Codex CLI v0.101.0+)',
         '[tui]',
         'status_line = ["git-branch"]',
         '',
         '# ============================================================',
-        '# End oh-my-codex',
+        '# End nomx',
         '',
         '# ============================================================',
-        '# oh-my-codex (OMX) Configuration',
+        '# nomx (NOMX) Configuration',
         '# Managed by nomx setup - manual edits preserved on next setup',
         '# ============================================================',
         '',
-        '[mcp_servers.omx_state]',
+        '[mcp_servers.nomx_state]',
         'command = "node"',
         `args = ["${join(wd, "dist/mcp/state-server.js")}"]`,
         'enabled = true',
         '',
-        '# OMX TUI StatusLine (Codex CLI v0.101.0+)',
+        '# NOMX TUI StatusLine (Codex CLI v0.101.0+)',
         '[tui]',
         'status_line = ["model-with-reasoning", "git-branch"]',
         '',
         '# ============================================================',
-        '# End oh-my-codex',
+        '# End nomx',
         '',
       ].join("\n");
       await writeFile(configPath, broken);
@@ -1116,7 +1116,7 @@ describe("config generator idempotency (#384)", () => {
       const toml = buildMergedConfig(broken, wd);
       assert.equal(count(toml, /^\[tui\]$/gm), 1, "[tui] should appear once");
       assert.equal(
-        count(toml, /^# End oh-my-codex$/gm),
+        count(toml, /^# End nomx$/gm),
         1,
         "End marker should appear once",
       );
@@ -1127,9 +1127,9 @@ describe("config generator idempotency (#384)", () => {
     }
   });
 
-  it("strips only complete exact OMX marker blocks outside TOML values", () => {
-    const start = "# oh-my-codex (OMX) Configuration";
-    const end = "# End oh-my-codex";
+  it("strips only complete exact NOMX marker blocks outside TOML values", () => {
+    const start = "# nomx (NOMX) Configuration";
+    const end = "# End nomx";
     const decoys = [
       `basic = "${start}"`,
       `literal = '${end}'`,
@@ -1161,7 +1161,7 @@ describe("config generator idempotency (#384)", () => {
       "",
       "# ============================================================",
       start,
-      "[mcp_servers.omx_state]",
+      "[mcp_servers.nomx_state]",
       'command = "node"',
       end,
       "",
@@ -1178,9 +1178,9 @@ describe("config generator idempotency (#384)", () => {
     assert.doesNotThrow(() => TOML.parse(expected));
   });
 
-  it("keeps OMX delimiter comments inert inside complete TOML assignments", () => {
-    const start = "# oh-my-codex (OMX) Configuration";
-    const end = "# End oh-my-codex";
+  it("keeps NOMX delimiter comments inert inside complete TOML assignments", () => {
+    const start = "# nomx (NOMX) Configuration";
+    const end = "# End nomx";
     const fixtures = [
       ["root multiline array", ["root = [", start, end, "]"].join("\n")],
       ["dotted multiline array", ["outer.value = [", start, end, "]"].join("\n")],
@@ -1195,15 +1195,15 @@ describe("config generator idempotency (#384)", () => {
       assert.doesNotThrow(() => TOML.parse(config), `${name} fixture must be valid TOML`);
       assert.deepEqual(stripExistingOmxBlocks(config), { cleaned: config, removed: 0 }, name);
 
-      const merged = buildMergedConfig(config, "/tmp/omx");
+      const merged = buildMergedConfig(config, "/tmp/nomx");
       assert.ok(merged.includes(assignment), `${name} bytes must survive merging`);
       assert.doesNotThrow(() => TOML.parse(merged), `${name} merged config must be valid TOML`);
     }
   });
 
   it("rejects marker-contained hook trust state without ownership proof", () => {
-    const start = "# oh-my-codex (OMX) Configuration";
-    const end = "# End oh-my-codex";
+    const start = "# nomx (NOMX) Configuration";
+    const end = "# End nomx";
     const fixtures = [
       ["table", ['[hooks.state."foreign"]', 'trusted_hash = "sha256:foreign"'].join("\n")],
       ["dotted", 'hooks.state."foreign" = { trusted_hash = "sha256:foreign" }'],
@@ -1218,13 +1218,13 @@ describe("config generator idempotency (#384)", () => {
       const config = [start, content, end, ""].join("\n");
       assert.doesNotThrow(() => TOML.parse(config), `${name} fixture must be valid TOML`);
       assert.throws(() => stripExistingOmxBlocks(config), isManagedTrustConflict, name);
-      assert.throws(() => buildMergedConfig(config, "/tmp/omx"), isManagedTrustConflict, name);
+      assert.throws(() => buildMergedConfig(config, "/tmp/nomx"), isManagedTrustConflict, name);
     }
   });
 
   it("matches managed hooks.state keys case-sensitively", () => {
-    const start = "# oh-my-codex (OMX) Configuration";
-    const end = "# End oh-my-codex";
+    const start = "# nomx (NOMX) Configuration";
+    const end = "# End nomx";
     const variants = [
       'Hooks.state = { foreign = { trusted_hash = "sha256:foreign" } }',
       'hooks.State = { foreign = { trusted_hash = "sha256:foreign" } }',
@@ -1239,12 +1239,12 @@ describe("config generator idempotency (#384)", () => {
         config,
         `${variant} must remain foreign`,
       );
-      assert.doesNotThrow(() => buildMergedConfig(config, "/tmp/omx"));
+      assert.doesNotThrow(() => buildMergedConfig(config, "/tmp/nomx"));
     }
   });
 
-  it("mergeConfig removes legacy omx_team_run tables during setup upgrade", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+  it("mergeConfig removes legacy nomx_team_run tables during setup upgrade", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       const legacy = [
@@ -1252,17 +1252,17 @@ describe("config generator idempotency (#384)", () => {
         'name = "kept-before"',
         "",
         '# ============================================================',
-        '# oh-my-codex (OMX) Configuration',
+        '# nomx (NOMX) Configuration',
         '# Managed by nomx setup - manual edits preserved on next setup',
         '# ============================================================',
         "",
-        '[mcp_servers.omx_team_run]',
+        '[mcp_servers.nomx_team_run]',
         'command = "node"',
         'args = ["/tmp/team-server.js"]',
         'enabled = true',
         "",
         '# ============================================================',
-        '# End oh-my-codex',
+        '# End nomx',
         "",
         '[user.after]',
         'name = "kept-after"',
@@ -1274,7 +1274,7 @@ describe("config generator idempotency (#384)", () => {
       const toml = await readFile(configPath, "utf-8");
 
       assertSingleOmxBlock(toml);
-      assert.doesNotMatch(toml, /^\[mcp_servers\.omx_team_run\]$/m);
+      assert.doesNotMatch(toml, /^\[mcp_servers\.nomx_team_run\]$/m);
       assert.doesNotMatch(toml, /team-server\.js/);
       assert.match(toml, /^\[user\.before\]$/m);
       assert.match(toml, /^name = "kept-before"$/m);
@@ -1285,15 +1285,15 @@ describe("config generator idempotency (#384)", () => {
     }
   });
 
-  it("repairConfigIfNeeded removes legacy omx_team_run tables during launch repair", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+  it("repairConfigIfNeeded removes legacy nomx_team_run tables during launch repair", async () => {
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       const legacy = [
         '[user.before]',
         'name = "kept-before"',
         "",
-        '[mcp_servers.omx_team_run]',
+        '[mcp_servers.nomx_team_run]',
         'command = "node"',
         'args = ["/tmp/team-server.js"]',
         'enabled = true',
@@ -1309,7 +1309,7 @@ describe("config generator idempotency (#384)", () => {
 
       const toml = await readFile(configPath, "utf-8");
       assertSingleOmxBlock(toml);
-      assert.doesNotMatch(toml, /^\[mcp_servers\.omx_team_run\]$/m);
+      assert.doesNotMatch(toml, /^\[mcp_servers\.nomx_team_run\]$/m);
       assert.doesNotMatch(toml, /team-server\.js/);
       assert.match(toml, /^\[user\.before\]$/m);
       assert.match(toml, /^name = "kept-before"$/m);
@@ -1321,7 +1321,7 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("repairConfigIfNeeded fixes duplicate [tui] and is a no-op when clean", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
 
@@ -1352,11 +1352,11 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("repairs duplicate TUI config with setup-generated hook trust from the current hooks artifact", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const { configPath, config: setupConfig } = await writeSetupGeneratedHookTrustFixture(wd);
       const trustBlock = setupConfig.match(
-        /# OMX-owned Codex hook trust state\n[\s\S]*?# End OMX-owned Codex hook trust state/,
+        /# NOMX-owned Codex hook trust state\n[\s\S]*?# End NOMX-owned Codex hook trust state/,
       )?.[0];
       assert.ok(trustBlock, "setup fixture must contain fenced managed hook trust");
       const setupTrustState = (TOML.parse(setupConfig) as {
@@ -1383,7 +1383,7 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("fails closed without rewriting managed hook trust when launch repair cannot prove it", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const { configPath, hooksPath, config: setupConfig, trustState } =
         await writeSetupGeneratedHookTrustFixture(wd);
@@ -1449,7 +1449,7 @@ describe("config generator idempotency (#384)", () => {
     const malformed = [
       'model = "gpt-5.6-sol"',
       "",
-      "# OMX-owned Codex hook trust state",
+      "# NOMX-owned Codex hook trust state",
       "# Missing the end fence must not cause trailing user config deletion.",
       "",
       '[hooks.state."custom:/hooks.json:stop:0:0"]',
@@ -1464,7 +1464,7 @@ describe("config generator idempotency (#384)", () => {
 
     const stripped = stripManagedCodexHookTrustState(malformed);
 
-    assert.match(stripped, /^# OMX-owned Codex hook trust state$/m);
+    assert.match(stripped, /^# NOMX-owned Codex hook trust state$/m);
     assert.match(stripped, /^\[hooks\.state\."custom:\/hooks\.json:stop:0:0"\]$/m);
     assert.match(stripped, /^enabled = false$/m);
     assert.match(stripped, /^\[hooks\.state\.user_prompt_submit\]$/m);
@@ -1474,7 +1474,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("removes orphaned managed hook trust-state tables only when hashes prove ownership", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const managedPostCompactHash =
       managedTrustState[`${hooksPath}:post_compact:0:0`]?.trusted_hash;
     const managedStopHash = managedTrustState[`${hooksPath}:stop:0:0`]?.trusted_hash;
@@ -1485,7 +1485,7 @@ describe("config generator idempotency (#384)", () => {
       "",
       "[hooks.state]",
       "",
-      '[plugins."oh-my-codex@oh-my-codex-local"]',
+      '[plugins."nomx@nomx-local"]',
       "enabled = true",
       "",
       '[hooks.state."/tmp/codex/hooks.json:post_compact:0:0"]',
@@ -1497,7 +1497,7 @@ describe("config generator idempotency (#384)", () => {
       '[hooks.state."custom:/hooks.json:stop:0:0"]',
       'trusted_hash = "sha256:user"',
       "",
-      "# End OMX-owned Codex hook trust state",
+      "# End NOMX-owned Codex hook trust state",
       "",
       "[desktop]",
       "git-create-pull-request-as-draft = true",
@@ -1510,7 +1510,7 @@ describe("config generator idempotency (#384)", () => {
 
     assert.doesNotMatch(stripped, /\/tmp\/codex\/hooks\.json:post_compact:0:0/);
     assert.doesNotMatch(stripped, /\/tmp\/codex\/hooks\.json:stop:0:0/);
-    assert.match(stripped, /^# End OMX-owned Codex hook trust state$/m);
+    assert.match(stripped, /^# End NOMX-owned Codex hook trust state$/m);
     assert.match(stripped, /^\[hooks\.state\."custom:\/hooks\.json:stop:0:0"\]$/m);
     assert.match(stripped, /^trusted_hash = "sha256:user"$/m);
     assert.match(stripped, /^\[desktop\]$/m);
@@ -1529,7 +1529,7 @@ describe("config generator idempotency (#384)", () => {
     ].join("\n");
 
     assert.throws(
-      () => upsertManagedCodexHookTrustState(config, "/tmp/omx", hooksPath),
+      () => upsertManagedCodexHookTrustState(config, "/tmp/nomx", hooksPath),
       (error: unknown) =>
         error instanceof ManagedCodexHooksPlanError &&
         error.code === "managed_trust_key_conflict",
@@ -1538,7 +1538,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("fails closed on unproven same-key hook trust-state tables", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const fixtures = [
       [
         "missing hash",
@@ -1602,7 +1602,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("handles semantically equivalent TOML trust-key variants before writing a replacement", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const key = `${hooksPath}:post_compact:0:0`;
     const hash = managedTrustState[key]?.trusted_hash;
     assert.ok(hash);
@@ -1615,7 +1615,7 @@ describe("config generator idempotency (#384)", () => {
       const matching = [header, `trusted_hash = "${hash}"`, ""].join("\n");
       const refreshed = upsertManagedCodexHookTrustState(
         matching,
-        "/tmp/omx",
+        "/tmp/nomx",
         hooksPath,
         { managedTrustState },
       );
@@ -1633,7 +1633,7 @@ describe("config generator idempotency (#384)", () => {
       "",
     ].join("\n");
     assert.throws(
-      () => upsertManagedCodexHookTrustState(conflicting, "/tmp/omx", hooksPath, { managedTrustState }),
+      () => upsertManagedCodexHookTrustState(conflicting, "/tmp/nomx", hooksPath, { managedTrustState }),
       (error: unknown) =>
         error instanceof ManagedCodexHooksPlanError &&
         error.code === "managed_trust_key_conflict",
@@ -1642,7 +1642,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("removes only a single exact proven managed dotted hook trust assignment", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const key = `${hooksPath}:post_compact:0:0`;
     const hash = managedTrustState[key]?.trusted_hash;
     assert.ok(hash);
@@ -1659,7 +1659,7 @@ describe("config generator idempotency (#384)", () => {
     const exact = exactAssignments[1]!;
     const refreshed = upsertManagedCodexHookTrustState(
       exact,
-      "/tmp/omx",
+      "/tmp/nomx",
       hooksPath,
       { managedTrustState },
     );
@@ -1669,7 +1669,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("fails closed for conflicting, commented, or multi-field managed dotted hook trust assignments", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const key = `${hooksPath}:post_compact:0:0`;
     const hash = managedTrustState[key]?.trusted_hash;
     assert.ok(hash);
@@ -1692,7 +1692,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("removes exact inline hook trust state without changing adjacent TOML", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const key = `${hooksPath}:post_compact:0:0`;
     const hash = managedTrustState[key]?.trusted_hash;
     assert.ok(hash);
@@ -1720,7 +1720,7 @@ describe("config generator idempotency (#384)", () => {
 
     const refreshed = upsertManagedCodexHookTrustState(
       inline,
-      "/tmp/omx",
+      "/tmp/nomx",
       hooksPath,
       { managedTrustState },
     );
@@ -1735,7 +1735,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("fails closed for inline, dotted, and table hook trust representations with foreign siblings", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const key = `${hooksPath}:post_compact:0:0`;
     const hash = managedTrustState[key]?.trusted_hash;
     assert.ok(hash);
@@ -1768,7 +1768,7 @@ describe("config generator idempotency (#384)", () => {
         `${name} cleanup must preserve the entire foreign-containing representation`,
       );
       assert.throws(
-        () => upsertManagedCodexHookTrustState(fixture, "/tmp/omx", hooksPath, { managedTrustState }),
+        () => upsertManagedCodexHookTrustState(fixture, "/tmp/nomx", hooksPath, { managedTrustState }),
         (error: unknown) =>
           error instanceof ManagedCodexHooksPlanError &&
           error.code === "managed_trust_key_conflict",
@@ -1779,9 +1779,9 @@ describe("config generator idempotency (#384)", () => {
 
   it("fails closed for commented trust assignments inside a managed config marker", () => {
     const fixture = [
-      "# oh-my-codex (OMX) Configuration",
+      "# nomx (NOMX) Configuration",
       'hooks.state."foreign-key".trusted_hash = "sha256:foreign" # preserve me',
-      "# End oh-my-codex",
+      "# End nomx",
       "",
     ].join("\n");
 
@@ -1795,7 +1795,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("fails closed on every non-record hooks.state form inside managed markers", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const fixtures = [
       ["scalar", 'hooks.state = "foreign"'],
       ["array", "hooks.state = []"],
@@ -1809,9 +1809,9 @@ describe("config generator idempotency (#384)", () => {
 
     for (const [name, value] of fixtures) {
       const fixture = [
-        "# oh-my-codex (OMX) Configuration",
+        "# nomx (NOMX) Configuration",
         value,
-        "# End oh-my-codex",
+        "# End nomx",
         "",
       ].join("\n");
       assert.doesNotThrow(() => TOML.parse(fixture), `${name} fixture must be valid TOML`);
@@ -1827,7 +1827,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("fails closed before stripping malformed hooks.state spellings", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const key = `${hooksPath}:post_compact:0:0`;
     const hash = managedTrustState[key]?.trusted_hash;
     assert.ok(hash);
@@ -1906,9 +1906,9 @@ describe("config generator idempotency (#384)", () => {
 
     for (const [name, spelling] of spellings) {
       const fixture = [
-        "# oh-my-codex (OMX) Configuration",
+        "# nomx (NOMX) Configuration",
         spelling,
-        "# End oh-my-codex",
+        "# End nomx",
         "",
         "[user.after]",
         'value = "preserved"',
@@ -1917,24 +1917,24 @@ describe("config generator idempotency (#384)", () => {
       const original = fixture;
 
       assert.throws(
-        () => buildMergedConfig(fixture, "/tmp/omx", { managedHookTrustState: managedTrustState }),
+        () => buildMergedConfig(fixture, "/tmp/nomx", { managedHookTrustState: managedTrustState }),
         isManagedTrustConflict,
-        `${name} must fail before OMX block stripping`,
+        `${name} must fail before NOMX block stripping`,
       );
       assert.equal(fixture, original, `${name} planning must not mutate input`);
       assert.throws(
         () => stripExistingOmxBlocks(fixture),
         isManagedTrustConflict,
-        `${name} must not be erased by direct OMX block stripping`,
+        `${name} must not be erased by direct NOMX block stripping`,
       );
       assert.equal(fixture, original, `${name} stripping must not mutate input`);
     }
 
     const exactQuoted = [
-      "# oh-my-codex (OMX) Configuration",
+      "# nomx (NOMX) Configuration",
       `["hooks"."state"."${key}"]`,
       `trusted_hash = "${hash}"`,
-      "# End oh-my-codex",
+      "# End nomx",
       "",
     ].join("\n");
     assert.throws(
@@ -1947,13 +1947,13 @@ describe("config generator idempotency (#384)", () => {
       removed: 1,
     });
     assert.doesNotThrow(() =>
-      buildMergedConfig(exactQuoted, "/tmp/omx", { managedHookTrustState: managedTrustState }),
+      buildMergedConfig(exactQuoted, "/tmp/nomx", { managedHookTrustState: managedTrustState }),
     );
   });
 
   it("fails closed when hooks scope crosses parsed assignments or malformed headers", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const validNestedArrayAssignment = [
       "values = [",
       '  ["unrelated"]',
@@ -1978,9 +1978,9 @@ describe("config generator idempotency (#384)", () => {
 
     for (const [name, content] of fixtures) {
       const fixture = [
-        "# oh-my-codex (OMX) Configuration",
+        "# nomx (NOMX) Configuration",
         content,
-        "# End oh-my-codex",
+        "# End nomx",
         "",
         "[user.after]",
         'value = "preserved"',
@@ -1991,23 +1991,23 @@ describe("config generator idempotency (#384)", () => {
       assert.throws(
         () => stripExistingOmxBlocks(fixture),
         isManagedTrustConflict,
-        `${name} must not be erased by direct OMX block stripping`,
+        `${name} must not be erased by direct NOMX block stripping`,
       );
       assert.equal(fixture, original, `${name} stripping must not mutate input`);
       assert.throws(
-        () => buildMergedConfig(fixture, "/tmp/omx", { managedHookTrustState: managedTrustState }),
+        () => buildMergedConfig(fixture, "/tmp/nomx", { managedHookTrustState: managedTrustState }),
         isManagedTrustConflict,
-        `${name} must fail before OMX block stripping`,
+        `${name} must fail before NOMX block stripping`,
       );
       assert.equal(fixture, original, `${name} planning must not mutate input`);
     }
 
     const validNonHooksHeaderExit = [
-      "# oh-my-codex (OMX) Configuration",
+      "# nomx (NOMX) Configuration",
       "[hooks]",
       "[unrelated]",
       "state =",
-      "# End oh-my-codex",
+      "# End nomx",
       "",
       "[user.after]",
       'value = "preserved"',
@@ -2019,7 +2019,7 @@ describe("config generator idempotency (#384)", () => {
       removed: 1,
     });
     assert.doesNotThrow(() =>
-      buildMergedConfig(validNonHooksHeaderExit, "/tmp/omx", {
+      buildMergedConfig(validNonHooksHeaderExit, "/tmp/nomx", {
         managedHookTrustState: managedTrustState,
       }),
     );
@@ -2027,7 +2027,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("fails closed for hooks array-table openers and preserves unrelated arrays", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const arrayTableOpeners = [
       ["adjacent", "[[hooks]]"],
       ["space-split", "[ [hooks]]"],
@@ -2079,9 +2079,9 @@ describe("config generator idempotency (#384)", () => {
 
     for (const [name, opener] of arrayTableOpeners) {
       const fixture = [
-        "# oh-my-codex (OMX) Configuration",
+        "# nomx (NOMX) Configuration",
         opener,
-        "# End oh-my-codex",
+        "# End nomx",
         "",
         "[user.after]",
         'value = "preserved"',
@@ -2091,17 +2091,17 @@ describe("config generator idempotency (#384)", () => {
 
       assert.throws(
         () =>
-          buildMergedConfig(fixture, "/tmp/omx", {
+          buildMergedConfig(fixture, "/tmp/nomx", {
             managedHookTrustState: managedTrustState,
           }),
         isManagedTrustConflict,
-        `${name} opener must fail before OMX block stripping`,
+        `${name} opener must fail before NOMX block stripping`,
       );
       assert.equal(fixture, original, `${name} planning must not mutate input`);
       assert.throws(
         () => stripExistingOmxBlocks(fixture),
         isManagedTrustConflict,
-        `${name} opener must not be erased by direct OMX block stripping`,
+        `${name} opener must not be erased by direct NOMX block stripping`,
       );
       assert.equal(fixture, original, `${name} stripping must not mutate input`);
     }
@@ -2110,10 +2110,10 @@ describe("config generator idempotency (#384)", () => {
       "[[user.before]]",
       'name = "before"',
       "",
-      "# oh-my-codex (OMX) Configuration",
+      "# nomx (NOMX) Configuration",
       "[[unrelated]]",
       'name = "inside managed marker"',
-      "# End oh-my-codex",
+      "# End nomx",
       "",
       "[[user.after]]",
       'name = "after"',
@@ -2132,7 +2132,7 @@ describe("config generator idempotency (#384)", () => {
       cleaned: preservedArrays,
       removed: 1,
     });
-    const merged = buildMergedConfig(unrelatedArrays, "/tmp/omx");
+    const merged = buildMergedConfig(unrelatedArrays, "/tmp/nomx");
     assert.match(merged, /^\[\[user\.before\]\]$/m);
     assert.match(merged, /^\[\[user\.after\]\]$/m);
     assert.doesNotMatch(merged, /^\[\[unrelated\]\]$/m);
@@ -2141,7 +2141,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("removes valid nested hooks arrays inside exact managed marker ranges", () => {
     const fixture = [
-      "# oh-my-codex (OMX) Configuration",
+      "# nomx (NOMX) Configuration",
       "values = [",
       "  [",
       "",
@@ -2165,7 +2165,7 @@ describe("config generator idempotency (#384)", () => {
       '"" = [',
       '  [ [ "hooks" ] ]',
       "]",
-      "# End oh-my-codex",
+      "# End nomx",
       "",
       "[user.after]",
       'value = "preserved"',
@@ -2176,7 +2176,7 @@ describe("config generator idempotency (#384)", () => {
     assert.doesNotThrow(() => TOML.parse(fixture));
     assert.deepEqual(stripExistingOmxBlocks(fixture), { cleaned: expected, removed: 1 });
 
-    const merged = buildMergedConfig(fixture, "/tmp/omx");
+    const merged = buildMergedConfig(fixture, "/tmp/nomx");
     assert.doesNotMatch(merged, /^values = \[/m);
     assert.match(merged, /^\[user\.after\]$/m);
     assert.doesNotThrow(() => TOML.parse(merged));
@@ -2184,7 +2184,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("ignores inert hooks.state text inside exact managed marker ranges", () => {
     const fixture = [
-      "# oh-my-codex (OMX) Configuration",
+      "# nomx (NOMX) Configuration",
       '# hooks."state" =',
       'basic = "hooks.\'state\' ="',
       "literal = 'hooks = { state = {'",
@@ -2192,7 +2192,7 @@ describe("config generator idempotency (#384)", () => {
       '[[ "hooks" . "state" ]',
       'hooks = { "state" = {',
       '"""',
-      "# End oh-my-codex",
+      "# End nomx",
       "",
       "[user.after]",
       'value = "preserved"',
@@ -2201,12 +2201,12 @@ describe("config generator idempotency (#384)", () => {
     const expected = ["[user.after]", 'value = "preserved"', ""].join("\n");
 
     assert.deepEqual(stripExistingOmxBlocks(fixture), { cleaned: expected, removed: 1 });
-    assert.doesNotThrow(() => buildMergedConfig(fixture, "/tmp/omx"));
+    assert.doesNotThrow(() => buildMergedConfig(fixture, "/tmp/nomx"));
   });
 
   it("removes an exact inline state entry within a hooks.state table", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const key = `${hooksPath}:post_compact:0:0`;
     const hash = managedTrustState[key]?.trusted_hash;
     assert.ok(hash);
@@ -2228,7 +2228,7 @@ describe("config generator idempotency (#384)", () => {
 
   it("fails closed on multi-field, array-like, and mixed managed trust representations", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const key = `${hooksPath}:post_compact:0:0`;
     const hash = managedTrustState[key]?.trusted_hash;
     assert.ok(hash);
@@ -2257,7 +2257,7 @@ describe("config generator idempotency (#384)", () => {
           error.code === "managed_trust_key_conflict",
       );
       assert.throws(
-        () => buildMergedConfig(fixture, "/tmp/omx", { managedHookTrustState: managedTrustState }),
+        () => buildMergedConfig(fixture, "/tmp/nomx", { managedHookTrustState: managedTrustState }),
         (error: unknown) =>
           error instanceof ManagedCodexHooksPlanError &&
           error.code === "managed_trust_key_conflict",
@@ -2287,11 +2287,11 @@ describe("config generator idempotency (#384)", () => {
         "enabled = false",
         "",
       ].join("\n"),
-      "/tmp/omx",
+      "/tmp/nomx",
       "/tmp/codex/hooks.json",
     );
     const brokenWithDuplicatePriorBlock = `${first}\n${first.slice(
-      first.indexOf("# OMX-owned Codex hook trust state"),
+      first.indexOf("# NOMX-owned Codex hook trust state"),
     )}`;
     assert.equal(
       count(
@@ -2304,12 +2304,12 @@ describe("config generator idempotency (#384)", () => {
 
     const repaired = upsertManagedCodexHookTrustState(
       brokenWithDuplicatePriorBlock,
-      "/tmp/omx",
+      "/tmp/nomx",
       "/tmp/codex/hooks.json",
     );
     const repeated = upsertManagedCodexHookTrustState(
       repaired,
-      "/tmp/omx",
+      "/tmp/nomx",
       "/tmp/codex/hooks.json",
     );
 
@@ -2325,9 +2325,9 @@ describe("config generator idempotency (#384)", () => {
 
   it("preserves managed-looking trust blocks inside multiline TOML values", () => {
     const hooksPath = "/tmp/codex/hooks.json";
-    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/omx");
+    const managedTrustState = buildManagedCodexHookTrustState(hooksPath, "/tmp/nomx");
     const embeddedTrustBlock = [
-      "# OMX-owned Codex hook trust state",
+      "# NOMX-owned Codex hook trust state",
       "# Trusts only setup-managed native hook wrappers.",
       ...Object.entries(managedTrustState)
         .sort(([left], [right]) => left.localeCompare(right))
@@ -2336,16 +2336,16 @@ describe("config generator idempotency (#384)", () => {
           `trusted_hash = "${state.trusted_hash}"`,
           "",
         ]),
-      "# End OMX-owned Codex hook trust state",
+      "# End NOMX-owned Codex hook trust state",
     ].join("\n");
     const multilineBasicValue = `basic = """\n${embeddedTrustBlock}\n"""`;
     const multilineLiteralValue = `literal = '''\n${embeddedTrustBlock}\n'''`;
     const config = [multilineBasicValue, "", multilineLiteralValue, ""].join("\n");
 
-    const first = upsertManagedCodexHookTrustState(config, "/tmp/omx", hooksPath, {
+    const first = upsertManagedCodexHookTrustState(config, "/tmp/nomx", hooksPath, {
       managedTrustState,
     });
-    const refreshed = upsertManagedCodexHookTrustState(first, "/tmp/omx", hooksPath, {
+    const refreshed = upsertManagedCodexHookTrustState(first, "/tmp/nomx", hooksPath, {
       managedTrustState,
     });
     const stripped = stripManagedCodexHookTrustState(refreshed, { managedTrustState });
@@ -2390,13 +2390,13 @@ describe("config generator idempotency (#384)", () => {
     });
     const plan = planManagedCodexHooksMerge(
       existingHooks,
-      "/tmp/omx",
+      "/tmp/nomx",
       hooksPath,
     );
     assert.equal(plan.ok, true);
     if (!plan.ok) return;
 
-    const refreshed = buildMergedConfig("", "/tmp/omx", {
+    const refreshed = buildMergedConfig("", "/tmp/nomx", {
       codexHooksFile: hooksPath,
       managedHookTrustState: plan.finalTrustState,
       priorManagedHookTrustState: plan.priorTrustState,
@@ -2432,13 +2432,13 @@ describe("config generator idempotency (#384)", () => {
         },
         hooks: {},
       }),
-      "/tmp/omx",
+      "/tmp/nomx",
       hooksPath,
     );
     assert.equal(plan.ok, true);
     if (!plan.ok) return;
 
-    const refreshed = buildMergedConfig("", "/tmp/omx", {
+    const refreshed = buildMergedConfig("", "/tmp/nomx", {
       codexHooksFile: hooksPath,
       managedHookTrustState: plan.finalTrustState,
       priorManagedHookTrustState: plan.priorTrustState,
@@ -2457,12 +2457,12 @@ describe("config generator idempotency (#384)", () => {
   it("migrates a legacy __proto__ trust key into config.toml", () => {
     const plan = planManagedCodexHooksMerge(
       '{"state":{"__proto__":{"trusted_hash":"sha256:legacy","enabled":true}}}',
-      "/tmp/omx",
+      "/tmp/nomx",
       "/tmp/codex/hooks.json",
     );
     assert.equal(plan.ok, true);
     if (!plan.ok) return;
-    const config = buildMergedConfig("", "/tmp/omx", {
+    const config = buildMergedConfig("", "/tmp/nomx", {
       legacyHookTrustState: plan.legacyTrustState,
     });
     assert.match(config, /^\[hooks\.state\."__proto__"\]$/m);
@@ -2481,7 +2481,7 @@ describe("config generator idempotency (#384)", () => {
       "enabled = false",
       "",
     ].join("\n");
-    const matching = buildMergedConfig(matchingConfig, "/tmp/omx", {
+    const matching = buildMergedConfig(matchingConfig, "/tmp/nomx", {
       legacyHookTrustState,
     });
     assert.equal(
@@ -2495,7 +2495,7 @@ describe("config generator idempotency (#384)", () => {
       matchingConfig.replace("\nenabled = false", ""),
     ]) {
       assert.throws(
-        () => buildMergedConfig(conflictingConfig, "/tmp/omx", { legacyHookTrustState }),
+        () => buildMergedConfig(conflictingConfig, "/tmp/nomx", { legacyHookTrustState }),
         (error: unknown) =>
           error instanceof ManagedCodexHooksPlanError &&
           error.code === "managed_trust_key_conflict",
@@ -2504,7 +2504,7 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("syncs shared MCP registry entries in a dedicated managed block", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const first = buildMergedConfig("", wd, {
         sharedMcpServers: [
@@ -2516,7 +2516,7 @@ describe("config generator idempotency (#384)", () => {
             startupTimeoutSec: 12,
           },
         ],
-        sharedMcpRegistrySource: "/tmp/.omx/mcp-registry.json",
+        sharedMcpRegistrySource: "/tmp/.nomx/mcp-registry.json",
       });
       const second = buildMergedConfig(first, wd, {
         sharedMcpServers: [
@@ -2528,11 +2528,11 @@ describe("config generator idempotency (#384)", () => {
             startupTimeoutSec: 12,
           },
         ],
-        sharedMcpRegistrySource: "/tmp/.omx/mcp-registry.json",
+        sharedMcpRegistrySource: "/tmp/.nomx/mcp-registry.json",
       });
 
       assert.equal(
-        count(second, /oh-my-codex \(OMX\) Shared MCP Registry Sync/g),
+        count(second, /nomx \(NOMX\) Shared MCP Registry Sync/g),
         1,
         "shared MCP sync block should appear once",
       );
@@ -2541,7 +2541,7 @@ describe("config generator idempotency (#384)", () => {
         1,
         "shared eslint MCP table should appear once",
       );
-      assert.match(second, /# Source: \/tmp\/\.omx\/mcp-registry\.json/);
+      assert.match(second, /# Source: \/tmp\/\.nomx\/mcp-registry\.json/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
@@ -2554,7 +2554,7 @@ describe("config generator idempotency (#384)", () => {
       'args = ["serve"]',
       "",
     ].join("\n");
-    const merged = buildMergedConfig(existing, "/tmp/omx", {
+    const merged = buildMergedConfig(existing, "/tmp/nomx", {
       sharedMcpServers: [
         {
           name: "existing_server",
@@ -2569,7 +2569,7 @@ describe("config generator idempotency (#384)", () => {
           enabled: true,
         },
       ],
-      sharedMcpRegistrySource: "/tmp/.omx/mcp-registry.json",
+      sharedMcpRegistrySource: "/tmp/.nomx/mcp-registry.json",
     });
 
     assert.equal(count(merged, /^\[mcp_servers\.existing_server\]$/gm), 1);
@@ -2577,7 +2577,7 @@ describe("config generator idempotency (#384)", () => {
     assert.equal(count(merged, /^\[mcp_servers\.eslint\]$/gm), 1);
   });
 
-  it("adds a default startup timeout to launcher-backed non-OMX MCP servers and stays idempotent", () => {
+  it("adds a default startup timeout to launcher-backed non-NOMX MCP servers and stays idempotent", () => {
     const existing = [
       '[mcp_servers.filesystem]',
       'command = "npx"',
@@ -2585,8 +2585,8 @@ describe("config generator idempotency (#384)", () => {
       "",
     ].join("\n");
 
-    const first = buildMergedConfig(existing, "/tmp/omx");
-    const second = buildMergedConfig(first, "/tmp/omx");
+    const first = buildMergedConfig(existing, "/tmp/nomx");
+    const second = buildMergedConfig(first, "/tmp/nomx");
 
     assert.match(first, /^\[mcp_servers\.filesystem\]$/m);
     assert.match(first, /^startup_timeout_sec = 15$/m);
@@ -2606,7 +2606,7 @@ describe("config generator idempotency (#384)", () => {
       "",
     ].join("\n");
 
-    const merged = buildMergedConfig(existing, "/tmp/omx");
+    const merged = buildMergedConfig(existing, "/tmp/nomx");
 
     assert.equal(count(merged, /^startup_timeout_sec = 22$/gm), 1);
     assert.doesNotMatch(
@@ -2623,7 +2623,7 @@ describe("config generator idempotency (#384)", () => {
       "",
     ].join("\n");
 
-    const merged = buildMergedConfig(existing, "/tmp/omx");
+    const merged = buildMergedConfig(existing, "/tmp/nomx");
 
     assert.match(merged, /^\[mcp_servers\.seq\]$/m);
     assert.match(merged, /^startup_timeout_sec = 15$/m);
@@ -2641,7 +2641,7 @@ describe("config generator idempotency (#384)", () => {
       "",
     ].join("\n");
 
-    const merged = buildMergedConfig(existing, "/tmp/omx");
+    const merged = buildMergedConfig(existing, "/tmp/nomx");
 
     assert.doesNotMatch(merged, /This line used to be orphaned/);
     assert.doesNotMatch(merged, /This closing line used to break parsing/);
@@ -2650,7 +2650,7 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("preserves root model values when mergeConfig sees multiline root strings", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       await writeFile(
@@ -2681,7 +2681,7 @@ describe("config generator idempotency (#384)", () => {
   });
 
   it("repairConfigIfNeeded backfills launcher-backed MCP startup timeouts", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-idem-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-idem-"));
     try {
       const configPath = join(wd, "config.toml");
       await writeFile(

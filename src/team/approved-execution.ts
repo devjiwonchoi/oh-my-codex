@@ -21,8 +21,8 @@ export interface UltragoalCheckpointGuidance {
   goal_id: string;
   goal_title?: string;
   codex_goal_mode: 'aggregate' | 'per_story';
-  goals_path: '.omx/ultragoal/goals.json';
-  ledger_path: '.omx/ultragoal/ledger.jsonl';
+  goals_path: '.nomx/ultragoal/goals.json';
+  ledger_path: '.nomx/ultragoal/ledger.jsonl';
   checkpoint_policy: 'fresh_leader_get_goal_required';
   checkpoint_command_template: string;
   final_checkpoint_command_template: string;
@@ -129,25 +129,25 @@ export function buildUltragoalCheckpointGuidance(
     approvedHint.command ?? '',
     sourceText,
   ].join('\n');
-  if (!/ultragoal|\.omx\/ultragoal/i.test(detectionText)) {
+  if (!/ultragoal|\.nomx\/ultragoal/i.test(detectionText)) {
     return null;
   }
 
   const goalId = detectUltragoalId(detectionText);
-  const goalIdDisplay = goalId ?? '<read .omx/ultragoal/goals.json first>';
+  const goalIdDisplay = goalId ?? '<read .nomx/ultragoal/goals.json first>';
   return {
     goal_id: goalIdDisplay,
     codex_goal_mode: detectUltragoalMode(detectionText),
-    goals_path: '.omx/ultragoal/goals.json',
-    ledger_path: '.omx/ultragoal/ledger.jsonl',
+    goals_path: '.nomx/ultragoal/goals.json',
+    ledger_path: '.nomx/ultragoal/ledger.jsonl',
     checkpoint_policy: 'fresh_leader_get_goal_required',
-    checkpoint_command_template: '<leader must read verified .omx/ultragoal/goals.json context before constructing checkpoint command>',
-    final_checkpoint_command_template: '<leader must read verified .omx/ultragoal/goals.json context and pass final quality gates before constructing checkpoint command>',
+    checkpoint_command_template: '<leader must read verified .nomx/ultragoal/goals.json context before constructing checkpoint command>',
+    final_checkpoint_command_template: '<leader must read verified .nomx/ultragoal/goals.json context and pass final quality gates before constructing checkpoint command>',
     evidence_requirements: [
       'team tasks are terminal',
       'verification passed',
-      goalId ? `evidence mentions ${goalId}` : 'leader resolved the active goal ID from .omx/ultragoal/goals.json',
-      'evidence mentions .omx/ultragoal artifacts',
+      goalId ? `evidence mentions ${goalId}` : 'leader resolved the active goal ID from .nomx/ultragoal/goals.json',
+      'evidence mentions .nomx/ultragoal artifacts',
       'leader captured a fresh get_goal snapshot',
     ],
   };
@@ -160,7 +160,7 @@ export function renderLeaderOwnedUltragoalContext(
   return [
     '',
     '- Approved-plan Ultragoal hint:',
-    '  - source: approved Team handoff text; leader must verify `.omx/ultragoal/goals.json` before checkpointing.',
+    '  - source: approved Team handoff text; leader must verify `.nomx/ultragoal/goals.json` before checkpointing.',
     `  - goals_path: ${guidance.goals_path}`,
     `  - ledger_path: ${guidance.ledger_path}`,
     `  - hinted_goal_id: ${guidance.goal_id}`,

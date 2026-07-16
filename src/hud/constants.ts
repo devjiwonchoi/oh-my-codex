@@ -2,7 +2,7 @@ export const HUD_TMUX_HEIGHT_LINES = 2;
 export const HUD_TMUX_ULTRAGOAL_HEIGHT_LINES = 3;
 export const HUD_TMUX_TEAM_HEIGHT_LINES = 3;
 export const HUD_TMUX_MAX_HEIGHT_LINES = 3;
-// Minimum existing-tmux window height (in lines) required before `omx` will
+// Minimum existing-tmux window height (in lines) required before `nomx` will
 // force a launch-time HUD split. Below this, creating the 2-line HUD pane would
 // leave the Codex TUI too cramped to read, so we skip the launch-time split and
 // let the later reconcile path add the HUD when there is room. (closes #2754)

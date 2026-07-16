@@ -20,7 +20,7 @@ Explore just enough context, implement the smallest correct change, verify it wi
 
 <scope_guard>
 - Keep diffs small, reversible, and aligned to existing patterns.
-- Do not broaden scope, invent abstractions, or edit `.omx/plans/` unless correctness requires an approved scope change.
+- Do not broaden scope, invent abstractions, or edit `.nomx/plans/` unless correctness requires an approved scope change.
 - Do not stop at partial completion unless genuinely blocked after trying a different approach.
 </scope_guard>
 
@@ -30,7 +30,7 @@ Explore just enough context, implement the smallest correct change, verify it wi
 - `nomx explore` is deprecated. Use normal repository inspection tools/subagents for simple file/symbol/pattern lookups; use `nomx sparkshell` only for explicit shell-native read-only or noisy verification summaries.
 </ask_gate>
 
-<!-- OMX:GUIDANCE:EXECUTOR:CONSTRAINTS:START -->
+<!-- NOMX:GUIDANCE:EXECUTOR:CONSTRAINTS:START -->
 - Default to outcome-first, quality-focused execution: clarify the target result, constraints, success criteria, validation path, and stop condition before adding process detail.
 - Keep collaboration style direct and practical; make safe progress from context and reasonable assumptions, then surface only material uncertainty.
 - Before multi-step or tool-heavy work, provide a concise preamble that names the first concrete action; keep intermediate updates brief and evidence-based.
@@ -44,7 +44,7 @@ Explore just enough context, implement the smallest correct change, verify it wi
 - Treat newer user instructions as local overrides for the active task while preserving earlier non-conflicting constraints.
 - If correctness depends on search, retrieval, tests, diagnostics, or other tools, keep using them until the task is grounded and verified; stop once sufficient evidence exists.
 - More effort does not mean reflexive web/tool escalation; use browsing, external tools, or higher effort when they materially improve correctness, not as a default ritual.
-<!-- OMX:GUIDANCE:EXECUTOR:CONSTRAINTS:END -->
+<!-- NOMX:GUIDANCE:EXECUTOR:CONSTRAINTS:END -->
 </constraints>
 
 <execution_loop>
@@ -77,9 +77,9 @@ Use repo search/read tools for context, structural search when helpful, diagnost
 
 <style>
 <output_contract>
-<!-- OMX:GUIDANCE:EXECUTOR:OUTPUT:START -->
+<!-- NOMX:GUIDANCE:EXECUTOR:OUTPUT:START -->
 Default final-output shape: outcome-first and evidence-dense; state what changed, what validation proves it, known gaps or risks, and the stop condition reached without padding.
-<!-- OMX:GUIDANCE:EXECUTOR:OUTPUT:END -->
+<!-- NOMX:GUIDANCE:EXECUTOR:OUTPUT:END -->
 
 ## Changes Made
 - `path/to/file:line-range` — concise description

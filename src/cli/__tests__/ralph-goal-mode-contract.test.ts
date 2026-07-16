@@ -26,11 +26,11 @@ describe('ralph goal mode integration contract', () => {
     assert.match(ralphSkill, /`STANDARD` -> `medium`/);
     assert.match(ralphSkill, /`THOROUGH` -> `xhigh`/);
     assert.match(ralphSkill, /task\(agent_type="architect", reasoning_effort="medium"/);
-    assert.match(ralphSkill, /When the native surface exposes `agent_type` role routing, set `agent_type` to an installed OMX role and never omit it for OMX work/);
+    assert.match(ralphSkill, /When the native surface exposes `agent_type` role routing, set `agent_type` to an installed NOMX role and never omit it for NOMX work/);
     assert.match(ralphSkill, /role_routing_unavailable/);
     assert.match(ralphSkill, /do not fabricate `agent_type`/);
-    assert.match(ralphSkill, /OMX adapted role-pass protocol/);
-    assert.match(ralphSkill, /pre-validated role intent in the OMX subagent ledger/);
+    assert.match(ralphSkill, /NOMX adapted role-pass protocol/);
+    assert.match(ralphSkill, /pre-validated role intent in the NOMX subagent ledger/);
     assert.match(ralphSkill, /never fake the role via a prompt label/);
     assert.doesNotMatch(ralphSkill, /delegate\(role=/);
     assert.doesNotMatch(ralphSkill, /delegate\(executor/);
@@ -52,7 +52,7 @@ describe('ralph goal mode integration contract', () => {
 
   it('injects goal-mode guidance into launched Ralph sessions', () => {
     const instructions = buildRalphAppendInstructions('ship the integration', {
-      changedFilesPath: '.omx/ralph/changed-files.txt',
+      changedFilesPath: '.nomx/ralph/changed-files.txt',
       noDeslop: false,
     });
 

@@ -64,9 +64,12 @@ function runCompatTarget(cwd: string, argv: string[], envOverrides: Record<strin
 }
 
 function normalizeInstallDoctorOutput(text: string, home: string, cwd: string): string {
-  const repoStateDir = join(cwd, '.omx', 'state').replace(/\\/g, '/');
+  const repoStateDir = join(cwd, '.nomx', 'state').replace(/\\/g, '/');
+  const nomxRoot = join(home, '.nomx').replace(/\\/g, '/');
   return text
     .replaceAll(join(home, '.codex').replace(/\\/g, '/'), '<CODEX_HOME>')
+    .replaceAll(`/private${nomxRoot}`, '<NOMX_ROOT>')
+    .replaceAll(nomxRoot, '<NOMX_ROOT>')
     .replaceAll(`/private${repoStateDir}`, '<REPO_STATE_DIR>')
     .replaceAll(repoStateDir, '<REPO_STATE_DIR>')
     .replace(/\\/g, '/')
@@ -119,9 +122,9 @@ describe('compat doctor contract', () => {
   it('matches doctor --team resume_blocker behavior', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-compat-doctor-team-'));
     try {
-      const teamRoot = join(wd, '.omx', 'state', 'team', 'alpha');
+      const teamRoot = join(wd, '.nomx', 'state', 'team', 'alpha');
       await mkdir(join(teamRoot, 'workers', 'worker-1'), { recursive: true });
-      await writeFile(join(teamRoot, 'config.json'), JSON.stringify({ name: 'alpha', tmux_session: 'omx-team-alpha' }));
+      await writeFile(join(teamRoot, 'config.json'), JSON.stringify({ name: 'alpha', tmux_session: 'nomx-team-alpha' }));
       const fakeBin = join(wd, 'bin');
       await mkdir(fakeBin, { recursive: true });
       const tmuxPath = join(fakeBin, 'tmux');

@@ -132,12 +132,12 @@ describe("worker bootstrap", () => {
       workerName: "worker-1",
       workerRole: "executor",
       rolePromptContent: "execute",
-      teamStateRoot: "/repo/.omx/state",
+      teamStateRoot: "/repo/.nomx/state",
       leaderCwd: "/repo",
-      worktreePath: "/repo/.omx/team/alpha/worktrees/worker-1",
+      worktreePath: "/repo/.nomx/team/alpha/worktrees/worker-1",
       toolContext: {
         repoRoot: "/repo",
-        worktreeRoot: "/repo/.omx/team/alpha/worktrees/worker-1",
+        worktreeRoot: "/repo/.nomx/team/alpha/worktrees/worker-1",
         gitCommonDir: "/repo/.git",
         worktreeScope: "team",
         codeGraphMode: "shared",
@@ -155,7 +155,7 @@ describe("worker bootstrap", () => {
   });
 
   it("applyWorkerOverlay appends to existing AGENTS.md content", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     try {
       const agentsMdPath = join(cwd, "AGENTS.md");
       await writeFile(agentsMdPath, "# Base AGENTS\n\nBase content.\n", "utf8");
@@ -174,7 +174,7 @@ describe("worker bootstrap", () => {
   });
 
   it("applyWorkerOverlay is idempotent (calling twice doesn't duplicate)", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     try {
       const agentsMdPath = join(cwd, "AGENTS.md");
       await writeFile(agentsMdPath, "# Base\n", "utf8");
@@ -195,7 +195,7 @@ describe("worker bootstrap", () => {
   });
 
   it("stripWorkerOverlay removes the overlay section", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     try {
       const agentsMdPath = join(cwd, "AGENTS.md");
       const base = "# Base\n\nKeep me.\n";
@@ -215,7 +215,7 @@ describe("worker bootstrap", () => {
   });
 
   it("stripWorkerOverlay is idempotent (calling on already-stripped is no-op)", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     try {
       const agentsMdPath = join(cwd, "AGENTS.md");
       await writeFile(agentsMdPath, "# Base only\n", "utf8");
@@ -234,7 +234,7 @@ describe("worker bootstrap", () => {
   });
 
   it("applyWorkerOverlay works on non-existent file (creates it)", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     try {
       const agentsMdPath = join(cwd, "AGENTS.md");
       const overlay = generateWorkerOverlay("new-team");
@@ -250,10 +250,10 @@ describe("worker bootstrap", () => {
   });
 
   it("applyWorkerOverlay reaps stale AGENTS lock directory", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     try {
       const agentsMdPath = join(cwd, "AGENTS.md");
-      const lockPath = join(cwd, ".omx", "state", "agents-md.lock");
+      const lockPath = join(cwd, ".nomx", "state", "agents-md.lock");
       await mkdir(lockPath, { recursive: true });
       await writeFile(
         join(lockPath, "owner.json"),
@@ -341,8 +341,8 @@ describe("worker bootstrap", () => {
     }];
     const contextSection = renderLeaderOwnedUltragoalContextSection({
       kind: "leader_owned_ultragoal_context",
-      goalsPath: ".omx/ultragoal/goals.json",
-      ledgerPath: ".omx/ultragoal/ledger.jsonl",
+      goalsPath: ".nomx/ultragoal/goals.json",
+      ledgerPath: ".nomx/ultragoal/ledger.jsonl",
       activeGoalId: "G001-team-runtime-bridge",
       activeGoalTitle: "Team runtime bridge",
       codexGoalMode: "aggregate",
@@ -354,8 +354,8 @@ describe("worker bootstrap", () => {
     });
 
     assert.match(inbox, /Leader-owned Ultragoal context/);
-    assert.match(inbox, /\.omx\/ultragoal\/goals\.json/);
-    assert.match(inbox, /\.omx\/ultragoal\/ledger\.jsonl/);
+    assert.match(inbox, /\.nomx\/ultragoal\/goals\.json/);
+    assert.match(inbox, /\.nomx\/ultragoal\/ledger\.jsonl/);
     assert.match(inbox, /G001-team-runtime-bridge/);
     assert.match(inbox, /nomx ultragoal checkpoint/);
     assert.match(inbox, /--codex-goal-json/);
@@ -367,8 +367,8 @@ describe("worker bootstrap", () => {
   it("rejects unsafe Ultragoal goal IDs before rendering shell checkpoint templates", () => {
     const context = normalizeUltragoalTeamContext({
       kind: "leader_owned_ultragoal_context",
-      goalsPath: ".omx/ultragoal/goals.json",
-      ledgerPath: ".omx/ultragoal/ledger.jsonl",
+      goalsPath: ".nomx/ultragoal/goals.json",
+      ledgerPath: ".nomx/ultragoal/ledger.jsonl",
       activeGoalId: "G001-runtime; touch /tmp/pwned",
       codexGoalMode: "aggregate",
       checkpointPolicy: "fresh_leader_get_goal_required",
@@ -378,11 +378,11 @@ describe("worker bootstrap", () => {
   });
 
   it("preserves legacy Ultragoal per-story mode when goals.json omits codexGoalMode", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-team-ultragoal-legacy-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-team-ultragoal-legacy-"));
     try {
-      await mkdir(join(wd, ".omx", "ultragoal"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "ultragoal"), { recursive: true });
       await writeFile(
-        join(wd, ".omx", "ultragoal", "goals.json"),
+        join(wd, ".nomx", "ultragoal", "goals.json"),
         `${JSON.stringify({
           version: 1,
           activeGoalId: "G001-legacy-story",
@@ -404,11 +404,11 @@ describe("worker bootstrap", () => {
   });
 
   it("ignores completed or idle Ultragoal plans without an active goal", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-team-ultragoal-idle-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-team-ultragoal-idle-"));
     try {
-      await mkdir(join(wd, ".omx", "ultragoal"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "ultragoal"), { recursive: true });
       await writeFile(
-        join(wd, ".omx", "ultragoal", "goals.json"),
+        join(wd, ".nomx", "ultragoal", "goals.json"),
         `${JSON.stringify({
           version: 1,
           goals: [{
@@ -428,11 +428,11 @@ describe("worker bootstrap", () => {
   });
 
   it("fails closed when present Ultragoal goals.json has an invalid codexGoalMode", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-team-ultragoal-bad-mode-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-team-ultragoal-bad-mode-"));
     try {
-      await mkdir(join(wd, ".omx", "ultragoal"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "ultragoal"), { recursive: true });
       await writeFile(
-        join(wd, ".omx", "ultragoal", "goals.json"),
+        join(wd, ".nomx", "ultragoal", "goals.json"),
         `${JSON.stringify({
           version: 1,
           activeGoalId: "G001-active",
@@ -455,11 +455,11 @@ describe("worker bootstrap", () => {
   });
 
   it("fails closed when active Ultragoal goal is not in progress", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-team-ultragoal-stale-active-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-team-ultragoal-stale-active-"));
     try {
-      await mkdir(join(wd, ".omx", "ultragoal"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "ultragoal"), { recursive: true });
       await writeFile(
-        join(wd, ".omx", "ultragoal", "goals.json"),
+        join(wd, ".nomx", "ultragoal", "goals.json"),
         `${JSON.stringify({
           version: 1,
           activeGoalId: "G001-done",
@@ -481,10 +481,10 @@ describe("worker bootstrap", () => {
   });
 
   it("fails closed when present Ultragoal goals.json is malformed", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-team-ultragoal-malformed-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-team-ultragoal-malformed-"));
     try {
-      await mkdir(join(wd, ".omx", "ultragoal"), { recursive: true });
-      await writeFile(join(wd, ".omx", "ultragoal", "goals.json"), "{bad json\n");
+      await mkdir(join(wd, ".nomx", "ultragoal"), { recursive: true });
+      await writeFile(join(wd, ".nomx", "ultragoal", "goals.json"), "{bad json\n");
 
       await assert.rejects(
         () => resolveLeaderOwnedUltragoalContext(wd),
@@ -496,10 +496,10 @@ describe("worker bootstrap", () => {
   });
 
   it("resolves invalid Ultragoal artifacts as optional warnings for unrelated Team startup", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-team-ultragoal-optional-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-team-ultragoal-optional-"));
     try {
-      await mkdir(join(wd, ".omx", "ultragoal"), { recursive: true });
-      await writeFile(join(wd, ".omx", "ultragoal", "goals.json"), "{bad json\n");
+      await mkdir(join(wd, ".nomx", "ultragoal"), { recursive: true });
+      await writeFile(join(wd, ".nomx", "ultragoal", "goals.json"), "{bad json\n");
 
       const outcome = await resolveLeaderOwnedUltragoalContextOutcome(wd);
 
@@ -512,11 +512,11 @@ describe("worker bootstrap", () => {
   });
 
   it("reconciles persisted Ultragoal context against current active goals", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-team-ultragoal-reconcile-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-team-ultragoal-reconcile-"));
     try {
-      await mkdir(join(wd, ".omx", "ultragoal"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "ultragoal"), { recursive: true });
       await writeFile(
-        join(wd, ".omx", "ultragoal", "goals.json"),
+        join(wd, ".nomx", "ultragoal", "goals.json"),
         `${JSON.stringify({
           version: 1,
           activeGoalId: "G002-current",
@@ -531,8 +531,8 @@ describe("worker bootstrap", () => {
 
       const stale = await reconcilePersistedTeamUltragoalContext(wd, {
         kind: "leader_owned_ultragoal_context",
-        goalsPath: ".omx/ultragoal/goals.json",
-        ledgerPath: ".omx/ultragoal/ledger.jsonl",
+        goalsPath: ".nomx/ultragoal/goals.json",
+        ledgerPath: ".nomx/ultragoal/ledger.jsonl",
         activeGoalId: "G001-old",
         codexGoalMode: "aggregate",
         checkpointPolicy: "fresh_leader_get_goal_required",
@@ -542,8 +542,8 @@ describe("worker bootstrap", () => {
 
       const valid = await reconcilePersistedTeamUltragoalContext(wd, {
         kind: "leader_owned_ultragoal_context",
-        goalsPath: ".omx/ultragoal/goals.json",
-        ledgerPath: ".omx/ultragoal/ledger.jsonl",
+        goalsPath: ".nomx/ultragoal/goals.json",
+        ledgerPath: ".nomx/ultragoal/ledger.jsonl",
         activeGoalId: "G002-current",
         codexGoalMode: "aggregate",
         checkpointPolicy: "fresh_leader_get_goal_required",
@@ -556,11 +556,11 @@ describe("worker bootstrap", () => {
   });
 
   it("fails closed when present Ultragoal goals.json has an unsafe active goal id", async () => {
-    const wd = await mkdtemp(join(tmpdir(), "omx-team-ultragoal-unsafe-"));
+    const wd = await mkdtemp(join(tmpdir(), "nomx-team-ultragoal-unsafe-"));
     try {
-      await mkdir(join(wd, ".omx", "ultragoal"), { recursive: true });
+      await mkdir(join(wd, ".nomx", "ultragoal"), { recursive: true });
       await writeFile(
-        join(wd, ".omx", "ultragoal", "goals.json"),
+        join(wd, ".nomx", "ultragoal", "goals.json"),
         `${JSON.stringify({
           version: 1,
           activeGoalId: "G001-unsafe; touch /tmp/pwned",
@@ -599,10 +599,10 @@ describe("worker bootstrap", () => {
       "team-goal",
       "worker-4",
       tasks,
-      { teamStateRoot: "/tmp/.omx/state" },
+      { teamStateRoot: "/tmp/.nomx/state" },
     );
     const inbox = generateInitialInbox("worker-4", "team-goal", "executor", tasks, {
-      teamStateRoot: "/tmp/.omx/state",
+      teamStateRoot: "/tmp/.nomx/state",
       workerGoalInstruction,
     });
 
@@ -610,14 +610,14 @@ describe("worker bootstrap", () => {
     assert.match(inbox, /task IDs 4 instead of creating a duplicate task list/);
     assert.match(inbox, /Task 4: Implement team goal workflow/);
     assert.match(inbox, /active claim owner: worker-4 until 2026-05-04T12:32:13\.456Z/);
-    assert.match(inbox, /Durable OMX source of truth/);
+    assert.match(inbox, /Durable NOMX source of truth/);
     assert.match(inbox, /logical Codex goal handoff only/);
-    assert.doesNotMatch(inbox, /\/tmp\/\.omx\/state\/goals\/team/);
+    assert.doesNotMatch(inbox, /\/tmp\/\.nomx\/state\/goals\/team/);
     assert.doesNotMatch(inbox, /leader-audit\.json/);
     assert.match(inbox, /get_goal/);
     assert.match(inbox, /create_goal.*only when no active goal exists/i);
     assert.match(inbox, /update_goal\(\{status: "complete"\}\).*verification evidence/i);
-    assert.match(inbox, /shell\/team APIs persist only OMX artifacts and task state/);
+    assert.match(inbox, /shell\/team APIs persist only NOMX artifacts and task state/);
   });
 
 
@@ -878,9 +878,9 @@ describe("worker bootstrap", () => {
     assert.match(inbox, /missing_delegation_compliance_evidence/);
   });
 
-  it("generateInitialInbox resolves missing child_model through OMX_TEAM_CHILD_MODEL", () => {
-    const previousChildModel = process.env.OMX_TEAM_CHILD_MODEL;
-    process.env.OMX_TEAM_CHILD_MODEL = "team-child-override";
+  it("generateInitialInbox resolves missing child_model through NOMX_TEAM_CHILD_MODEL", () => {
+    const previousChildModel = process.env.NOMX_TEAM_CHILD_MODEL;
+    process.env.NOMX_TEAM_CHILD_MODEL = "team-child-override";
     try {
       const tasks: TeamTask[] = [{
         id: "12",
@@ -894,8 +894,8 @@ describe("worker bootstrap", () => {
       const inbox = generateInitialInbox("worker-1", "team-delegation", "executor", tasks);
       assert.match(inbox, /Subagent model: team-child-override/);
     } finally {
-      if (typeof previousChildModel === "string") process.env.OMX_TEAM_CHILD_MODEL = previousChildModel;
-      else delete process.env.OMX_TEAM_CHILD_MODEL;
+      if (typeof previousChildModel === "string") process.env.NOMX_TEAM_CHILD_MODEL = previousChildModel;
+      else delete process.env.NOMX_TEAM_CHILD_MODEL;
     }
   });
 
@@ -958,7 +958,7 @@ describe("worker bootstrap", () => {
     assert.match(inbox, /## Scrum \/ Team Goal Workflow/);
     assert.match(inbox, /Task 9: Finish worker audit/);
     assert.match(inbox, /claim required before work/);
-    assert.match(inbox, /Durable OMX source of truth/);
+    assert.match(inbox, /Durable NOMX source of truth/);
     assert.match(inbox, /logical Codex goal handoff only/);
     assert.match(inbox, /nomx team api transition-task-status/);
     assert.doesNotMatch(inbox, /<team_state_root>\/goals\/team/);
@@ -1015,16 +1015,16 @@ describe("worker bootstrap", () => {
     assert.ok(message.length < 200);
   });
 
-  it("generateTriggerMessage does not contain [OMX_TMUX_INJECT]", () => {
+  it("generateTriggerMessage does not contain [NOMX_TMUX_INJECT]", () => {
     const message = generateTriggerMessage("worker-1", "team-safe");
-    assert.equal(message.includes("[OMX_TMUX_INJECT]"), false);
+    assert.equal(message.includes("[NOMX_TMUX_INJECT]"), false);
   });
 
   it("generateTriggerMessage contains the inbox path", () => {
     const message = generateTriggerMessage("worker-9", "team-path");
     assert.match(
       message,
-      /\.omx\/state\/team\/team-path\/workers\/worker-9\/inbox\.md/,
+      /\.nomx\/state\/team\/team-path\/workers\/worker-9\/inbox\.md/,
     );
     assert.match(message, /start work now/i);
     assert.match(message, /concrete progress/i);
@@ -1035,19 +1035,19 @@ describe("worker bootstrap", () => {
   it("buildTriggerDirective keeps human text separate from orchestration intent", () => {
     const directive = buildTriggerDirective("worker-9", "team-path");
     assert.equal(directive.intent, "followup-relaunch");
-    assert.match(directive.text, /\.omx\/state\/team\/team-path\/workers\/worker-9\/inbox\.md/);
-    assert.doesNotMatch(directive.text, /OMX_INTENT/);
+    assert.match(directive.text, /\.nomx\/state\/team\/team-path\/workers\/worker-9\/inbox\.md/);
+    assert.doesNotMatch(directive.text, /NOMX_INTENT/);
   });
 
   it("generateTriggerMessage uses provided state-root reference for worktree workers", () => {
     const message = generateTriggerMessage(
       "worker-9",
       "team-path",
-      "$OMX_TEAM_STATE_ROOT",
+      "$NOMX_TEAM_STATE_ROOT",
     );
     assert.match(
       message,
-      /\$OMX_TEAM_STATE_ROOT\/team\/team-path\/workers\/worker-9\/inbox\.md/,
+      /\$NOMX_TEAM_STATE_ROOT\/team\/team-path\/workers\/worker-9\/inbox\.md/,
     );
     assert.match(message, /work now/i);
     assert.match(message, /report progress/i);
@@ -1070,7 +1070,7 @@ describe("worker bootstrap", () => {
     assert.match(message, /3 new message/);
     assert.match(
       message,
-      /Read .*\.omx\/state\/team\/team-mail\/mailbox\/worker-2\.json/,
+      /Read .*\.nomx\/state\/team\/team-mail\/mailbox\/worker-2\.json/,
     );
     assert.match(message, /act now/i);
     assert.match(message, /concrete progress/i);
@@ -1082,7 +1082,7 @@ describe("worker bootstrap", () => {
     const directive = buildMailboxTriggerDirective("worker-2", "team-mail", 3);
     assert.equal(directive.intent, "pending-mailbox-review");
     assert.match(directive.text, /3 new message/);
-    assert.doesNotMatch(directive.text, /OMX_INTENT/);
+    assert.doesNotMatch(directive.text, /NOMX_INTENT/);
   });
 
   it("generateMailboxTriggerMessage uses provided state-root reference for worktree workers", () => {
@@ -1090,12 +1090,12 @@ describe("worker bootstrap", () => {
       "worker-2",
       "team-mail",
       3,
-      "$OMX_TEAM_STATE_ROOT",
+      "$NOMX_TEAM_STATE_ROOT",
     );
     assert.match(message, /3 new msg/);
     assert.match(
       message,
-      /read .*\$OMX_TEAM_STATE_ROOT\/team\/team-mail\/mailbox\/worker-2\.json/i,
+      /read .*\$NOMX_TEAM_STATE_ROOT\/team\/team-mail\/mailbox\/worker-2\.json/i,
     );
     assert.match(message, /act/i);
     assert.match(message, /report progress/i);
@@ -1119,7 +1119,7 @@ describe("worker bootstrap", () => {
     );
     assert.match(
       message,
-      /Read .*\.omx\/state\/team\/team-mail\/mailbox\/leader-fixed\.json/,
+      /Read .*\.nomx\/state\/team\/team-mail\/mailbox\/leader-fixed\.json/,
     );
     assert.match(message, /worker-2 sent a new message/);
     assert.match(message, /Review it and decide the next concrete step/);
@@ -1130,18 +1130,18 @@ describe("worker bootstrap", () => {
     const directive = buildLeaderMailboxTriggerDirective("team-mail", "worker-2");
     assert.equal(directive.intent, "pending-mailbox-review");
     assert.match(directive.text, /worker-2 sent a new message/);
-    assert.doesNotMatch(directive.text, /OMX_INTENT/);
+    assert.doesNotMatch(directive.text, /NOMX_INTENT/);
   });
 
   it("generateLeaderMailboxTriggerMessage uses provided state-root reference for worktree leaders", () => {
     const message = generateLeaderMailboxTriggerMessage(
       "team-mail",
       "worker-2",
-      "$OMX_TEAM_STATE_ROOT",
+      "$NOMX_TEAM_STATE_ROOT",
     );
     assert.match(
       message,
-      /read .*\$OMX_TEAM_STATE_ROOT\/team\/team-mail\/mailbox\/leader-fixed\.json/i,
+      /read .*\$NOMX_TEAM_STATE_ROOT\/team\/team-mail\/mailbox\/leader-fixed\.json/i,
     );
     assert.match(message, /new msg from worker-2/i);
     assert.match(message, /review it; decide next step/i);
@@ -1150,7 +1150,7 @@ describe("worker bootstrap", () => {
   });
 
   it("writeTeamWorkerInstructionsFile composes user + project AGENTS.md with overlay", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     const restoreCodexHome = setMockCodexHome(join(cwd, "home", ".codex"));
     try {
       await mkdir(join(cwd, "home", ".codex"), { recursive: true });
@@ -1193,7 +1193,7 @@ describe("worker bootstrap", () => {
   });
 
   it("writeTeamWorkerInstructionsFile deduplicates duplicate skill references in favor of project scope", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     const restoreCodexHome = setMockCodexHome(join(cwd, "home", ".codex"));
     try {
       const userAgentsPath = join(cwd, "home", ".codex", "AGENTS.md");
@@ -1247,7 +1247,7 @@ describe("worker bootstrap", () => {
       rolePromptContent: "<identity>You are Writer.</identity>",
       teamStateRoot: "/tmp/state",
       leaderCwd: "/repo",
-      worktreePath: "/repo/.omx/team/root-team/worktrees/worker-3",
+      worktreePath: "/repo/.nomx/team/root-team/worktrees/worker-3",
     });
 
     assert.match(content, /Worker: worker-3/);
@@ -1257,7 +1257,7 @@ describe("worker bootstrap", () => {
   });
 
   it("writeWorkerRoleInstructionsFile layers role prompt on top of team worker instructions", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     try {
       const overlay = generateWorkerOverlay("role-team");
       const basePath = await writeTeamWorkerInstructionsFile(
@@ -1286,7 +1286,7 @@ describe("worker bootstrap", () => {
   });
 
   it("writeWorkerRoleInstructionsFile preserves precomposed mini guidance as wrapper-only content", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     try {
       const overlay = generateWorkerOverlay("mini-role-team");
       const basePath = await writeTeamWorkerInstructionsFile(
@@ -1325,24 +1325,24 @@ describe("worker bootstrap", () => {
       workerName: "worker-2",
       workerRole: "writer",
       rolePromptContent: "<identity>You are Writer.</identity>",
-      teamStateRoot: "/tmp/project/.omx/state",
+      teamStateRoot: "/tmp/project/.nomx/state",
       leaderCwd: "/tmp/project",
-      worktreePath: "/tmp/project/.omx/team/root-team/worktrees/worker-2",
+      worktreePath: "/tmp/project/.nomx/team/root-team/worktrees/worker-2",
     });
 
     assert.match(content, /# Team Worker Runtime Instructions/);
-    assert.match(content, /Inbox path: \/tmp\/project\/.omx\/state\/team\/root-team\/workers\/worker-2\/inbox\.md/);
-    assert.match(content, /Mailbox path: \/tmp\/project\/.omx\/state\/team\/root-team\/mailbox\/worker-2\.json/);
-    assert.match(content, /Leader mailbox path: \/tmp\/project\/.omx\/state\/team\/root-team\/mailbox\/leader-fixed\.json/);
+    assert.match(content, /Inbox path: \/tmp\/project\/.nomx\/state\/team\/root-team\/workers\/worker-2\/inbox\.md/);
+    assert.match(content, /Mailbox path: \/tmp\/project\/.nomx\/state\/team\/root-team\/mailbox\/worker-2\.json/);
+    assert.match(content, /Leader mailbox path: \/tmp\/project\/.nomx\/state\/team\/root-team\/mailbox\/leader-fixed\.json/);
     assert.match(content, /You are operating as the \*\*writer\*\* role/);
     assert.match(content, /<identity>You are Writer\.<\/identity>/);
   });
 
   it("writeWorkerWorktreeRootAgentsFile composes project AGENTS while remove restores tracked content", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-root-agents-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-root-agents-"));
     const worktree = join(cwd, "worktree");
     try {
-      await mkdir(join(cwd, ".omx", "state", "team", "restore-team", "workers", "worker-1"), { recursive: true });
+      await mkdir(join(cwd, ".nomx", "state", "team", "restore-team", "workers", "worker-1"), { recursive: true });
       await mkdir(worktree, { recursive: true });
       await writeFile(
         join(worktree, "AGENTS.md"),
@@ -1355,7 +1355,7 @@ describe("worker bootstrap", () => {
         workerName: "worker-1",
         workerRole: "writer",
         rolePromptContent: "<identity>Writer role prompt</identity>",
-        teamStateRoot: join(cwd, ".omx", "state"),
+        teamStateRoot: join(cwd, ".nomx", "state"),
         leaderCwd: cwd,
         worktreePath: worktree,
       });
@@ -1366,7 +1366,7 @@ describe("worker bootstrap", () => {
       assert.match(generated, /Team Worker Runtime Instructions/);
       assert.match(generated, /Writer role prompt/);
 
-      await removeWorkerWorktreeRootAgentsFile("restore-team", "worker-1", join(cwd, ".omx", "state"), worktree);
+      await removeWorkerWorktreeRootAgentsFile("restore-team", "worker-1", join(cwd, ".nomx", "state"), worktree);
       const restored = await readFile(join(worktree, "AGENTS.md"), "utf8");
       assert.equal(restored, "# Base tracked AGENTS\n\nMUST_PRESERVE_PROJECT_GUIDANCE_SENTINEL\n");
     } finally {
@@ -1375,12 +1375,12 @@ describe("worker bootstrap", () => {
   });
 
   it("writeWorkerWorktreeRootAgentsFile composes user AGENTS before project and runtime guidance", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-root-agents-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-root-agents-"));
     const worktree = join(cwd, "worktree");
     const codexHome = join(cwd, "codex-home");
     const restoreCodexHome = setMockCodexHome(codexHome);
     try {
-      await mkdir(join(cwd, ".omx", "state", "team", "compose-team", "workers", "worker-1"), { recursive: true });
+      await mkdir(join(cwd, ".nomx", "state", "team", "compose-team", "workers", "worker-1"), { recursive: true });
       await mkdir(worktree, { recursive: true });
       await mkdir(codexHome, { recursive: true });
       await writeFile(join(codexHome, "AGENTS.md"), "# User Instructions\n\nUSER_SENTINEL\n", "utf8");
@@ -1391,7 +1391,7 @@ describe("worker bootstrap", () => {
         workerName: "worker-1",
         workerRole: "writer",
         rolePromptContent: "<identity>Writer role prompt</identity>",
-        teamStateRoot: join(cwd, ".omx", "state"),
+        teamStateRoot: join(cwd, ".nomx", "state"),
         leaderCwd: cwd,
         worktreePath: worktree,
       });
@@ -1437,7 +1437,7 @@ describe("worker bootstrap", () => {
   });
 
   it("writeTeamWorkerInstructionsFile works without project AGENTS.md", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     try {
       const overlay = generateWorkerOverlay("no-agents-team");
       const outPath = await writeTeamWorkerInstructionsFile(
@@ -1455,7 +1455,7 @@ describe("worker bootstrap", () => {
   });
 
   it("removeTeamWorkerInstructionsFile cleans up the file", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     try {
       const overlay = generateWorkerOverlay("cleanup-team");
       await writeTeamWorkerInstructionsFile("cleanup-team", cwd, overlay);
@@ -1464,7 +1464,7 @@ describe("worker bootstrap", () => {
       const { existsSync } = await import("fs");
       const outPath = join(
         cwd,
-        ".omx",
+        ".nomx",
         "state",
         "team",
         "cleanup-team",
@@ -1477,7 +1477,7 @@ describe("worker bootstrap", () => {
   });
 
   it("removeTeamWorkerInstructionsFile is safe to call when file does not exist", async () => {
-    const cwd = await mkdtemp(join(tmpdir(), "omx-worker-bootstrap-"));
+    const cwd = await mkdtemp(join(tmpdir(), "nomx-worker-bootstrap-"));
     try {
       // Should not throw
       await removeTeamWorkerInstructionsFile("nonexistent-team", cwd);
@@ -1494,7 +1494,7 @@ describe("worker bootstrap", () => {
       [{ id: "1", subject: "Implement", description: "Do task", status: "pending", owner: "worker-1", created_at: "2026-04-30T00:00:00.000Z" }],
       {
         approvedContextSummary: {
-          sourcePath: ".omx/plans/repo-context-issue-2039.md",
+          sourcePath: ".nomx/plans/repo-context-issue-2039.md",
           content: "Key boundary: preserve approved context only for matching launches.",
           truncated: false,
         },
@@ -1502,7 +1502,7 @@ describe("worker bootstrap", () => {
     );
 
     assert.match(inbox, /## Approved Repository Context Summary/);
-    assert.match(inbox, /Source: \.omx\/plans\/repo-context-issue-2039\.md/);
+    assert.match(inbox, /Source: \.nomx\/plans\/repo-context-issue-2039\.md/);
     assert.match(inbox, /preserve approved context only for matching launches/);
   });
 
@@ -1514,14 +1514,14 @@ describe("worker bootstrap", () => {
       [{ id: "1", subject: "Implement", description: "Do task", status: "pending", owner: "worker-1", created_at: "2026-04-30T00:00:00.000Z" }],
       {
         approvedContextSection: [
-          "- Approved plan: .omx/plans/prd-issue-2039.md",
-          "- Test specs: .omx/plans/test-spec-issue-2039.md",
-          "- Approved context pack: .omx/context/context-20260507T120000Z-issue-2039.json",
+          "- Approved plan: .nomx/plans/prd-issue-2039.md",
+          "- Test specs: .nomx/plans/test-spec-issue-2039.md",
+          "- Approved context pack: .nomx/context/context-20260507T120000Z-issue-2039.json",
           "- Build refs (read first): src/build-1.ts",
           "- Read the build refs above before broader repo exploration.",
         ].join("\n"),
         approvedContextSummary: {
-          sourcePath: ".omx/plans/repo-context-issue-2039.md",
+          sourcePath: ".nomx/plans/repo-context-issue-2039.md",
           content: "This legacy summary should be suppressed when the handoff section is present.",
           truncated: false,
         },
@@ -1529,9 +1529,9 @@ describe("worker bootstrap", () => {
     );
 
     assert.match(inbox, /## Approved Handoff Context/);
-    assert.match(inbox, /Approved plan: \.omx\/plans\/prd-issue-2039\.md/);
-    assert.match(inbox, /Test specs: \.omx\/plans\/test-spec-issue-2039\.md/);
-    assert.match(inbox, /Approved context pack: \.omx\/context\/context-20260507T120000Z-issue-2039\.json/);
+    assert.match(inbox, /Approved plan: \.nomx\/plans\/prd-issue-2039\.md/);
+    assert.match(inbox, /Test specs: \.nomx\/plans\/test-spec-issue-2039\.md/);
+    assert.match(inbox, /Approved context pack: \.nomx\/context\/context-20260507T120000Z-issue-2039\.json/);
     assert.match(inbox, /Build refs \(read first\): src\/build-1\.ts/);
     assert.doesNotMatch(inbox, /## Approved Repository Context Summary/);
   });
@@ -1549,9 +1549,9 @@ describe("worker bootstrap", () => {
       },
       {
         approvedContextSection: [
-          "- Approved plan: .omx/plans/prd-issue-2040.md",
-          "- Test specs: .omx/plans/test-spec-issue-2040.md",
-          "- Approved context pack: .omx/context/context-20260507T120000Z-issue-2040.json",
+          "- Approved plan: .nomx/plans/prd-issue-2040.md",
+          "- Test specs: .nomx/plans/test-spec-issue-2040.md",
+          "- Approved context pack: .nomx/context/context-20260507T120000Z-issue-2040.json",
           "- Build refs (read first): src/build-1.ts",
           "- Verify refs: src/verify-2.ts",
         ].join("\n"),
@@ -1559,9 +1559,9 @@ describe("worker bootstrap", () => {
     );
 
     assert.match(inbox, /## Approved Handoff Context/);
-    assert.match(inbox, /Approved plan: \.omx\/plans\/prd-issue-2040\.md/);
-    assert.match(inbox, /Test specs: \.omx\/plans\/test-spec-issue-2040\.md/);
-    assert.match(inbox, /Approved context pack: \.omx\/context\/context-20260507T120000Z-issue-2040\.json/);
+    assert.match(inbox, /Approved plan: \.nomx\/plans\/prd-issue-2040\.md/);
+    assert.match(inbox, /Test specs: \.nomx\/plans\/test-spec-issue-2040\.md/);
+    assert.match(inbox, /Approved context pack: \.nomx\/context\/context-20260507T120000Z-issue-2040\.json/);
     assert.match(inbox, /Build refs \(read first\): src\/build-1\.ts/);
     assert.match(inbox, /Verify refs: src\/verify-2\.ts/);
   });
@@ -1581,23 +1581,23 @@ describe("worker bootstrap", () => {
       }],
       {
         approvedContextSection: [
-          "- Approved plan: .omx/plans/prd-ultragoal-team-linking.md",
+          "- Approved plan: .nomx/plans/prd-ultragoal-team-linking.md",
           "- Leader-owned Ultragoal context:",
           "  - kind: leader_owned_ultragoal_context",
-          "  - goals_path: .omx/ultragoal/goals.json",
-          "  - ledger_path: .omx/ultragoal/ledger.jsonl",
+          "  - goals_path: .nomx/ultragoal/goals.json",
+          "  - ledger_path: .nomx/ultragoal/ledger.jsonl",
           "  - active_goal_id: G001-team-runtime-bridge",
           "  - checkpoint_policy: fresh_leader_get_goal_required",
           "  - Team workers provide task/evidence updates only; workers do not own ultragoal goal state or create worker ultragoal ledgers.",
           "  - Leader checkpoint command shape:",
-          "    nomx ultragoal checkpoint --goal-id G001-team-runtime-bridge --status complete --evidence \"<team evidence mentioning .omx/ultragoal and G001-team-runtime-bridge>\" --codex-goal-json <fresh-active-get_goal-json-or-path>",
+          "    nomx ultragoal checkpoint --goal-id G001-team-runtime-bridge --status complete --evidence \"<team evidence mentioning .nomx/ultragoal and G001-team-runtime-bridge>\" --codex-goal-json <fresh-active-get_goal-json-or-path>",
         ].join("\n"),
       },
     );
 
     assert.match(inbox, /Leader-owned Ultragoal context/);
-    assert.match(inbox, /\.omx\/ultragoal\/goals\.json/);
-    assert.match(inbox, /\.omx\/ultragoal\/ledger\.jsonl/);
+    assert.match(inbox, /\.nomx\/ultragoal\/goals\.json/);
+    assert.match(inbox, /\.nomx\/ultragoal\/ledger\.jsonl/);
     assert.match(inbox, /G001-team-runtime-bridge/);
     assert.match(inbox, /nomx ultragoal checkpoint/);
     assert.match(inbox, /--codex-goal-json/);
@@ -1621,8 +1621,8 @@ describe("worker bootstrap", () => {
       {
         approvedContextSection: [
           "- Leader-owned Ultragoal context:",
-          "  - goals_path: .omx/ultragoal/goals.json",
-          "  - ledger_path: .omx/ultragoal/ledger.jsonl",
+          "  - goals_path: .nomx/ultragoal/goals.json",
+          "  - ledger_path: .nomx/ultragoal/ledger.jsonl",
           "  - active_goal_id: G001-team-runtime-bridge",
           "  - checkpoint_policy: fresh_leader_get_goal_required",
           "  - Leader checkpoint command shape:",

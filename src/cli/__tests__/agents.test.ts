@@ -14,8 +14,8 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error?: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
-  const result = spawnSync(process.execPath, [omxBin, ...argv], {
+  const nomxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
+  const result = spawnSync(process.execPath, [nomxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
     env: { ...process.env, ...envOverrides },
@@ -34,7 +34,7 @@ function shouldSkipForSpawnPermissions(err?: string): boolean {
 
 describe('nomx agents', () => {
   it('lists project and user native agents with name, description, and model', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-agents-cli-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-agents-cli-'));
     const home = join(wd, 'home');
     try {
       const projectAgentsDir = join(wd, '.codex', 'agents');
@@ -67,7 +67,7 @@ describe('nomx agents', () => {
   });
 
   it('adds a scaffolded agent TOML file with required fields and commented optional fields', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-agents-cli-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-agents-cli-'));
     const home = join(wd, 'home');
     try {
       await mkdir(home, { recursive: true });
@@ -94,7 +94,7 @@ describe('nomx agents', () => {
   });
 
   it('edits an existing agent via $EDITOR and removes it with --force', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-agents-cli-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-agents-cli-'));
     const home = join(wd, 'home');
     try {
       const projectAgentsDir = join(wd, '.codex', 'agents');
@@ -137,7 +137,7 @@ describe('nomx agents', () => {
   });
 
   it('fails with clear guidance when remove runs in non-interactive mode without --force', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-agents-cli-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-agents-cli-'));
     const home = join(wd, 'home');
     try {
       const projectAgentsDir = join(wd, '.codex', 'agents');

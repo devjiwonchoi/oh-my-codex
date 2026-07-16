@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import { describe, it, type TestContext } from 'node:test';
 import { isRealTmuxAvailable, tmuxSessionExists, withTempTmuxSession } from './tmux-test-fixture.js';
 
-function skipUnlessTmux(t: TestContext): void {
+function skipUnlessTmux(t: TestContext): boolean {
   if (!isRealTmuxAvailable()) {
     t.skip('tmux is not available in this environment');
+    return false;
   }
+  return true;
 }
 
 function runAmbientTmux(args: string[]): string {
@@ -31,12 +33,12 @@ function ambientSessionExists(sessionName: string): boolean {
 }
 
 function uniqueAmbientSessionName(): string {
-  return `omx-ambient-test-${process.pid}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return `nomx-ambient-test-${process.pid}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 describe('withTempTmuxSession', () => {
   it('provides isolated tmux env and cleans up on success', async (t) => {
-    skipUnlessTmux(t);
+    if (!skipUnlessTmux(t)) return;
     const ambientTmux = process.env.TMUX;
     const ambientTmuxPane = process.env.TMUX_PANE;
     let sessionName = '';
@@ -45,9 +47,9 @@ describe('withTempTmuxSession', () => {
     await withTempTmuxSession(async (fixture) => {
       sessionName = fixture.sessionName;
       serverName = fixture.serverName;
-      assert.match(fixture.sessionName, /^omx-test-/);
+      assert.match(fixture.sessionName, /^nomx-test-/);
       assert.equal(fixture.serverKind, 'synthetic');
-      assert.match(fixture.serverName, /^omx-fixture-/);
+      assert.match(fixture.serverName, /^nomx-fixture-/);
       assert.equal(process.env.TMUX, fixture.env.TMUX);
       assert.equal(process.env.TMUX_PANE, fixture.leaderPaneId);
       assert.equal(fixture.sessionExists(), true);
@@ -78,7 +80,7 @@ describe('withTempTmuxSession', () => {
   });
 
   it('cleans up when the callback throws', async (t) => {
-    skipUnlessTmux(t);
+    if (!skipUnlessTmux(t)) return;
     let sessionName = '';
     let serverName = '';
 
@@ -95,7 +97,7 @@ describe('withTempTmuxSession', () => {
   });
 
   it('keeps ambient default-server sessions untouched by default', async (t) => {
-    skipUnlessTmux(t);
+    if (!skipUnlessTmux(t)) return;
     const ambientSessionName = uniqueAmbientSessionName();
     const created = runAmbientTmux([
       'new-session',
@@ -125,7 +127,7 @@ describe('withTempTmuxSession', () => {
   });
 
   it('only uses the ambient server when a test explicitly opts in', async (t) => {
-    skipUnlessTmux(t);
+    if (!skipUnlessTmux(t)) return;
     let sessionName = '';
 
     await withTempTmuxSession({ useAmbientServer: true }, async (fixture) => {

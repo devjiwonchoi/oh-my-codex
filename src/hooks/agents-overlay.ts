@@ -1,5 +1,5 @@
 /**
- * AGENTS.md Runtime Overlay for oh-my-codex
+ * AGENTS.md Runtime Overlay for nomx
  *
  * Dynamically injects session-specific context into AGENTS.md before Codex
  * launches, then strips it after session ends. Uses marker-bounded sections
@@ -20,9 +20,9 @@ import { existsSync } from "fs";
 import {
   codexHome,
   listInstalledSkillDirectories,
-  omxNotepadPath,
-  omxProjectMemoryPath,
-  omxStateDir,
+  nomxNotepadPath,
+  nomxProjectMemoryPath,
+  nomxStateDir,
   packageRoot,
 } from "../utils/paths.js";
 import {
@@ -41,9 +41,9 @@ import {
   readVisibleSkillActiveStateForStateDir,
 } from "../state/skill-active.js";
 import {
-  OMX_GENERATED_AGENTS_MARKER,
-  OMX_MANAGED_AGENTS_END_MARKER,
-  OMX_MANAGED_AGENTS_START_MARKER,
+  NOMX_GENERATED_AGENTS_MARKER,
+  NOMX_MANAGED_AGENTS_END_MARKER,
+  NOMX_MANAGED_AGENTS_START_MARKER,
 } from "../utils/agents-md.js";
 
 const START_MARKER = "<!-- OMX:RUNTIME:START -->";
@@ -56,7 +56,7 @@ const SKILL_REFERENCE_PATTERN = /\/skills\/([^/\s`]+)\/SKILL\.md\b/g;
 // ── Lock helpers ─────────────────────────────────────────────────────────────
 
 function lockPath(cwd: string): string {
-  return join(omxStateDir(cwd), "agents-md.lock");
+  return join(nomxStateDir(cwd), "agents-md.lock");
 }
 
 async function acquireLock(
@@ -236,7 +236,7 @@ async function readActiveModes(
 }
 
 async function readNotepadPriority(cwd: string): Promise<string> {
-  const notePath = omxNotepadPath(cwd);
+  const notePath = nomxNotepadPath(cwd);
   if (!existsSync(notePath)) return "";
 
   try {
@@ -256,7 +256,7 @@ async function readNotepadPriority(cwd: string): Promise<string> {
 }
 
 async function readProjectMemorySummary(cwd: string): Promise<string> {
-  const memPath = omxProjectMemoryPath(cwd);
+  const memPath = nomxProjectMemoryPath(cwd);
   if (!existsSync(memPath)) return "";
 
   try {
@@ -281,9 +281,9 @@ async function readProjectMemorySummary(cwd: string): Promise<string> {
 
 function getNativeSubagentRoutingInstructions(): string {
   return [
-    "When the native surface exposes `agent_type` role routing, set `agent_type` to an installed OMX role and never omit it for OMX work.",
+    "When the native surface exposes `agent_type` role routing, set `agent_type` to an installed NOMX role and never omit it for NOMX work.",
     "On that routing-capable surface, use the most specific role (`architect`, `code-reviewer`, `critic`, `planner`, `debugger`, etc.); use `executor` only for generic implementation work.",
-    "When it does not (`role_routing_unavailable`, for example a Codex App `spawn_agent` surface exposing only `task_name`, `message`, and `fork_turns`), do not fabricate `agent_type`; follow the OMX adapted role-pass protocol by recording a pre-validated role intent in the OMX subagent ledger, and never fake the role via a prompt label.",
+    "When it does not (`role_routing_unavailable`, for example a Codex App `spawn_agent` surface exposing only `task_name`, `message`, and `fork_turns`), do not fabricate `agent_type`; follow the NOMX adapted role-pass protocol by recording a pre-validated role intent in the NOMX subagent ledger, and never fake the role via a prompt label.",
   ].join("\n");
 }
 
@@ -292,7 +292,7 @@ function getCompactionInstructions(): string {
     "Before context compaction, preserve critical state:",
     "1. Write progress checkpoint via `nomx state write --input '<json>' --json`",
     "2. Save key decisions via `nomx notepad write-working --input '<json>' --json`",
-    "3. Before large Team work near compaction, reload `.omx/state/team/<team>/preflight-context.json`",
+    "3. Before large Team work near compaction, reload `.nomx/state/team/<team>/preflight-context.json`",
     "4. If context is >80% full, proactively checkpoint state",
   ].join("\n");
 }
@@ -440,7 +440,7 @@ export async function generateOverlay(
 
     sections.push({
       key: "ralph_planning_gate",
-      text: `**Ralph Ralplan-First Gate:** ${gateStatus}\n- Requirement: complete planning artifacts before implementation/tool execution.\n- ${details}\n- Path: \`.omx/plans/\``,
+      text: `**Ralph Ralplan-First Gate:** ${gateStatus}\n- Requirement: complete planning artifacts before implementation/tool execution.\n- ${details}\n- Path: \`.nomx/plans/\``,
       optional: false,
     });
   }
@@ -609,27 +609,27 @@ function dropShadowedSkillReferenceLines(
   return keptLines.join("\n");
 }
 
-function stripOmxManagedAgentsBlocks(content: string): string {
+function stripNomxManagedAgentsBlocks(content: string): string {
   let next = content;
 
   while (true) {
-    const startIndex = next.indexOf(OMX_MANAGED_AGENTS_START_MARKER);
+    const startIndex = next.indexOf(NOMX_MANAGED_AGENTS_START_MARKER);
     if (startIndex < 0) return next;
 
     const endIndex = next.indexOf(
-      OMX_MANAGED_AGENTS_END_MARKER,
-      startIndex + OMX_MANAGED_AGENTS_START_MARKER.length,
+      NOMX_MANAGED_AGENTS_END_MARKER,
+      startIndex + NOMX_MANAGED_AGENTS_START_MARKER.length,
     );
     if (endIndex < 0) return next;
 
-    const replaceEnd = endIndex + OMX_MANAGED_AGENTS_END_MARKER.length;
+    const replaceEnd = endIndex + NOMX_MANAGED_AGENTS_END_MARKER.length;
     next = `${next.slice(0, startIndex)}${next.slice(replaceEnd)}`;
   }
 }
 
-function stripGeneratedOmxAgentsForSession(content: string): string {
-  const withoutManagedBlocks = stripOmxManagedAgentsBlocks(content).trim();
-  if (withoutManagedBlocks.includes(OMX_GENERATED_AGENTS_MARKER)) return "";
+function stripGeneratedNomxAgentsForSession(content: string): string {
+  const withoutManagedBlocks = stripNomxManagedAgentsBlocks(content).trim();
+  if (withoutManagedBlocks.includes(NOMX_GENERATED_AGENTS_MARKER)) return "";
   return withoutManagedBlocks;
 }
 
@@ -669,7 +669,7 @@ export async function writeSessionModelInstructionsFile(
         projectSkillNames,
       ).trim();
     } else {
-      content = stripGeneratedOmxAgentsForSession(content);
+      content = stripGeneratedNomxAgentsForSession(content);
     }
     if (!content) continue;
     baseParts.push(content);

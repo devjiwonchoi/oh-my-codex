@@ -1,7 +1,7 @@
 /**
- * OMX State Management MCP Server
+ * NOMX State Management MCP Server
  * Provides state read/write/clear/list tools for workflow modes
- * Storage: .omx/state/{mode}-state.json
+ * Storage: .nomx/state/{mode}-state.json
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -37,7 +37,7 @@ const STATE_TOOL_NAMES = new Set([
 const TEAM_COMM_TOOL_NAMES: Set<string> = new Set([...LEGACY_TEAM_MCP_TOOLS]);
 
 const server = new Server(
-	{ name: "omx-state", version: "0.1.0" },
+	{ name: "nomx-state", version: "0.1.0" },
 	{ capabilities: { tools: {} } },
 );
 

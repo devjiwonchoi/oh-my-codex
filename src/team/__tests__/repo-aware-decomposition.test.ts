@@ -6,12 +6,12 @@ import { tmpdir } from 'node:os';
 import { buildRepoAwareTeamExecutionPlan } from '../repo-aware-decomposition.js';
 
 function repo(): string {
-  const cwd = mkdtempSync(join(tmpdir(), 'omx-dag-'));
-  mkdirSync(join(cwd, '.omx', 'plans'), { recursive: true });
+  const cwd = mkdtempSync(join(tmpdir(), 'nomx-dag-'));
+  mkdirSync(join(cwd, '.nomx', 'plans'), { recursive: true });
   mkdirSync(join(cwd, 'src', 'team'), { recursive: true });
   writeFileSync(join(cwd, 'src', 'team', 'runtime.ts'), '');
-  writeFileSync(join(cwd, '.omx', 'plans', 'prd-demo.md'), '# Demo\n');
-  writeFileSync(join(cwd, '.omx', 'plans', 'test-spec-demo.md'), '# Tests\n');
+  writeFileSync(join(cwd, '.nomx', 'plans', 'prd-demo.md'), '# Demo\n');
+  writeFileSync(join(cwd, '.nomx', 'plans', 'test-spec-demo.md'), '# Tests\n');
   return cwd;
 }
 
@@ -32,7 +32,7 @@ describe('buildRepoAwareTeamExecutionPlan', () => {
 
   it('imports DAG sidecar, reduces implicit worker count, and preserves symbolic dependencies for runtime remap', () => {
     const cwd = repo();
-    writeFileSync(join(cwd, '.omx', 'plans', 'team-dag-demo.json'), JSON.stringify({
+    writeFileSync(join(cwd, '.nomx', 'plans', 'team-dag-demo.json'), JSON.stringify({
       schema_version: 1,
       nodes: [
         { id: 'impl', lane: 'implementation', role: 'executor', subject: 'Implement runtime', description: 'Change runtime', filePaths: ['src/team/runtime.ts'], requires_code_change: true },
@@ -57,7 +57,7 @@ describe('buildRepoAwareTeamExecutionPlan', () => {
 
   it('does not import a stale DAG sidecar unless the approved launch gate opts in', () => {
     const cwd = repo();
-    writeFileSync(join(cwd, '.omx', 'plans', 'team-dag-demo.json'), JSON.stringify({
+    writeFileSync(join(cwd, '.nomx', 'plans', 'team-dag-demo.json'), JSON.stringify({
       schema_version: 1,
       nodes: [{ id: 'stale', subject: 'Stale sidecar', description: 'Must not override normal startup' }],
     }));
@@ -71,7 +71,7 @@ describe('buildRepoAwareTeamExecutionPlan', () => {
 
   it('preserves explicit lifecycle fallback reasons when DAG handoff is disabled upstream', () => {
     const cwd = repo();
-    writeFileSync(join(cwd, '.omx', 'plans', 'team-dag-demo.json'), JSON.stringify({
+    writeFileSync(join(cwd, '.nomx', 'plans', 'team-dag-demo.json'), JSON.stringify({
       schema_version: 1,
       nodes: [{ id: 'stale', subject: 'Stale sidecar', description: 'Must not override lifecycle-rejected startup' }],
     }));
@@ -92,13 +92,13 @@ describe('buildRepoAwareTeamExecutionPlan', () => {
 
   it('requires a matching approved test spec before importing an opted-in DAG sidecar', () => {
     const cwd = repo();
-    writeFileSync(join(cwd, '.omx', 'plans', 'test-spec-demo.md'), '');
-    writeFileSync(join(cwd, '.omx', 'plans', 'test-spec-other.md'), '# Other tests\n');
-    writeFileSync(join(cwd, '.omx', 'plans', 'team-dag-demo.json'), JSON.stringify({
+    writeFileSync(join(cwd, '.nomx', 'plans', 'test-spec-demo.md'), '');
+    writeFileSync(join(cwd, '.nomx', 'plans', 'test-spec-other.md'), '# Other tests\n');
+    writeFileSync(join(cwd, '.nomx', 'plans', 'team-dag-demo.json'), JSON.stringify({
       schema_version: 1,
       nodes: [{ id: 'impl', subject: 'Implement', description: 'Implement from DAG' }],
     }));
-    unlinkSync(join(cwd, '.omx', 'plans', 'test-spec-demo.md'));
+    unlinkSync(join(cwd, '.nomx', 'plans', 'test-spec-demo.md'));
 
     const plan = buildRepoAwareTeamExecutionPlan({
       task: 'team', workerCount: 3, agentType: 'executor', explicitAgentType: false, explicitWorkerCount: false, cwd, buildLegacyPlan: legacy, allowDagHandoff: true,
@@ -112,7 +112,7 @@ describe('buildRepoAwareTeamExecutionPlan', () => {
 
   it('carries approved repository context summary only when the launch gate supplies it', () => {
     const cwd = repo();
-    writeFileSync(join(cwd, '.omx', 'plans', 'team-dag-demo.json'), JSON.stringify({
+    writeFileSync(join(cwd, '.nomx', 'plans', 'team-dag-demo.json'), JSON.stringify({
       schema_version: 1,
       nodes: [{ id: 'impl', subject: 'Implement', description: 'Implement from DAG' }],
     }));
@@ -126,7 +126,7 @@ describe('buildRepoAwareTeamExecutionPlan', () => {
       buildLegacyPlan: legacy,
       allowDagHandoff: true,
       approvedRepositoryContextSummary: {
-        sourcePath: join(cwd, '.omx', 'plans', 'repo-context-demo.md'),
+        sourcePath: join(cwd, '.nomx', 'plans', 'repo-context-demo.md'),
         content: 'Approved context: runtime lives in src/team/runtime.ts',
         truncated: false,
       },
@@ -137,7 +137,7 @@ describe('buildRepoAwareTeamExecutionPlan', () => {
 
   it('does not consume ambient repository context summary without an approved launch match', () => {
     const cwd = repo();
-    writeFileSync(join(cwd, '.omx', 'plans', 'team-dag-demo.json'), JSON.stringify({
+    writeFileSync(join(cwd, '.nomx', 'plans', 'team-dag-demo.json'), JSON.stringify({
       schema_version: 1,
       nodes: [{ id: 'stale', subject: 'Stale', description: 'Stale DAG' }],
     }));
@@ -157,7 +157,7 @@ describe('buildRepoAwareTeamExecutionPlan', () => {
 
   it('honors CLI-explicit worker count beyond ready lanes', () => {
     const cwd = repo();
-    writeFileSync(join(cwd, '.omx', 'plans', 'team-dag-demo.json'), JSON.stringify({
+    writeFileSync(join(cwd, '.nomx', 'plans', 'team-dag-demo.json'), JSON.stringify({
       schema_version: 1,
       nodes: [{ id: 'impl', subject: 'Implement one lane', description: 'Do it' }],
       worker_policy: { requested_count: 1, count_source: 'plan-suggested' },

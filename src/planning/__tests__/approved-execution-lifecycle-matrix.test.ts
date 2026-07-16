@@ -21,7 +21,7 @@ import type { StageContext } from '../../pipeline/types.js';
 let tempDir: string;
 
 async function setup(): Promise<void> {
-  tempDir = await mkdtemp(join(tmpdir(), 'omx-approved-lifecycle-baseline-'));
+  tempDir = await mkdtemp(join(tmpdir(), 'nomx-approved-lifecycle-baseline-'));
 }
 
 async function cleanup(): Promise<void> {
@@ -40,7 +40,7 @@ function makeCtx(overrides: Partial<StageContext> = {}): StageContext {
 }
 
 async function writePrd(slug: string, withTestSpec: boolean): Promise<{ prdPath: string; testSpecPath: string; teamTask: string; ralphTask: string }> {
-  const plansDir = join(tempDir, '.omx', 'plans');
+  const plansDir = join(tempDir, '.nomx', 'plans');
   await mkdir(plansDir, { recursive: true });
   const prdPath = join(plansDir, `prd-${slug}.md`);
   const testSpecPath = join(plansDir, `test-spec-${slug}.md`);
@@ -103,7 +103,7 @@ describe('approved execution lifecycle baseline matrix', () => {
     assert.equal(ralphOutcome.status, 'resolved');
     if (ralphOutcome.status !== 'resolved') throw new Error('expected ready ralph hint');
     const instructions = buildRalphAppendInstructions(fixture.ralphTask, {
-      changedFilesPath: '.omx/ralph/changed-files.txt',
+      changedFilesPath: '.nomx/ralph/changed-files.txt',
       noDeslop: false,
       approvedHint: ralphOutcome.hint,
     });
@@ -122,7 +122,7 @@ describe('approved execution lifecycle baseline matrix', () => {
   });
 
   it('adds leader-owned Ultragoal checkpoint context to approved Team handoffs without breaking launch hint selection', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const prdPath = join(plansDir, 'prd-ultragoal-team.md');
     const testSpecPath = join(plansDir, 'test-spec-ultragoal-team.md');
@@ -132,8 +132,8 @@ describe('approved execution lifecycle baseline matrix', () => {
       [
         '# Ultragoal Team bridge',
         '',
-        'Active ultragoal story: G001-team-runtime-bridge in .omx/ultragoal/goals.json.',
-        'Team returns evidence for .omx/ultragoal/ledger.jsonl; the leader checkpoints with a fresh get_goal snapshot.',
+        'Active ultragoal story: G001-team-runtime-bridge in .nomx/ultragoal/goals.json.',
+        'Team returns evidence for .nomx/ultragoal/ledger.jsonl; the leader checkpoints with a fresh get_goal snapshot.',
         '',
         `Launch via nomx team 3:executor "${teamTask}"`,
         'Use Ralph only for a later sequential single-owner verification/fix loop.',
@@ -151,12 +151,12 @@ describe('approved execution lifecycle baseline matrix', () => {
     const guidance = buildUltragoalCheckpointGuidance(teamOutcome.hint);
     assert.equal(guidance?.goal_id, 'G001-team-runtime-bridge');
     assert.equal(guidance?.checkpoint_policy, 'fresh_leader_get_goal_required');
-    assert.match(guidance?.checkpoint_command_template ?? '', /verified \.omx\/ultragoal\/goals\.json context/);
+    assert.match(guidance?.checkpoint_command_template ?? '', /verified \.nomx\/ultragoal\/goals\.json context/);
 
     const section = buildApprovedTeamHandoffSection(teamOutcome.hint) ?? '';
     assert.match(section, /Approved-plan Ultragoal hint/);
-    assert.match(section, /\.omx\/ultragoal\/goals\.json/);
-    assert.match(section, /\.omx\/ultragoal\/ledger\.jsonl/);
+    assert.match(section, /\.nomx\/ultragoal\/goals\.json/);
+    assert.match(section, /\.nomx\/ultragoal\/ledger\.jsonl/);
     assert.match(section, /Team workers provide task\/evidence updates only/i);
     assert.match(section, /No checkpoint command is emitted from approved-plan hints/i);
     assert.doesNotMatch(section, /nomx ultragoal checkpoint --goal-id/i);
@@ -169,7 +169,7 @@ describe('approved execution lifecycle baseline matrix', () => {
   });
 
   it('keeps same-task team selector outcomes fail-closed when launch hints are ambiguous', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const prdPath = join(plansDir, 'prd-ambiguous-team.md');
     const sharedTask = 'Execute ambiguous team handoff';

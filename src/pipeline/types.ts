@@ -1,5 +1,5 @@
 /**
- * Pipeline stage interfaces for oh-my-codex
+ * Pipeline stage interfaces for nomx
  *
  * Shared stage contracts for the default Autopilot loop.
  * The pipeline sequences: deep-interview -> ralplan -> ultragoal -> code-review -> ultraqa.

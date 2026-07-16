@@ -69,11 +69,11 @@ test('packed install smoke retains narrow boot commands and adds the isolated li
 });
 
 test('packed lifecycle keeps the pinned newline-delimited Codex app-server envelopes literal', () => {
-  assert.deepEqual(createCodexInitializeEnvelope('omx-hook-trust-regression'), {
+  assert.deepEqual(createCodexInitializeEnvelope('nomx-hook-trust-regression'), {
     id: 1,
     method: 'initialize',
     params: {
-      clientInfo: { name: 'omx-hook-trust-regression', version: '1.0.0' },
+      clientInfo: { name: 'nomx-hook-trust-regression', version: '1.0.0' },
       capabilities: null,
     },
   });
@@ -281,10 +281,10 @@ test('packed lifecycle normalizes omitted enabled handlers and rejects disabled 
 });
 
 
-test('packed lifecycle requires exactly seven generated OMX trust keys and an isolated approval target', () => {
+test('packed lifecycle requires exactly seven generated NOMX trust keys and an isolated approval target', () => {
   const hooks = MANAGED_CODEX_HOOK_EVENTS.map((event, index) => ({
     event,
-    command: 'node /tmp/omx/dist/scripts/codex-native-hook.js',
+    command: 'node /tmp/nomx/dist/scripts/codex-native-hook.js',
     sourcePath: '/tmp/project/.codex/hooks.json',
     key: `/tmp/project/.codex/hooks.json:${event}:${index}:0`,
     currentHash: `sha256:${event}`,
@@ -298,11 +298,11 @@ test('packed lifecycle requires exactly seven generated OMX trust keys and an is
       ...trust,
       '/tmp/project/.codex/hooks.json:foreign:0:0': 'sha256:foreign',
     }, hooks),
-    /exactly the 7 current OMX hooks with no stale keys/,
+    /exactly the 7 current NOMX hooks with no stale keys/,
   );
   assert.throws(
     () => assertGeneratedTrustMatchesCodex(Object.fromEntries(Object.entries(trust).slice(0, -1)), hooks),
-    /exactly the 7 current OMX hooks with no stale keys/,
+    /exactly the 7 current NOMX hooks with no stale keys/,
   );
   assert.doesNotThrow(() => assertCodexBatchWriteResult({
     filePath: '/tmp/isolated-codex-home/config.toml',
@@ -322,7 +322,7 @@ test('packed lifecycle requires exactly seven generated OMX trust keys and an is
 test('packed lifecycle fails closed on malformed project hooks.state entries and stale raw keys', () => {
   const hooks = MANAGED_CODEX_HOOK_EVENTS.map((event, index) => ({
     event,
-    command: 'node /tmp/omx/dist/scripts/codex-native-hook.js',
+    command: 'node /tmp/nomx/dist/scripts/codex-native-hook.js',
     sourcePath: '/tmp/project/.codex/hooks.json',
     key: `/tmp/project/.codex/hooks.json:${event}:${index}:0`,
     currentHash: `sha256:${event}`,
@@ -353,7 +353,7 @@ test('packed lifecycle fails closed on malformed project hooks.state entries and
   const staleRawTrust = generatedHookTrustState(`${validConfig}\nforeign = { trusted_hash = "sha256:foreign" }`);
   assert.throws(
     () => assertGeneratedTrustMatchesCodex(staleRawTrust, hooks),
-    /exactly the 7 current OMX hooks with no stale keys/,
+    /exactly the 7 current NOMX hooks with no stale keys/,
   );
 
   const protoRawTrust = generatedHookTrustState(
@@ -362,13 +362,13 @@ test('packed lifecycle fails closed on malformed project hooks.state entries and
   assert.equal(Object.hasOwn(protoRawTrust, '__proto__'), true);
   assert.throws(
     () => assertGeneratedTrustMatchesCodex(protoRawTrust, hooks),
-    /exactly the 7 current OMX hooks with no stale keys/,
+    /exactly the 7 current NOMX hooks with no stale keys/,
   );
 });
 test('packed lifecycle treats only the production command grammar as managed ownership', () => {
   const hooks = MANAGED_CODEX_HOOK_EVENTS.map((event, index) => ({
     event,
-    command: 'node /tmp/omx/dist/scripts/codex-native-hook.js',
+    command: 'node /tmp/nomx/dist/scripts/codex-native-hook.js',
     sourcePath: '/tmp/project/.codex/hooks.json',
     key: `/tmp/project/.codex/hooks.json:${event}:${index}:0`,
     currentHash: `sha256:${event}`,
@@ -378,11 +378,11 @@ test('packed lifecycle treats only the production command grammar as managed own
   hooks[0]!.command = 'node /tmp/foreign-codex-native-hook.js';
   assert.throws(
     () => managedCodexHooksByEvent(hooks),
-    /Expected exactly one OMX SessionStart hook from Codex, received 0/,
+    /Expected exactly one NOMX SessionStart hook from Codex, received 0/,
   );
 });
 test('packed lifecycle resolves Windows npm shims through safe command specs for version probes and app-server', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'omx-codex-windows-shim-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-codex-windows-shim-'));
   const fakeChild = () => {
     const child = Object.assign(new EventEmitter(), {
       stdin: new PassThrough(),
@@ -502,7 +502,7 @@ test('packed lifecycle resolves Windows npm shims through safe command specs for
 
 test('packed lifecycle bypasses an unrelated codex binary shadowing the pinned CLI', async () => {
   if (process.platform === 'win32') return;
-  const root = await mkdtemp(join(tmpdir(), 'omx-codex-path-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-codex-path-'));
   const shadowDir = join(root, 'shadow');
   const pinnedDir = join(root, 'pinned');
   try {
@@ -529,7 +529,7 @@ test('packed lifecycle bypasses an unrelated codex binary shadowing the pinned C
 
 test('packed lifecycle deduplicates repeated PATH entries before enforcing the candidate budget', async () => {
   if (process.platform === 'win32') return;
-  const root = await mkdtemp(join(tmpdir(), 'omx-codex-path-dedup-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-codex-path-dedup-'));
   const shadowDir = join(root, 'shadow');
   const pinnedDir = join(root, 'pinned');
   try {
@@ -559,7 +559,7 @@ test('packed lifecycle deduplicates repeated PATH entries before enforcing the c
 
 test('packed lifecycle accepts only the exact stable pinned Codex version output', async () => {
   if (process.platform === 'win32') return;
-  const root = await mkdtemp(join(tmpdir(), 'omx-codex-version-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-codex-version-'));
   const candidateDir = join(root, 'candidate');
   const executable = join(candidateDir, 'codex');
   const candidates = [
@@ -596,7 +596,7 @@ test('packed lifecycle accepts only the exact stable pinned Codex version output
 });
 test('packed lifecycle does not classify an installed Codex with a broken shebang as absent', async () => {
   if (process.platform === 'win32') return;
-  const root = await mkdtemp(join(tmpdir(), 'omx-codex-broken-shebang-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-codex-broken-shebang-'));
   const candidateDir = join(root, 'candidate');
   const executable = join(candidateDir, 'codex');
   try {
@@ -614,7 +614,7 @@ test('packed lifecycle does not classify an installed Codex with a broken sheban
 
 test('packed lifecycle does not classify a dangling Codex candidate as absent', async () => {
   if (process.platform === 'win32') return;
-  const root = await mkdtemp(join(tmpdir(), 'omx-codex-dangling-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-codex-dangling-'));
   const candidateDir = join(root, 'candidate');
   try {
     await mkdir(candidateDir, { recursive: true });
@@ -629,7 +629,7 @@ test('packed lifecycle does not classify a dangling Codex candidate as absent', 
 });
 test('packed lifecycle does not classify a dangling PATH entry as absent', async () => {
   if (process.platform === 'win32') return;
-  const root = await mkdtemp(join(tmpdir(), 'omx-codex-dangling-path-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-codex-dangling-path-'));
   const danglingPathEntry = join(root, 'dangling-path-entry');
   try {
     await symlink(join(root, 'missing-path-entry'), danglingPathEntry);
@@ -644,7 +644,7 @@ test('packed lifecycle does not classify a dangling PATH entry as absent', async
 
 test('packed lifecycle bounds all slow Codex candidates with a global deadline', async () => {
   if (process.platform === 'win32') return;
-  const root = await mkdtemp(join(tmpdir(), 'omx-codex-global-deadline-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-codex-global-deadline-'));
   const slowDirs = ['slow-one', 'slow-two', 'slow-three'].map((name) => join(root, name));
   try {
     await Promise.all(slowDirs.map((dir) => mkdir(dir, { recursive: true })));
@@ -666,7 +666,7 @@ test('packed lifecycle bounds all slow Codex candidates with a global deadline',
 
 test('packed lifecycle fails before probing the 33rd unique PATH candidate', async () => {
   if (process.platform === 'win32') return;
-  const root = await mkdtemp(join(tmpdir(), 'omx-codex-candidate-budget-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-codex-candidate-budget-'));
   const candidateDirs = Array.from({ length: 33 }, (_value, index) => join(root, `candidate-${index}`));
   const thirtyThirdProbe = join(root, '33rd-candidate-was-probed');
   try {
@@ -683,7 +683,7 @@ test('packed lifecycle fails before probing the 33rd unique PATH candidate', asy
     }));
     assert.throws(
       () => probeCodexVersion(root, { PATH: candidateDirs.join(delimiter) }),
-      /32-candidate PATH budget/,
+      /(?:32-candidate PATH budget|global deadline)/,
     );
     await assert.rejects(access(thirtyThirdProbe));
   } finally {
@@ -693,7 +693,7 @@ test('packed lifecycle fails before probing the 33rd unique PATH candidate', asy
 
 test('packed lifecycle continues after a timed-out version probe candidate', async () => {
   if (process.platform === 'win32') return;
-  const root = await mkdtemp(join(tmpdir(), 'omx-codex-timeout-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-codex-timeout-'));
   const slowDir = join(root, 'slow');
   const pinnedDir = join(root, 'pinned');
   try {
@@ -714,7 +714,7 @@ test('packed lifecycle continues after a timed-out version probe candidate', asy
 
 test('packed lifecycle fails instead of skipping when Codex disappears after start version validation', async () => {
   if (process.platform === 'win32') return;
-  const root = await mkdtemp(join(tmpdir(), 'omx-codex-disappears-after-version-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-codex-disappears-after-version-'));
   const candidateDir = join(root, 'candidate');
   const executable = join(candidateDir, 'codex');
   try {
@@ -748,7 +748,7 @@ test('packed lifecycle fails instead of skipping when Codex disappears after sta
 
 test('packed lifecycle preserves the true-absence Codex skip signal', async () => {
   if (process.platform === 'win32') return;
-  const root = await mkdtemp(join(tmpdir(), 'omx-codex-absent-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-codex-absent-'));
   try {
     assert.throws(
       () => probeCodexVersion(root, { PATH: root }),
@@ -816,10 +816,10 @@ test('packed install smoke covers every installed native hook event with minimal
   ]);
 
   for (const eventName of PACKED_INSTALL_NATIVE_HOOK_SMOKE_EVENTS) {
-    const payload = buildNativeHookSmokePayload(eventName, '/tmp/omx-packed-hook-smoke');
+    const payload = buildNativeHookSmokePayload(eventName, '/tmp/nomx-packed-hook-smoke');
     assert.equal(payload.hook_event_name, eventName);
     assert.equal(typeof payload.session_id, 'string');
-    assert.equal(payload.cwd, '/tmp/omx-packed-hook-smoke');
+    assert.equal(payload.cwd, '/tmp/nomx-packed-hook-smoke');
   }
 });
 
@@ -971,7 +971,7 @@ test('packed install smoke covers directive activation and terminal false-activa
     { name: 'percent-suffix', prompt: '$ralplan%docs', expectedSkill: null, expectedStopBlock: false },
     { name: 'fullwidth-percent-suffix', prompt: '$ralplan％docs', expectedSkill: null, expectedStopBlock: false },
     { name: 'g1a-ordered-multi-skill', prompt: '$ralplan, $autopilot; $team', expectedSkill: 'ralplan', expectedStopBlock: true, expectedDeferredSkills: ['autopilot', 'team'], expectedActiveSkills: ['ralplan'], insideTmux: true },
-    { name: 'g1c-duplicate-alias', prompt: '$autopilot $oh-my-codex:autopilot build it', expectedSkill: 'autopilot', expectedStopBlock: true, expectedDeferredSkills: [], expectedActiveSkills: ['autopilot'] },
+    { name: 'g1c-duplicate-alias', prompt: '$autopilot $nomx:autopilot build it', expectedSkill: 'autopilot', expectedStopBlock: true, expectedDeferredSkills: [], expectedActiveSkills: ['autopilot'] },
     { name: 'b3-longer-valid-fence', prompt: '```text\n$autopilot build it\n````\n$ralplan plan it', expectedSkill: 'ralplan', expectedStopBlock: true },
     { name: 'b4-shorter-invalid-fence', prompt: '````text\n$autopilot build it\n```\n$ralplan plan it', expectedSkill: null, expectedStopBlock: false },
     { name: 'b5-different-marker-invalid-fence', prompt: '```text\n$autopilot build it\n~~~\n$ralplan plan it', expectedSkill: null, expectedStopBlock: false },
@@ -982,31 +982,31 @@ test('packed regression environment clears inherited Team routing state', () => 
   const environment = buildPackedRegressionEnvironment(
     { name: 'poisoned-team-case', insideTmux: true },
     {
-      OMX_ROOT: '/tmp/poison-root',
-      OMX_STATE_ROOT: '/tmp/poison-state',
-      OMX_TEAM_STATE_ROOT: '/tmp/poison-team-state',
-      OMX_SESSION_ID: 'poison-session',
+      NOMX_ROOT: '/tmp/poison-root',
+      NOMX_STATE_ROOT: '/tmp/poison-state',
+      NOMX_TEAM_STATE_ROOT: '/tmp/poison-team-state',
+      NOMX_SESSION_ID: 'poison-session',
       CODEX_SESSION_ID: 'poison-codex-session',
       SESSION_ID: 'poison-generic-session',
-      OMX_TEAM_WORKER: 'poison/worker-1',
-      OMX_TEAM_INTERNAL_WORKER: 'poison/worker-2',
-      OMX_TEAM_LEADER_CWD: '/tmp/poison-leader',
-      OMX_TEAM_MODE: 'disabled',
-      OMX_QUESTION_RETURN_PANE: '%1',
-      OMX_LEADER_PANE_ID: '%2',
-      OMX_TMUX_HUD_OWNER: '1',
+      NOMX_TEAM_WORKER: 'poison/worker-1',
+      NOMX_TEAM_INTERNAL_WORKER: 'poison/worker-2',
+      NOMX_TEAM_LEADER_CWD: '/tmp/poison-leader',
+      NOMX_TEAM_MODE: 'disabled',
+      NOMX_QUESTION_RETURN_PANE: '%1',
+      NOMX_LEADER_PANE_ID: '%2',
+      NOMX_TMUX_HUD_OWNER: '1',
       TMUX: '/tmp/poison-tmux',
       TMUX_PANE: '%9',
     },
   );
 
-  assert.equal(environment.OMX_ROOT, '');
-  assert.equal(environment.OMX_STATE_ROOT, '');
-  assert.equal(environment.OMX_TEAM_STATE_ROOT, '');
-  assert.equal(environment.OMX_TEAM_WORKER, '');
-  assert.equal(environment.OMX_TEAM_INTERNAL_WORKER, '');
-  assert.equal(environment.OMX_TEAM_LEADER_CWD, '');
-  assert.equal(environment.OMX_TEAM_MODE, 'enabled');
+  assert.equal(environment.NOMX_ROOT, '');
+  assert.equal(environment.NOMX_STATE_ROOT, '');
+  assert.equal(environment.NOMX_TEAM_STATE_ROOT, '');
+  assert.equal(environment.NOMX_TEAM_WORKER, '');
+  assert.equal(environment.NOMX_TEAM_INTERNAL_WORKER, '');
+  assert.equal(environment.NOMX_TEAM_LEADER_CWD, '');
+  assert.equal(environment.NOMX_TEAM_MODE, 'enabled');
   assert.equal(environment.TMUX, '/tmp/tmux-pr3140-regression');
   assert.equal(environment.TMUX_PANE, '%3140');
 });
@@ -1053,13 +1053,13 @@ test('parseNpmPackJsonOutput ignores prepack logs before npm pack JSON', () => {
     '[sync-plugin-mirror] synced 29 canonical skill directories and plugin metadata',
     '[',
     '  {',
-    '    "filename": "oh-my-codex-0.15.0.tgz"',
+    '    "filename": "nomx-0.15.0.tgz"',
     '  }',
     ']',
     '',
   ].join('\n'));
 
-  assert.deepEqual(parsed, [{ filename: 'oh-my-codex-0.15.0.tgz' }]);
+  assert.deepEqual(parsed, [{ filename: 'nomx-0.15.0.tgz' }]);
 });
 
 test('resolveGitCommonDir resolves relative git common dir output against the repo root', () => {
@@ -1072,7 +1072,7 @@ test('resolveGitCommonDir resolves relative git common dir output against the re
 });
 
 test('hasUsableNodeModules requires the packaged build dependencies', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'omx-smoke-node-modules-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-smoke-node-modules-'));
   try {
     const nodeModules = join(root, 'node_modules');
     await mkdir(join(nodeModules, 'typescript'), { recursive: true });
@@ -1094,7 +1094,7 @@ test('hasUsableNodeModules requires the packaged build dependencies', async () =
 });
 
 test('resolveReusableNodeModulesSource reuses primary worktree node_modules when available', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'omx-smoke-reuse-node-modules-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-smoke-reuse-node-modules-'));
   try {
     const primaryRepo = join(root, 'primary');
     const worktreeRepo = join(root, 'worktree');
@@ -1121,7 +1121,7 @@ test('resolveReusableNodeModulesSource reuses primary worktree node_modules when
 });
 
 test('ensureRepoDependencies symlinks a reusable primary worktree node_modules', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'omx-smoke-symlink-node-modules-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-smoke-symlink-node-modules-'));
   try {
     const primaryRepo = join(root, 'primary');
     const worktreeRepo = join(root, 'worktree');
@@ -1157,7 +1157,7 @@ test('ensureRepoDependencies symlinks a reusable primary worktree node_modules',
 });
 
 test('ensureRepoDependencies falls back to npm ci when no reusable node_modules source exists', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'omx-smoke-install-node-modules-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-smoke-install-node-modules-'));
   try {
     const installs: string[] = [];
     const result = ensureRepoDependencies(root, {

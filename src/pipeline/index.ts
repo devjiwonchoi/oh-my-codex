@@ -1,5 +1,5 @@
 /**
- * Pipeline orchestrator for oh-my-codex
+ * Pipeline orchestrator for nomx
  *
  * Configurable pipeline that sequences: deep-interview -> ralplan -> ultragoal -> code-review -> ultraqa.
  * This is the default Autopilot loop; legacy team/ralph-verify adapters remain available.

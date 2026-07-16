@@ -1,6 +1,6 @@
 import { afterEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn, type spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import type { ClientRequestArgs, IncomingMessage } from 'node:http';
 import { PassThrough } from 'node:stream';
 import {
@@ -60,7 +60,7 @@ function createMapping(platform: SessionMapping['platform']): SessionMapping {
     messageId: platform === 'discord-bot' ? 'orig-discord-msg' : '222',
     sessionId: 'session-1',
     tmuxPaneId: '%9',
-    tmuxSessionName: 'omx-session',
+    tmuxSessionName: 'nomx-session',
     event: 'session-idle',
     createdAt: '2026-03-20T00:00:00.000Z',
     projectPath: '/tmp/project',
@@ -226,7 +226,7 @@ describe('isReplyListenerProcess', () => {
     });
   });
 
-  it('returns true for a process whose command line contains the daemon marker', (_, done) => {
+  it('returns true for a process whose command line contains the daemon marker', (t, done) => {
     const child = spawn(
       process.execPath,
       ['-e', 'const pollLoop = () => {}; setInterval(pollLoop, 60000);'],
@@ -235,7 +235,17 @@ describe('isReplyListenerProcess', () => {
     child.once('spawn', () => {
       const pid = child.pid!;
       const result = isReplyListenerProcess(pid);
-      child.kill();
+      if (!result) {
+        const probe = spawnSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf-8' });
+        child.kill();
+        if (probe.error || probe.status !== 0) {
+          t.skip('process command-line inspection is unavailable in this environment');
+          done();
+          return;
+        }
+      } else {
+        child.kill();
+      }
       assert.equal(result, true);
       done();
     });
@@ -470,9 +480,10 @@ describe('pollDiscordOnce', () => {
       {
         fetchImpl,
         lookupByMessageIdImpl: () => createMapping('discord-bot'),
+        writeDaemonStateImpl: () => {},
         buildSessionStatusReplyImpl: async (mapping) => {
           assert.equal(mapping.sessionId, 'session-1');
-          return 'Tracked OMX session status';
+          return 'Tracked NOMX session status';
         },
         injectReplyImpl: () => {
           injectCalled = true;
@@ -488,7 +499,7 @@ describe('pollDiscordOnce', () => {
     assert.equal(fetchCalls.length, 2);
 
     const replyBody = JSON.parse(String(fetchCalls[1].init?.body));
-    assert.equal(replyBody.content, 'Tracked OMX session status');
+    assert.equal(replyBody.content, 'Tracked NOMX session status');
     assert.deepEqual(replyBody.message_reference, { message_id: 'discord-status-1' });
     assert.deepEqual(replyBody.allowed_mentions, { parse: [] });
   });
@@ -528,9 +539,10 @@ describe('pollDiscordOnce', () => {
           tmuxPaneId: '%10',
           tmuxSessionName: 'latest-session',
         }),
+        writeDaemonStateImpl: () => {},
         buildSessionStatusReplyImpl: async (mapping) => {
           statusSessionIds.push(mapping.sessionId);
-          return `Tracked OMX session status\nSession: ${mapping.sessionId}`;
+          return `Tracked NOMX session status\nSession: ${mapping.sessionId}`;
         },
         injectReplyImpl: () => {
           throw new Error('injectReply should not run for exact-match status probes');
@@ -635,6 +647,7 @@ describe('pollDiscordOnce', () => {
         lookupByMessageIdImpl: () => {
           throw new Error('lookup should not be called for unauthorized replies');
         },
+        writeDaemonStateImpl: () => {},
         injectReplyImpl: () => {
           throw new Error('injectReply should not be called for unauthorized replies');
         },
@@ -670,6 +683,7 @@ describe('pollDiscordOnce', () => {
         lookupByMessageIdImpl: () => {
           throw new Error('lookup should not run for unauthorized status replies');
         },
+        writeDaemonStateImpl: () => {},
         injectReplyImpl: () => {
           throw new Error('injectReply should not run for unauthorized status replies');
         },
@@ -712,6 +726,7 @@ describe('pollDiscordOnce', () => {
           throw new Error(`Unexpected fetch url: ${url}`);
         },
         lookupByMessageIdImpl: () => null,
+        writeDaemonStateImpl: () => {},
         injectReplyImpl: () => {
           injectCalled = true;
           return true;
@@ -746,6 +761,7 @@ describe('pollDiscordOnce', () => {
           },
         ]),
         lookupByMessageIdImpl: () => createMapping('discord-bot'),
+        writeDaemonStateImpl: () => {},
         injectReplyImpl: () => {
           injectCalled = true;
           return true;

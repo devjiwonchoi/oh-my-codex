@@ -14,7 +14,7 @@ import {
 
 describe('buildPlatformCommandSpec', () => {
   it('wraps .cmd shims through ComSpec on Windows', async () => {
-    const fakeBin = await mkdtemp(join(tmpdir(), 'omx-platform-cmd-'));
+    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-cmd-'));
     try {
       const cmdPath = join(fakeBin, 'codex.cmd');
       await writeFile(cmdPath, '@echo off\r\n');
@@ -42,7 +42,7 @@ describe('buildPlatformCommandSpec', () => {
   });
 
   it('launches .exe binaries directly on Windows', async () => {
-    const fakeBin = await mkdtemp(join(tmpdir(), 'omx-platform-exe-'));
+    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-exe-'));
     try {
       const exePath = join(fakeBin, 'tmux.exe');
       await writeFile(exePath, '');
@@ -65,7 +65,7 @@ describe('buildPlatformCommandSpec', () => {
   });
 
   it('prefers the npm-installed codex.js entrypoint over Windows shims when available', async () => {
-    const fakeBin = await mkdtemp(join(tmpdir(), 'omx-platform-ps1-'));
+    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-ps1-'));
     try {
       const ps1Path = join(fakeBin, 'codex.ps1');
       const cmdPath = join(fakeBin, 'codex.cmd');
@@ -93,7 +93,7 @@ describe('buildPlatformCommandSpec', () => {
   });
 
   it('resolves codex.js from npm .bin-style Windows shim layouts', async () => {
-    const fakeRoot = await mkdtemp(join(tmpdir(), 'omx-platform-local-shim-'));
+    const fakeRoot = await mkdtemp(join(tmpdir(), 'nomx-platform-local-shim-'));
     const fakeBin = join(fakeRoot, 'node_modules', '.bin');
     try {
       const cmdPath = join(fakeBin, 'codex.cmd');
@@ -121,7 +121,7 @@ describe('buildPlatformCommandSpec', () => {
   });
 
   it('falls back to cmd shims when the node-hosted codex entrypoint is unavailable', async () => {
-    const fakeBin = await mkdtemp(join(tmpdir(), 'omx-platform-cmd-fallback-'));
+    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-cmd-fallback-'));
     try {
       const cmdPath = join(fakeBin, 'codex.cmd');
       await writeFile(cmdPath, '@echo off\r\n');
@@ -146,7 +146,7 @@ describe('buildPlatformCommandSpec', () => {
   });
 
   it('prefers cmd shims over PowerShell shims when no node-hosted entrypoint exists', async () => {
-    const fakeBin = await mkdtemp(join(tmpdir(), 'omx-platform-ps1-fallback-'));
+    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-ps1-fallback-'));
     try {
       const ps1Path = join(fakeBin, 'codex.ps1');
       const cmdPath = join(fakeBin, 'codex.cmd');
@@ -173,9 +173,9 @@ describe('buildPlatformCommandSpec', () => {
   });
 
   it('skips directory PATH candidates when resolving the PowerShell executable for .ps1 shims', async () => {
-    const shimBin = await mkdtemp(join(tmpdir(), 'omx-platform-ps1-shim-'));
-    const badPowerShellBin = await mkdtemp(join(tmpdir(), 'omx-platform-bad-powershell-'));
-    const goodPowerShellBin = await mkdtemp(join(tmpdir(), 'omx-platform-good-powershell-'));
+    const shimBin = await mkdtemp(join(tmpdir(), 'nomx-platform-ps1-shim-'));
+    const badPowerShellBin = await mkdtemp(join(tmpdir(), 'nomx-platform-bad-powershell-'));
+    const goodPowerShellBin = await mkdtemp(join(tmpdir(), 'nomx-platform-good-powershell-'));
     try {
       const ps1Path = join(shimBin, 'codex.ps1');
       const powershellDirectory = join(badPowerShellBin, 'powershell');
@@ -208,7 +208,7 @@ describe('buildPlatformCommandSpec', () => {
 
 describe('resolveCommandPathForPlatform', () => {
   it('prefers PATHEXT candidates on Windows', async () => {
-    const fakeBin = await mkdtemp(join(tmpdir(), 'omx-platform-path-'));
+    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-path-'));
     try {
       const exePath = join(fakeBin, 'tmux.exe');
       await writeFile(exePath, '');
@@ -229,7 +229,7 @@ describe('resolveCommandPathForPlatform', () => {
   });
 
   it('falls back to psmux on Windows when tmux is absent', async () => {
-    const fakeBin = await mkdtemp(join(tmpdir(), 'omx-platform-psmux-path-'));
+    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-psmux-path-'));
     try {
       const psmuxPath = join(fakeBin, 'psmux.exe');
       await writeFile(psmuxPath, '');
@@ -260,8 +260,8 @@ describe('resolveCommandPathForPlatform', () => {
   });
 
   it('ignores directory candidates on Windows even when they appear before a real executable', async () => {
-    const badPowerShellBin = await mkdtemp(join(tmpdir(), 'omx-platform-path-dir-'));
-    const goodPowerShellBin = await mkdtemp(join(tmpdir(), 'omx-platform-path-exe-'));
+    const badPowerShellBin = await mkdtemp(join(tmpdir(), 'nomx-platform-path-dir-'));
+    const goodPowerShellBin = await mkdtemp(join(tmpdir(), 'nomx-platform-path-exe-'));
     try {
       const powershellDirectory = join(badPowerShellBin, 'powershell');
       const powershellExePath = join(goodPowerShellBin, 'powershell.exe');
@@ -286,7 +286,7 @@ describe('resolveCommandPathForPlatform', () => {
   });
 
   it('resolves PATH entries to absolute paths on POSIX', async () => {
-    const fakeBin = await mkdtemp(join(tmpdir(), 'omx-platform-posix-'));
+    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-posix-'));
     try {
       const nodePath = join(fakeBin, 'node');
       await writeFile(nodePath, '');
@@ -331,7 +331,7 @@ describe('classifySpawnError', () => {
 
 describe('spawnPlatformCommandSync', () => {
   it('passes the Windows-resolved spec into the spawn implementation', async () => {
-    const fakeBin = await mkdtemp(join(tmpdir(), 'omx-platform-spawn-'));
+    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-spawn-'));
     try {
       const cmdPath = join(fakeBin, 'codex.cmd');
       await writeFile(cmdPath, '@echo off\r\n');
@@ -376,7 +376,7 @@ describe('spawnPlatformCommandSync', () => {
   });
 
   it('launches Windows node-hosted codex through process.execPath without verbatim cmd arguments', async () => {
-    const fakeBin = await mkdtemp(join(tmpdir(), 'omx-platform-spawn-node-hosted-'));
+    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-spawn-node-hosted-'));
     try {
       const cmdPath = join(fakeBin, 'codex.cmd');
       const codexJsPath = join(fakeBin, 'node_modules', '@openai', 'codex', 'bin', 'codex.js');
@@ -426,7 +426,7 @@ describe('spawnPlatformCommandSync', () => {
   });
 
   it('does not force verbatim arguments for direct Windows executables', async () => {
-    const fakeBin = await mkdtemp(join(tmpdir(), 'omx-platform-spawn-exe-'));
+    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-spawn-exe-'));
     try {
       const exePath = join(fakeBin, 'tmux.exe');
       await writeFile(exePath, '');
@@ -470,7 +470,7 @@ describe('spawnPlatformCommandSync', () => {
   it('launches Windows cmd shims successfully with the real spawn implementation', async () => {
     if (process.platform !== 'win32') return;
 
-    const fakeBin = await mkdtemp(join(tmpdir(), 'omx-platform-spawn-real-'));
+    const fakeBin = await mkdtemp(join(tmpdir(), 'nomx-platform-spawn-real-'));
     try {
       const cmdPath = join(fakeBin, 'codex.cmd');
       await writeFile(cmdPath, '@echo off\r\necho fake-codex 1.2.3\r\n');
@@ -497,7 +497,7 @@ describe('spawnPlatformCommandSync', () => {
 
 
   it('retries blocked node-hosted scripts through process.execPath on non-Windows', () => {
-    const scriptPath = '/tmp/omx-explore-stub.js';
+    const scriptPath = '/tmp/nomx-explore-stub.js';
     const calls: Array<{ command: string; args: readonly string[] }> = [];
 
     const probed = spawnPlatformCommandSync(

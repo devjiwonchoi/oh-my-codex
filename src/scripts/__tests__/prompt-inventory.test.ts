@@ -7,7 +7,7 @@ import { buildPromptInventory, listPromptSurfacePaths, renderPromptInventoryMark
 
 describe('prompt inventory', () => {
   it('counts prompt surfaces, absolute directives, markers, and duplicate fragments', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-prompt-inventory-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-prompt-inventory-'));
     try {
       await mkdir(join(root, 'templates'), { recursive: true });
       await mkdir(join(root, 'prompts'), { recursive: true });
@@ -17,7 +17,7 @@ describe('prompt inventory', () => {
       await mkdir(join(root, 'src', 'cli'), { recursive: true });
 
       const repeated = 'AUTO-CONTINUE for clear, already-requested, low-risk, reversible local work with evidence.';
-      await writeFile(join(root, 'AGENTS.md'), `# Root\n${repeated}\n<!-- omx:generated:agents-md -->\n`);
+      await writeFile(join(root, 'AGENTS.md'), `# Root\n${repeated}\n<!-- nomx:generated:agents-md -->\n`);
       await writeFile(
         join(root, 'templates', 'AGENTS.md'),
         `# Template\nMUST preserve markers.\n${repeated}\n<!-- OMX:RUNTIME:START -->\n<!-- OMX:RUNTIME:END -->\n`,

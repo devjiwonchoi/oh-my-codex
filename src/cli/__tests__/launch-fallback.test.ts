@@ -15,7 +15,7 @@ function buildRunOmxEnv(envOverrides: Record<string, string>): NodeJS.ProcessEnv
   const env: NodeJS.ProcessEnv = { ...process.env };
   for (const key of Object.keys(env)) {
     if (
-      key.startsWith('OMX_') ||
+      key.startsWith('NOMX_') ||
       key.startsWith('CODEX_') ||
       key === 'TMUX' ||
       key === 'TMUX_PANE' ||
@@ -38,8 +38,8 @@ function runOmx(
 ): { status: number | null; stdout: string; stderr: string; error: string } {
   const testDir = dirname(fileURLToPath(import.meta.url));
   const repoRoot = join(testDir, '..', '..', '..');
-  const omxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
-  const result = spawnSync(process.execPath, [omxBin, ...argv], {
+  const nomxBin = join(repoRoot, 'dist', 'cli', 'nomx.js');
+  const result = spawnSync(process.execPath, [nomxBin, ...argv], {
     cwd,
     encoding: 'utf-8',
     timeout: CLI_SPAWN_TIMEOUT_MS,
@@ -107,21 +107,21 @@ async function createLaunchFixture(
     env: {
       HOME: home,
       PATH: `${fakeBin}:/usr/bin:/bin`,
-      OMX_AUTO_UPDATE: '0',
-      OMX_NOTIFY_FALLBACK: '0',
-      OMX_HOOK_DERIVED_SIGNALS: '0',
-      OMX_ROOT: '',
-      OMX_STATE_ROOT: '',
+      NOMX_AUTO_UPDATE: '0',
+      NOMX_NOTIFY_FALLBACK: '0',
+      NOMX_HOOK_DERIVED_SIGNALS: '0',
+      NOMX_ROOT: '',
+      NOMX_STATE_ROOT: '',
       OMXBOX_ACTIVE: '',
-      OMX_SOURCE_CWD: '',
-      OMX_MADMAX_DETACHED_CONTEXT: '',
+      NOMX_SOURCE_CWD: '',
+      NOMX_MADMAX_DETACHED_CONTEXT: '',
     },
   };
 }
 
 describe('nomx launch fallback when tmux is unavailable', () => {
   it('surfaces direct Codex startup stderr and preserves the child exit code', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-child-error-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-child-error-'));
     try {
       const home = join(wd, 'home');
       const fakeBin = join(wd, 'bin');
@@ -140,9 +140,9 @@ exit 42
       const result = runOmx(wd, ['--direct', '--version'], {
         HOME: home,
         PATH: `${fakeBin}:/usr/bin:/bin`,
-        OMX_AUTO_UPDATE: '0',
-        OMX_NOTIFY_FALLBACK: '0',
-        OMX_HOOK_DERIVED_SIGNALS: '0',
+        NOMX_AUTO_UPDATE: '0',
+        NOMX_NOTIFY_FALLBACK: '0',
+        NOMX_HOOK_DERIVED_SIGNALS: '0',
         TMUX: '',
         TMUX_PANE: '',
       });
@@ -151,14 +151,14 @@ exit 42
 
       assert.equal(result.status, 42, result.error || result.stderr || result.stdout);
       assert.match(result.stderr, /codex-startup-boom/);
-      assert.match(result.stderr, /\[omx\] codex exited with code 42/);
+      assert.match(result.stderr, /\[nomx\] codex exited with code 42/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it('reports a missing Codex executable instead of exiting silently', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-missing-codex-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-missing-codex-'));
     try {
       const home = join(wd, 'home');
       const fakeBin = join(wd, 'bin');
@@ -170,9 +170,9 @@ exit 42
       const result = runOmx(wd, ['--direct', '--version'], {
         HOME: home,
         PATH: `${fakeBin}:/usr/bin:/bin`,
-        OMX_AUTO_UPDATE: '0',
-        OMX_NOTIFY_FALLBACK: '0',
-        OMX_HOOK_DERIVED_SIGNALS: '0',
+        NOMX_AUTO_UPDATE: '0',
+        NOMX_NOTIFY_FALLBACK: '0',
+        NOMX_HOOK_DERIVED_SIGNALS: '0',
         TMUX: '',
         TMUX_PANE: '',
       });
@@ -188,7 +188,7 @@ exit 42
   });
 
   it('launches codex directly without tmux ENOENT noise', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-fallback-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-fallback-'));
     try {
       const home = join(wd, 'home');
       const fakeBin = join(wd, 'bin');
@@ -211,9 +211,9 @@ exit 42
         {
           HOME: home,
           PATH: `${fakeBin}:/usr/bin:/bin`,
-          OMX_AUTO_UPDATE: '0',
-          OMX_NOTIFY_FALLBACK: '0',
-          OMX_HOOK_DERIVED_SIGNALS: '0',
+          NOMX_AUTO_UPDATE: '0',
+          NOMX_NOTIFY_FALLBACK: '0',
+          NOMX_HOOK_DERIVED_SIGNALS: '0',
         },
       );
 
@@ -231,7 +231,7 @@ exit 42
 
 describe('nomx --worktree disposable state root', () => {
   it('keeps launch worktree state under the source repo root by default', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-worktree-state-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-worktree-state-'));
     try {
       const repo = await createGitRepo(wd);
       const home = join(wd, 'home');
@@ -241,7 +241,7 @@ describe('nomx --worktree disposable state root', () => {
       await writeExecutable(
         join(fakeBin, 'codex'),
         `#!/bin/sh
-printf 'fake-codex-omx-root:%s\n' "$OMX_ROOT"
+printf 'fake-codex-nomx-root:%s\n' "$NOMX_ROOT"
 printf 'fake-codex:%s\n' "$*"
 `,
       );
@@ -250,32 +250,32 @@ printf 'fake-codex:%s\n' "$*"
       const result = runOmx(repo, ['--direct', '--worktree', '--version'], {
         HOME: home,
         PATH: `${fakeBin}:/usr/bin:/bin`,
-        OMX_AUTO_UPDATE: '0',
-        OMX_NOTIFY_FALLBACK: '0',
-        OMX_HOOK_DERIVED_SIGNALS: '0',
-        OMX_ROOT: '',
-        OMX_STATE_ROOT: '',
+        NOMX_AUTO_UPDATE: '0',
+        NOMX_NOTIFY_FALLBACK: '0',
+        NOMX_HOOK_DERIVED_SIGNALS: '0',
+        NOMX_ROOT: '',
+        NOMX_STATE_ROOT: '',
         TMUX: '',
         TMUX_PANE: '',
       });
 
       if (shouldSkipForSpawnPermissions(result.error)) return;
 
-      const worktreePath = join(dirname(repo), `${basename(repo)}.omx-worktrees`, 'launch-detached');
+      const worktreePath = join(dirname(repo), `${basename(repo)}.nomx-worktrees`, 'launch-detached');
       assert.equal(result.status, 0, result.error || result.stderr || result.stdout);
       assert.match(
         normalizeDarwinTmpPath(result.stdout),
-        new RegExp(`fake-codex-omx-root:${escapeRegExp(normalizeDarwinTmpPath(repo))}`),
+        new RegExp(`fake-codex-nomx-root:${escapeRegExp(normalizeDarwinTmpPath(repo))}`),
       );
-      assert.equal(existsSync(join(repo, '.omx', 'state')), true);
-      assert.equal(existsSync(join(worktreePath, '.omx')), false);
+      assert.equal(existsSync(join(repo, '.nomx', 'state')), true);
+      assert.equal(existsSync(join(worktreePath, '.nomx')), false);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it('preserves explicit OMX_ROOT for launch worktree state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-worktree-explicit-root-'));
+  it('preserves explicit NOMX_ROOT for launch worktree state', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-worktree-explicit-root-'));
     try {
       const repo = await createGitRepo(wd);
       const explicitRoot = join(wd, 'explicit-root');
@@ -286,7 +286,7 @@ printf 'fake-codex:%s\n' "$*"
       await writeExecutable(
         join(fakeBin, 'codex'),
         `#!/bin/sh
-printf 'fake-codex-omx-root:%s\n' "$OMX_ROOT"
+printf 'fake-codex-nomx-root:%s\n' "$NOMX_ROOT"
 printf 'fake-codex:%s\n' "$*"
 `,
       );
@@ -295,11 +295,11 @@ printf 'fake-codex:%s\n' "$*"
       const result = runOmx(repo, ['--direct', '--worktree', '--version'], {
         HOME: home,
         PATH: `${fakeBin}:/usr/bin:/bin`,
-        OMX_AUTO_UPDATE: '0',
-        OMX_NOTIFY_FALLBACK: '0',
-        OMX_HOOK_DERIVED_SIGNALS: '0',
-        OMX_ROOT: explicitRoot,
-        OMX_STATE_ROOT: '',
+        NOMX_AUTO_UPDATE: '0',
+        NOMX_NOTIFY_FALLBACK: '0',
+        NOMX_HOOK_DERIVED_SIGNALS: '0',
+        NOMX_ROOT: explicitRoot,
+        NOMX_STATE_ROOT: '',
         TMUX: '',
         TMUX_PANE: '',
       });
@@ -307,16 +307,16 @@ printf 'fake-codex:%s\n' "$*"
       if (shouldSkipForSpawnPermissions(result.error)) return;
 
       assert.equal(result.status, 0, result.error || result.stderr || result.stdout);
-      assert.match(result.stdout, new RegExp(`fake-codex-omx-root:${escapeRegExp(explicitRoot)}`));
-      assert.equal(existsSync(join(explicitRoot, '.omx', 'state')), true);
-      assert.equal(existsSync(join(repo, '.omx')), false);
+      assert.match(result.stdout, new RegExp(`fake-codex-nomx-root:${escapeRegExp(explicitRoot)}`));
+      assert.equal(existsSync(join(explicitRoot, '.nomx', 'state')), true);
+      assert.equal(existsSync(join(repo, '.nomx')), false);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it('keeps direct madmax worktree launches bound to the boxed run root', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-madmax-worktree-root-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-madmax-worktree-root-'));
     try {
       const repo = await createGitRepo(wd);
       const runs = join(wd, 'runs');
@@ -328,10 +328,10 @@ printf 'fake-codex:%s\n' "$*"
         join(fakeBin, 'codex'),
         `#!/bin/sh
 printf 'fake-codex-pwd:%s\n' "$PWD"
-printf 'fake-codex-omx-root:%s\n' "$OMX_ROOT"
+printf 'fake-codex-nomx-root:%s\n' "$NOMX_ROOT"
 printf 'fake-codex-box:%s\n' "$OMXBOX_ACTIVE"
-printf 'fake-codex-source:%s\n' "$OMX_SOURCE_CWD"
-printf 'fake-codex-context:%s\n' "$OMX_MADMAX_DETACHED_CONTEXT"
+printf 'fake-codex-source:%s\n' "$NOMX_SOURCE_CWD"
+printf 'fake-codex-context:%s\n' "$NOMX_MADMAX_DETACHED_CONTEXT"
 printf 'fake-codex:%s\n' "$*"
 `,
       );
@@ -340,26 +340,26 @@ printf 'fake-codex:%s\n' "$*"
       const result = runOmx(repo, ['--direct', '--madmax', '--worktree', '--version'], {
         HOME: home,
         PATH: `${fakeBin}:/usr/bin:/bin`,
-        OMX_AUTO_UPDATE: '0',
-        OMX_NOTIFY_FALLBACK: '0',
-        OMX_HOOK_DERIVED_SIGNALS: '0',
-        OMX_RUNS_DIR: runs,
-        OMX_ROOT: '',
-        OMX_STATE_ROOT: '',
+        NOMX_AUTO_UPDATE: '0',
+        NOMX_NOTIFY_FALLBACK: '0',
+        NOMX_HOOK_DERIVED_SIGNALS: '0',
+        NOMX_RUNS_DIR: runs,
+        NOMX_ROOT: '',
+        NOMX_STATE_ROOT: '',
         TMUX: '',
         TMUX_PANE: '',
       });
 
       if (shouldSkipForSpawnPermissions(result.error)) return;
 
-      const worktreePath = join(dirname(repo), `${basename(repo)}.omx-worktrees`, 'launch-detached');
+      const worktreePath = join(dirname(repo), `${basename(repo)}.nomx-worktrees`, 'launch-detached');
       const normalizedStdout = normalizeDarwinTmpPath(result.stdout);
       assert.equal(result.status, 0, result.error || result.stderr || result.stdout);
       assert.match(
         normalizedStdout,
         new RegExp(`fake-codex-pwd:${escapeRegExp(normalizeDarwinTmpPath(worktreePath))}`),
       );
-      const rootMatch = normalizedStdout.match(/fake-codex-omx-root:(.*)/);
+      const rootMatch = normalizedStdout.match(/fake-codex-nomx-root:(.*)/);
       assert.ok(rootMatch, normalizedStdout);
       const boxedRoot = rootMatch[1];
       assert.match(boxedRoot, new RegExp(`^${escapeRegExp(normalizeDarwinTmpPath(runs))}/run-`));
@@ -378,8 +378,8 @@ printf 'fake-codex:%s\n' "$*"
 });
 
 describe('Hermes MCP tmux bridge launch', () => {
-  it('creates a detached tmux session without attach-session under OMX_HERMES_MCP_BRIDGE', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-hermes-bridge-'));
+  it('creates a detached tmux session without attach-session under NOMX_HERMES_MCP_BRIDGE', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-hermes-bridge-'));
     try {
       const { env, tmuxLogPath } = await createLaunchFixture(
         wd,
@@ -427,7 +427,7 @@ exit 0
 
       const result = runOmx(wd, ['--tmux', 'bridge prompt'], {
         ...env,
-        OMX_HERMES_MCP_BRIDGE: '1',
+        NOMX_HERMES_MCP_BRIDGE: '1',
         TMUX: '',
         TMUX_PANE: '',
       });
@@ -448,7 +448,7 @@ exit 0
 
 describe('nomx launcher when tmux is available', () => {
   it('reuses the same boxed madmax detached launch context instead of spawning duplicate tmux sessions', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-madmax-reuse-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-madmax-reuse-'));
     try {
       const runs = join(wd, 'runs');
       const activeMarker = join(wd, 'active-session');
@@ -492,7 +492,7 @@ case "$1" in
     exit 0
     ;;
   show-options)
-    if [ "$5" = '@omx_instance_id' ]; then
+    if [ "$5" = '@nomx_instance_id' ]; then
       cat "${instanceMarker}"
       exit 0
     fi
@@ -500,7 +500,7 @@ case "$1" in
     exit 0
     ;;
   set-option)
-    if [ "$4" = '@omx_instance_id' ]; then
+    if [ "$4" = '@nomx_instance_id' ]; then
       printf '%s\n' "$5" > "${instanceMarker}"
     fi
     exit 0
@@ -515,10 +515,10 @@ exit 0
 
       const baseEnv = {
         ...env,
-        OMX_RUNS_DIR: runs,
+        NOMX_RUNS_DIR: runs,
         OMXBOX_ACTIVE: '1',
-        OMX_MADMAX_DETACHED_CONTEXT: 'boxed-context-under-test',
-        OMX_LAUNCH_POLICY: 'direct',
+        NOMX_MADMAX_DETACHED_CONTEXT: 'boxed-context-under-test',
+        NOMX_LAUNCH_POLICY: 'direct',
         TMUX: '',
         TMUX_PANE: '',
       };
@@ -551,7 +551,7 @@ exit 0
   });
 
   it('records boxed runtime identity for detached madmax worktree launches', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-madmax-worktree-detached-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-madmax-worktree-detached-'));
     try {
       const repo = await createGitRepo(wd);
       const runs = join(wd, 'runs');
@@ -589,7 +589,7 @@ case "$1" in
     exit 0
     ;;
   show-options)
-    if [ "$5" = '@omx_instance_id' ] && [ -f "${instanceMarker}" ]; then
+    if [ "$5" = '@nomx_instance_id' ] && [ -f "${instanceMarker}" ]; then
       cat "${instanceMarker}"
       exit 0
     fi
@@ -597,7 +597,7 @@ case "$1" in
     exit 0
     ;;
   set-option)
-    if [ "$4" = '@omx_instance_id' ]; then
+    if [ "$4" = '@nomx_instance_id' ]; then
       printf '%s\n' "$5" > "${instanceMarker}"
     fi
     exit 0
@@ -612,7 +612,7 @@ exit 0
 
       const result = runOmx(repo, ['--madmax', '--worktree', '--tmux'], {
         ...env,
-        OMX_RUNS_DIR: runs,
+        NOMX_RUNS_DIR: runs,
         TMUX: '',
         TMUX_PANE: '',
       });
@@ -622,25 +622,25 @@ exit 0
       const activeFiles = await readdir(join(runs, 'active-detached'));
       assert.equal(activeFiles.length, 1);
       const activeRecord = JSON.parse(await readFile(join(runs, 'active-detached', activeFiles[0]), 'utf-8'));
-      const worktreePath = join(dirname(repo), `${basename(repo)}.omx-worktrees`, 'launch-detached');
+      const worktreePath = join(dirname(repo), `${basename(repo)}.nomx-worktrees`, 'launch-detached');
       assert.match(activeRecord.run_dir, new RegExp(`^${escapeRegExp(normalizeDarwinTmpPath(runs))}/run-`));
       assert.equal(normalizeDarwinTmpPath(activeRecord.source_cwd), normalizeDarwinTmpPath(repo));
       assert.equal(normalizeDarwinTmpPath(activeRecord.worktree_cwd), normalizeDarwinTmpPath(worktreePath));
-      assert.equal(activeRecord.session_id.startsWith('omx-'), true);
+      assert.equal(activeRecord.session_id.startsWith('nomx-'), true);
       assert.equal(activeRecord.tmux_pane_id, '%77');
 
       const tmuxLog = normalizeDarwinTmpPath(await readFile(tmuxLogPath, 'utf-8'));
-      assert.match(tmuxLog, new RegExp(`-e OMX_ROOT=${escapeRegExp(normalizeDarwinTmpPath(activeRecord.run_dir))}`));
+      assert.match(tmuxLog, new RegExp(`-e NOMX_ROOT=${escapeRegExp(normalizeDarwinTmpPath(activeRecord.run_dir))}`));
       assert.match(tmuxLog, /-e OMXBOX_ACTIVE=1/);
-      assert.match(tmuxLog, new RegExp(`-e OMX_SOURCE_CWD=${escapeRegExp(normalizeDarwinTmpPath(repo))}`));
-      assert.match(tmuxLog, new RegExp(`-e OMX_MADMAX_DETACHED_CONTEXT=${escapeRegExp(activeRecord.context_key)}`));
+      assert.match(tmuxLog, new RegExp(`-e NOMX_SOURCE_CWD=${escapeRegExp(normalizeDarwinTmpPath(repo))}`));
+      assert.match(tmuxLog, new RegExp(`-e NOMX_MADMAX_DETACHED_CONTEXT=${escapeRegExp(activeRecord.context_key)}`));
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it('does not mutate a stale active-detached tmux session without OMX ownership proof', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-madmax-stale-active-'));
+  it('does not mutate a stale active-detached tmux session without NOMX ownership proof', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-madmax-stale-active-'));
     try {
       const runs = join(wd, 'runs');
       const activeDir = join(runs, 'active-detached');
@@ -655,7 +655,7 @@ exit 0
           argv: ['--madmax', '--tmux'],
           run_dir: wd,
           tmux_session_name: 'user-owned-session',
-          session_id: 'expected-omx-session-id',
+          session_id: 'expected-nomx-session-id',
           tmux_pane_id: '%99',
         })}\n`,
       );
@@ -690,7 +690,7 @@ case "$1" in
     exit 0
     ;;
   show-options)
-    if [ "$5" = '@omx_instance_id' ]; then
+    if [ "$5" = '@nomx_instance_id' ]; then
       printf 'different-session-id\n'
       exit 0
     fi
@@ -707,10 +707,10 @@ exit 0
 
       const result = runOmx(wd, ['--madmax', '--tmux'], {
         ...env,
-        OMX_RUNS_DIR: runs,
+        NOMX_RUNS_DIR: runs,
         OMXBOX_ACTIVE: '1',
-        OMX_MADMAX_DETACHED_CONTEXT: 'boxed-context-under-test',
-        OMX_LAUNCH_POLICY: 'direct',
+        NOMX_MADMAX_DETACHED_CONTEXT: 'boxed-context-under-test',
+        NOMX_LAUNCH_POLICY: 'direct',
         TMUX: '',
         TMUX_PANE: '',
       });
@@ -727,7 +727,7 @@ exit 0
   });
 
   it('does not reuse the same active-detached lock for independent --madmax --high launches', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-madmax-independent-high-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-madmax-independent-high-'));
     try {
       const runs = join(wd, 'runs');
       const { env, tmuxLogPath } = await createLaunchFixture(
@@ -748,8 +748,8 @@ exit 0
       );
       const baseEnv = {
         ...env,
-        OMX_RUNS_DIR: runs,
-        OMX_LAUNCH_POLICY: 'direct',
+        NOMX_RUNS_DIR: runs,
+        NOMX_LAUNCH_POLICY: 'direct',
         TMUX: '',
         TMUX_PANE: '',
       };
@@ -789,7 +789,7 @@ exit 0
   });
 
   it('allows distinct madmax detached launch contexts to create separate sessions', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-madmax-distinct-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-madmax-distinct-'));
     try {
       const runs = join(wd, 'runs');
       const { env, tmuxLogPath } = await createLaunchFixture(
@@ -810,8 +810,8 @@ exit 0
       );
       const baseEnv = {
         ...env,
-        OMX_RUNS_DIR: runs,
-        OMX_LAUNCH_POLICY: 'direct',
+        NOMX_RUNS_DIR: runs,
+        NOMX_LAUNCH_POLICY: 'direct',
         TMUX: '',
         TMUX_PANE: '',
       };
@@ -828,7 +828,7 @@ exit 0
   });
 
   it('launches --madmax through explicitly requested detached tmux so HUD bootstrap can run', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-tmux-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-tmux-'));
     try {
       const home = join(wd, 'home');
       const fakeBin = join(wd, 'bin');
@@ -890,10 +890,10 @@ exit 0
         {
           HOME: home,
           PATH: `${fakeBin}:/usr/bin:/bin`,
-          OMX_AUTO_UPDATE: '0',
-          OMX_NOTIFY_FALLBACK: '0',
-          OMX_HOOK_DERIVED_SIGNALS: '0',
-          OMX_LAUNCH_POLICY: 'direct',
+          NOMX_AUTO_UPDATE: '0',
+          NOMX_NOTIFY_FALLBACK: '0',
+          NOMX_HOOK_DERIVED_SIGNALS: '0',
+          NOMX_LAUNCH_POLICY: 'direct',
           TMUX: '',
           TMUX_PANE: '',
         },
@@ -918,8 +918,8 @@ exit 0
     }
   });
 
-  it('preserves parent provider env without replaying terminal state over an OMX-created tmux pane', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-tmux-parent-env-'));
+  it('preserves parent provider env without replaying terminal state over an NOMX-created tmux pane', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-tmux-parent-env-'));
     try {
       const home = join(wd, 'home');
       const fakeBin = join(wd, 'bin');
@@ -1007,9 +1007,9 @@ exit 0
         {
           HOME: home,
           PATH: `${fakeBin}:/usr/bin:/bin`,
-          OMX_AUTO_UPDATE: '0',
-          OMX_NOTIFY_FALLBACK: '0',
-          OMX_HOOK_DERIVED_SIGNALS: '0',
+          NOMX_AUTO_UPDATE: '0',
+          NOMX_NOTIFY_FALLBACK: '0',
+          NOMX_HOOK_DERIVED_SIGNALS: '0',
           TERM: 'xterm-256color',
           TERM_PROGRAM: 'WarpTerminal',
           TERM_PROGRAM_VERSION: 'outer-terminal-version',
@@ -1057,7 +1057,7 @@ exit 0
   });
 
   it('launches directly with --direct and skips detached tmux bootstrap', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-direct-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-direct-'));
     try {
       const { env, tmuxLogPath } = await createLaunchFixture(
         wd,
@@ -1093,8 +1093,8 @@ exit 0
     }
   });
 
-  it('launches directly from OMX_LAUNCH_POLICY=direct and skips detached tmux bootstrap', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-env-direct-'));
+  it('launches directly from NOMX_LAUNCH_POLICY=direct and skips detached tmux bootstrap', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-env-direct-'));
     try {
       const { env, tmuxLogPath } = await createLaunchFixture(
         wd,
@@ -1109,7 +1109,7 @@ exit 0
         ['--madmax'],
         {
           ...env,
-          OMX_LAUNCH_POLICY: 'direct',
+          NOMX_LAUNCH_POLICY: 'direct',
           TMUX: '',
           TMUX_PANE: '',
         },
@@ -1127,7 +1127,7 @@ exit 0
   });
 
   it('launches directly inside tmux with --direct and skips HUD/mouse/extended-key tmux calls', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-inside-tmux-direct-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-inside-tmux-direct-'));
     try {
       const { env, tmuxLogPath } = await createLaunchFixture(
         wd,
@@ -1159,7 +1159,7 @@ exit 0
   });
 
   it('preserves HUD split behavior inside tmux when no direct override is present', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-inside-tmux-managed-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-inside-tmux-managed-'));
     try {
       const { env, tmuxLogPath } = await createLaunchFixture(
         wd,
@@ -1217,7 +1217,7 @@ exit 0
   });
 
   it('treats a missing tmux server socket as safe for detached tmux startup', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-tmux-missing-socket-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-tmux-missing-socket-'));
     try {
       const home = join(wd, 'home');
       const fakeBin = join(wd, 'bin');
@@ -1283,9 +1283,9 @@ exit 0
         {
           HOME: home,
           PATH: `${fakeBin}:/usr/bin:/bin`,
-          OMX_AUTO_UPDATE: '0',
-          OMX_NOTIFY_FALLBACK: '0',
-          OMX_HOOK_DERIVED_SIGNALS: '0',
+          NOMX_AUTO_UPDATE: '0',
+          NOMX_NOTIFY_FALLBACK: '0',
+          NOMX_HOOK_DERIVED_SIGNALS: '0',
           TMUX: '',
           TMUX_PANE: '',
         },
@@ -1304,7 +1304,7 @@ exit 0
   });
 
   it('falls back directly when tmux is installed but the server socket is unusable', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-tmux-stale-socket-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-tmux-stale-socket-'));
     try {
       const home = join(wd, 'home');
       const fakeBin = join(wd, 'bin');
@@ -1348,9 +1348,9 @@ exit 1
         {
           HOME: home,
           PATH: `${fakeBin}:/usr/bin:/bin`,
-          OMX_AUTO_UPDATE: '0',
-          OMX_NOTIFY_FALLBACK: '0',
-          OMX_HOOK_DERIVED_SIGNALS: '0',
+          NOMX_AUTO_UPDATE: '0',
+          NOMX_NOTIFY_FALLBACK: '0',
+          NOMX_HOOK_DERIVED_SIGNALS: '0',
           TMUX: '',
           TMUX_PANE: '',
         },
@@ -1369,7 +1369,7 @@ exit 1
   });
 
   it('rolls back and falls back directly when attaching the detached tmux session fails', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-tmux-attach-fail-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-tmux-attach-fail-'));
     try {
       const home = join(wd, 'home');
       const fakeBin = join(wd, 'bin');
@@ -1434,9 +1434,9 @@ exit 0
         {
           HOME: home,
           PATH: `${fakeBin}:/usr/bin:/bin`,
-          OMX_AUTO_UPDATE: '0',
-          OMX_NOTIFY_FALLBACK: '0',
-          OMX_HOOK_DERIVED_SIGNALS: '0',
+          NOMX_AUTO_UPDATE: '0',
+          NOMX_NOTIFY_FALLBACK: '0',
+          NOMX_HOOK_DERIVED_SIGNALS: '0',
           TMUX: '',
           TMUX_PANE: '',
         },
@@ -1455,7 +1455,7 @@ exit 0
   });
 
   it('rolls back with guidance when WSL Windows Terminal attach exits without attaching', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-tmux-attach-noop-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-tmux-attach-noop-'));
     try {
       const { env, tmuxLogPath } = await createLaunchFixture(
         wd,
@@ -1522,7 +1522,7 @@ exit 0
   });
 
   it('preserves the requested cwd through detached tmux launch when an unsupported SHELL value falls back away from rc-driven cwd drift', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-tmux-cwd-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-tmux-cwd-'));
     try {
       const home = join(wd, 'home');
       const fakeBin = join(wd, 'bin');
@@ -1599,9 +1599,9 @@ exit 0
           HOME: home,
           SHELL: '/definitely/missing-shell',
           PATH: `${fakeBin}:/usr/bin:/bin`,
-          OMX_AUTO_UPDATE: '0',
-          OMX_NOTIFY_FALLBACK: '0',
-          OMX_HOOK_DERIVED_SIGNALS: '0',
+          NOMX_AUTO_UPDATE: '0',
+          NOMX_NOTIFY_FALLBACK: '0',
+          NOMX_HOOK_DERIVED_SIGNALS: '0',
           TMUX: '',
           TMUX_PANE: '',
         },
@@ -1619,7 +1619,7 @@ exit 0
   });
 
   it('falls back to /bin/sh for detached tmux launch when SHELL drifts to an unsupported path', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-launch-tmux-shell-fallback-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-launch-tmux-shell-fallback-'));
     try {
       const home = join(wd, 'home');
       const fakeBin = join(wd, 'bin');
@@ -1694,9 +1694,9 @@ exit 0
           HOME: home,
           SHELL: '/bin/not-a-real-shell',
           PATH: `${fakeBin}:/usr/bin:/bin`,
-          OMX_AUTO_UPDATE: '0',
-          OMX_NOTIFY_FALLBACK: '0',
-          OMX_HOOK_DERIVED_SIGNALS: '0',
+          NOMX_AUTO_UPDATE: '0',
+          NOMX_NOTIFY_FALLBACK: '0',
+          NOMX_HOOK_DERIVED_SIGNALS: '0',
           TMUX: '',
           TMUX_PANE: '',
         },

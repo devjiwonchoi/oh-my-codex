@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "token": "<!-- OMX:RUNTIME:START -->",
+      "kind": "managed_marker",
+      "file_patterns": ["templates/AGENTS.md", "src/**"],
+      "rationale": "Existing overlays use this exact marker as their replacement boundary.",
+      "removal_policy": "Remove only through a versioned overlay-schema migration.",
+      "schema_version": 1
+    },
+    {
+      "token": "<!-- OMX:RUNTIME:END -->",
+      "kind": "managed_marker",
+      "file_patterns": ["templates/AGENTS.md", "src/**"],
+      "rationale": "Existing overlays use this exact marker as their replacement boundary.",
+      "removal_policy": "Remove only through a versioned overlay-schema migration.",
+      "schema_version": 1
+    },
+    {
+      "token": "<!-- OMX:TEAM:WORKER:START -->",
+      "kind": "managed_marker",
+      "file_patterns": ["templates/AGENTS.md", "src/**"],
+      "rationale": "Existing team worker overlays use this exact marker as their replacement boundary.",
+      "removal_policy": "Remove only through a versioned overlay-schema migration.",
+      "schema_version": 1
+    },
+    {
+      "token": "<!-- OMX:TEAM:WORKER:END -->",
+      "kind": "managed_marker",
+      "file_patterns": ["templates/AGENTS.md", "src/**"],
+      "rationale": "Existing team worker overlays use this exact marker as their replacement boundary.",
+      "removal_policy": "Remove only through a versioned overlay-schema migration.",
+      "schema_version": 1
+    },
+    {
+      "token": "<!-- OMX:TEAM:ROLE:START -->",
+      "kind": "managed_marker",
+      "file_patterns": ["src/**"],
+      "rationale": "Existing team role overlays use this exact marker as their replacement boundary.",
+      "removal_policy": "Remove only through a versioned overlay-schema migration.",
+      "schema_version": 1
+    },
+    {
+      "token": "<!-- OMX:TEAM:ROLE:END -->",
+      "kind": "managed_marker",
+      "file_patterns": ["src/**"],
+      "rationale": "Existing team role overlays use this exact marker as their replacement boundary.",
+      "removal_policy": "Remove only through a versioned overlay-schema migration.",
+      "schema_version": 1
+    },
+    {
+      "token": "owner_omx_session_id",
+      "kind": "persisted_field",
+      "file_patterns": ["src/**"],
+      "rationale": "Persisted session ownership records depend on this v1 field name.",
+      "removal_policy": "Dual-read and rewrite through a versioned state migration before removal.",
+      "schema_version": 1
+    },
+    {
+      "token": "omx_adapted",
+      "kind": "persisted_field",
+      "file_patterns": ["src/**"],
+      "rationale": "Native role-intent provenance is hashed and persisted with this field.",
+      "removal_policy": "Change only with a versioned provenance/hash-domain migration.",
+      "schema_version": 1
+    },
+    {
+      "token": "omx-notify-fallback-delivery-v1",
+      "kind": "hash_domain",
+      "file_patterns": ["src/scripts/notify-fallback-delivery.ts", "src/**/__tests__/**"],
+      "rationale": "Notification receipt and deduplication hashes depend on this exact domain separator.",
+      "removal_policy": "Change only with a versioned receipt migration and dual-domain verification.",
+      "schema_version": 1
+    }
+  ]
+}

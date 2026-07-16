@@ -96,8 +96,8 @@ function readMatchingPaths(dir: string, pattern: RegExp): string[] {
 }
 
 export function readPlanningArtifacts(cwd: string): PlanningArtifacts {
-  const plansDir = join(cwd, '.omx', 'plans');
-  const specsDir = join(cwd, '.omx', 'specs');
+  const plansDir = join(cwd, '.nomx', 'plans');
+  const specsDir = join(cwd, '.nomx', 'specs');
 
   return {
     plansDir,
@@ -393,9 +393,9 @@ type LaunchHintSelection =
 type LaunchHintMatchFilter = (match: RegExpMatchArray, task: string) => boolean;
 
 const TEAM_LAUNCH_HINT_PATTERN_SOURCE =
-  String.raw`(?<command>(?:omx\s+team|\$team)\s+(?<ralph>ralph\s+)?(?<count>\d+)(?::(?<role>[a-z][a-z0-9-]*))?\s+(?<task>"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))`;
+  String.raw`(?<command>(?:nomx\s+team|\$team)\s+(?<ralph>ralph\s+)?(?<count>\d+)(?::(?<role>[a-z][a-z0-9-]*))?\s+(?<task>"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))`;
 const RALPH_LAUNCH_HINT_PATTERN_SOURCE =
-  String.raw`(?<command>(?:omx\s+ralph|\$ralph)\s+(?<task>"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))`;
+  String.raw`(?<command>(?:nomx\s+ralph|\$ralph)\s+(?<task>"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))`;
 
 function launchHintPattern(mode: 'team' | 'ralph'): RegExp {
   return mode === 'team'

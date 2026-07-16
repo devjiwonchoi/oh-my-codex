@@ -56,7 +56,7 @@ async function readPluginManifest(
   const pluginManifestPath = join(
     root,
     "plugins",
-    "oh-my-codex",
+    "nomx",
     ".codex-plugin",
     "plugin.json",
   );
@@ -116,7 +116,7 @@ function assertTomlStructure(
     });
   }
 
-  const metadataHeading = "## OMX Agent Metadata";
+  const metadataHeading = "## NOMX Agent Metadata";
   const metadataIndex = instructions.lastIndexOf(metadataHeading);
   if (metadataIndex < 0) {
     throw errorBlock("native_agent_toml_invalid", {
@@ -253,7 +253,7 @@ export async function verifyNativeAgents(
       ? `${name} prompt fixture`
       : await readFile(promptPath, "utf-8");
     const toml = generateAgentToml(agent, promptContent, {
-      codexHomeOverride: join(root, ".omx", "verify-native-agents-codex-home"),
+      codexHomeOverride: join(root, ".nomx", "verify-native-agents-codex-home"),
     });
     assertTomlStructure(name, agent, toml);
   }

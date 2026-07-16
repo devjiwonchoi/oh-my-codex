@@ -46,9 +46,9 @@ export interface DiscordNotificationConfig {
 /** Discord Bot API configuration (bot token + channel ID) */
 export interface DiscordBotNotificationConfig {
   enabled: boolean;
-  /** Discord bot token (or env var: OMX_DISCORD_NOTIFIER_BOT_TOKEN) */
+  /** Discord bot token (or env var: NOMX_DISCORD_NOTIFIER_BOT_TOKEN) */
   botToken?: string;
-  /** Channel ID to send messages to (or env var: OMX_DISCORD_NOTIFIER_CHANNEL) */
+  /** Channel ID to send messages to (or env var: NOMX_DISCORD_NOTIFIER_CHANNEL) */
   channelId?: string;
   /** Optional mention to prepend to messages (e.g. "<@123456>" for user, "<@&789>" for role) */
   mention?: string;
@@ -111,7 +111,7 @@ export interface EventNotificationConfig {
   webhook?: WebhookNotificationConfig;
 }
 
-/** Top-level notification configuration (stored in .omx-config.json) */
+/** Top-level notification configuration (stored in .nomx-config.json) */
 export interface FullNotificationConfig {
   /** Global enable/disable for all notifications */
   enabled: boolean;
@@ -155,7 +155,7 @@ export interface FullNotificationPayload {
   projectPath?: string;
   /** Basename of the project directory */
   projectName?: string;
-  /** Active OMX modes during this session */
+  /** Active NOMX modes during this session */
   modesUsed?: string[];
   /** Context summary of what was done */
   contextSummary?: string;

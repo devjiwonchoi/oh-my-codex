@@ -10,7 +10,7 @@ function isolatedChildEnv(fakeBinDir: string): NodeJS.ProcessEnv {
   const tmuxBin = join(fakeBinDir, 'tmux');
   return {
     PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
-    OMX_TEST_TMUX_BIN: tmuxBin,
+    NOMX_TEST_TMUX_BIN: tmuxBin,
     HOME: process.env.HOME,
     TMPDIR: process.env.TMPDIR,
     TEMP: process.env.TEMP,
@@ -64,7 +64,7 @@ function runSendPaneInputInChild(params: {
   });
   const script = `
     const input = ${payload};
-    process.env.OMX_TEST_TMUX_BIN = input.tmuxBin;
+    process.env.NOMX_TEST_TMUX_BIN = input.tmuxBin;
     process.env.PATH = ${JSON.stringify('__CHILD_PATH__')};
     const { sendPaneInput } = await import(${JSON.stringify(params.moduleUrl)});
     const result = await sendPaneInput(input);
@@ -89,7 +89,7 @@ function runEvaluatePaneInjectionReadinessInChild(params: {
   });
   const script = `
     const input = ${payload};
-    process.env.OMX_TEST_TMUX_BIN = input.tmuxBin;
+    process.env.NOMX_TEST_TMUX_BIN = input.tmuxBin;
     process.env.PATH = ${JSON.stringify('__CHILD_PATH__')};
     const { evaluatePaneInjectionReadiness } = await import(${JSON.stringify(params.moduleUrl)});
     const result = await evaluatePaneInjectionReadiness(input.paneTarget, input.options);
@@ -103,7 +103,7 @@ function runEvaluatePaneInjectionReadinessInChild(params: {
 
 describe('notify-hook team tmux guard bridge', () => {
   it('submits without typing when typePrompt=false', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-team-tmux-guard-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-team-tmux-guard-'));
     const fakeBinDir = join(cwd, 'fake-bin');
     const tmuxLogPath = join(cwd, 'tmux.log');
 
@@ -139,7 +139,7 @@ describe('notify-hook team tmux guard bridge', () => {
   });
 
   it('queue-first submits with Tab before C-m when requested', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-team-tmux-guard-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-team-tmux-guard-'));
     const fakeBinDir = join(cwd, 'fake-bin');
     const tmuxLogPath = join(cwd, 'tmux.log');
 
@@ -165,22 +165,22 @@ describe('notify-hook team tmux guard bridge', () => {
 
       const lines = (await readFile(tmuxLogPath, 'utf-8')).trim().split('\n').filter(Boolean);
       assert.equal(lines.length, 8);
-      assert.match(lines[0], /\[set-buffer\]\[-b\]\[omx-pane-input-/);
+      assert.match(lines[0], /\[set-buffer\]\[-b\]\[nomx-pane-input-/);
       assert.match(lines[0], /\[--\]\[Read \/tmp\/team\/mailbox\/leader-fixed\.json/);
-      assert.match(lines[1], /\[show-buffer\]\[-b\]\[omx-pane-input-/);
+      assert.match(lines[1], /\[show-buffer\]\[-b\]\[nomx-pane-input-/);
       assert.match(lines[2], /\[send-keys\]\[-t\]\[%42\]\[C-u\]/);
-      assert.match(lines[3], /\[paste-buffer\]\[-t\]\[%42\]\[-b\]\[omx-pane-input-.*\]\[-p\]\[-d\]/);
+      assert.match(lines[3], /\[paste-buffer\]\[-t\]\[%42\]\[-b\]\[nomx-pane-input-.*\]\[-p\]\[-d\]/);
       assert.match(lines[4], /\[send-keys\]\[-t\]\[%42\]\[Tab\]/);
       assert.match(lines[5], /\[send-keys\]\[-t\]\[%42\]\[C-m\]/);
       assert.match(lines[6], /\[send-keys\]\[-t\]\[%42\]\[C-m\]/);
-      assert.match(lines[7], /\[delete-buffer\]\[-b\]\[omx-pane-input-/);
+      assert.match(lines[7], /\[delete-buffer\]\[-b\]\[nomx-pane-input-/);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it('types then submits when typePrompt=true', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-team-tmux-guard-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-team-tmux-guard-'));
     const fakeBinDir = join(cwd, 'fake-bin');
     const tmuxLogPath = join(cwd, 'tmux.log');
 
@@ -205,21 +205,21 @@ describe('notify-hook team tmux guard bridge', () => {
 
       const log = await readFile(tmuxLogPath, 'utf-8');
       assert.doesNotMatch(log, /load-buffer/);
-      assert.match(log, /\[set-buffer\]\[-b\]\[omx-pane-input-.*\]\[--\]\[hello bridge\]/);
-      assert.match(log, /\[show-buffer\]\[-b\]\[omx-pane-input-/);
+      assert.match(log, /\[set-buffer\]\[-b\]\[nomx-pane-input-.*\]\[--\]\[hello bridge\]/);
+      assert.match(log, /\[show-buffer\]\[-b\]\[nomx-pane-input-/);
       assert.match(log, /\[send-keys\]\[-t\]\[%42\]\[C-u\]/);
-      assert.match(log, /\[paste-buffer\]\[-t\]\[%42\]\[-b\]\[omx-pane-input-.*\]\[-p\]\[-d\]/);
+      assert.match(log, /\[paste-buffer\]\[-t\]\[%42\]\[-b\]\[nomx-pane-input-.*\]\[-p\]\[-d\]/);
       const lines = log.trim().split('\n').filter(Boolean);
       assert.equal(lines.length, 6);
       assert.match(lines[4], /\[send-keys\]\[-t\]\[%42\]\[C-m\]/);
-      assert.match(lines[5], /\[delete-buffer\]\[-b\]\[omx-pane-input-/);
+      assert.match(lines[5], /\[delete-buffer\]\[-b\]\[nomx-pane-input-/);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it('aborts before paste when buffer setup fails so stale tmux content is not reused', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-team-tmux-guard-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-team-tmux-guard-'));
     const fakeBinDir = join(cwd, 'fake-bin');
     const tmuxLogPath = join(cwd, 'tmux.log');
 
@@ -263,7 +263,7 @@ exit 0
       assert.equal(parsed.reason, 'buffer_set_failed');
 
       const log = await readFile(tmuxLogPath, 'utf-8');
-      assert.match(log, /\[set-buffer\]\[-b\]\[omx-pane-input-/);
+      assert.match(log, /\[set-buffer\]\[-b\]\[nomx-pane-input-/);
       assert.doesNotMatch(log, /show-buffer/);
       assert.doesNotMatch(log, /paste-buffer/);
       assert.doesNotMatch(log, /\[send-keys\]\[-t\]\[%42\]\[C-m\]/);
@@ -273,7 +273,7 @@ exit 0
   });
 
   it('deletes the named buffer when verification fails after setup', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-team-tmux-guard-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-team-tmux-guard-'));
     const fakeBinDir = join(cwd, 'fake-bin');
     const tmuxLogPath = join(cwd, 'tmux.log');
 
@@ -315,9 +315,9 @@ exit 0
       assert.equal(parsed.reason, 'buffer_show_failed');
 
       const lines = (await readFile(tmuxLogPath, 'utf-8')).trim().split('\n').filter(Boolean);
-      assert.match(lines[0] ?? '', /\[set-buffer\]\[-b\]\[omx-pane-input-/);
-      assert.match(lines[1] ?? '', /\[show-buffer\]\[-b\]\[omx-pane-input-/);
-      assert.match(lines[2] ?? '', /\[delete-buffer\]\[-b\]\[omx-pane-input-/);
+      assert.match(lines[0] ?? '', /\[set-buffer\]\[-b\]\[nomx-pane-input-/);
+      assert.match(lines[1] ?? '', /\[show-buffer\]\[-b\]\[nomx-pane-input-/);
+      assert.match(lines[2] ?? '', /\[delete-buffer\]\[-b\]\[nomx-pane-input-/);
       assert.equal(lines.length, 3);
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -325,7 +325,7 @@ exit 0
   });
 
   it('deletes the named buffer when paste fails after verification', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-team-tmux-guard-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-team-tmux-guard-'));
     const fakeBinDir = join(cwd, 'fake-bin');
     const tmuxLogPath = join(cwd, 'tmux.log');
     const bufferPath = `${tmuxLogPath}.buffer`;
@@ -376,11 +376,11 @@ exit 0
       assert.equal(parsed.reason, 'buffer_paste_failed');
 
       const lines = (await readFile(tmuxLogPath, 'utf-8')).trim().split('\n').filter(Boolean);
-      assert.match(lines[0] ?? '', /\[set-buffer\]\[-b\]\[omx-pane-input-/);
-      assert.match(lines[1] ?? '', /\[show-buffer\]\[-b\]\[omx-pane-input-/);
+      assert.match(lines[0] ?? '', /\[set-buffer\]\[-b\]\[nomx-pane-input-/);
+      assert.match(lines[1] ?? '', /\[show-buffer\]\[-b\]\[nomx-pane-input-/);
       assert.match(lines[2] ?? '', /\[send-keys\]\[-t\]\[%42\]\[C-u\]/);
-      assert.match(lines[3] ?? '', /\[paste-buffer\]\[-t\]\[%42\]\[-b\]\[omx-pane-input-.*\]\[-p\]\[-d\]/);
-      assert.match(lines[4] ?? '', /\[delete-buffer\]\[-b\]\[omx-pane-input-/);
+      assert.match(lines[3] ?? '', /\[paste-buffer\]\[-t\]\[%42\]\[-b\]\[nomx-pane-input-.*\]\[-p\]\[-d\]/);
+      assert.match(lines[4] ?? '', /\[delete-buffer\]\[-b\]\[nomx-pane-input-/);
       assert.equal(lines.length, 5);
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -388,7 +388,7 @@ exit 0
   });
 
   it('reports pane_not_ready with capture context when the pane is not input-ready', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-team-tmux-guard-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-team-tmux-guard-'));
     const fakeBinDir = join(cwd, 'fake-bin');
     const tmuxLogPath = join(cwd, 'tmux.log');
 
@@ -442,7 +442,7 @@ exit 0
   });
 
   it('treats capture-pane failure as non-blocking for a live codex pane', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-team-tmux-guard-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-team-tmux-guard-'));
     const fakeBinDir = join(cwd, 'fake-bin');
     const tmuxLogPath = join(cwd, 'tmux.log');
 

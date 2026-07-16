@@ -94,14 +94,14 @@ describe('team commit hygiene vocabulary', () => {
 
 describe('team commit hygiene artifact root', () => {
   it('derives leader-facing artifacts from persisted team metadata instead of worker cwd', () => {
-    const leaderCwd = '/tmp/omx-leader';
-    const workerCwd = `${leaderCwd}/.omx/team/demo/worktrees/worker-3`;
+    const leaderCwd = '/tmp/nomx-leader';
+    const workerCwd = `${leaderCwd}/.nomx/team/demo/worktrees/worker-3`;
 
     assert.equal(
       resolveTeamCommitHygieneArtifactCwd({
         workers: [],
         leader_cwd: leaderCwd,
-        team_state_root: `${leaderCwd}/.omx/state`,
+        team_state_root: `${leaderCwd}/.nomx/state`,
       }, workerCwd),
       leaderCwd,
     );
@@ -118,7 +118,7 @@ describe('team commit hygiene artifact root', () => {
             worktree_path: workerCwd,
           },
         ],
-        team_state_root: `${leaderCwd}/.omx/state`,
+        team_state_root: `${leaderCwd}/.nomx/state`,
       }, workerCwd),
       leaderCwd,
     );
@@ -126,7 +126,7 @@ describe('team commit hygiene artifact root', () => {
     assert.equal(
       resolveTeamCommitHygieneArtifactCwd({
         workers: [],
-        team_state_root: `${leaderCwd}/.omx/state`,
+        team_state_root: `${leaderCwd}/.nomx/state`,
       }, workerCwd),
       leaderCwd,
     );

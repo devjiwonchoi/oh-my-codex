@@ -1,14 +1,14 @@
 {
-  "name": "oh-my-codex-local",
+  "name": "nomx-local",
   "interface": {
-    "displayName": "oh-my-codex Local Plugins"
+    "displayName": "NOMX Local Plugins"
   },
   "plugins": [
     {
-      "name": "oh-my-codex",
+      "name": "nomx",
       "source": {
         "source": "local",
-        "path": "./plugins/oh-my-codex"
+        "path": "./plugins/nomx"
       },
       "policy": {
         "installation": "AVAILABLE",

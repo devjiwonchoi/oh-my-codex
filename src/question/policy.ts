@@ -38,7 +38,7 @@ function safeString(value: unknown): string {
 }
 
 function hasWorkerContext(env: NodeJS.ProcessEnv): boolean {
-  return safeString(env.OMX_TEAM_WORKER).trim() !== '';
+  return safeString(env.NOMX_TEAM_WORKER).trim() !== '';
 }
 
 function onlyControlledAutopilotQuestionBlock(blocked: string[]): boolean {
@@ -56,7 +56,7 @@ export async function evaluateQuestionPolicy(
       allowed: false,
       sessionId,
       code: 'worker_blocked',
-      message: 'nomx question is unavailable for OMX team workers; only non-team leader sessions may ask user questions.',
+      message: 'nomx question is unavailable for NOMX team workers; only non-team leader sessions may ask user questions.',
       fallbackAllowed: false,
       activeModes: [],
       activeSkills: [],

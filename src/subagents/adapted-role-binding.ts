@@ -6,7 +6,7 @@ import {
   isCanonicalCorrelationToken,
   isRoleIntentOwnedByCwd,
   listBoundAdaptedRoleIntents,
-  OMX_ADAPTED_PROVENANCE,
+  NOMX_ADAPTED_PROVENANCE,
   type SubagentTrackingState,
 } from './tracker.js';
 import { writeRoleRoutingMarker } from './role-routing-marker.js';
@@ -15,7 +15,7 @@ export const NATIVE_SUBAGENT_ROLE_ROUTING_MARKER_TTL_MS = 60 * 60_000;
 
 type AdaptedRoleBind = (
   state: SubagentTrackingState,
-  intent: { role: string; provenanceKind: typeof OMX_ADAPTED_PROVENANCE },
+  intent: { role: string; provenanceKind: typeof NOMX_ADAPTED_PROVENANCE },
 ) => SubagentTrackingState;
 
 function normalizeNowMs(nowMs: number | undefined): number {
@@ -35,7 +35,7 @@ function buildAdaptedRoleRoutingMarker(
     parent_thread_id: parentThreadId,
     observed_at: new Date(nowMs).toISOString(),
     expires_at: new Date(nowMs + NATIVE_SUBAGENT_ROLE_ROUTING_MARKER_TTL_MS).toISOString(),
-    evidence: 'validated OMX adapted role intent correlated to an untyped native child',
+    evidence: 'validated NOMX adapted role intent correlated to an untyped native child',
   };
 }
 
@@ -44,8 +44,8 @@ export function recoverAdaptedRoleBindings(cwd: string, stateDir: string, nowMs?
   const canonicalOrigin = canonicalizeOriginCwd(cwd);
   if (canonicalOrigin === null) return;
   for (const intent of listBoundAdaptedRoleIntents(cwd, normalizedNowMs, true)) {
-    // Fail-closed origin authentication: under a shared OMX_ROOT/OMX_STATE_ROOT/
-    // OMX_TEAM_STATE_ROOT the tracker is shared across workspaces. Only recover, publish a
+    // Fail-closed origin authentication: under a shared NOMX_ROOT/NOMX_STATE_ROOT/
+    // NOMX_TEAM_STATE_ROOT the tracker is shared across workspaces. Only recover, publish a
     // marker for, and complete an intent that belongs to THIS canonical origin workspace; a
     // foreign workspace's retained journal is left untouched.
     if (!isRoleIntentOwnedByCwd(cwd, intent)) continue;

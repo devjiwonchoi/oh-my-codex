@@ -11,7 +11,7 @@ import {
 } from '../worktree-tool-context.js';
 
 async function initRepo(): Promise<string> {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-codegraph-context-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-codegraph-context-'));
   execFileSync('git', ['init'], { cwd, stdio: 'ignore' });
   execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd, stdio: 'ignore' });
   execFileSync('git', ['config', 'user.name', 'Test User'], { cwd, stdio: 'ignore' });
@@ -47,7 +47,7 @@ describe('resolveWorktreeToolContext', () => {
       assert.equal(context.worktreeRoot, worktree);
       assert.equal(context.codeGraphMode, 'shared');
       assert.equal(context.codeGraphProjectPath, repo);
-      assert.equal(worktreeToolContextEnv(context).OMX_WORKTREE_SCOPE, 'launch');
+      assert.equal(worktreeToolContextEnv(context).NOMX_WORKTREE_SCOPE, 'launch');
       assert.match(renderCodeGraphInstructions(context), /shared leader index/);
       assert.match(renderCodeGraphInstructions(context), /not branch-accurate for worktree-only changes/);
     } finally {
@@ -58,10 +58,10 @@ describe('resolveWorktreeToolContext', () => {
   it('uses nested team leader CodeGraph as shared context', async () => {
     const repo = await initRepo();
     try {
-      const leaderWorktree = join(repo, '.omx', 'team', 'parent', 'worktrees', 'worker-1');
+      const leaderWorktree = join(repo, '.nomx', 'team', 'parent', 'worktrees', 'worker-1');
       addWorktree(repo, leaderWorktree, 'parent/worker-1');
       await writeCodeGraphDb(leaderWorktree);
-      const nestedWorker = join(repo, '.omx', 'team', 'nested', 'worktrees', 'worker-1');
+      const nestedWorker = join(repo, '.nomx', 'team', 'nested', 'worktrees', 'worker-1');
       addWorktree(repo, nestedWorker, 'nested/worker-1');
 
       const context = resolveWorktreeToolContext({
@@ -73,7 +73,7 @@ describe('resolveWorktreeToolContext', () => {
       });
       assert.equal(context.codeGraphMode, 'shared');
       assert.equal(context.codeGraphProjectPath, leaderWorktree);
-      assert.equal(worktreeToolContextEnv(context).OMX_REPO_ROOT, leaderWorktree);
+      assert.equal(worktreeToolContextEnv(context).NOMX_REPO_ROOT, leaderWorktree);
     } finally {
       await rm(repo, { recursive: true, force: true });
     }
@@ -118,11 +118,11 @@ describe('resolveWorktreeToolContext', () => {
       const worktree = siblingWorktreePath(repo, 'explicit-modes');
       addWorktree(repo, worktree, 'feat/explicit-modes');
 
-      assert.equal(resolveWorktreeToolContext({ cwd: worktree, scope: 'launch', repoRoot: repo, worktreeRoot: worktree, env: { OMX_CODEGRAPH_MODE: 'shared' } }).codeGraphMode, 'shared');
-      assert.equal(resolveWorktreeToolContext({ cwd: worktree, scope: 'launch', repoRoot: repo, worktreeRoot: worktree, env: { OMX_CODEGRAPH_MODE: 'local' } }).codeGraphMode, 'local');
-      assert.equal(resolveWorktreeToolContext({ cwd: worktree, scope: 'launch', repoRoot: repo, worktreeRoot: worktree, env: { OMX_CODEGRAPH_MODE: 'auto' } }).codeGraphMode, 'shared');
-      assert.equal(resolveWorktreeToolContext({ cwd: worktree, scope: 'launch', repoRoot: repo, worktreeRoot: worktree, env: { OMX_CODEGRAPH_MODE: 'off' } }).codeGraphMode, 'off');
-      assert.equal(resolveWorktreeToolContext({ cwd: worktree, scope: 'launch', repoRoot: repo, worktreeRoot: worktree, env: { OMX_CODEGRAPH_MODE: 'shared', OMX_CODEGRAPH_REQUESTED_MODE: 'auto' } }).codeGraphMode, 'shared');
+      assert.equal(resolveWorktreeToolContext({ cwd: worktree, scope: 'launch', repoRoot: repo, worktreeRoot: worktree, env: { NOMX_CODEGRAPH_MODE: 'shared' } }).codeGraphMode, 'shared');
+      assert.equal(resolveWorktreeToolContext({ cwd: worktree, scope: 'launch', repoRoot: repo, worktreeRoot: worktree, env: { NOMX_CODEGRAPH_MODE: 'local' } }).codeGraphMode, 'local');
+      assert.equal(resolveWorktreeToolContext({ cwd: worktree, scope: 'launch', repoRoot: repo, worktreeRoot: worktree, env: { NOMX_CODEGRAPH_MODE: 'auto' } }).codeGraphMode, 'shared');
+      assert.equal(resolveWorktreeToolContext({ cwd: worktree, scope: 'launch', repoRoot: repo, worktreeRoot: worktree, env: { NOMX_CODEGRAPH_MODE: 'off' } }).codeGraphMode, 'off');
+      assert.equal(resolveWorktreeToolContext({ cwd: worktree, scope: 'launch', repoRoot: repo, worktreeRoot: worktree, env: { NOMX_CODEGRAPH_MODE: 'shared', NOMX_CODEGRAPH_REQUESTED_MODE: 'auto' } }).codeGraphMode, 'shared');
     } finally {
       await rm(repo, { recursive: true, force: true });
     }

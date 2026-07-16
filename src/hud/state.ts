@@ -1,14 +1,14 @@
 /**
- * OMX HUD - State file readers
+ * NOMX HUD - State file readers
  *
- * Reads .omx/state/ files to build HUD render context.
+ * Reads .nomx/state/ files to build HUD render context.
  */
 
 import { readFile } from 'fs/promises';
 import { execFileSync } from 'child_process';
 import { join, basename } from 'path';
 import { findGitLayout, readGitLayoutFile } from '../utils/git-layout.js';
-import { resolveOmxDisplayVersionSync } from '../utils/version.js';
+import { resolveNomxDisplayVersionSync } from '../utils/version.js';
 import { getBaseStateDir, getStateFilePath, readCurrentSessionId, resolveRuntimeStateScope } from '../mcp/state-paths.js';
 import { teamReadPhase as readTeamPhase } from '../team/team-ops.js';
 
@@ -176,7 +176,7 @@ function isHudUnresolvedUltragoalGoal(goal: NormalizedUltragoalGoal, goals: Norm
 }
 
 export async function readUltragoalState(cwd: string): Promise<UltragoalStateForHud | null> {
-  const plan = await readJsonFile<RawUltragoalPlan>(join(cwd, '.omx', 'ultragoal', 'goals.json'));
+  const plan = await readJsonFile<RawUltragoalPlan>(join(cwd, '.nomx', 'ultragoal', 'goals.json'));
   if (!plan || typeof plan !== 'object' || !Array.isArray(plan.goals)) return null;
 
   const goals = plan.goals.map(normalizeUltragoalGoal).filter((goal): goal is NormalizedUltragoalGoal => goal !== null);
@@ -293,7 +293,7 @@ export async function readTeamState(cwd: string): Promise<TeamStateForHud | null
 }
 
 export async function readMetrics(cwd: string): Promise<HudMetrics | null> {
-  return readJsonFile<HudMetrics>(join(cwd, '.omx', 'metrics.json'));
+  return readJsonFile<HudMetrics>(join(cwd, '.nomx', 'metrics.json'));
 }
 
 export async function readHudNotifyState(cwd: string): Promise<HudNotifyState | null> {
@@ -312,12 +312,12 @@ export async function readSessionState(cwd: string): Promise<SessionStateForHud 
 }
 
 export async function readHudConfig(cwd: string): Promise<ResolvedHudConfig> {
-  const config = await readJsonFile<HudConfig>(join(cwd, '.omx', 'hud-config.json'));
+  const config = await readJsonFile<HudConfig>(join(cwd, '.nomx', 'hud-config.json'));
   return normalizeHudConfig(config);
 }
 
 export function readVersion(): string | null {
-  return resolveOmxDisplayVersionSync();
+  return resolveNomxDisplayVersionSync();
 }
 
 export type GitRunner = (cwd: string, args: string[]) => string | null;
@@ -327,7 +327,7 @@ export type GitRunner = (cwd: string, args: string[]) => string | null;
  * spawning console windows (conhost.exe flicker).  Falls back to execSync
  * for non-Windows platforms or unrecognised arguments.
  *
- * See: https://github.com/Yeachan-Heo/oh-my-codex/issues/1100
+ * See: https://github.com/Yeachan-Heo/nomx/issues/1100
  */
 function runGit(cwd: string, args: string[]): string | null {
   if (process.platform === 'win32') {

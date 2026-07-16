@@ -1,12 +1,13 @@
 /**
- * nomx uninstall - Remove oh-my-codex configuration and installed artifacts
+ * nomx uninstall - Remove NOMX configuration and installed artifacts
  */
 
 import { chmod, copyFile, lstat, open, readFile, readdir, rename, rm, writeFile } from "fs/promises";
 
 import { constants, existsSync } from "fs";
-import { join, basename, dirname, isAbsolute, relative } from "path";
-import { randomUUID } from "crypto";
+import { join, basename, dirname, isAbsolute, relative, resolve } from "path";
+import { createHash, randomUUID } from "crypto";
+import { canonicalizeNamespacePath, nominalRootPair, requireNomxWritable } from "../identity/index.js";
 import {
   clearNativeHookClaimJournal,
   persistNativeHookClaimJournal,
@@ -31,7 +32,9 @@ import {
   buildManagedCodexNativeHookWindowsShimContent,
   buildManagedCodexNativeHookWindowsShimPath,
   classifyManagedCodexNativeHookWindowsShimOwnership,
+  parseManagedCodexNativeHookWindowsShimCommand,
   planManagedCodexHooksRemoval,
+  validateCodexHooksConfigStrict,
   ManagedCodexHooksPlanError,
   type ManagedCodexHookTrustState,
   type ManagedCodexHooksPlan,
@@ -42,6 +45,7 @@ import { detectLegacySkillRootOverlap } from "../utils/paths.js";
 import {
   decideWindowsNativeHookShimReference,
   resolveScopeDirectories,
+  resolveSetupNamespaceBase,
   type SetupScope,
 } from "./setup.js";
 
@@ -49,10 +53,11 @@ import { resolveCodexHookFeatureFlagForCli } from "./codex-feature-probe.js";
 import { readPersistedSetupScope } from "./index.js";
 import {
   isOmxGeneratedAgentsMd,
-  OMX_MANAGED_AGENTS_END_MARKER,
-  OMX_MANAGED_AGENTS_START_MARKER,
+  NOMX_MANAGED_AGENTS_END_MARKER,
+  NOMX_MANAGED_AGENTS_START_MARKER,
 } from "../utils/agents-md.js";
-import { OMX_FIRST_PARTY_MCP_SERVER_NAMES } from "../config/omx-first-party-mcp.js";
+import { NOMX_FIRST_PARTY_MCP_SERVER_NAMES } from "../config/nomx-first-party-mcp.js";
+import { isLegacyOmxOwnershipMarker } from "../compat/legacy-omx/config.js";
 import TOML from "@iarna/toml";
 
 /** @internal Deterministic file-operation seam for uninstall transaction tests. */
@@ -122,7 +127,7 @@ function detectOmxConfigArtifacts(config: string): {
   hasTopLevelKeys: boolean;
   hasFeatureFlags: boolean;
 } {
-  const hasMcpServers = OMX_FIRST_PARTY_MCP_SERVER_NAMES.filter((name) =>
+  const hasMcpServers = NOMX_FIRST_PARTY_MCP_SERVER_NAMES.filter((name) =>
     new RegExp(`\\[mcp_servers\\.${name}\\]`).test(config),
   );
 
@@ -137,12 +142,12 @@ function detectOmxConfigArtifacts(config: string): {
 
   const hasTuiSection =
     /^\[tui\]/m.test(config) &&
-    config.includes("oh-my-codex (OMX) Configuration");
+    config.includes("nomx (NOMX) Configuration");
 
   const hasTopLevelKeys =
     /^\s*notify\s*=.*node/m.test(config) ||
     /^\s*model_reasoning_effort\s*=/m.test(config) ||
-    /^\s*developer_instructions\s*=.*oh-my-codex/m.test(config);
+    /^\s*developer_instructions\s*=.*nomx/m.test(config);
 
   const hasFeatureFlags =
     /^\s*child_agents_md\s*=\s*true/m.test(config) ||
@@ -253,19 +258,32 @@ async function captureControlledTopology(
   root: string,
   path: string,
 ): Promise<FileTopology> {
-  const parentPath = dirname(path);
-  const relativeParent = relative(root, parentPath);
+  // macOS exposes /var and /tmp through /private. Normalize only that stable
+  // root alias here; realpathing the full candidate would follow controlled
+  // symlinks before the lstat-based topology checks below can reject them.
+  const normalizeRootAlias = (candidate: string): string => {
+    const resolved = resolve(candidate);
+    return process.platform === "darwin" &&
+        (resolved === "/var" || resolved.startsWith("/var/") ||
+          resolved === "/tmp" || resolved.startsWith("/tmp/"))
+      ? `/private${resolved}`
+      : resolved;
+  };
+  const controlledRoot = normalizeRootAlias(root);
+  const controlledPath = normalizeRootAlias(path);
+  const parentPath = dirname(controlledPath);
+  const relativeParent = relative(controlledRoot, parentPath);
   if (
     isAbsolute(relativeParent) ||
     relativeParent === ".." ||
     relativeParent.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) ||
     relativeParent.startsWith("/")
   ) {
-    throw new Error(`Refusing to process ${path}: it is outside controlled Codex scope ${root}.`);
+    throw new Error(`Refusing to process ${path}: it is outside controlled Codex scope ${controlledRoot}.`);
   }
 
   const ancestors: DirectoryTopologyEntry[] = [];
-  let currentPath = root;
+  let currentPath = controlledRoot;
   for (const segment of ["", ...relativeParent.split(/[\\/]/).filter(Boolean)]) {
     if (segment) currentPath = join(currentPath, segment);
     try {
@@ -283,6 +301,10 @@ async function captureControlledTopology(
       break;
     }
   }
+  // Preserve the caller spelling for downstream claim-journal operations;
+  // containment and ancestor identities above are checked through canonical
+  // paths, while journal paths must stay in the same lexical namespace as the
+  // mutation snapshots.
   return { root, ancestors };
 }
 
@@ -379,10 +401,29 @@ async function planHooksRemoval(
   controlledRoot: string,
 ): Promise<PlannedHooksRemoval> {
   let plan: ManagedCodexHooksPlan | undefined;
+  let declaredWindowsShimPath: string | undefined;
   if (hooks.content !== null) {
-    const result = planManagedCodexHooksRemoval(hooks.content, hooks.path, {
+    const hookOptions = {
       platform,
       codexHomeDir: dirname(hooks.path),
+    };
+    if (platform === "win32") {
+      const validated = validateCodexHooksConfigStrict(hooks.content, hookOptions);
+      if (validated.ok) {
+        const declaredPaths = new Set(
+          validated.discoveredCommands
+            .map(({ command }) =>
+              parseManagedCodexNativeHookWindowsShimCommand(command, hookOptions),
+            )
+            .filter((candidate): candidate is string => candidate !== null),
+        );
+        if (declaredPaths.size === 1) {
+          declaredWindowsShimPath = [...declaredPaths][0];
+        }
+      }
+    }
+    const result = planManagedCodexHooksRemoval(hooks.content, hooks.path, {
+      ...hookOptions,
     });
     if (!result.ok) throw result.error;
     plan = result;
@@ -390,7 +431,8 @@ async function planHooksRemoval(
 
   if (platform !== "win32") return { hooks, plan };
 
-  const shimPath = buildManagedCodexNativeHookWindowsShimPath(dirname(hooks.path));
+  const shimPath = declaredWindowsShimPath ??
+    buildManagedCodexNativeHookWindowsShimPath(dirname(hooks.path));
   const shim = await readFileSnapshot(shimPath, {
     strictUtf8: false,
     // On non-Windows hosts the test-only platform seam intentionally produces
@@ -465,7 +507,12 @@ function parseNotifyMetadata(
   if (snapshot.content === null) {
     throw invalidNotifyMetadata(snapshot.path, "the managed dispatcher metadata is missing");
   }
-  if (!currentNotify.includes(snapshot.path)) {
+  const pathsEquivalent = (left: string, right: string): boolean => {
+    if (left === right) return true;
+    if (!isAbsolute(left) || !isAbsolute(right)) return false;
+    return canonicalizeNamespacePath(left) === canonicalizeNamespacePath(right);
+  };
+  if (!currentNotify.some((part) => pathsEquivalent(part, snapshot.path))) {
     throw invalidNotifyMetadata(snapshot.path, "the managed dispatcher does not reference the controlled metadata path");
   }
 
@@ -482,8 +529,11 @@ function parseNotifyMetadata(
     throw invalidNotifyMetadata(snapshot.path, "expected a JSON object");
   }
   const metadata = parsed as Record<string, unknown>;
-  if (metadata.managedBy !== "oh-my-codex" || metadata.version !== 1) {
-    throw invalidNotifyMetadata(snapshot.path, "expected OMX ownership and version 1");
+  if (
+    (metadata.managedBy !== "nomx" && !isLegacyOmxOwnershipMarker(metadata.managedBy)) ||
+    metadata.version !== 1
+  ) {
+    throw invalidNotifyMetadata(snapshot.path, "expected NOMX ownership and version 1");
   }
   const validateStringArray = (value: unknown, name: string): string[] => {
     if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) {
@@ -500,14 +550,14 @@ function parseNotifyMetadata(
   ) {
     throw invalidNotifyMetadata(snapshot.path, "previousNotify must be null or an array of strings");
   }
-  validateStringArray(metadata.omxNotify, "omxNotify");
+  validateStringArray(metadata.nomxNotify, "nomxNotify");
   const dispatcherNotify = validateStringArray(
     metadata.dispatcherNotify,
     "dispatcherNotify",
   );
   if (
     dispatcherNotify.length !== currentNotify.length ||
-    dispatcherNotify.some((part, index) => part !== currentNotify[index])
+    dispatcherNotify.some((part, index) => !pathsEquivalent(part, currentNotify[index] ?? ""))
   ) {
     throw invalidNotifyMetadata(snapshot.path, "dispatcherNotify does not match the managed dispatcher command");
   }
@@ -527,20 +577,20 @@ async function planNotifyMetadata(
   const currentNotify = getRootTomlArray(configSnapshot.content, "notify");
   if (!currentNotify) {
     throw invalidNotifyMetadata(
-      join(codexHomeDir, ".omx", "notify-dispatch.json"),
+      join(codexHomeDir, ".nomx", "notify-dispatch.json"),
       "the managed dispatcher command is invalid",
     );
   }
   let snapshot: FileSnapshot;
   try {
     snapshot = await readFileSnapshot(
-      join(codexHomeDir, ".omx", "notify-dispatch.json"),
+      join(codexHomeDir, ".nomx", "notify-dispatch.json"),
       { controlledRoot: codexHomeDir },
     );
   } catch (error) {
     if (error instanceof ManagedCodexHooksPlanError) throw error;
     throw invalidNotifyMetadata(
-      join(codexHomeDir, ".omx", "notify-dispatch.json"),
+      join(codexHomeDir, ".nomx", "notify-dispatch.json"),
       `unreadable (${error instanceof Error ? error.message : String(error)})`,
     );
   }
@@ -621,13 +671,13 @@ async function planConfigCleanup(
   result.featureFlagsRemoved = detected.hasFeatureFlags;
 
   // Verify proof ownership against the untouched source before marker stripping
-  // can hide a foreign sibling in an otherwise OMX-looking trust declaration.
+  // can hide a foreign sibling in an otherwise NOMX-looking trust declaration.
   stripManagedCodexHookTrustState(original, {
     priorManagedHookTrustState: options.priorHookTrustState,
     managedTrustState: options.finalHookTrustState,
   });
 
-  // Strip OMX tables block (MCP servers, agents, tui)
+  // Strip NOMX tables block (MCP servers, agents, tui)
   let config = original;
   const { cleaned } = stripExistingOmxBlocks(config, {
     managedTrustState: options.finalHookTrustState,
@@ -635,8 +685,8 @@ async function planConfigCleanup(
   });
   config = cleaned;
 
-  // Strip OMX top-level keys, then restore a pre-existing user notify when
-  // setup had wrapped it in the OMX dispatcher.
+  // Strip NOMX top-level keys, then restore a pre-existing user notify when
+  // setup had wrapped it in the NOMX dispatcher.
   config = stripOmxTopLevelKeys(config);
   config = restorePreviousNotifyIfDispatcher(
     config,
@@ -644,7 +694,7 @@ async function planConfigCleanup(
     options.notifyMetadata,
   );
 
-  // Strip OMX-seeded behavioral defaults only when the seeded pair is unchanged.
+  // Strip NOMX-seeded behavioral defaults only when the seeded pair is unchanged.
   config = stripOmxSeededBehavioralDefaults(config);
 
   // Remove only trust tables whose hashes and coordinates match the planned
@@ -666,7 +716,7 @@ async function planConfigCleanup(
     );
   }
 
-  // Strip OMX-managed env defaults
+  // Strip NOMX-managed env defaults
   config = stripOmxEnvSettings(config);
 
   // Normalize trailing whitespace
@@ -781,20 +831,20 @@ async function removeAgentsMd(
 
   try {
     const content = await readFile(agentsMdPath, "utf-8");
-    const startIndex = content.indexOf(OMX_MANAGED_AGENTS_START_MARKER);
-    const endIndex = content.indexOf(OMX_MANAGED_AGENTS_END_MARKER);
+    const startIndex = content.indexOf(NOMX_MANAGED_AGENTS_START_MARKER);
+    const endIndex = content.indexOf(NOMX_MANAGED_AGENTS_END_MARKER);
     if (startIndex >= 0 && endIndex > startIndex) {
-      const blockEnd = endIndex + OMX_MANAGED_AGENTS_END_MARKER.length;
+      const blockEnd = endIndex + NOMX_MANAGED_AGENTS_END_MARKER.length;
       const preserved = `${content.slice(0, startIndex).trimEnd()}\n${content.slice(blockEnd).trimStart()}`.trim();
       if (preserved) {
         if (!options.dryRun) await writeFile(agentsMdPath, `${preserved}\n`, "utf-8");
-        if (options.verbose) console.log("  Removed OMX-managed AGENTS.md sections and preserved user guidance.");
+        if (options.verbose) console.log("  Removed NOMX-managed AGENTS.md sections and preserved user guidance.");
         return false;
       }
     }
     if (!isOmxGeneratedAgentsMd(content)) {
       if (options.verbose)
-        console.log("  AGENTS.md is not OMX-generated, skipping.");
+        console.log("  AGENTS.md is not NOMX-generated, skipping.");
       return false;
     }
   } catch {
@@ -858,16 +908,30 @@ function transactionTemporaryPath(
   purpose: "write" | "delete",
   options: Pick<UninstallOptions, "transactionTemporaryPath">,
 ): string {
-  return options.transactionTemporaryPath?.(path, purpose) ?? join(
-    dirname(path),
-    `.${basename(path)}.omx-uninstall-${purpose}-${process.pid}-${randomUUID()}.tmp`,
-  );
+  return options.transactionTemporaryPath?.(path, purpose) ??
+    transactionSiblingPath(path, purpose);
 }
 
 function transactionClaimPath(path: string): string {
+  return transactionSiblingPath(path, "claim");
+}
+
+function transactionSiblingPath(
+  path: string,
+  purpose: "write" | "delete" | "claim",
+): string {
+  const sourceName = basename(path);
+  const suffix = `.nomx-uninstall-${purpose}-${process.pid}-${randomUUID()}.tmp`;
+  const readableName = `.${sourceName}${suffix}`;
+  // A Windows path used through the non-Windows platform seam is one POSIX
+  // filename. Hash only overlong sibling names so cleanup remains atomic in
+  // the same directory without exceeding the host NAME_MAX.
+  const siblingName = Buffer.byteLength(readableName) <= 240
+    ? readableName
+    : `.${createHash("sha256").update(sourceName).digest("hex").slice(0, 24)}${suffix}`;
   return join(
     dirname(path),
-    `.${basename(path)}.omx-uninstall-claim-${process.pid}-${randomUUID()}.tmp`,
+    siblingName,
   );
 }
 
@@ -1596,14 +1660,14 @@ async function removeCacheDirectory(
   projectRoot: string,
   options: Pick<UninstallOptions, "dryRun" | "verbose">,
 ): Promise<boolean> {
-  const omxDir = join(projectRoot, ".omx");
-  if (!existsSync(omxDir)) return false;
+  const nomxDir = join(projectRoot, ".nomx");
+  if (!existsSync(nomxDir)) return false;
 
   if (!options.dryRun) {
-    await rm(omxDir, { recursive: true, force: true });
+    await rm(nomxDir, { recursive: true, force: true });
   }
   if (options.verbose)
-    console.log(`  ${options.dryRun ? "Would remove" : "Removed"} ${omxDir}`);
+    console.log(`  ${options.dryRun ? "Would remove" : "Removed"} ${nomxDir}`);
   return true;
 }
 
@@ -1643,7 +1707,7 @@ function printSummary(summary: UninstallSummary, dryRun: boolean): void {
   console.log("\nUninstall summary:");
 
   if (summary.configCleaned) {
-    console.log(`  ${prefix} OMX configuration block from config.toml`);
+    console.log(`  ${prefix} NOMX configuration block from config.toml`);
     if (summary.mcpServersRemoved.length > 0) {
       console.log(`    MCP servers: ${summary.mcpServersRemoved.join(", ")}`);
     }
@@ -1664,11 +1728,11 @@ function printSummary(summary: UninstallSummary, dryRun: boolean): void {
       );
     }
   } else if (summary.mcpServersRemoved.length === 0) {
-    console.log("  config.toml: no OMX entries found (or --keep-config used)");
+    console.log("  config.toml: no NOMX entries found (or --keep-config used)");
   }
 
   if (summary.hooksFileRemoved) {
-    console.log(`  ${prefix} OMX-managed entries in .codex/hooks.json`);
+    console.log(`  ${prefix} NOMX-managed entries in .codex/hooks.json`);
   }
 
   if (summary.promptsRemoved > 0) {
@@ -1686,7 +1750,7 @@ function printSummary(summary: UninstallSummary, dryRun: boolean): void {
     console.log(`  ${prefix} AGENTS.md`);
   }
   if (summary.cacheDirectoryRemoved) {
-    console.log(`  ${prefix} .omx/ cache directory`);
+    console.log(`  ${prefix} .nomx/ cache directory`);
   }
   if (summary.legacySkillRootWarning) {
     console.log(`  Warning: ${summary.legacySkillRootWarning}`);
@@ -1703,7 +1767,7 @@ function printSummary(summary: UninstallSummary, dryRun: boolean): void {
 
   if (totalActions === 0) {
     console.log(
-      "  Nothing to remove. oh-my-codex does not appear to be installed.",
+      "  Nothing to remove. NOMX does not appear to be installed.",
     );
   }
 }
@@ -1721,6 +1785,10 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
 
   // Resolve scope (explicit --scope overrides persisted scope)
   const scope = options.scope ?? readPersistedSetupScope(projectRoot) ?? "user";
+  const namespaceBase = resolveSetupNamespaceBase(scope, projectRoot);
+  await requireNomxWritable(
+    nominalRootPair(namespaceBase),
+  );
   const scopeDirs = resolveScopeDirectories(scope, projectRoot);
   if (!dryRun) {
     await recoverNativeHookClaimJournal(scopeDirs.codexHomeDir);
@@ -1799,8 +1867,8 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
       : {}),
   };
 
-  console.log("oh-my-codex uninstall");
-  console.log("=====================\n");
+  console.log("NOMX uninstall");
+	console.log("==============\n");
   if (dryRun) {
     console.log("[dry-run mode] No files will be modified.\n");
   }
@@ -1863,7 +1931,7 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
     } else if (configCleanup?.result.configCleaned) {
       console.log(`  ${dryRun ? "Would clean" : "Cleaned"} ${scopeDirs.codexConfigFile}`);
     } else {
-      console.log("  No OMX config entries found.");
+      console.log("  No NOMX config entries found.");
     }
   }
   console.log();
@@ -1903,7 +1971,7 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
   );
   console.log();
 
-  // Step 6: Remove AGENTS.md and optionally .omx/ cache directory
+  // Step 6: Remove AGENTS.md and optionally .nomx/ cache directory
   console.log("[6/6] Cleaning up...");
   const agentsMdPath =
     scope === "project"
@@ -1914,14 +1982,14 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
     verbose,
   });
   if (purge) {
-    summary.cacheDirectoryRemoved = await removeCacheDirectory(projectRoot, {
+    summary.cacheDirectoryRemoved = await removeCacheDirectory(namespaceBase, {
       dryRun,
       verbose,
     });
   } else {
     // Always clean up setup-scope.json and hud-config.json
-    const scopeFile = join(projectRoot, ".omx", "setup-scope.json");
-    const hudConfig = join(projectRoot, ".omx", "hud-config.json");
+    const scopeFile = join(namespaceBase, ".nomx", "setup-scope.json");
+    const hudConfig = join(namespaceBase, ".nomx", "hud-config.json");
     for (const f of [scopeFile, hudConfig]) {
       if (existsSync(f)) {
         if (!dryRun) await rm(f, { force: true });
@@ -1938,7 +2006,7 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
 
   if (!dryRun) {
     console.log(
-      '\noh-my-codex has been uninstalled. Run "nomx setup" to reinstall.',
+      '\nNOMX has been uninstalled. Run "nomx setup" to reinstall.',
     );
   } else {
     console.log("\nRun without --dry-run to apply changes.");

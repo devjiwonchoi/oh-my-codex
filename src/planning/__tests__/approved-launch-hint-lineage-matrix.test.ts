@@ -101,7 +101,7 @@ const TEAM_QUERY_KINDS: readonly TeamQueryKind[] = [
 let tempDir = '';
 
 function planPath(cwd: string, stem: string): string {
-  return join(cwd, '.omx', 'plans', `prd-${stem}.md`);
+  return join(cwd, '.nomx', 'plans', `prd-${stem}.md`);
 }
 
 function createDeterministicRandom(seed: number): () => number {
@@ -351,7 +351,7 @@ function teamQueryOptions(
 }
 
 async function setup(): Promise<void> {
-  tempDir = await mkdtemp(join(tmpdir(), 'omx-approved-lineage-matrix-'));
+  tempDir = await mkdtemp(join(tmpdir(), 'nomx-approved-lineage-matrix-'));
 }
 
 async function cleanup(): Promise<void> {
@@ -366,7 +366,7 @@ async function writePlanFiles(
   lines: readonly string[],
   withTestSpec: boolean,
 ): Promise<void> {
-  const plansDir = join(cwd, '.omx', 'plans');
+  const plansDir = join(cwd, '.nomx', 'plans');
   await mkdir(plansDir, { recursive: true });
   await writeFile(planPath(cwd, stem), `${lines.join('\n')}\n`);
   if (withTestSpec) {

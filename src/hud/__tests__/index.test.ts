@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { hudCommand, resolveHudWatchCwd, runWatchMode } from '../index.js';
 import { renderHud } from '../render.js';
-import { OMX_TMUX_HUD_OWNER_ENV } from '../reconcile.js';
-import { OMX_TMUX_HUD_LEADER_PANE_ENV } from '../tmux.js';
+import { NOMX_TMUX_HUD_OWNER_ENV } from '../reconcile.js';
+import { NOMX_TMUX_HUD_LEADER_PANE_ENV } from '../tmux.js';
 import type { HudFlags, HudRenderContext } from '../types.js';
 
 const WATCH_FLAGS: HudFlags = {
@@ -117,16 +117,16 @@ describe('runWatchMode', () => {
   });
 
   it('does not select a proc deleted-cwd marker over the safer launch cwd', () => {
-    const resolved = resolveHudWatchCwd('/tmp/omx-doctor-plugin-hook-smoke', {
-      getCwd: () => '/tmp/omx-doctor-plugin-hook-smoke',
-      readProcCwd: () => '/tmp/omx-doctor-plugin-hook-smoke (deleted)',
+    const resolved = resolveHudWatchCwd('/tmp/nomx-doctor-plugin-hook-smoke', {
+      getCwd: () => '/tmp/nomx-doctor-plugin-hook-smoke',
+      readProcCwd: () => '/tmp/nomx-doctor-plugin-hook-smoke (deleted)',
       realpath: (path) => {
-        if (path === '/tmp/omx-doctor-plugin-hook-smoke') return '/dev/inode/reused-safe-path';
+        if (path === '/tmp/nomx-doctor-plugin-hook-smoke') return '/dev/inode/reused-safe-path';
         throw new Error(`deleted marker path should not be resolved: ${path}`);
       },
     });
 
-    assert.equal(resolved, '/tmp/omx-doctor-plugin-hook-smoke');
+    assert.equal(resolved, '/tmp/nomx-doctor-plugin-hook-smoke');
   });
 
   it('follows a live cwd whose literal name ends with the deleted marker text', () => {
@@ -437,7 +437,7 @@ describe('runWatchMode', () => {
     assert.ok(!writes.some((chunk) => chunk.includes('line-two\x1b[K\n\x1b[J')));
   });
 
-  it('resizes an OMX-owned running HUD pane when the adaptive budget changes', async () => {
+  it('resizes an NOMX-owned running HUD pane when the adaptive budget changes', async () => {
     const resized: Array<{ paneId: string; heightLines: number }> = [];
     const registered: Array<{ hudPaneId: string; leaderPaneId: string | undefined; heightLines: number }> = [];
     let sigintHandler: (() => void) | undefined;
@@ -450,8 +450,8 @@ describe('runWatchMode', () => {
       env: {
         TMUX: '1',
         TMUX_PANE: '%hud',
-        [OMX_TMUX_HUD_OWNER_ENV]: '1',
-        [OMX_TMUX_HUD_LEADER_PANE_ENV]: '%leader',
+        [NOMX_TMUX_HUD_OWNER_ENV]: '1',
+        [NOMX_TMUX_HUD_LEADER_PANE_ENV]: '%leader',
       },
       readAllStateFn: async () => {
         callCount += 1;
@@ -618,7 +618,7 @@ describe('runWatchMode', () => {
 
 describe('hudCommand --tmux', () => {
   it('removes duplicate same-leader HUD panes and reuses one when launched with --tmux', async () => {
-    const tmp = await mkdtemp(join(tmpdir(), 'omx-hud-tmux-duplicate-test-'));
+    const tmp = await mkdtemp(join(tmpdir(), 'nomx-hud-tmux-duplicate-test-'));
     const logPath = join(tmp, 'tmux.log');
     const fakeBin = join(tmp, 'bin');
     await mkdir(fakeBin);
@@ -631,8 +631,8 @@ if [[ "$1" == "display-message" && "$*" == *'#{session_id}'* ]]; then
 fi
 if [[ "$1" == "list-panes" ]]; then
   printf '%s\n' '%1	zsh	zsh'
-  printf '%s\n' "%2	node	exec env OMX_SESSION_ID='sess-a' OMX_TMUX_HUD_LEADER_PANE='%1' /node /nomx.js hud --watch"
-  printf '%s\n' "%3	node	exec env OMX_SESSION_ID='sess-a' OMX_TMUX_HUD_LEADER_PANE='%1' /node /nomx.js hud --watch"
+  printf '%s\n' "%2	node	exec env NOMX_SESSION_ID='sess-a' NOMX_TMUX_HUD_LEADER_PANE='%1' /node /nomx.js hud --watch"
+  printf '%s\n' "%3	node	exec env NOMX_SESSION_ID='sess-a' NOMX_TMUX_HUD_LEADER_PANE='%1' /node /nomx.js hud --watch"
   exit 0
 fi
 if [[ "$1" == "resize-pane" || "$1" == "set-hook" || "$1" == "kill-pane" ]]; then
@@ -650,7 +650,7 @@ exit 0
       PATH: process.env.PATH,
       TMUX: process.env.TMUX,
       TMUX_PANE: process.env.TMUX_PANE,
-      OMX_SESSION_ID: process.env.OMX_SESSION_ID,
+      NOMX_SESSION_ID: process.env.NOMX_SESSION_ID,
     };
     const previousLog = console.log;
     const logs: string[] = [];
@@ -658,7 +658,7 @@ exit 0
       process.env.PATH = `${fakeBin}${delimiter}${process.env.PATH ?? ''}`;
       process.env.TMUX = '/tmp/tmux-1000/default,12345,0';
       process.env.TMUX_PANE = '%1';
-      process.env.OMX_SESSION_ID = 'sess-a';
+      process.env.NOMX_SESSION_ID = 'sess-a';
       console.log = (message?: unknown) => { logs.push(String(message ?? '')); };
 
       await hudCommand(['--tmux']);
@@ -682,7 +682,7 @@ exit 0
     }
   });
   it('reuses a same-session HUD pane when TMUX_PANE is empty instead of splitting a duplicate', async () => {
-    const tmp = await mkdtemp(join(tmpdir(), 'omx-hud-tmux-test-'));
+    const tmp = await mkdtemp(join(tmpdir(), 'nomx-hud-tmux-test-'));
     const logPath = join(tmp, 'tmux.log');
     const fakeBin = join(tmp, 'bin');
     await mkdir(fakeBin);
@@ -699,7 +699,7 @@ if [[ "$1" == "display-message" && "$*" == *'#{session_id}'* ]]; then
 fi
 if [[ "$1" == "list-panes" ]]; then
   printf '%s\\n' '%1	codex	codex'
-  printf '%s\\n' "%2	node	exec env OMX_SESSION_ID='sess-a' OMX_TMUX_HUD_LEADER_PANE='%1' /node /nomx.js hud --watch"
+  printf '%s\\n' "%2	node	exec env NOMX_SESSION_ID='sess-a' NOMX_TMUX_HUD_LEADER_PANE='%1' /node /nomx.js hud --watch"
   exit 0
 fi
 if [[ "$1" == "resize-pane" || "$1" == "set-hook" ]]; then
@@ -717,7 +717,7 @@ exit 0
       PATH: process.env.PATH,
       TMUX: process.env.TMUX,
       TMUX_PANE: process.env.TMUX_PANE,
-      OMX_SESSION_ID: process.env.OMX_SESSION_ID,
+      NOMX_SESSION_ID: process.env.NOMX_SESSION_ID,
     };
     const previousLog = console.log;
     const logs: string[] = [];
@@ -725,7 +725,7 @@ exit 0
       process.env.PATH = `${fakeBin}${delimiter}${process.env.PATH ?? ''}`;
       process.env.TMUX = '/tmp/tmux-1000/default,12345,0';
       process.env.TMUX_PANE = '';
-      process.env.OMX_SESSION_ID = 'sess-a';
+      process.env.NOMX_SESSION_ID = 'sess-a';
       console.log = (message?: unknown) => { logs.push(String(message ?? '')); };
 
       await hudCommand(['--tmux']);

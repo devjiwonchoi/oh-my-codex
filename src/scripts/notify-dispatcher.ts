@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * oh-my-codex notify dispatcher.
- * Runs a pre-existing user notify command first, then the OMX notify hook.
+ * nomx notify dispatcher.
+ * Runs a pre-existing user notify command first, then the NOMX notify hook.
  */
 
 import { readFile } from "fs/promises";
@@ -15,7 +15,7 @@ interface NotifyDispatcherMetadata {
 	managedBy?: string;
 	version?: number;
 	previousNotify?: string[] | null;
-	omxNotify?: string[];
+	nomxNotify?: string[];
 	dispatcherNotify?: string[];
 }
 
@@ -102,7 +102,7 @@ function readPayloadIdentity(payload: Record<string, unknown> | null): string {
 
 function dispatchGuardDir(metadataPath: string): string {
 	if (metadataPath) return dirname(metadataPath);
-	return join(tmpdir(), "oh-my-codex-notify-dispatch");
+	return join(tmpdir(), "nomx-notify-dispatch");
 }
 
 function writeDispatchGuardState(
@@ -136,7 +136,7 @@ function acquireTurnDispatchGuard(metadataPath: string, payloadArg: string): Dis
 	if (!isTurnEndedPayload(payload)) return { ok: true };
 
 	const now = Date.now();
-	const staleEventAgeMs = parseNonNegativeEnvMs("OMX_NOTIFY_DISPATCH_STALE_EVENT_AGE_MS", DEFAULT_STALE_EVENT_AGE_MS);
+	const staleEventAgeMs = parseNonNegativeEnvMs("NOMX_NOTIFY_DISPATCH_STALE_EVENT_AGE_MS", DEFAULT_STALE_EVENT_AGE_MS);
 	const eventTimestampMs = payload ? readPayloadTimestampMs(payload) : null;
 	if (eventTimestampMs !== null && staleEventAgeMs > 0 && now - eventTimestampMs > staleEventAgeMs) {
 		return { ok: false };
@@ -171,7 +171,7 @@ function acquireTurnDispatchGuard(metadataPath: string, payloadArg: string): Dis
 	};
 
 	try {
-		const minIntervalMs = parseNonNegativeEnvMs("OMX_NOTIFY_DISPATCH_MIN_INTERVAL_MS", DEFAULT_TURN_DISPATCH_MIN_INTERVAL_MS);
+		const minIntervalMs = parseNonNegativeEnvMs("NOMX_NOTIFY_DISPATCH_MIN_INTERVAL_MS", DEFAULT_TURN_DISPATCH_MIN_INTERVAL_MS);
 		const identity = readPayloadIdentity(payload);
 		let state: DispatchGuardState = {};
 		try {
@@ -266,7 +266,7 @@ function isOmxManagedNotifyCommand(command: readonly string[] | null | undefined
 	if (!/(?:^|[\\/])notify-(?:hook|dispatcher)\.js$/.test(entrypoint)) {
 		return false;
 	}
-	return /(?:^|[\\/])oh-my-codex(?:[\\/]|$)/.test(entrypoint);
+	return /(?:^|[\\/])nomx(?:[\\/]|$)/.test(entrypoint);
 }
 
 function isOmxDispatcherMetadataCommand(command: readonly string[] | null | undefined): boolean {
@@ -277,18 +277,18 @@ function isOmxDispatcherMetadataCommand(command: readonly string[] | null | unde
 	}
 	const metadataIndex = command.indexOf("--metadata");
 	const metadataPath = metadataIndex >= 0 ? command[metadataIndex + 1] : undefined;
-	return typeof metadataPath === "string" && /(?:^|[\\/])(?:\.omx[\\/])?notify-dispatch\.json$/.test(metadataPath);
+	return typeof metadataPath === "string" && /(?:^|[\\/])(?:\.nomx[\\/])?notify-dispatch\.json$/.test(metadataPath);
 }
 
 function isOmxManagedPayloadText(value: string): boolean {
 	const containsManagedPackageNotify =
 		/(?:^|[\\/])notify-(?:hook|dispatcher)\.js(?:\s|$|["'])/.test(
 			value,
-		) && /(?:^|[\\/])oh-my-codex(?:[\\/]|$)/.test(value);
+		) && /(?:^|[\\/])nomx(?:[\\/]|$)/.test(value);
 	const containsDispatcherMetadataNotify =
 		/(?:^|[\\/])notify-dispatcher\.js(?:\s|$|["'])/.test(value) &&
 		/--metadata(?:\s|=)/.test(value) &&
-		/(?:^|[\\/])(?:\.omx[\\/])?notify-dispatch\.json(?:\s|$|["'])/.test(value);
+		/(?:^|[\\/])(?:\.nomx[\\/])?notify-dispatch\.json(?:\s|$|["'])/.test(value);
 	return containsManagedPackageNotify || containsDispatcherMetadataNotify;
 }
 
@@ -357,7 +357,7 @@ function isManagedPreviousNotify(
 		isOmxManagedNotifyCommand(previousNotify) ||
 		isOmxDispatcherMetadataCommand(previousNotify) ||
 		isOmxManagedPreviousNotifyWrapper(previousNotify) ||
-		sameCommand(previousNotify, metadata?.omxNotify) ||
+		sameCommand(previousNotify, metadata?.nomxNotify) ||
 		sameCommand(previousNotify, metadata?.dispatcherNotify)
 	);
 }
@@ -399,7 +399,7 @@ async function main(): Promise<void> {
 		if (!isManagedPreviousNotify(metadata?.previousNotify, metadata)) {
 			runNotify(metadata?.previousNotify, payloadArg);
 		}
-		runNotify(metadata?.omxNotify, payloadArg);
+		runNotify(metadata?.nomxNotify, payloadArg);
 	} finally {
 		guard.release?.();
 	}

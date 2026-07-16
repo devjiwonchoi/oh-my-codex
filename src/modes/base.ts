@@ -1,5 +1,5 @@
 /**
- * Base mode lifecycle management for oh-my-codex
+ * Base mode lifecycle management for nomx
  * All execution modes (autopilot, deep-interview, ralph, ultrawork, team, ultraqa, ralplan) share this base.
  */
 
@@ -259,11 +259,11 @@ function assertRalphUpdateMatchesSession(state: ModeState, sessionId?: string): 
   const normalizedSessionId = typeof sessionId === 'string' ? sessionId.trim() : '';
   if (!normalizedSessionId) return;
 
-  const ownerOmxSessionId = typeof state.owner_omx_session_id === 'string'
+  const ownerNomxSessionId = typeof state.owner_omx_session_id === 'string'
     ? state.owner_omx_session_id.trim()
     : '';
-  if (ownerOmxSessionId && ownerOmxSessionId !== normalizedSessionId) {
-    throw new Error(`Mode ralph state belongs to another session (${ownerOmxSessionId})`);
+  if (ownerNomxSessionId && ownerNomxSessionId !== normalizedSessionId) {
+    throw new Error(`Mode ralph state belongs to another session (${ownerNomxSessionId})`);
   }
 
   const stateSessionId = typeof state.session_id === 'string' ? state.session_id.trim() : '';

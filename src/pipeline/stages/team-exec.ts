@@ -3,7 +3,7 @@
  *
  * Wraps the existing team mode (tmux-based Codex CLI workers) into a
  * PipelineStage. The execution backend is always teams — this is the
- * canonical OMX execution surface.
+ * canonical NOMX execution surface.
  */
 
 import { basename, dirname, isAbsolute, join, normalize, relative, resolve } from 'node:path';

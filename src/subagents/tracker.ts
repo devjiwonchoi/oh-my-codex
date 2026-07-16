@@ -11,7 +11,7 @@ import { codexAgentsDir, projectCodexAgentsDir } from '../utils/paths.js';
 
 export const SUBAGENT_TRACKING_SCHEMA_VERSION = 1;
 export const DEFAULT_SUBAGENT_ACTIVE_WINDOW_MS = 120_000;
-export const OMX_ADAPTED_PROVENANCE = 'omx_adapted';
+export const NOMX_ADAPTED_PROVENANCE = 'omx_adapted';
 export const NATIVE_SUBAGENT_PROVENANCE = 'native_subagent';
 
 export type SubagentAvailabilityStatus = 'available' | 'closed' | 'unavailable';
@@ -1277,8 +1277,8 @@ export function recordNativeLeaderIntent(
 export function bindPendingRoleIntentUnderLock(
   cwd: string,
   input: { sessionId: string; parentThreadId: string; correlationToken?: string; nowMs?: number },
-  bind: (state: SubagentTrackingState, intent: { role: string; provenanceKind: typeof OMX_ADAPTED_PROVENANCE }) => SubagentTrackingState,
-): { role: string; provenanceKind: typeof OMX_ADAPTED_PROVENANCE; claimantToken: string | undefined; alreadyBound: boolean } | null {
+  bind: (state: SubagentTrackingState, intent: { role: string; provenanceKind: typeof NOMX_ADAPTED_PROVENANCE }) => SubagentTrackingState,
+): { role: string; provenanceKind: typeof NOMX_ADAPTED_PROVENANCE; claimantToken: string | undefined; alreadyBound: boolean } | null {
   const nowMs = normalizeNowMs(input.nowMs);
   const sessionId = input.sessionId.trim();
   const parentThreadId = input.parentThreadId.trim();
@@ -1315,7 +1315,7 @@ export function bindPendingRoleIntentUnderLock(
 
     const adaptedIntent = {
       role: matchedIntent.role,
-      provenanceKind: OMX_ADAPTED_PROVENANCE,
+      provenanceKind: NOMX_ADAPTED_PROVENANCE,
     } as const;
     if (matchedIntent.binding_state === 'bound') {
       const next = all
@@ -1368,7 +1368,7 @@ export function bindPendingRoleIntentUnderLock(
 export function consumePendingRoleIntent(
   cwd: string,
   input: { sessionId: string; parentThreadId: string; correlationToken?: string; nowMs?: number },
-): { role: string; provenanceKind: typeof OMX_ADAPTED_PROVENANCE } | null {
+): { role: string; provenanceKind: typeof NOMX_ADAPTED_PROVENANCE } | null {
   const nowMs = normalizeNowMs(input.nowMs);
   const sessionId = input.sessionId.trim();
   const parentThreadId = input.parentThreadId.trim();
@@ -1411,7 +1411,7 @@ export function consumePendingRoleIntent(
       ));
     context.assertOwnership();
     writeSubagentTrackingStateSync(cwd, state, context.publish);
-    return { role: consumed.role, provenanceKind: OMX_ADAPTED_PROVENANCE };
+    return { role: consumed.role, provenanceKind: NOMX_ADAPTED_PROVENANCE };
   });
 }
 

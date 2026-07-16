@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { getPackageRoot } from './package.js';
-import { omxUserInstallStampPath } from './paths.js';
+import { nomxUserInstallStampPath } from './paths.js';
 
 interface PackageVersionMetadata {
   version?: string;
@@ -42,7 +42,7 @@ export function readPackageVersion(packageRoot = getPackageRoot()): string | nul
     : null;
 }
 
-function readInstallVersionMetadata(stampPath = omxUserInstallStampPath()): InstallVersionMetadata | null {
+function readInstallVersionMetadata(stampPath = nomxUserInstallStampPath()): InstallVersionMetadata | null {
   return readJsonFile(stampPath) as InstallVersionMetadata | null;
 }
 
@@ -59,7 +59,7 @@ function readGitRevision(packageRoot: string): string | null {
   }
 }
 
-export function resolveOmxDisplayVersionSync(options: {
+export function resolveNomxDisplayVersionSync(options: {
   packageRoot?: string;
   stampPath?: string;
   env?: NodeJS.ProcessEnv;
@@ -69,7 +69,7 @@ export function resolveOmxDisplayVersionSync(options: {
   if (!version) return null;
 
   const env = options.env ?? process.env;
-  const explicitRevision = shortRevision(env.OMX_VERSION_REVISION || env.OMX_GIT_REVISION);
+  const explicitRevision = shortRevision(env.NOMX_VERSION_REVISION || env.NOMX_GIT_REVISION);
   const stamp = readInstallVersionMetadata(options.stampPath);
   const stampVersion = typeof stamp?.setup_completed_version === 'string'
     ? stripLeadingV(stamp.setup_completed_version)
@@ -89,3 +89,6 @@ export function resolveOmxDisplayVersionSync(options: {
 
   return `v${version}`;
 }
+
+/** @deprecated Import resolveNomxDisplayVersionSync. */
+export const resolveOmxDisplayVersionSync = resolveNomxDisplayVersionSync;

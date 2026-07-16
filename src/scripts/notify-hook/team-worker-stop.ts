@@ -128,7 +128,7 @@ async function appendWorkerStopEventIfTeamExists(stateDir, teamName, event) {
 }
 
 function resolveWorkerStopCooldownMs() {
-  const raw = safeString(process.env.OMX_TEAM_WORKER_STOP_COOLDOWN_MS || '');
+  const raw = safeString(process.env.NOMX_TEAM_WORKER_STOP_COOLDOWN_MS || '');
   const parsed = asNumber(raw);
   if (parsed !== null && parsed >= 5_000 && parsed <= 10 * 60_000) return parsed;
   return STOP_NUDGE_COOLDOWN_MS;
@@ -357,7 +357,7 @@ export async function maybeNudgeLeaderForAllowedWorkerStop({
   }
 
   const prompt =
-    `[OMX] ${workerName} native Stop allowed. `
+    `[NOMX] ${workerName} native Stop allowed. `
     + `Run \`nomx team status ${teamName}\`, read worker messages/results, then assign next task, reconcile completion, or shut down. `
     + DEFAULT_MARKER;
 

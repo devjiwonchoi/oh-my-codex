@@ -48,11 +48,11 @@ describe('resolveQuestionRendererStrategy', () => {
 
   it('supports explicit host-pane bridge hints when TMUX is absent', () => {
     assert.equal(
-      resolveQuestionRendererStrategy({ OMX_QUESTION_RETURN_PANE: '%77' } as NodeJS.ProcessEnv, '/usr/bin/tmux'),
+      resolveQuestionRendererStrategy({ NOMX_QUESTION_RETURN_PANE: '%77' } as NodeJS.ProcessEnv, '/usr/bin/tmux'),
       'inside-tmux',
     );
     assert.equal(
-      resolveQuestionRendererStrategy({ OMX_LEADER_PANE_ID: '%88' } as NodeJS.ProcessEnv, '/usr/bin/tmux'),
+      resolveQuestionRendererStrategy({ NOMX_LEADER_PANE_ID: '%88' } as NodeJS.ProcessEnv, '/usr/bin/tmux'),
       'inside-tmux',
     );
   });
@@ -79,7 +79,7 @@ describe('resolveQuestionRendererStrategy', () => {
   it('keeps the detached Windows console path for explicit non-psmux return bridges', () => {
     assert.equal(
       resolveQuestionRendererStrategy(
-        { OMX_QUESTION_RETURN_PANE: '%45' } as NodeJS.ProcessEnv,
+        { NOMX_QUESTION_RETURN_PANE: '%45' } as NodeJS.ProcessEnv,
         'C:/Program Files/psmux/psmux.exe',
         { platform: 'win32' },
       ),
@@ -88,9 +88,9 @@ describe('resolveQuestionRendererStrategy', () => {
   });
 
   it('supports persisted workflow pane bridges when TMUX is absent', () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'omx-question-renderer-strategy-'));
+    const cwd = mkdtempSync(join(tmpdir(), 'nomx-question-renderer-strategy-'));
     try {
-      const stateDir = join(cwd, '.omx', 'state', 'sessions', 'sess-stateful');
+      const stateDir = join(cwd, '.nomx', 'state', 'sessions', 'sess-stateful');
       mkdirSync(stateDir, { recursive: true });
       writeFileSync(join(stateDir, 'deep-interview-state.json'), JSON.stringify({
         active: true,
@@ -110,14 +110,14 @@ describe('resolveQuestionRendererStrategy', () => {
 
   it('rejects malformed explicit host-pane bridge hints', () => {
     assert.equal(
-      resolveQuestionRendererStrategy({ OMX_QUESTION_RETURN_PANE: 'not-a-pane' } as NodeJS.ProcessEnv, '/usr/bin/tmux'),
+      resolveQuestionRendererStrategy({ NOMX_QUESTION_RETURN_PANE: 'not-a-pane' } as NodeJS.ProcessEnv, '/usr/bin/tmux'),
       'unsupported',
     );
   });
 
   it('uses noop test renderer override when requested', () => {
     assert.equal(
-      resolveQuestionRendererStrategy({ OMX_QUESTION_TEST_RENDERER: 'noop' } as NodeJS.ProcessEnv, '/usr/bin/tmux'),
+      resolveQuestionRendererStrategy({ NOMX_QUESTION_TEST_RENDERER: 'noop' } as NodeJS.ProcessEnv, '/usr/bin/tmux'),
       'test-noop',
     );
   });
@@ -375,7 +375,7 @@ describe('launchQuestionRenderer', () => {
         () => launchQuestionRenderer(
           {
             cwd: '/repo',
-            recordPath: '/repo/.omx/state/sessions/s1/questions/question-1.json',
+            recordPath: '/repo/.nomx/state/sessions/s1/questions/question-1.json',
             env: {} as NodeJS.ProcessEnv,
           },
           {
@@ -408,7 +408,7 @@ describe('launchQuestionRenderer', () => {
     const result = launchQuestionRenderer(
       {
         cwd: '/repo',
-        recordPath: '/repo/.omx/state/sessions/s1/questions/question-1.json',
+        recordPath: '/repo/.nomx/state/sessions/s1/questions/question-1.json',
         sessionId: 's1',
         nowIso: '2026-04-19T00:00:00.000Z',
         env: { TMUX: '/tmp/tmux-demo', TMUX_PANE: '%11' } as NodeJS.ProcessEnv,
@@ -444,19 +444,19 @@ describe('launchQuestionRenderer', () => {
       'question',
       '--ui',
       '--state-path',
-      '/repo/.omx/state/sessions/s1/questions/question-1.json',
+      '/repo/.nomx/state/sessions/s1/questions/question-1.json',
     ]);
     assert.ok(splitCall.includes('-e'));
-    assert.ok(splitCall.includes('OMX_SESSION_ID=s1'));
-    assert.ok(splitCall.includes('OMX_QUESTION_RETURN_TARGET=%11'));
-    assert.ok(splitCall.includes('OMX_QUESTION_RETURN_TRANSPORT=tmux-send-keys'));
+    assert.ok(splitCall.includes('NOMX_SESSION_ID=s1'));
+    assert.ok(splitCall.includes('NOMX_QUESTION_RETURN_TARGET=%11'));
+    assert.ok(splitCall.includes('NOMX_QUESTION_RETURN_TRANSPORT=tmux-send-keys'));
     assert.ok(calls.some((call) => call.join(' ') === 'list-panes -t %42 -F #{pane_dead}\t#{pane_id}'));
   });
 
   it('opens a new tmux window when the current pane is too short for the question frame', () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'omx-question-renderer-new-window-'));
+    const cwd = mkdtempSync(join(tmpdir(), 'nomx-question-renderer-new-window-'));
     try {
-      const stateDir = join(cwd, '.omx', 'state', 'sessions', 's1', 'questions');
+      const stateDir = join(cwd, '.nomx', 'state', 'sessions', 's1', 'questions');
       mkdirSync(stateDir, { recursive: true });
       const recordPath = join(stateDir, 'question-1.json');
       writeFileSync(recordPath, JSON.stringify({
@@ -531,9 +531,9 @@ describe('launchQuestionRenderer', () => {
   });
 
   it('opens a new tmux window when wrapped content would exceed the split budget in a narrow pane', () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'omx-question-renderer-wrapped-window-'));
+    const cwd = mkdtempSync(join(tmpdir(), 'nomx-question-renderer-wrapped-window-'));
     try {
-      const stateDir = join(cwd, '.omx', 'state', 'sessions', 's1', 'questions');
+      const stateDir = join(cwd, '.nomx', 'state', 'sessions', 's1', 'questions');
       mkdirSync(stateDir, { recursive: true });
       const recordPath = join(stateDir, 'question-1.json');
       writeFileSync(recordPath, JSON.stringify({
@@ -606,9 +606,9 @@ describe('launchQuestionRenderer', () => {
   });
 
   it('falls back to the default tmux width when the width probe fails', () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'omx-question-renderer-width-fallback-'));
+    const cwd = mkdtempSync(join(tmpdir(), 'nomx-question-renderer-width-fallback-'));
     try {
-      const stateDir = join(cwd, '.omx', 'state', 'sessions', 's1', 'questions');
+      const stateDir = join(cwd, '.nomx', 'state', 'sessions', 's1', 'questions');
       mkdirSync(stateDir, { recursive: true });
       const recordPath = join(stateDir, 'question-1.json');
       writeFileSync(recordPath, JSON.stringify({
@@ -688,12 +688,12 @@ describe('launchQuestionRenderer', () => {
     const result = launchQuestionRenderer(
       {
         cwd: '/repo',
-        recordPath: '/repo/.omx/state/sessions/s1/questions/question-leader.json',
+        recordPath: '/repo/.nomx/state/sessions/s1/questions/question-leader.json',
         sessionId: 's1',
         env: {
           TMUX: '/tmp/tmux-demo',
           TMUX_PANE: '%22',
-          OMX_QUESTION_RETURN_PANE: '%44',
+          NOMX_QUESTION_RETURN_PANE: '%44',
         } as NodeJS.ProcessEnv,
       },
       {
@@ -723,7 +723,7 @@ describe('launchQuestionRenderer', () => {
       () => launchQuestionRenderer(
         {
           cwd: '/repo',
-          recordPath: '/repo/.omx/state/sessions/s1/questions/question-detached.json',
+          recordPath: '/repo/.nomx/state/sessions/s1/questions/question-detached.json',
           sessionId: 's1',
           env: { TMUX: '/tmp/tmux-demo', TMUX_PANE: '%11' } as NodeJS.ProcessEnv,
         },
@@ -755,10 +755,10 @@ describe('launchQuestionRenderer', () => {
     const result = launchQuestionRenderer(
       {
         cwd: '/repo',
-        recordPath: '/repo/.omx/state/sessions/s1/questions/question-bridge.json',
+        recordPath: '/repo/.nomx/state/sessions/s1/questions/question-bridge.json',
         sessionId: 's1',
         nowIso: '2026-04-19T00:00:00.000Z',
-        env: { OMX_QUESTION_RETURN_PANE: '%77' } as NodeJS.ProcessEnv,
+        env: { NOMX_QUESTION_RETURN_PANE: '%77' } as NodeJS.ProcessEnv,
       },
         {
           execTmux: (args) => {
@@ -793,7 +793,7 @@ describe('launchQuestionRenderer', () => {
     const result = launchQuestionRenderer(
       {
         cwd: '/repo',
-        recordPath: '/repo/.omx/state/sessions/s1/questions/question-bridge.json',
+        recordPath: '/repo/.nomx/state/sessions/s1/questions/question-bridge.json',
         sessionId: 's1',
         nowIso: '2026-04-24T00:00:00.000Z',
         env: { TMUX: 'psmux-session', TMUX_PANE: '%44' } as NodeJS.ProcessEnv,
@@ -823,7 +823,7 @@ describe('launchQuestionRenderer', () => {
     assert.deepEqual(tmuxCalls[0], [
       'new-window',
       '-n',
-      'OMX Question',
+      'NOMX Question',
       '-P',
       '-F',
       '#{pane_id}',
@@ -834,8 +834,8 @@ describe('launchQuestionRenderer', () => {
     const literalSend = tmuxCalls.find((call) => call[0] === 'send-keys' && call.includes('-l'));
     assert.ok(literalSend);
     assert.deepEqual(literalSend.slice(0, 6), ['send-keys', '-t', '%55', '-l', '--', literalSend[5] ?? '']);
-    assert.match(literalSend[5] ?? '', /^set "OMX_SESSION_ID=s1" && set "OMX_QUESTION_RETURN_TARGET=%%44" && set "OMX_QUESTION_RETURN_TRANSPORT=tmux-send-keys" && /);
-    assert.match(literalSend[5] ?? '', /"question" "--ui" "--state-path" "\/repo\/\.omx\/state\/sessions\/s1\/questions\/question-bridge\.json"$/);
+    assert.match(literalSend[5] ?? '', /^set "NOMX_SESSION_ID=s1" && set "NOMX_QUESTION_RETURN_TARGET=%%44" && set "NOMX_QUESTION_RETURN_TRANSPORT=tmux-send-keys" && /);
+    assert.match(literalSend[5] ?? '', /"question" "--ui" "--state-path" "\/repo\/\.nomx\/state\/sessions\/s1\/questions\/question-bridge\.json"$/);
     assert.deepEqual(tmuxCalls.filter((call) => call[0] === 'send-keys' && call.includes('C-m')), [
       ['send-keys', '-t', '%55', 'C-m'],
     ]);
@@ -847,10 +847,10 @@ describe('launchQuestionRenderer', () => {
     const result = launchQuestionRenderer(
       {
         cwd: 'C:/repo',
-        recordPath: 'C:/repo/.omx/state/sessions/s1/questions/question-bridge.json',
+        recordPath: 'C:/repo/.nomx/state/sessions/s1/questions/question-bridge.json',
         sessionId: 's1',
         nowIso: '2026-04-24T00:00:00.000Z',
-        env: { OMX_QUESTION_RETURN_PANE: '%44' } as NodeJS.ProcessEnv,
+        env: { NOMX_QUESTION_RETURN_PANE: '%44' } as NodeJS.ProcessEnv,
         platform: 'win32',
       },
       {
@@ -875,22 +875,22 @@ describe('launchQuestionRenderer', () => {
     assert.equal(spawnCalls.length, 1);
     assert.equal(spawnCalls[0]?.command, 'cmd.exe');
     assert.deepEqual(spawnCalls[0]?.args.slice(0, 3), ['/d', '/s', '/c']);
-    assert.match(spawnCalls[0]?.args[3] || '', /start "OMX Question" \/wait/);
+    assert.match(spawnCalls[0]?.args[3] || '', /start "NOMX Question" \/wait/);
     assert.match(spawnCalls[0]?.args[3] || '', /"question" "--ui" "--state-path"/);
     assert.match(spawnCalls[0]?.args[3] || '', /question-bridge\.json"/);
     assert.equal(spawnCalls[0]?.options.cwd, 'C:/repo');
     assert.equal(spawnCalls[0]?.options.detached, true);
     assert.equal(spawnCalls[0]?.options.windowsHide, true);
     const env = spawnCalls[0]?.options.env as NodeJS.ProcessEnv;
-    assert.equal(env.OMX_SESSION_ID, 's1');
-    assert.equal(env.OMX_QUESTION_RETURN_TARGET, '%44');
-    assert.equal(env.OMX_QUESTION_RETURN_TRANSPORT, 'tmux-send-keys');
+    assert.equal(env.NOMX_SESSION_ID, 's1');
+    assert.equal(env.NOMX_QUESTION_RETURN_TARGET, '%44');
+    assert.equal(env.NOMX_QUESTION_RETURN_TRANSPORT, 'tmux-send-keys');
   });
 
   it('targets a persisted workflow pane when launching from a container without TMUX', () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'omx-question-renderer-persisted-'));
+    const cwd = mkdtempSync(join(tmpdir(), 'nomx-question-renderer-persisted-'));
     try {
-      const stateDir = join(cwd, '.omx', 'state', 'sessions', 'sess-stateful');
+      const stateDir = join(cwd, '.nomx', 'state', 'sessions', 'sess-stateful');
       mkdirSync(stateDir, { recursive: true });
       writeFileSync(join(stateDir, 'deep-interview-state.json'), JSON.stringify({
         active: true,
@@ -940,7 +940,7 @@ describe('launchQuestionRenderer', () => {
       () => launchQuestionRenderer(
         {
           cwd: '/repo',
-          recordPath: '/repo/.omx/state/sessions/s1/questions/question-1.json',
+          recordPath: '/repo/.nomx/state/sessions/s1/questions/question-1.json',
           sessionId: 's1',
           nowIso: '2026-04-19T00:00:00.000Z',
           env: { TMUX: '/tmp/tmux-demo', TMUX_PANE: '%11' } as NodeJS.ProcessEnv,
@@ -969,7 +969,7 @@ describe('launchQuestionRenderer', () => {
       'question',
       '--ui',
       '--state-path',
-      '/repo/.omx/state/sessions/s1/questions/question-1.json',
+      '/repo/.nomx/state/sessions/s1/questions/question-1.json',
     ]);
     assert.ok(calls.some((call) => call.join(' ') === 'list-panes -t %42 -F #{pane_dead}\t#{pane_id}'));
   });
@@ -979,7 +979,7 @@ describe('launchQuestionRenderer', () => {
     const result = launchQuestionRenderer(
       {
         cwd: '/repo',
-        recordPath: '/repo/.omx/state/sessions/s1/questions/question-inline.json',
+        recordPath: '/repo/.nomx/state/sessions/s1/questions/question-inline.json',
         sessionId: 's1',
         nowIso: '2026-04-23T00:00:00.000Z',
         env: {} as NodeJS.ProcessEnv,
@@ -1002,9 +1002,9 @@ describe('launchQuestionRenderer', () => {
   });
 
   it('falls back to the persisted session mode pane when Bash/tool env lost TMUX_PANE', () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'omx-question-renderer-state-'));
+    const cwd = mkdtempSync(join(tmpdir(), 'nomx-question-renderer-state-'));
     try {
-      const stateDir = join(cwd, '.omx', 'state', 'sessions', 'sess-stateful');
+      const stateDir = join(cwd, '.nomx', 'state', 'sessions', 'sess-stateful');
       mkdirSync(stateDir, { recursive: true });
       writeFileSync(join(stateDir, 'ralplan-state.json'), JSON.stringify({
         active: true,
@@ -1017,7 +1017,7 @@ describe('launchQuestionRenderer', () => {
       const result = launchQuestionRenderer(
         {
           cwd,
-          recordPath: join(cwd, '.omx', 'state', 'sessions', 'sess-stateful', 'questions', 'question-3.json'),
+          recordPath: join(cwd, '.nomx', 'state', 'sessions', 'sess-stateful', 'questions', 'question-3.json'),
           sessionId: 'sess-stateful',
           env: { TMUX: '/tmp/tmux-demo' } as NodeJS.ProcessEnv,
         },
@@ -1046,9 +1046,9 @@ describe('launchQuestionRenderer', () => {
   });
 
   it('prefers session-scoped persisted panes over root workflow fallback panes', () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'omx-question-renderer-precedence-'));
+    const cwd = mkdtempSync(join(tmpdir(), 'nomx-question-renderer-precedence-'));
     try {
-      const rootStateDir = join(cwd, '.omx', 'state');
+      const rootStateDir = join(cwd, '.nomx', 'state');
       const sessionStateDir = join(rootStateDir, 'sessions', 'sess-stateful');
       mkdirSync(sessionStateDir, { recursive: true });
       writeFileSync(join(rootStateDir, 'team-state.json'), JSON.stringify({
@@ -1175,7 +1175,7 @@ describe('launchQuestionRenderer', () => {
     const result = launchQuestionRenderer(
       {
         cwd: '/repo',
-        recordPath: '/repo/.omx/state/sessions/s1/questions/question-2.json',
+        recordPath: '/repo/.nomx/state/sessions/s1/questions/question-2.json',
         nowIso: '2026-04-19T00:00:00.000Z',
         env: {} as NodeJS.ProcessEnv,
       },
@@ -1184,7 +1184,7 @@ describe('launchQuestionRenderer', () => {
         execTmux: (args) => {
           calls.push(args);
           if (args[0] === 'has-session') return '';
-          return 'omx-question-question-2\n';
+          return 'nomx-question-question-2\n';
         },
         sleepSync: () => {},
       },
@@ -1200,9 +1200,9 @@ describe('launchQuestionRenderer', () => {
       'question',
       '--ui',
       '--state-path',
-      '/repo/.omx/state/sessions/s1/questions/question-2.json',
+      '/repo/.nomx/state/sessions/s1/questions/question-2.json',
     ]);
-    assert.deepEqual(calls[1], ['has-session', '-t', 'omx-question-question-2']);
+    assert.deepEqual(calls[1], ['has-session', '-t', 'nomx-question-question-2']);
   });
 
   it('fails when a detached tmux session disappears immediately after launch', () => {
@@ -1211,7 +1211,7 @@ describe('launchQuestionRenderer', () => {
       () => launchQuestionRenderer(
         {
           cwd: '/repo',
-          recordPath: '/repo/.omx/state/sessions/s1/questions/question-2.json',
+          recordPath: '/repo/.nomx/state/sessions/s1/questions/question-2.json',
           nowIso: '2026-04-19T00:00:00.000Z',
           env: {} as NodeJS.ProcessEnv,
         },
@@ -1219,21 +1219,21 @@ describe('launchQuestionRenderer', () => {
           strategy: 'detached-tmux',
           execTmux: (args) => {
             calls.push(args);
-            if (args[0] === 'new-session') return 'omx-question-question-2\n';
-            throw new Error('can\'t find session: omx-question-question-2');
+            if (args[0] === 'new-session') return 'nomx-question-question-2\n';
+            throw new Error('can\'t find session: nomx-question-question-2');
           },
           sleepSync: () => {},
         },
       ),
-      /Question UI session omx-question-question-2 disappeared immediately after launch/,
+      /Question UI session nomx-question-question-2 disappeared immediately after launch/,
     );
 
     assert.equal(calls.length, 2);
     assert.equal(calls[0]?.[0], 'new-session');
-    assert.deepEqual(calls[1], ['has-session', '-t', 'omx-question-question-2']);
+    assert.deepEqual(calls[1], ['has-session', '-t', 'nomx-question-question-2']);
   });
 
-  it('prefers the current launcher path over a stale ambient OMX_ENTRY_PATH when spawning the UI', () => {
+  it('prefers the current launcher path over a stale ambient NOMX_ENTRY_PATH when spawning the UI', () => {
     const calls: string[][] = [];
     const originalArgv1 = process.argv[1];
     process.argv[1] = '/repo/dist/cli/nomx.js';
@@ -1241,13 +1241,13 @@ describe('launchQuestionRenderer', () => {
       const result = launchQuestionRenderer(
         {
           cwd: '/repo',
-          recordPath: '/repo/.omx/state/sessions/s1/questions/question-3.json',
+          recordPath: '/repo/.nomx/state/sessions/s1/questions/question-3.json',
           sessionId: 's1',
           nowIso: '2026-04-19T00:00:00.000Z',
           env: {
             TMUX: '/tmp/tmux-demo',
             TMUX_PANE: '%11',
-            OMX_ENTRY_PATH: '/stale/global/dist/cli/nomx.js',
+            NOMX_ENTRY_PATH: '/stale/global/dist/cli/nomx.js',
           } as NodeJS.ProcessEnv,
         },
         {
@@ -1418,9 +1418,9 @@ describe('question renderer in-flight dedupe', () => {
   }
 
   it('finds only live prompting question renderers for the same session', () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'omx-question-dedupe-find-'));
+    const cwd = mkdtempSync(join(tmpdir(), 'nomx-question-dedupe-find-'));
     try {
-      const dir = join(cwd, '.omx', 'state', 'sessions', 'sess-dedupe', 'questions');
+      const dir = join(cwd, '.nomx', 'state', 'sessions', 'sess-dedupe', 'questions');
       mkdirSync(dir, { recursive: true });
       writeQuestionRecord(join(dir, 'question-live.json'), {
         question_id: 'question-live',
@@ -1453,9 +1453,9 @@ describe('question renderer in-flight dedupe', () => {
   });
 
   it('marks prior live prompting panes superseded and kills them before a new tmux split', () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'omx-question-dedupe-launch-'));
+    const cwd = mkdtempSync(join(tmpdir(), 'nomx-question-dedupe-launch-'));
     try {
-      const dir = join(cwd, '.omx', 'state', 'sessions', 'sess-dedupe', 'questions');
+      const dir = join(cwd, '.nomx', 'state', 'sessions', 'sess-dedupe', 'questions');
       mkdirSync(dir, { recursive: true });
       const priorPath = join(dir, 'question-prior.json');
       const nextPath = join(dir, 'question-next.json');
@@ -1511,9 +1511,9 @@ describe('question renderer in-flight dedupe', () => {
   });
 
   it('does not supersede answered records when launching a replacement renderer', () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'omx-question-dedupe-answered-'));
+    const cwd = mkdtempSync(join(tmpdir(), 'nomx-question-dedupe-answered-'));
     try {
-      const dir = join(cwd, '.omx', 'state', 'sessions', 'sess-dedupe', 'questions');
+      const dir = join(cwd, '.nomx', 'state', 'sessions', 'sess-dedupe', 'questions');
       mkdirSync(dir, { recursive: true });
       const answeredPath = join(dir, 'question-answered.json');
       writeQuestionRecord(answeredPath, {
@@ -1541,7 +1541,7 @@ describe('question renderer in-flight dedupe', () => {
 });
 
 describe('buildQuestionUiTmuxArgs', () => {
-  const recordPath = '/repo/.omx/state/sessions/s1/questions/question-1.json';
+  const recordPath = '/repo/.nomx/state/sessions/s1/questions/question-1.json';
 
   it('passes env via tmux -e flags on real tmux (no cmux)', () => {
     const args = buildQuestionUiTmuxArgs(recordPath, {
@@ -1551,9 +1551,9 @@ describe('buildQuestionUiTmuxArgs', () => {
       underCmux: false,
     });
     assert.ok(args.includes('-e'));
-    assert.ok(args.includes('OMX_SESSION_ID=s1'));
-    assert.ok(args.includes('OMX_QUESTION_RETURN_TARGET=%11'));
-    assert.ok(args.includes('OMX_QUESTION_RETURN_TRANSPORT=tmux-send-keys'));
+    assert.ok(args.includes('NOMX_SESSION_ID=s1'));
+    assert.ok(args.includes('NOMX_QUESTION_RETURN_TARGET=%11'));
+    assert.ok(args.includes('NOMX_QUESTION_RETURN_TRANSPORT=tmux-send-keys'));
     // tmux execs the command argv directly, so command tokens stay raw/unquoted.
     assert.ok(args.includes(process.execPath));
     assert.equal(args.includes('export'), false);
@@ -1578,9 +1578,9 @@ describe('buildQuestionUiTmuxArgs', () => {
     assert.equal(command.includes('&&'), false);
     assert.equal(command.startsWith('-e'), false);
     assert.equal(command.includes(' -e '), false);
-    assert.ok(command.includes("OMX_SESSION_ID='s1'"));
-    assert.ok(command.includes("OMX_QUESTION_RETURN_TARGET='%11'"));
-    assert.ok(command.includes("OMX_QUESTION_RETURN_TRANSPORT='tmux-send-keys'"));
+    assert.ok(command.includes("NOMX_SESSION_ID='s1'"));
+    assert.ok(command.includes("NOMX_QUESTION_RETURN_TARGET='%11'"));
+    assert.ok(command.includes("NOMX_QUESTION_RETURN_TRANSPORT='tmux-send-keys'"));
     // The executable env runs is the real command (quoted node), never `-e`.
     assert.ok(command.includes(`'tmux-send-keys' '${process.execPath}' `));
     assert.ok(command.endsWith(`'${recordPath}'`));
@@ -1598,8 +1598,8 @@ describe('buildQuestionUiTmuxArgs', () => {
     const command = args[0];
     // `=`, `%`, and spaces round-trip intact inside single quotes.
     assert.match(command, /^env /);
-    assert.ok(command.includes(`OMX_SESSION_ID='${trickySessionId}'`));
-    assert.ok(command.includes(`OMX_QUESTION_RETURN_TARGET='${trickyReturnTarget}'`));
+    assert.ok(command.includes(`NOMX_SESSION_ID='${trickySessionId}'`));
+    assert.ok(command.includes(`NOMX_QUESTION_RETURN_TARGET='${trickyReturnTarget}'`));
     assert.equal(command.includes(' -e '), false);
   });
 
@@ -1610,7 +1610,7 @@ describe('buildQuestionUiTmuxArgs', () => {
       underCmux: true,
     });
     // POSIX single-quote escaping: a'b=c -> 'a'\''b=c'
-    assert.ok(args[0].includes("OMX_SESSION_ID='a'\\''b=c'"));
+    assert.ok(args[0].includes("NOMX_SESSION_ID='a'\\''b=c'"));
   });
 
   it('omits the env prefix entirely when there are no env vars under cmux', () => {
@@ -1629,7 +1629,7 @@ describe('launchQuestionRenderer under cmux', () => {
     const result = launchQuestionRenderer(
       {
         cwd: '/repo',
-        recordPath: '/repo/.omx/state/sessions/s1/questions/question-cmux.json',
+        recordPath: '/repo/.nomx/state/sessions/s1/questions/question-cmux.json',
         sessionId: 's1',
         env: {
           TMUX: '/tmp/tmux-demo',
@@ -1665,8 +1665,8 @@ describe('launchQuestionRenderer under cmux', () => {
     assert.match(paneCommand, /^env /);
     assert.equal(paneCommand.includes(' -e '), false);
     assert.equal(paneCommand.includes('export'), false);
-    assert.ok(paneCommand.includes("OMX_SESSION_ID='s1'"));
-    assert.ok(paneCommand.includes("OMX_QUESTION_RETURN_TARGET='%11'"));
+    assert.ok(paneCommand.includes("NOMX_SESSION_ID='s1'"));
+    assert.ok(paneCommand.includes("NOMX_QUESTION_RETURN_TARGET='%11'"));
     // env runs the real command (quoted node), never `-e`.
     assert.ok(paneCommand.includes(`'${process.execPath}' `));
   });

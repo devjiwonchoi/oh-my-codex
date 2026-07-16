@@ -5,7 +5,7 @@ const LIST_USAGE = [
   "Usage:",
   "  nomx list [--json]",
   "",
-  "List OMX skills and native agent prompts from the packaged catalog.",
+  "List NOMX skills and native agent prompts from the packaged catalog.",
 ].join("\n");
 
 function formatEntry(entry: CatalogSkillEntry | CatalogAgentEntry): string {
@@ -15,7 +15,7 @@ function formatEntry(entry: CatalogSkillEntry | CatalogAgentEntry): string {
 }
 
 function printHumanList(contract: ReturnType<typeof toPublicCatalogContract>): void {
-  console.log(`OMX catalog ${contract.version}`);
+  console.log(`NOMX catalog ${contract.version}`);
   console.log(
     `Skills: ${contract.counts.skillCount} (${contract.counts.activeSkillCount} active)`,
   );

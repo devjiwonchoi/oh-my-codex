@@ -118,7 +118,7 @@ describe('stateCommand', () => {
   });
 
   it('reads structured input from --input-file', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'omx-state-input-file-'));
+    const dir = await mkdtemp(join(tmpdir(), 'nomx-state-input-file-'));
     const file = join(dir, 'payload.json');
     await writeFile(file, JSON.stringify({ mode: 'ralph', all_sessions: true }), 'utf-8');
     try {
@@ -138,7 +138,7 @@ describe('stateCommand', () => {
   });
 
   it('reads UTF-8 BOM-prefixed structured input from --input-file', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'omx-state-input-file-bom-'));
+    const dir = await mkdtemp(join(tmpdir(), 'nomx-state-input-file-bom-'));
     const file = join(dir, 'payload.json');
     await writeFile(file, `\uFEFF${JSON.stringify({ mode: 'ralph', all_sessions: true })}`, 'utf-8');
     try {
@@ -161,7 +161,7 @@ describe('stateCommand', () => {
   });
 
   it('strips only one leading BOM from --input-file JSON', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'omx-state-input-file-double-bom-'));
+    const dir = await mkdtemp(join(tmpdir(), 'nomx-state-input-file-double-bom-'));
     const file = join(dir, 'payload.json');
     await writeFile(file, '\uFEFF\uFEFF{"mode":"ralph"}', 'utf-8');
     try {
@@ -179,7 +179,7 @@ describe('stateCommand', () => {
 
   it('rejects an unreadable --input-file path', async () => {
     await assert.rejects(
-      stateCommand(['read', '--input-file', join(tmpdir(), 'omx-state-missing-does-not-exist.json')], {
+      stateCommand(['read', '--input-file', join(tmpdir(), 'nomx-state-missing-does-not-exist.json')], {
         stdout: () => undefined,
         stderr: () => undefined,
       }),

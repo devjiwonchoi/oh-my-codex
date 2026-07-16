@@ -2,10 +2,10 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { getStateFilePath, readCurrentSessionId } from '../mcp/state-paths.js';
 import {
-  OmxQuestionError,
-  runOmxQuestion,
-  type OmxQuestionClientOptions,
-  type OmxQuestionSuccessPayload,
+  NomxQuestionError,
+  runNomxQuestion,
+  type NomxQuestionClientOptions,
+  type NomxQuestionSuccessPayload,
 } from './client.js';
 import {
   getQuestionRecordPath,
@@ -26,7 +26,7 @@ const DEEP_INTERVIEW_STATE_FILE = 'deep-interview-state.json';
 
 export interface DeepInterviewQuestionEnforcementState {
   obligation_id: string;
-  source: 'omx-question';
+  source: 'nomx-question';
   status: 'pending' | 'satisfied' | 'cleared';
   lifecycle_outcome: 'askuserQuestion';
   requested_at: string;
@@ -86,7 +86,7 @@ export function createDeepInterviewQuestionObligation(
 ): DeepInterviewQuestionEnforcementState {
   return {
     obligation_id: buildObligationId(now),
-    source: 'omx-question',
+    source: 'nomx-question',
     status: 'pending',
     lifecycle_outcome: 'askuserQuestion',
     requested_at: now.toISOString(),
@@ -271,15 +271,15 @@ export async function reconcileDeepInterviewQuestionEnforcementFromAnsweredRecor
 
 export async function runDeepInterviewQuestion(
   input: Partial<QuestionInput> & { question: string },
-  options: OmxQuestionClientOptions = {},
-): Promise<OmxQuestionSuccessPayload> {
+  options: NomxQuestionClientOptions = {},
+): Promise<NomxQuestionSuccessPayload> {
   const cwd = options.cwd ?? process.cwd();
   const sessionId = safeString(input.session_id).trim() || await readCurrentSessionId(cwd);
   const obligation = createDeepInterviewQuestionObligation();
   const existingAutopilotWait = await readAutopilotDeepInterviewQuestionWaitState(cwd, sessionId);
 
   if (existingAutopilotWait) {
-    throw new OmxQuestionError(
+    throw new NomxQuestionError(
       'active_execution_mode_blocked',
       'Autopilot already has a pending deep-interview question.',
     );
@@ -287,7 +287,7 @@ export async function runDeepInterviewQuestion(
 
   const autopilotWaitClaim = await claimAutopilotDeepInterviewQuestionWaiting(cwd, sessionId, obligation);
   if (autopilotWaitClaim === 'blocked') {
-    throw new OmxQuestionError(
+    throw new NomxQuestionError(
       'active_execution_mode_blocked',
       'Autopilot cannot start a new deep-interview question until the existing wait claim is resolved.',
     );
@@ -301,7 +301,7 @@ export async function runDeepInterviewQuestion(
   );
 
   try {
-    const result = await runOmxQuestion(
+    const result = await runNomxQuestion(
       {
         ...input,
         source: input.source ?? 'deep-interview',

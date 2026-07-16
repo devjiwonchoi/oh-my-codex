@@ -192,7 +192,7 @@ function isScriptInterpreterName(name: string): boolean {
 }
 
 function isProtectedArtifactPath(path: string): boolean {
-  return /^(?:\.\/)?\.omx\/(?:context|specs|tmp)\/[^"'\s;|&<>]+$/.test(path);
+  return /^(?:\.\/)?\.nomx\/(?:context|specs|tmp)\/[^"'\s;|&<>]+$/.test(path);
 }
 
 function resolveCommandOperand(cwd: string, operand: string): string {
@@ -575,7 +575,7 @@ function hasTokenizedExecutionOfPath(command: string, path: string, initialCwd =
 
 function isPlanningTmpShellPath(path: string): boolean {
   const normalized = normalizeShellPath(path);
-  return normalized === '.omx/tmp' || normalized.startsWith('.omx/tmp/');
+  return normalized === '.nomx/tmp' || normalized.startsWith('.nomx/tmp/');
 }
 
 function stdinRedirectsPlanningTmp(args: string[], cwd: string): boolean {
@@ -623,7 +623,7 @@ function commandStdinRedirectsPlanningTmpIntoInterpreter(command: string, initia
 
 function collectProtectedArtifactWritePaths(command: string): Set<string> {
   const paths = new Set<string>();
-  const protectedPath = String.raw`(["']?)((?:\.\/)?\.omx\/(?:context|specs|plans|tmp)\/[^"'\s;|&<>]+)\1`;
+  const protectedPath = String.raw`(["']?)((?:\.\/)?\.nomx\/(?:context|specs|plans|tmp)\/[^"'\s;|&<>]+)\1`;
   const redirectPattern = new RegExp(String.raw`(?:^|[^<])>>?\s*${protectedPath}`, 'g');
 
   for (const match of command.matchAll(redirectPattern)) {
@@ -631,7 +631,7 @@ function collectProtectedArtifactWritePaths(command: string): Set<string> {
     if (path) paths.add(normalizeProtectedArtifactPath(path));
   }
 
-  const pythonPathWritePattern = /\bpython3?\b[\s\S]{0,520}\bPath\s*\(\s*(["'])((?:\.\/)?\.omx\/(?:context|specs|plans|tmp)\/[^"']+)\1\s*\)\s*\.\s*(?:write_text|write_bytes)\s*\(/g;
+  const pythonPathWritePattern = /\bpython3?\b[\s\S]{0,520}\bPath\s*\(\s*(["'])((?:\.\/)?\.nomx\/(?:context|specs|plans|tmp)\/[^"']+)\1\s*\)\s*\.\s*(?:write_text|write_bytes)\s*\(/g;
   for (const match of command.matchAll(pythonPathWritePattern)) {
     const path = match[2]?.trim();
     if (path) paths.add(normalizeProtectedArtifactPath(path));
@@ -964,14 +964,14 @@ export function buildWorkflowTransitionError(
       `Cannot ${action} ${requestedMode}: ${activeModesMessage}.`,
       'Execution-to-planning rollback auto-complete is not allowed.',
       'First clear current state first and retry if this action is intended.',
-      `Clear incompatible workflow state yourself via \`nomx state clear --input '{"mode":"<mode>"}' --json\`; if explicit MCP compatibility is enabled, \`omx_state.*\` tools are also acceptable.`,
+      `Clear incompatible workflow state yourself via \`nomx state clear --input '{"mode":"<mode>"}' --json\`; if explicit MCP compatibility is enabled, \`nomx_state.*\` tools are also acceptable.`,
     ].join(' ');
   }
   return [
     `Cannot ${action} ${requestedMode}: ${activeModesMessage}.`,
     `Unsupported workflow overlap: ${overlap}.`,
     'Current state is unchanged.',
-    `Clear incompatible workflow state yourself via \`nomx state clear --input '{"mode":"<mode>"}' --json\`; if explicit MCP compatibility is enabled, \`omx_state.*\` tools are also acceptable.`,
+    `Clear incompatible workflow state yourself via \`nomx state clear --input '{"mode":"<mode>"}' --json\`; if explicit MCP compatibility is enabled, \`nomx_state.*\` tools are also acceptable.`,
   ].join(' ');
 }
 
@@ -1003,7 +1003,7 @@ export async function readActiveWorkflowModes(
         break;
       } catch {
         throw new Error(
-          `Cannot read ${mode} workflow state at ${candidatePath}. Repair or clear that workflow state yourself via \`nomx state clear --input '{"mode":"${mode}"}' --json\`; if explicit MCP compatibility is enabled, \`omx_state.*\` tools are also acceptable.`,
+          `Cannot read ${mode} workflow state at ${candidatePath}. Repair or clear that workflow state yourself via \`nomx state clear --input '{"mode":"${mode}"}' --json\`; if explicit MCP compatibility is enabled, \`nomx_state.*\` tools are also acceptable.`,
         );
       }
     }

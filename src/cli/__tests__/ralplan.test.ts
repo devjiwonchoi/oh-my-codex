@@ -40,7 +40,7 @@ async function writeCurrentSession(
   nativeLeaderThreadId: string,
   trackerLeaderThreadId: string,
 ): Promise<void> {
-  const stateDir = join(cwd, '.omx', 'state');
+  const stateDir = join(cwd, '.nomx', 'state');
   const now = '2026-07-14T00:00:00.000Z';
   await mkdir(stateDir, { recursive: true });
   await Promise.all([
@@ -67,7 +67,7 @@ async function writeCurrentSession(
 
 describe('ralplan role-intent write', () => {
   it('rejects a supplied session that is not the current runtime session', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-role-intent-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-role-intent-'));
     try {
       await writeCurrentSession(cwd, 'current-session', 'native-leader', 'tracker-leader');
 
@@ -85,7 +85,7 @@ describe('ralplan role-intent write', () => {
   });
 
   it('rejects a parent thread that is not the current session leader', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-role-intent-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-role-intent-'));
     try {
       await writeCurrentSession(cwd, 'current-session', 'native-leader', 'tracker-leader');
 
@@ -103,7 +103,7 @@ describe('ralplan role-intent write', () => {
   });
 
   it('records the authenticated current-session native leader intent with a correlation token receipt', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-role-intent-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-role-intent-'));
     try {
       // A real leader's tracker leader_thread_id equals its native session id; #3181
       // authorizes the legacy native path only against that positively-provenanced anchor.
@@ -134,7 +134,7 @@ describe('ralplan role-intent write', () => {
       assert.match(receipt.intent.correlation_token, /^[0-9a-f]{32}$/);
       assert.ok(Number.isFinite(Date.parse(receipt.intent.expires_at)));
       assert.match(receipt.spawn_task_name, /^[a-z0-9_]+$/);
-      assert.ok(receipt.spawn_task_name.startsWith('omx_role_intent_'));
+      assert.ok(receipt.spawn_task_name.startsWith('nomx_role_intent_'));
       assert.doesNotMatch(receipt.spawn_task_name, /[-:]/);
       const pendingIntent = (await readSubagentTrackingState(cwd)).pending_role_intents[0];
       assert.equal(pendingIntent?.correlation_token, receipt.intent.correlation_token);
@@ -144,7 +144,7 @@ describe('ralplan role-intent write', () => {
     }
   });
   it('fails before persistence when an invalid generated token reaches the task-name builder', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-role-intent-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-role-intent-'));
     try {
       await writeCurrentSession(cwd, 'current-session', 'native-leader', 'tracker-leader');
 

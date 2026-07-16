@@ -19,7 +19,7 @@ import {
   resolveWorkingDirectoryForState,
   validateSessionId,
 } from "./state-paths.js";
-import { resolveOmxCliEntryPath } from "../utils/paths.js";
+import { resolveNomxCliEntryPath } from "../utils/paths.js";
 import { buildSendPaneArgvs } from "../notifications/tmux-detector.js";
 import { resolveTmuxBinaryForPlatform } from "../utils/platform-command.js";
 import { safeJsonParse } from "../utils/safe-json.js";
@@ -100,24 +100,24 @@ export interface HermesTmuxPromptResult {
 export interface HermesBridgeDeps {
   now?: () => Date;
   spawnProcess?: typeof spawn;
-  resolveOmxCliEntryPath?: typeof resolveOmxCliEntryPath;
+  resolveNomxCliEntryPath?: typeof resolveNomxCliEntryPath;
   readUsableSessionState?: typeof readUsableSessionState;
   injectExecFollowup?: typeof injectExecFollowup;
   execTmuxFileSync?: (args: string[]) => string | Buffer | void;
 }
 
 const SAFE_ARTIFACT_PREFIXES = [
-  ".omx/plans/",
-  ".omx/specs/",
-  ".omx/goals/",
-  ".omx/context/",
-  ".omx/reports/",
+  ".nomx/plans/",
+  ".nomx/specs/",
+  ".nomx/goals/",
+  ".nomx/context/",
+  ".nomx/reports/",
 ];
 const DEFAULT_ARTIFACT_MAX_BYTES = 128_000;
 const DEFAULT_TAIL_LINES = 80;
 const MAX_TAIL_LINES = 500;
 const MAX_TAIL_READ_BYTES = 256_000;
-const OMX_INSTANCE_OPTION = "@omx_instance_id";
+const NOMX_INSTANCE_OPTION = "@nomx_instance_id";
 
 function jsonResult<T extends Record<string, unknown>>(data: T): HermesBridgeResult<T> {
   return { ok: true, data };
@@ -209,7 +209,7 @@ async function sendPromptToBoundTmuxSession(
   const execTmux = deps.execTmuxFileSync ?? defaultExecTmuxFileSync;
   try {
     execTmux(["has-session", "-t", tmuxSessionName]);
-    const instanceId = String(execTmux(["show-options", "-qv", "-t", tmuxSessionName, OMX_INSTANCE_OPTION]) ?? "").trim();
+    const instanceId = String(execTmux(["show-options", "-qv", "-t", tmuxSessionName, NOMX_INSTANCE_OPTION]) ?? "").trim();
     if (instanceId !== rawSession.session_id) {
       throw new Error(`tmux_instance_mismatch:${tmuxSessionName}:${instanceId || "missing"}`);
     }
@@ -353,7 +353,7 @@ export async function hermesReadStatus(
     const rawSession = sessionId ? null : await (deps.readUsableSessionState ?? readUsableSessionState)(cwd);
     const session = projectSessionStatus(rawSession);
     if (sessionId && !existsSync(join(getBaseStateDir(cwd), "sessions", sessionId))) {
-      return failure("no_session", `No OMX session state directory exists for ${sessionId}`);
+      return failure("no_session", `No NOMX session state directory exists for ${sessionId}`);
     }
     const refs = await listModeStateFilesWithScopePreference(cwd, sessionId);
     const modes: HermesModeStatusSummary[] = [];
@@ -453,7 +453,7 @@ export async function hermesSendPrompt(
       return failure(
         "prompt_not_accepted",
         `unsupported_session_kind:no_active_exec_session_or_tmux_binding:${sessionId}. ` +
-          "hermes_send_prompt supports active exec follow-up queues and OMX-managed tmux sessions with live tmux_session_name and tmux_pane_id bindings.",
+          "hermes_send_prompt supports active exec follow-up queues and NOMX-managed tmux sessions with live tmux_session_name and tmux_pane_id bindings.",
       );
     }
   } catch (error) {
@@ -477,17 +477,17 @@ export async function hermesStartSession(
     if (worktreeName && (!/^[A-Za-z0-9._/-]{1,128}$/.test(worktreeName) || worktreeName.includes("..") || worktreeName.startsWith("/"))) {
       throw new Error("worktreeName must be a relative safe worktree name");
     }
-    const command = (deps.resolveOmxCliEntryPath ?? resolveOmxCliEntryPath)({ cwd }) ?? "omx";
+    const command = (deps.resolveNomxCliEntryPath ?? resolveNomxCliEntryPath)({ cwd }) ?? "omx";
     const launchArgs = ["--tmux", worktreeName ? `--worktree=${worktreeName}` : "--worktree", prompt];
     const { TMUX: _tmux, TMUX_PANE: _tmuxPane, ...bridgeEnv } = process.env;
     const child = (deps.spawnProcess ?? spawn)(command, launchArgs, {
       cwd,
       detached: true,
       stdio: "ignore",
-      env: { ...bridgeEnv, OMX_HERMES_MCP_BRIDGE: "1" },
+      env: { ...bridgeEnv, NOMX_HERMES_MCP_BRIDGE: "1" },
     }) as ChildProcess;
     child.unref();
-    if (!child.pid) return failure("command_failed", "OMX session launcher did not report a pid");
+    if (!child.pid) return failure("command_failed", "NOMX session launcher did not report a pid");
     return jsonResult({ pid: child.pid, command, args: launchArgs, workingDirectory: cwd });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -573,7 +573,7 @@ export async function hermesListArtifacts(
     const cwd = resolveWorkingDirectoryForState(normalizeString(args.workingDirectory, "workingDirectory"));
     const limit = normalizePositiveInteger(args.limit, 100, 500);
     const artifacts: Array<{ path: string; bytes: number }> = [];
-    for (const prefix of [".omx/plans", ".omx/specs", ".omx/goals", ".omx/context", ".omx/reports"]) {
+    for (const prefix of [".nomx/plans", ".nomx/specs", ".nomx/goals", ".nomx/context", ".nomx/reports"]) {
       await collectFiles(join(cwd, prefix), cwd, limit, artifacts);
     }
     return jsonResult({ artifacts: artifacts.sort((a, b) => a.path.localeCompare(b.path)) });
@@ -615,7 +615,7 @@ export async function hermesReadTail(
   try {
     const cwd = resolveWorkingDirectoryForState(normalizeString(args.workingDirectory, "workingDirectory"));
     const lines = normalizePositiveInteger(args.lines, DEFAULT_TAIL_LINES, MAX_TAIL_LINES);
-    const path = join(cwd, ".omx", "logs", "session-history.jsonl");
+    const path = join(cwd, ".nomx", "logs", "session-history.jsonl");
     if (!existsSync(path)) return jsonResult({ tail: [], path });
     const cwdRealPath = await realpath(cwd);
     const pathRealPath = await realpath(path);

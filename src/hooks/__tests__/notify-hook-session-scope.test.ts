@@ -16,7 +16,7 @@ function runNotifyHook(payload: Record<string, unknown>, env: NodeJS.ProcessEnv 
     encoding: 'utf-8',
     env: {
       ...process.env,
-      OMX_TEAM_WORKER: '',
+      NOMX_TEAM_WORKER: '',
       TMUX: '',
       TMUX_PANE: '',
       ...env,
@@ -26,9 +26,9 @@ function runNotifyHook(payload: Record<string, unknown>, env: NodeJS.ProcessEnv 
 
 describe('notify-hook session-scoped iteration updates', () => {
   it('does not mutate root active mode state when current session scope exists only in session.json', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-root-fallback-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-root-fallback-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-current';
       await mkdir(stateDir, { recursive: true });
 
@@ -60,9 +60,9 @@ describe('notify-hook session-scoped iteration updates', () => {
   });
 
   it('increments iteration for active session-scoped mode states', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-test-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-test-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess1';
       const sessionScopedDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionScopedDir, { recursive: true });
@@ -89,9 +89,9 @@ describe('notify-hook session-scoped iteration updates', () => {
   });
 
   it('auto-expands active Ralph max_iterations by 10 when the run is still progressing', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-test-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-test-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess1';
       const sessionScopedDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionScopedDir, { recursive: true });
@@ -130,9 +130,9 @@ describe('notify-hook session-scoped iteration updates', () => {
   });
 
   it('still marks non-Ralph modes complete when max_iterations is reached', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-test-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-test-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess1';
       const sessionScopedDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionScopedDir, { recursive: true });
@@ -168,11 +168,11 @@ describe('notify-hook session-scoped iteration updates', () => {
   });
 
   it('writes hud progress timestamps for leader turns', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-hud-progress-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-hud-progress-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
-      await writeFile(join(wd, '.omx', 'managed'), 'test fixture managed workspace');
+      await writeFile(join(wd, '.nomx', 'managed'), 'test fixture managed workspace');
 
       const result = runNotifyHook({
         cwd: wd,
@@ -194,11 +194,11 @@ describe('notify-hook session-scoped iteration updates', () => {
     }
   });
 
-  it('prefers the canonical OMX session scope over a different native payload session id for notify sidefiles', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-canonical-session-'));
+  it('prefers the canonical NOMX session scope over a different native payload session id for notify sidefiles', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-canonical-session-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
-      const canonicalSessionId = 'omx-canonical-session';
+      const stateDir = join(wd, '.nomx', 'state');
+      const canonicalSessionId = 'nomx-canonical-session';
       const nativeSessionId = 'codex-native-session';
       const canonicalDir = join(stateDir, 'sessions', canonicalSessionId);
       await mkdir(canonicalDir, { recursive: true });
@@ -230,12 +230,12 @@ describe('notify-hook session-scoped iteration updates', () => {
   });
 
 
-  it('prefers the invocation OMX session id over the persisted canonical session for notify sidefiles when a fork scope exists', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-fork-session-'));
+  it('prefers the invocation NOMX session id over the persisted canonical session for notify sidefiles when a fork scope exists', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-fork-session-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
-      const canonicalSessionId = 'omx-canonical-session';
-      const forkSessionId = 'omx-fork-session';
+      const stateDir = join(wd, '.nomx', 'state');
+      const canonicalSessionId = 'nomx-canonical-session';
+      const forkSessionId = 'nomx-fork-session';
       const nativeSessionId = 'codex-native-session';
       const forkDir = join(stateDir, 'sessions', forkSessionId);
       await mkdir(forkDir, { recursive: true });
@@ -259,8 +259,8 @@ describe('notify-hook session-scoped iteration updates', () => {
         encoding: 'utf-8',
         env: {
           ...process.env,
-          OMX_SESSION_ID: forkSessionId,
-          OMX_TEAM_WORKER: '',
+          NOMX_SESSION_ID: forkSessionId,
+          NOMX_TEAM_WORKER: '',
           TMUX: '',
           TMUX_PANE: '',
         },
@@ -282,7 +282,7 @@ describe('notify-hook session-scoped iteration updates', () => {
         turn_id: 'tu-fork-second',
         input_messages: [],
         last_assistant_message: 'continuing',
-      }, { OMX_SESSION_ID: forkSessionId });
+      }, { NOMX_SESSION_ID: forkSessionId });
       assert.equal(second.status, 0, second.stderr || second.stdout);
       const forkRalphAfterSecond = JSON.parse(await readFile(join(forkDir, 'ralph-state.json'), 'utf8'));
       assert.equal(forkRalphAfterSecond.owner_codex_session_id, nativeSessionId);
@@ -294,15 +294,15 @@ describe('notify-hook session-scoped iteration updates', () => {
   });
 
   it('rejects a foreign-owned notify fork before receipts, activation, or Ralph mutation', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-fork-owner-conflict-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-fork-owner-conflict-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
-      const canonicalSessionId = 'omx-canonical-owner';
+      const stateDir = join(wd, '.nomx', 'state');
+      const canonicalSessionId = 'nomx-canonical-owner';
       const payloadSessionId = 'codex-payload-owner';
-      const forkSessionId = 'omx-existing-fork';
+      const forkSessionId = 'nomx-existing-fork';
       const forkDir = join(stateDir, 'sessions', forkSessionId);
       await mkdir(forkDir, { recursive: true });
-      await writeFile(join(wd, '.omx', 'managed'), 'test fixture managed workspace');
+      await writeFile(join(wd, '.nomx', 'managed'), 'test fixture managed workspace');
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
         session_id: canonicalSessionId,
         native_session_id: payloadSessionId,
@@ -332,35 +332,35 @@ describe('notify-hook session-scoped iteration updates', () => {
         turn_id: 'tu-owner-conflict',
         input_messages: ['$ralph continue'],
         last_assistant_message: 'ok',
-      }, { OMX_SESSION_ID: forkSessionId });
+      }, { NOMX_SESSION_ID: forkSessionId });
       assert.equal(result.status, 0, result.stderr || result.stdout);
 
       assert.equal(await readFile(ralphPath, 'utf8'), originalRalph);
       assert.equal(existsSync(join(forkDir, 'notify-hook-state.json')), false);
       assert.equal(existsSync(join(forkDir, 'hud-state.json')), false);
       assert.equal(existsSync(join(forkDir, 'skill-active-state.json')), false);
-      const diagnostics = await readFile(join(wd, '.omx', 'logs', `omx-${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf8');
+      const diagnostics = await readFile(join(wd, '.nomx', 'logs', `nomx-${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf8');
       const rejectionLines = diagnostics.split('\n').filter((line) => line.includes('prompt_session_provenance_rejected'));
       assert.equal(rejectionLines.length, 1);
       assert.match(rejectionLines[0], /"reason":"owner_conflict"/);
-      assert.doesNotMatch(rejectionLines[0], /foreign-codex-owner|codex-payload-owner|omx-existing-fork|\$ralph/);
+      assert.doesNotMatch(rejectionLines[0], /foreign-codex-owner|codex-payload-owner|nomx-existing-fork|\$ralph/);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it('rejects malformed notify target state before receipts or overwrite', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-malformed-target-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-malformed-target-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const forkId = 'malformed-fork';
       const forkDir = join(stateDir, 'sessions', forkId);
       await mkdir(forkDir, { recursive: true });
-      await writeFile(join(wd, '.omx', 'managed'), 'test fixture managed workspace');
+      await writeFile(join(wd, '.nomx', 'managed'), 'test fixture managed workspace');
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({ session_id: 'canonical', native_session_id: 'payload-owner' }));
       const malformedPath = join(forkDir, 'ralph-state.json');
       await writeFile(malformedPath, '{ malformed');
-      const result = runNotifyHook({ cwd: wd, session_id: 'payload-owner', type: 'agent-turn-complete', turn_id: 'malformed-turn', input_messages: [] }, { OMX_SESSION_ID: forkId });
+      const result = runNotifyHook({ cwd: wd, session_id: 'payload-owner', type: 'agent-turn-complete', turn_id: 'malformed-turn', input_messages: [] }, { NOMX_SESSION_ID: forkId });
       assert.equal(result.status, 0, result.stderr || result.stdout);
       assert.equal(await readFile(malformedPath, 'utf8'), '{ malformed');
       assert.equal(existsSync(join(forkDir, 'notify-hook-state.json')), false);
@@ -371,10 +371,10 @@ describe('notify-hook session-scoped iteration updates', () => {
   });
 
   it('persists visual-verdict feedback from runtime assistant output', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-visual-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-visual-'));
     try {
-      await mkdir(join(wd, '.omx', 'state'), { recursive: true });
-      await writeFile(join(wd, '.omx', 'managed'), 'test fixture managed workspace');
+      await mkdir(join(wd, '.nomx', 'state'), { recursive: true });
+      await writeFile(join(wd, '.nomx', 'managed'), 'test fixture managed workspace');
       const sessionId = 'sessVisual';
       const result = runNotifyHook({
         cwd: wd,
@@ -405,7 +405,7 @@ describe('notify-hook session-scoped iteration updates', () => {
       });
       assert.equal(result.status, 0, result.stderr || result.stdout);
 
-      const progressPath = join(wd, '.omx', 'state', 'sessions', sessionId, 'ralph-progress.json');
+      const progressPath = join(wd, '.nomx', 'state', 'sessions', sessionId, 'ralph-progress.json');
       assert.equal(existsSync(progressPath), true);
       const progress = JSON.parse(await readFile(progressPath, 'utf-8')) as {
         visual_feedback?: Array<{
@@ -429,17 +429,17 @@ describe('notify-hook session-scoped iteration updates', () => {
   });
 
   it('suppresses managed unmatched owner sidefiles without creating either an owner or canonical receipt scope', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-managed-unmatched-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-managed-unmatched-'));
     const home = join(wd, 'home');
     const fakeBinDir = join(wd, 'bin');
-    const canonicalSessionId = 'omx-canonical';
-    const ownerSessionId = 'omx-unmatched-owner';
+    const canonicalSessionId = 'nomx-canonical';
+    const ownerSessionId = 'nomx-unmatched-owner';
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const canonicalDir = join(stateDir, 'sessions', canonicalSessionId);
       await mkdir(canonicalDir, { recursive: true });
       await mkdir(fakeBinDir, { recursive: true });
-      await writeFile(join(wd, '.omx', 'managed'), 'test fixture managed workspace');
+      await writeFile(join(wd, '.nomx', 'managed'), 'test fixture managed workspace');
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
         session_id: canonicalSessionId,
         cwd: wd,
@@ -450,7 +450,7 @@ describe('notify-hook session-scoped iteration updates', () => {
 set -eu
 case "$*" in
   *"display-message -p -t %owner-pane #S") printf 'managed-session\\n' ;;
-  *"show-option -qv -p -t %owner-pane @omx_pane_instance_id") printf '${ownerSessionId}\\n' ;;
+  *"show-option -qv -p -t %owner-pane @nomx_pane_instance_id") printf '${ownerSessionId}\\n' ;;
   *) exit 0 ;;
 esac
 `);
@@ -471,8 +471,8 @@ esac
           ...process.env,
           HOME: home,
           CODEX_HOME: join(home, '.codex'),
-          OMX_SESSION_ID: ownerSessionId,
-          OMX_TEAM_WORKER: '',
+          NOMX_SESSION_ID: ownerSessionId,
+          NOMX_TEAM_WORKER: '',
           TMUX: '/tmp/tmux-1000/default,1,0',
           TMUX_PANE: '%owner-pane',
           PATH: `${fakeBinDir}:${process.env.PATH || ''}`,
@@ -489,20 +489,20 @@ esac
       assert.equal(existsSync(join(canonicalDir, 'session-idle-hook-state.json')), false);
       assert.equal(existsSync(join(canonicalDir, 'lifecycle-notif-state.json')), false);
       assert.equal(existsSync(join(stateDir, 'sessions', ownerSessionId)), false);
-      assert.equal(existsSync(join(home, '.omx', 'state', 'reply-session-registry.jsonl')), false);
+      assert.equal(existsSync(join(home, '.nomx', 'state', 'reply-session-registry.jsonl')), false);
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it('rejects a missing notify fork without creating the requested target', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-missing-fork-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-missing-fork-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
-      const canonicalSessionId = 'omx-canonical';
+      const stateDir = join(wd, '.nomx', 'state');
+      const canonicalSessionId = 'nomx-canonical';
       const payloadSessionId = 'codex-owner';
       await mkdir(join(stateDir, 'sessions', canonicalSessionId), { recursive: true });
-      await writeFile(join(wd, '.omx', 'managed'), 'test fixture managed workspace');
+      await writeFile(join(wd, '.nomx', 'managed'), 'test fixture managed workspace');
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
         session_id: canonicalSessionId,
         native_session_id: payloadSessionId,
@@ -515,10 +515,10 @@ esac
         type: 'agent-turn-complete',
         input_messages: [],
         last_assistant_message: 'ok',
-      }, { OMX_SESSION_ID: 'fork-missing' });
+      }, { NOMX_SESSION_ID: 'fork-missing' });
       assert.equal(result.status, 0, result.stderr || result.stdout);
       assert.equal(existsSync(join(stateDir, 'sessions', 'fork-missing')), false);
-      const diagnostics = await readFile(join(wd, '.omx', 'logs', `omx-${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8');
+      const diagnostics = await readFile(join(wd, '.nomx', 'logs', `nomx-${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8');
       assert.match(diagnostics, /"reason":"notify_fork_missing"/);
     } finally {
       await rm(wd, { recursive: true, force: true });
@@ -526,11 +526,11 @@ esac
   });
 
   it('rejects no-input leader turns before creating a session scope', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-no-input-reject-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-no-input-reject-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
-      await writeFile(join(wd, '.omx', 'managed'), 'test fixture managed workspace');
+      await writeFile(join(wd, '.nomx', 'managed'), 'test fixture managed workspace');
 
       const result = runNotifyHook({
         cwd: wd,
@@ -540,7 +540,7 @@ esac
       });
       assert.equal(result.status, 0, result.stderr || result.stdout);
       assert.equal(existsSync(join(stateDir, 'sessions')), false);
-      const diagnostics = await readFile(join(wd, '.omx', 'logs', `omx-${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8');
+      const diagnostics = await readFile(join(wd, '.nomx', 'logs', `nomx-${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8');
       assert.match(diagnostics, /"reason":"payload_session_absent"/);
       assert.equal(diagnostics.includes(wd), false);
     } finally {
@@ -549,14 +549,14 @@ esac
   });
 
   it('rejects malformed owner environment before foreign state mutation', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-malformed-owner-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-malformed-owner-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
-      const canonicalSessionId = 'omx-canonical';
+      const stateDir = join(wd, '.nomx', 'state');
+      const canonicalSessionId = 'nomx-canonical';
       const payloadSessionId = 'codex-owner';
       const canonicalDir = join(stateDir, 'sessions', canonicalSessionId);
       await mkdir(canonicalDir, { recursive: true });
-      await writeFile(join(wd, '.omx', 'managed'), 'test fixture managed workspace');
+      await writeFile(join(wd, '.nomx', 'managed'), 'test fixture managed workspace');
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
         session_id: canonicalSessionId,
         native_session_id: payloadSessionId,
@@ -570,11 +570,11 @@ esac
         type: 'agent-turn-complete',
         input_messages: [],
         last_assistant_message: 'ok',
-      }, { OMX_SESSION_ID: '../malformed-owner' });
+      }, { NOMX_SESSION_ID: '../malformed-owner' });
       assert.equal(result.status, 0, result.stderr || result.stdout);
       assert.deepEqual(JSON.parse(await readFile(join(canonicalDir, 'hud-state.json'), 'utf-8')), { turn_count: 7 });
       assert.equal(existsSync(join(stateDir, 'sessions', 'malformed-owner')), false);
-      const diagnostics = await readFile(join(wd, '.omx', 'logs', `omx-${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8');
+      const diagnostics = await readFile(join(wd, '.nomx', 'logs', `nomx-${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8');
       assert.match(diagnostics, /"reason":"owner_env_invalid"/);
       assert.equal(diagnostics.includes('../malformed-owner'), false);
     } finally {

@@ -37,7 +37,7 @@ function computeGitBlobSha1(content: string): string {
 }
 
 function canonicalContextPackRelativePath(slug: string): string {
-  return `.omx/context/context-20260507T120000Z-${slug}.json`;
+  return `.nomx/context/context-20260507T120000Z-${slug}.json`;
 }
 
 function buildContextPackOutcome(relativePackPath: string): string {
@@ -54,7 +54,7 @@ async function writeReadyContextPack(
   prdPath: string,
   testSpecPath: string,
 ): Promise<void> {
-  const contextDir = join(cwd, '.omx', 'context');
+  const contextDir = join(cwd, '.nomx', 'context');
   const packPath = join(cwd, canonicalContextPackRelativePath(slug));
   const prdContent = await readFile(prdPath, 'utf-8');
   const testSpecContent = await readFile(testSpecPath, 'utf-8');
@@ -88,7 +88,7 @@ function makeCtx(overrides: Partial<StageContext> = {}): StageContext {
 }
 
 async function setup(): Promise<string> {
-  tempDir = await mkdtemp(join(tmpdir(), 'omx-stages-test-'));
+  tempDir = await mkdtemp(join(tmpdir(), 'nomx-stages-test-'));
   return tempDir;
 }
 
@@ -161,7 +161,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false when plans directory is empty', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
 
     const stage = createRalplanStage();
@@ -169,7 +169,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false when only a prd- plan file exists', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
 
@@ -178,7 +178,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false when only prd and test spec plan files exist without consensus evidence', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -208,7 +208,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns true only when planning artifacts have sequential Architect and Critic approval evidence', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -228,7 +228,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('strict Autopilot canSkip rejects artifact-only or codex_exec consensus evidence', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -246,8 +246,8 @@ describe('RALPLAN Stage', () => {
               provenance_kind: 'codex_exec',
               session_id: 'sess-native-required',
               thread_id: 'exec-architect',
-              artifact_path: '.omx/artifacts/architect.md',
-              tracker_path: '.omx/state/subagent-tracking.json',
+              artifact_path: '.nomx/artifacts/architect.md',
+              tracker_path: '.nomx/state/subagent-tracking.json',
             },
             ralplan_critic_review: {
               agent_role: 'critic',
@@ -255,8 +255,8 @@ describe('RALPLAN Stage', () => {
               provenance_kind: 'codex_exec',
               session_id: 'sess-native-required',
               thread_id: 'exec-critic',
-              artifact_path: '.omx/artifacts/critic.md',
-              tracker_path: '.omx/state/subagent-tracking.json',
+              artifact_path: '.nomx/artifacts/critic.md',
+              tracker_path: '.nomx/state/subagent-tracking.json',
             },
           },
         },
@@ -266,7 +266,7 @@ describe('RALPLAN Stage', () => {
 
 
   it('strict Autopilot canSkip rejects native reviews that reuse one subagent thread', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     const sessionId = 'sess-native-same-thread';
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
@@ -286,8 +286,8 @@ describe('RALPLAN Stage', () => {
               provenance_kind: 'native_subagent',
               session_id: sessionId,
               thread_id: 'thread-architect',
-              artifact_path: '.omx/artifacts/architect.md',
-              tracker_path: '.omx/state/subagent-tracking.json',
+              artifact_path: '.nomx/artifacts/architect.md',
+              tracker_path: '.nomx/state/subagent-tracking.json',
             },
             ralplan_critic_review: {
               agent_role: 'critic',
@@ -295,8 +295,8 @@ describe('RALPLAN Stage', () => {
               provenance_kind: 'native_subagent',
               session_id: sessionId,
               thread_id: 'thread-architect',
-              artifact_path: '.omx/artifacts/critic.md',
-              tracker_path: '.omx/state/subagent-tracking.json',
+              artifact_path: '.nomx/artifacts/critic.md',
+              tracker_path: '.nomx/state/subagent-tracking.json',
             },
           },
         },
@@ -305,7 +305,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('strict Autopilot canSkip accepts tracker-backed native Architect and Critic lanes', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     const sessionId = 'sess-native-required';
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
@@ -325,8 +325,8 @@ describe('RALPLAN Stage', () => {
               provenance_kind: 'native_subagent',
               session_id: sessionId,
               thread_id: 'thread-architect',
-              artifact_path: '.omx/artifacts/architect.md',
-              tracker_path: '.omx/state/subagent-tracking.json',
+              artifact_path: '.nomx/artifacts/architect.md',
+              tracker_path: '.nomx/state/subagent-tracking.json',
             },
             ralplan_critic_review: {
               agent_role: 'critic',
@@ -334,8 +334,8 @@ describe('RALPLAN Stage', () => {
               provenance_kind: 'native_subagent',
               session_id: sessionId,
               thread_id: 'thread-critic',
-              artifact_path: '.omx/artifacts/critic.md',
-              tracker_path: '.omx/state/subagent-tracking.json',
+              artifact_path: '.nomx/artifacts/critic.md',
+              tracker_path: '.nomx/state/subagent-tracking.json',
             },
           },
         },
@@ -344,8 +344,8 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip honors explicit session-scoped consensus state before root state', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
-    const stateDir = join(tempDir, '.omx', 'state');
+    const plansDir = join(tempDir, '.nomx', 'plans');
+    const stateDir = join(tempDir, '.nomx', 'state');
     const sessionDir = join(stateDir, 'sessions', 'sess-explicit');
     await mkdir(plansDir, { recursive: true });
     await mkdir(sessionDir, { recursive: true });
@@ -373,8 +373,8 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip fails closed when explicit session state is missing despite root consensus', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
-    const stateDir = join(tempDir, '.omx', 'state');
+    const plansDir = join(tempDir, '.nomx', 'plans');
+    const stateDir = join(tempDir, '.nomx', 'state');
     await mkdir(plansDir, { recursive: true });
     await mkdir(stateDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
@@ -393,8 +393,8 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip fails closed for malformed explicit session ids instead of falling back to root consensus', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
-    const stateDir = join(tempDir, '.omx', 'state');
+    const plansDir = join(tempDir, '.nomx', 'plans');
+    const stateDir = join(tempDir, '.nomx', 'state');
     await mkdir(plansDir, { recursive: true });
     await mkdir(stateDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
@@ -415,7 +415,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip rejects blocker aliases even with approval-shaped booleans', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -443,7 +443,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false when Critic evidence is recorded before Architect evidence', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -464,7 +464,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false when Critic timestamp predates Architect timestamp', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -492,16 +492,16 @@ describe('RALPLAN Stage', () => {
     })), false);
   });
 
-  it('canSkip ignores ambient OMX_ROOT consensus state for local PRD/test-spec-only artifacts', async () => {
-    const ambientRoot = await mkdtemp(join(tmpdir(), 'omx-ralplan-ambient-'));
-    const previousOmxRoot = process.env.OMX_ROOT;
+  it('canSkip ignores ambient NOMX_ROOT consensus state for local PRD/test-spec-only artifacts', async () => {
+    const ambientRoot = await mkdtemp(join(tmpdir(), 'nomx-ralplan-ambient-'));
+    const previousOmxRoot = process.env.NOMX_ROOT;
     try {
-      const plansDir = join(tempDir, '.omx', 'plans');
+      const plansDir = join(tempDir, '.nomx', 'plans');
       await mkdir(plansDir, { recursive: true });
       await writeFile(join(plansDir, 'prd-local.md'), '# Plan\n');
       await writeFile(join(plansDir, 'test-spec-local.md'), '# Test Spec\n');
 
-      const ambientStateDir = join(ambientRoot, '.omx', 'state');
+      const ambientStateDir = join(ambientRoot, '.nomx', 'state');
       await mkdir(ambientStateDir, { recursive: true });
       await writeFile(join(ambientStateDir, 'ralplan-state.json'), JSON.stringify({
         current_phase: 'complete',
@@ -512,19 +512,19 @@ describe('RALPLAN Stage', () => {
           ralplan_critic_review: { agent_role: 'critic', verdict: 'approve', iteration: 1 },
         },
       }));
-      process.env.OMX_ROOT = ambientRoot;
+      process.env.NOMX_ROOT = ambientRoot;
 
       const stage = createRalplanStage();
       assert.equal(stage.canSkip!(makeCtx()), false);
     } finally {
-      if (previousOmxRoot === undefined) delete process.env.OMX_ROOT;
-      else process.env.OMX_ROOT = previousOmxRoot;
+      if (previousOmxRoot === undefined) delete process.env.NOMX_ROOT;
+      else process.env.NOMX_ROOT = previousOmxRoot;
       await rm(ambientRoot, { recursive: true, force: true });
     }
   });
 
   it('canSkip returns false for rejected consensus objects with approval-shaped booleans', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -554,7 +554,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false when consensus-shaped reviews do not record agent roles', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -574,7 +574,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false when review history entries do not record agent roles', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -593,7 +593,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false when review arrays do not record agent roles', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -610,8 +610,8 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false when local state only has latest verdict fields', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
-    const stateDir = join(tempDir, '.omx', 'state');
+    const plansDir = join(tempDir, '.nomx', 'plans');
+    const stateDir = join(tempDir, '.nomx', 'state');
     await mkdir(plansDir, { recursive: true });
     await mkdir(stateDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
@@ -628,7 +628,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false when Architect and Critic roles are swapped', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -648,7 +648,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false after non-clean code-review loopback even when plans exist', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -663,7 +663,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('run rejects stale nested ralplan artifacts when parent return-to-ralplan context is present', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -701,7 +701,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('run accepts nested ralplan artifacts when review_cycle explicitly advances past parent loopback', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -742,7 +742,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('run rejects nested ralplan artifacts when only the container review_cycle advances', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -781,7 +781,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false when nested code-review artifacts are non-clean', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-my-feature.md'), '# Plan\n');
     await writeFile(join(plansDir, 'test-spec-my-feature.md'), '# Test Spec\n');
@@ -798,7 +798,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('surfaces deep-interview specs in ralplan artifacts for downstream traceability', async () => {
-    const specsDir = join(tempDir, '.omx', 'specs');
+    const specsDir = join(tempDir, '.nomx', 'specs');
     await mkdir(specsDir, { recursive: true });
     await writeFile(join(specsDir, 'deep-interview-my-feature.md'), '# Deep Interview Spec\n');
 
@@ -814,7 +814,7 @@ describe('RALPLAN Stage', () => {
     const stage = createRalplanStage({
       executor: {
         async draft() {
-          const plansDir = join(tempDir, '.omx', 'plans');
+          const plansDir = join(tempDir, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-runtime.md');
           await writeFile(prdPath, '# Runtime Plan\n');
@@ -853,7 +853,7 @@ describe('RALPLAN Stage', () => {
     const stage = createRalplanStage({
       executor: {
         async draft() {
-          const plansDir = join(tempDir, '.omx', 'plans');
+          const plansDir = join(tempDir, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-new.md');
           await writeFile(prdPath, '# New runtime plan\n');
@@ -906,7 +906,7 @@ describe('RALPLAN Stage', () => {
     const stage = createRalplanStage({
       executor: {
         async draft() {
-          const plansDir = join(tempDir, '.omx', 'plans');
+          const plansDir = join(tempDir, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-runtime.md');
           await writeFile(prdPath, '# Runtime Plan\n');
@@ -939,7 +939,7 @@ describe('RALPLAN Stage', () => {
   });
 
   it('canSkip returns false for non-prd plan files', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'autopilot-spec.md'), '# Spec\n');
 
@@ -985,7 +985,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('derives the team-exec task from a relative latest approved PRD handoff path', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const approvedPrdPath = join(plansDir, 'prd-zeta.md');
     const approvedTestSpecPath = join(plansDir, 'test-spec-zeta.md');
@@ -1013,7 +1013,7 @@ describe('Team Exec Stage', () => {
             task: 'original request task',
             data: 'plan-content',
             stage: 'ralplan',
-            latestPlanPath: join('.omx', 'plans', 'prd-zeta.md'),
+            latestPlanPath: join('.nomx', 'plans', 'prd-zeta.md'),
           },
         },
       }));
@@ -1043,7 +1043,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('derives the team-exec task from the selected approved PRD when a newer draft is incomplete', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const approvedPrdPath = join(plansDir, 'prd-zeta.md');
     const approvedTestSpecPath = join(plansDir, 'test-spec-zeta.md');
@@ -1071,7 +1071,7 @@ describe('Team Exec Stage', () => {
           ralplan: {
             task: 'original request task',
             stage: 'ralplan',
-            latestPlanPath: join('.omx', 'plans', 'prd-zeta.md'),
+            latestPlanPath: join('.nomx', 'plans', 'prd-zeta.md'),
           },
         },
       }));
@@ -1093,7 +1093,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('skips newer incomplete runtime drafts when selecting the approved team handoff', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const approvedPrdPath = join(plansDir, 'prd-zeta.md');
     const approvedTestSpecPath = join(plansDir, 'test-spec-zeta.md');
@@ -1122,10 +1122,10 @@ describe('Team Exec Stage', () => {
           ralplan: {
             task: 'original request task',
             stage: 'ralplan',
-            latestPlanPath: join('.omx', 'plans', 'prd-zeta.md'),
+            latestPlanPath: join('.nomx', 'plans', 'prd-zeta.md'),
             drafts: [
-              { planPath: join('.omx', 'plans', 'prd-zeta.md') },
-              { planPath: join('.omx', 'plans', 'prd-zulu.md') },
+              { planPath: join('.nomx', 'plans', 'prd-zeta.md') },
+              { planPath: join('.nomx', 'plans', 'prd-zulu.md') },
             ],
           },
         },
@@ -1149,7 +1149,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('reuses baseline-only approved handoffs for team-exec', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const approvedPrdPath = join(plansDir, 'prd-plan-only.md');
     await writeFile(
@@ -1169,7 +1169,7 @@ describe('Team Exec Stage', () => {
           ralplan: {
             task: 'original request task',
             stage: 'ralplan',
-            latestPlanPath: join('.omx', 'plans', 'prd-plan-only.md'),
+            latestPlanPath: join('.nomx', 'plans', 'prd-plan-only.md'),
           },
         },
       }));
@@ -1196,7 +1196,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('blocks team-exec when the selected approved handoff is missing its baseline', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-issue-missing-baseline.md'),
@@ -1213,7 +1213,7 @@ describe('Team Exec Stage', () => {
           ralplan: {
             task: 'original request task',
             stage: 'ralplan',
-            latestPlanPath: join('.omx', 'plans', 'prd-issue-missing-baseline.md'),
+            latestPlanPath: join('.nomx', 'plans', 'prd-issue-missing-baseline.md'),
           },
         },
       }));
@@ -1229,7 +1229,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('ignores obsolete context-pack markers when a matching test spec baseline exists', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-issue-nonready.md'),
@@ -1238,7 +1238,7 @@ describe('Team Exec Stage', () => {
         '',
         '## Context Pack Outcome',
         '',
-        '- pack: created `.omx/context/context-20260507T120000Z-other.json`',
+        '- pack: created `.nomx/context/context-20260507T120000Z-other.json`',
         '',
         'Launch via nomx team 5:debugger "Execute nonready team handoff"',
       ].join('\n'),
@@ -1255,7 +1255,7 @@ describe('Team Exec Stage', () => {
           ralplan: {
             task: 'original request task',
             stage: 'ralplan',
-            latestPlanPath: join('.omx', 'plans', 'prd-issue-nonready.md'),
+            latestPlanPath: join('.nomx', 'plans', 'prd-issue-nonready.md'),
           },
         },
       }));
@@ -1273,7 +1273,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('derives the team-exec task when latestPlanPath is already cwd-prefixed', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-zeta.md'),
@@ -1293,7 +1293,7 @@ describe('Team Exec Stage', () => {
           ralplan: {
             task: 'original request task',
             stage: 'ralplan',
-            latestPlanPath: join(relativeCwd, '.omx', 'plans', 'prd-zeta.md'),
+            latestPlanPath: join(relativeCwd, '.nomx', 'plans', 'prd-zeta.md'),
           },
         },
       }));
@@ -1307,7 +1307,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('derives the team-exec task when latestPlanPath resolves through equivalent relative segments', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-zeta.md'),
@@ -1327,7 +1327,7 @@ describe('Team Exec Stage', () => {
           ralplan: {
             task: 'original request task',
             stage: 'ralplan',
-            latestPlanPath: join('..', relativeCwd, '.omx', 'plans', 'prd-zeta.md'),
+            latestPlanPath: join('..', relativeCwd, '.nomx', 'plans', 'prd-zeta.md'),
           },
         },
       }));
@@ -1341,7 +1341,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('derives the team-exec task from single-quoted approved handoff text with escapes', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-zeta.md'),
@@ -1356,7 +1356,7 @@ describe('Team Exec Stage', () => {
         ralplan: {
           task: 'original request task',
           stage: 'ralplan',
-          latestPlanPath: join('.omx', 'plans', 'prd-zeta.md'),
+          latestPlanPath: join('.nomx', 'plans', 'prd-zeta.md'),
         },
       },
     }));
@@ -1370,7 +1370,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('preserves literal backslashes in single-quoted approved handoff text', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const expectedTask = String.raw`Fix C:\\tmp and keep \n literal`;
     await writeFile(
@@ -1386,7 +1386,7 @@ describe('Team Exec Stage', () => {
         ralplan: {
           task: 'original request task',
           stage: 'ralplan',
-          latestPlanPath: join('.omx', 'plans', 'prd-zeta.md'),
+          latestPlanPath: join('.nomx', 'plans', 'prd-zeta.md'),
         },
       },
     }));
@@ -1399,7 +1399,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('preserves literal backslashes in double-quoted approved handoff text', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const expectedTask = String.raw`Use C:\tmp and keep \n literal plus "quotes"`;
     await writeFile(
@@ -1415,7 +1415,7 @@ describe('Team Exec Stage', () => {
         ralplan: {
           task: 'original request task',
           stage: 'ralplan',
-          latestPlanPath: join('.omx', 'plans', 'prd-zeta.md'),
+          latestPlanPath: join('.nomx', 'plans', 'prd-zeta.md'),
         },
       },
     }));
@@ -1428,7 +1428,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('derives the team-exec task from the latest ralplan draft when numeric PRD slugs sort lexically out of order', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-issue-9.md'),
@@ -1448,10 +1448,10 @@ describe('Team Exec Stage', () => {
         ralplan: {
           task: 'original request task',
           stage: 'ralplan',
-          latestPlanPath: join('.omx', 'plans', 'prd-issue-10.md'),
+          latestPlanPath: join('.nomx', 'plans', 'prd-issue-10.md'),
           drafts: [
-            { planPath: join('.omx', 'plans', 'prd-issue-9.md') },
-            { planPath: join('.omx', 'plans', 'prd-issue-10.md') },
+            { planPath: join('.nomx', 'plans', 'prd-issue-9.md') },
+            { planPath: join('.nomx', 'plans', 'prd-issue-10.md') },
           ],
         },
       },
@@ -1463,7 +1463,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('fails closed when latestPlanPath is not the selected latest approved PRD', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const stalePrdPath = join(plansDir, 'prd-alpha.md');
     await writeFile(
@@ -1504,8 +1504,8 @@ describe('Team Exec Stage', () => {
           task: 'structural pipeline task',
           data: 'plan-content',
           stage: 'ralplan',
-          plansDir: join(tempDir, '.omx', 'plans'),
-          specsDir: join(tempDir, '.omx', 'specs'),
+          plansDir: join(tempDir, '.nomx', 'plans'),
+          specsDir: join(tempDir, '.nomx', 'specs'),
           prdPaths: [],
           testSpecPaths: [],
           deepInterviewSpecPaths: [],
@@ -1527,7 +1527,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('does not adopt a pre-existing approved plan when latestPlanPath is absent', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-zeta.md'),
@@ -1562,7 +1562,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('fails closed when latestPlanPath has no team launch hint', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const prdPath = join(plansDir, 'prd-no-team-hint.md');
     await writeFile(prdPath, '# PRD\n\nNo team launch hint here.\n');
@@ -1584,7 +1584,7 @@ describe('Team Exec Stage', () => {
   });
 
   it('fails closed when latestPlanPath has ambiguous team launch hints', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const prdPath = join(plansDir, 'prd-ambiguous-team-hint.md');
     await writeFile(
@@ -1727,7 +1727,7 @@ describe('Team Exec Stage', () => {
     });
 
     it('preserves approved DAG handoff tasks and metadata in the runtime-cli payload', async () => {
-      const plansDir = join(tempDir, '.omx', 'plans');
+      const plansDir = join(tempDir, '.nomx', 'plans');
       await mkdir(plansDir, { recursive: true });
       await writeFile(
         join(plansDir, 'prd-demo.md'),

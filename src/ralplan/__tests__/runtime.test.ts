@@ -103,23 +103,23 @@ async function writeAdaptedSubagentTracking(cwd: string, sessionId: string): Pro
 }
 
 describe('ralplan runtime', () => {
-  let savedOmxEnv: Pick<NodeJS.ProcessEnv, 'OMX_ROOT' | 'OMX_STATE_ROOT' | 'OMX_TEAM_STATE_ROOT' | 'OMX_SESSION_ID'>;
+  let savedOmxEnv: Pick<NodeJS.ProcessEnv, 'NOMX_ROOT' | 'NOMX_STATE_ROOT' | 'NOMX_TEAM_STATE_ROOT' | 'NOMX_SESSION_ID'>;
 
   beforeEach(() => {
     savedOmxEnv = {
-      OMX_ROOT: process.env.OMX_ROOT,
-      OMX_STATE_ROOT: process.env.OMX_STATE_ROOT,
-      OMX_TEAM_STATE_ROOT: process.env.OMX_TEAM_STATE_ROOT,
-      OMX_SESSION_ID: process.env.OMX_SESSION_ID,
+      NOMX_ROOT: process.env.NOMX_ROOT,
+      NOMX_STATE_ROOT: process.env.NOMX_STATE_ROOT,
+      NOMX_TEAM_STATE_ROOT: process.env.NOMX_TEAM_STATE_ROOT,
+      NOMX_SESSION_ID: process.env.NOMX_SESSION_ID,
     };
-    delete process.env.OMX_ROOT;
-    delete process.env.OMX_STATE_ROOT;
-    delete process.env.OMX_TEAM_STATE_ROOT;
-    delete process.env.OMX_SESSION_ID;
+    delete process.env.NOMX_ROOT;
+    delete process.env.NOMX_STATE_ROOT;
+    delete process.env.NOMX_TEAM_STATE_ROOT;
+    delete process.env.NOMX_SESSION_ID;
   });
 
   afterEach(() => {
-    for (const key of ['OMX_ROOT', 'OMX_STATE_ROOT', 'OMX_TEAM_STATE_ROOT', 'OMX_SESSION_ID'] as const) {
+    for (const key of ['NOMX_ROOT', 'NOMX_STATE_ROOT', 'NOMX_TEAM_STATE_ROOT', 'NOMX_SESSION_ID'] as const) {
       const value = savedOmxEnv[key];
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
@@ -127,7 +127,7 @@ describe('ralplan runtime', () => {
   });
 
   it('persists a successful session-scoped lifecycle through complete', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-'));
     const sessionId = 'sess-ralplan-success';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
@@ -141,7 +141,7 @@ describe('ralplan runtime', () => {
           assert.equal(state.current_phase, 'draft');
           assert.equal(state.iteration, 1);
 
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-success.md');
           await writeFile(prdPath, '# plan\n');
@@ -169,7 +169,7 @@ describe('ralplan runtime', () => {
       assert.equal(result.iteration, 1);
       assert.equal(result.planningComplete, true);
       assert.deepEqual(seenPhases, ['draft', 'architect-review', 'critic-review']);
-      assert.equal(existsSync(join(cwd, '.omx', 'state', 'ralplan-state.json')), false);
+      assert.equal(existsSync(join(cwd, '.nomx', 'state', 'ralplan-state.json')), false);
       assert.equal(existsSync(sessionStatePath(cwd, sessionId)), true);
 
       const finalState = await readModeState('ralplan', cwd);
@@ -223,11 +223,11 @@ describe('ralplan runtime', () => {
   });
 
   it('records planning-only terminal state when consensus approves without a selected execution lane', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-planning-only-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-planning-only-'));
     try {
       const result = await runRalplanConsensus({
         async draft() {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-planning-only.md');
           await writeFile(prdPath, '# plan\n');
@@ -256,11 +256,11 @@ describe('ralplan runtime', () => {
   });
 
   it('starts the selected execution handoff only after Critic approval completes consensus', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-execution-handoff-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-execution-handoff-'));
     try {
       const result = await runRalplanConsensus({
         async draft() {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-handoff.md');
           await writeFile(prdPath, '# plan\n');
@@ -292,12 +292,12 @@ describe('ralplan runtime', () => {
   });
 
   it('passes and enforces reusable Architect lane on re-review iterations', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-architect-reuse-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-architect-reuse-'));
     try {
       const architectThreads: Array<string | undefined> = [];
       const result = await runRalplanConsensus({
         async draft(ctx) {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-reuse.md');
           await writeFile(prdPath, '# plan\n');
@@ -327,11 +327,11 @@ describe('ralplan runtime', () => {
   });
 
   it('fails closed when a re-review Architect pass spawns a fresh lane without a new-lane reason', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-architect-reuse-deny-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-architect-reuse-deny-'));
     try {
       const result = await runRalplanConsensus({
         async draft(ctx) {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-reuse-deny.md');
           await writeFile(prdPath, '# plan\n');
@@ -359,7 +359,7 @@ describe('ralplan runtime', () => {
   });
 
   it('fails Autopilot-required consensus when approvals lack native subagent provenance', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-native-required-missing-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-native-required-missing-'));
     const sessionId = 'sess-ralplan-native-required-missing';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
@@ -367,7 +367,7 @@ describe('ralplan runtime', () => {
 
       const result = await runRalplanConsensus({
         async draft() {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-native-missing.md');
           await writeFile(prdPath, '# plan\n');
@@ -399,7 +399,7 @@ describe('ralplan runtime', () => {
   });
 
   it('rejects planner-as-architect review role when native evidence is required', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-planner-as-architect-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-planner-as-architect-'));
     const sessionId = 'sess-ralplan-planner-as-architect';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
@@ -407,7 +407,7 @@ describe('ralplan runtime', () => {
 
       const result = await runRalplanConsensus({
         async draft() {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-planner-as-architect.md');
           await writeFile(prdPath, '# plan\n');
@@ -444,7 +444,7 @@ describe('ralplan runtime', () => {
   });
 
   it('rejects native/thread-backed missing-role reviews instead of rewriting them into consensus roles', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-native-missing-role-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-native-missing-role-'));
     const sessionId = 'sess-ralplan-native-missing-role';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
@@ -453,7 +453,7 @@ describe('ralplan runtime', () => {
 
       const result = await runRalplanConsensus({
         async draft() {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-native-missing-role.md');
           await writeFile(prdPath, '# plan\n');
@@ -467,7 +467,7 @@ describe('ralplan runtime', () => {
             provenance_kind: 'native_subagent',
             session_id: sessionId,
             thread_id: 'thread-architect',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
           };
         },
         async criticReview() {
@@ -478,7 +478,7 @@ describe('ralplan runtime', () => {
             session_id: sessionId,
             thread_id: 'thread-critic',
             agent_role: 'critic',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
           };
         },
       }, {
@@ -498,7 +498,7 @@ describe('ralplan runtime', () => {
   });
 
   it('preserves existing tracker completion for review threads without native-required mode', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-preserve-completion-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-preserve-completion-'));
     const sessionId = 'sess-ralplan-preserve-completion';
     const architectCompletedAt = '2026-05-28T00:00:00.000Z';
     const criticCompletedAt = '2026-05-28T00:10:00.000Z';
@@ -509,7 +509,7 @@ describe('ralplan runtime', () => {
 
       const result = await runRalplanConsensus({
         async draft() {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-preserve-completion.md');
           await writeFile(prdPath, '# plan\n');
@@ -551,7 +551,7 @@ describe('ralplan runtime', () => {
   });
 
   it('does not fabricate native tracker completion from approved review bookkeeping alone', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-native-bookkeeping-only-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-native-bookkeeping-only-'));
     const sessionId = 'sess-ralplan-native-bookkeeping-only';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
@@ -559,7 +559,7 @@ describe('ralplan runtime', () => {
 
       const result = await runRalplanConsensus({
         async draft() {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-native-bookkeeping-only.md');
           await writeFile(prdPath, '# plan\n');
@@ -573,9 +573,9 @@ describe('ralplan runtime', () => {
             provenance_kind: 'native_subagent',
             session_id: sessionId,
             thread_id: 'thread-architect',
-            artifact_path: '.omx/artifacts/architect.md',
+            artifact_path: '.nomx/artifacts/architect.md',
             agent_role: 'architect',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
           };
         },
         async criticReview() {
@@ -585,9 +585,9 @@ describe('ralplan runtime', () => {
             provenance_kind: 'native_subagent',
             session_id: sessionId,
             thread_id: 'thread-critic',
-            artifact_path: '.omx/artifacts/critic.md',
+            artifact_path: '.nomx/artifacts/critic.md',
             agent_role: 'critic',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
           };
         },
       }, {
@@ -616,7 +616,7 @@ describe('ralplan runtime', () => {
   });
 
   it('accepts Autopilot-required consensus with tracker-backed native architect and critic lanes', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-native-required-ok-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-native-required-ok-'));
     const sessionId = 'sess-ralplan-native-required-ok';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
@@ -625,7 +625,7 @@ describe('ralplan runtime', () => {
 
       const result = await runRalplanConsensus({
         async draft() {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-native-ok.md');
           await writeFile(prdPath, '# plan\n');
@@ -639,9 +639,9 @@ describe('ralplan runtime', () => {
             provenance_kind: 'native_subagent',
             session_id: sessionId,
             thread_id: 'thread-architect',
-            artifact_path: '.omx/artifacts/architect.md',
+            artifact_path: '.nomx/artifacts/architect.md',
             agent_role: 'architect',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
           };
         },
         async criticReview() {
@@ -651,9 +651,9 @@ describe('ralplan runtime', () => {
             provenance_kind: 'native_subagent',
             session_id: sessionId,
             thread_id: 'thread-critic',
-            artifact_path: '.omx/artifacts/critic.md',
+            artifact_path: '.nomx/artifacts/critic.md',
             agent_role: 'critic',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
           };
         },
       }, {
@@ -676,7 +676,7 @@ describe('ralplan runtime', () => {
 
 
   it('accepts Autopilot-required consensus with tracker-backed OMX-adapted Architect and Critic lanes', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-adapted-required-ok-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-adapted-required-ok-'));
     const sessionId = 'sess-ralplan-adapted-required-ok';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
@@ -685,7 +685,7 @@ describe('ralplan runtime', () => {
 
       const result = await runRalplanConsensus({
         async draft() {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-adapted-ok.md');
           await writeFile(prdPath, '# plan\n');
@@ -699,9 +699,9 @@ describe('ralplan runtime', () => {
             provenance_kind: 'omx_adapted',
             session_id: sessionId,
             thread_id: 'thread-architect',
-            artifact_path: '.omx/artifacts/architect.md',
+            artifact_path: '.nomx/artifacts/architect.md',
             agent_role: 'architect',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
           };
         },
         async criticReview() {
@@ -711,9 +711,9 @@ describe('ralplan runtime', () => {
             provenance_kind: 'omx_adapted',
             session_id: sessionId,
             thread_id: 'thread-critic',
-            artifact_path: '.omx/artifacts/critic.md',
+            artifact_path: '.nomx/artifacts/critic.md',
             agent_role: 'critic',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
           };
         },
       }, {
@@ -733,7 +733,7 @@ describe('ralplan runtime', () => {
   });
 
   it('fails Autopilot-required consensus when native reviews reuse one subagent thread', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-native-same-thread-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-native-same-thread-'));
     const sessionId = 'sess-ralplan-native-same-thread';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
@@ -742,7 +742,7 @@ describe('ralplan runtime', () => {
 
       const result = await runRalplanConsensus({
         async draft() {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-native-same-thread.md');
           await writeFile(prdPath, '# plan\n');
@@ -756,9 +756,9 @@ describe('ralplan runtime', () => {
             provenance_kind: 'native_subagent',
             session_id: sessionId,
             thread_id: 'thread-architect',
-            artifact_path: '.omx/artifacts/architect.md',
+            artifact_path: '.nomx/artifacts/architect.md',
             agent_role: 'architect',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
           };
         },
         async criticReview() {
@@ -768,9 +768,9 @@ describe('ralplan runtime', () => {
             provenance_kind: 'native_subagent',
             session_id: sessionId,
             thread_id: 'thread-architect',
-            artifact_path: '.omx/artifacts/critic.md',
+            artifact_path: '.nomx/artifacts/critic.md',
             agent_role: 'critic',
-            tracker_path: '.omx/state/subagent-tracking.json',
+            tracker_path: '.nomx/state/subagent-tracking.json',
           };
         },
       }, {
@@ -791,16 +791,16 @@ describe('ralplan runtime', () => {
   });
 
   it('does not complete or call Critic when Architect has not approved', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-architect-reject-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-architect-reject-'));
     const sessionId = 'sess-ralplan-architect-reject';
     try {
-      await mkdir(join(cwd, '.omx', 'state'), { recursive: true });
-      await writeFile(join(cwd, '.omx', 'state', 'session.json'), JSON.stringify({ session_id: sessionId }));
+      await mkdir(join(cwd, '.nomx', 'state'), { recursive: true });
+      await writeFile(join(cwd, '.nomx', 'state', 'session.json'), JSON.stringify({ session_id: sessionId }));
 
       let criticCalls = 0;
       const result = await runRalplanConsensus({
         async draft() {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-reject.md');
           await writeFile(prdPath, '# plan\n');
@@ -834,7 +834,7 @@ describe('ralplan runtime', () => {
   });
 
   it('increments iteration when critic requests a re-review loop', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-loop-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-loop-'));
     const sessionId = 'sess-ralplan-loop';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
@@ -850,7 +850,7 @@ describe('ralplan runtime', () => {
           draftIterations.push(Number(state.iteration));
           assert.equal(state.current_phase, 'draft');
 
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-loop.md');
           await writeFile(prdPath, '# loop plan\n');
@@ -887,12 +887,12 @@ describe('ralplan runtime', () => {
   });
 
   it('does not complete when critic approves after an architect rejection', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-architect-reject-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-architect-reject-'));
     const sessionId = 'sess-ralplan-architect-reject';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
       await writeFile(join(sessionStatePath(cwd, sessionId), '..', '..', '..', 'session.json'), JSON.stringify({ session_id: sessionId }));
-      const plansDir = join(cwd, '.omx', 'plans');
+      const plansDir = join(cwd, '.nomx', 'plans');
       await mkdir(plansDir, { recursive: true });
       await writeFile(join(plansDir, 'prd-reject.md'), '# plan\n');
       await writeFile(join(plansDir, 'test-spec-reject.md'), '# tests\n');
@@ -920,7 +920,7 @@ describe('ralplan runtime', () => {
   });
 
   it('fails closed when consensus approves with a mismatched stale test spec', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-mismatched-artifacts-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-mismatched-artifacts-'));
     const sessionId = 'sess-ralplan-mismatched-artifacts';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
@@ -928,7 +928,7 @@ describe('ralplan runtime', () => {
 
       const result = await runRalplanConsensus({
         async draft() {
-          const plansDir = join(cwd, '.omx', 'plans');
+          const plansDir = join(cwd, '.nomx', 'plans');
           await mkdir(plansDir, { recursive: true });
           const prdPath = join(plansDir, 'prd-new.md');
           await writeFile(prdPath, '# new plan\n');
@@ -954,7 +954,7 @@ describe('ralplan runtime', () => {
   });
 
   it('fails closed when consensus approves without required planning artifacts', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-no-artifacts-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-no-artifacts-'));
     const sessionId = 'sess-ralplan-no-artifacts';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
@@ -988,7 +988,7 @@ describe('ralplan runtime', () => {
   });
 
   it('marks failed cleanly when execution throws', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-fail-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-fail-'));
     const sessionId = 'sess-ralplan-fail';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });
@@ -1020,7 +1020,7 @@ describe('ralplan runtime', () => {
   });
 
   it('marks cancelled state cleanly', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-runtime-cancel-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-runtime-cancel-'));
     const sessionId = 'sess-ralplan-cancel';
     try {
       await mkdir(join(sessionStatePath(cwd, sessionId), '..'), { recursive: true });

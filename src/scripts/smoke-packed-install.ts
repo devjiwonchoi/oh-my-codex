@@ -198,7 +198,7 @@ export const PACKED_INSTALL_NATIVE_HOOK_REGRESSION_PROMPTS = [
   { name: 'percent-suffix', prompt: '$ralplan%docs', expectedSkill: null, expectedStopBlock: false },
   { name: 'fullwidth-percent-suffix', prompt: '$ralplan％docs', expectedSkill: null, expectedStopBlock: false },
   { name: 'g1a-ordered-multi-skill', prompt: '$ralplan, $autopilot; $team', expectedSkill: 'ralplan', expectedStopBlock: true, expectedDeferredSkills: ['autopilot', 'team'], expectedActiveSkills: ['ralplan'], insideTmux: true },
-  { name: 'g1c-duplicate-alias', prompt: '$autopilot $oh-my-codex:autopilot build it', expectedSkill: 'autopilot', expectedStopBlock: true, expectedDeferredSkills: [], expectedActiveSkills: ['autopilot'] },
+  { name: 'g1c-duplicate-alias', prompt: '$autopilot $nomx:autopilot build it', expectedSkill: 'autopilot', expectedStopBlock: true, expectedDeferredSkills: [], expectedActiveSkills: ['autopilot'] },
   { name: 'b3-longer-valid-fence', prompt: '```text\n$autopilot build it\n````\n$ralplan plan it', expectedSkill: 'ralplan', expectedStopBlock: true },
   { name: 'b4-shorter-invalid-fence', prompt: '````text\n$autopilot build it\n```\n$ralplan plan it', expectedSkill: null, expectedStopBlock: false },
   { name: 'b5-different-marker-invalid-fence', prompt: '```text\n$autopilot build it\n~~~\n$ralplan plan it', expectedSkill: null, expectedStopBlock: false },
@@ -211,19 +211,19 @@ export function buildPackedRegressionEnvironment(
   const insideTmux = testCase.insideTmux === true;
   return {
     ...baseEnv,
-    OMX_ROOT: '',
-    OMX_STATE_ROOT: '',
-    OMX_TEAM_STATE_ROOT: '',
-    OMX_SESSION_ID: '',
+    NOMX_ROOT: '',
+    NOMX_STATE_ROOT: '',
+    NOMX_TEAM_STATE_ROOT: '',
+    NOMX_SESSION_ID: '',
     CODEX_SESSION_ID: '',
     SESSION_ID: '',
-    OMX_TEAM_WORKER: '',
-    OMX_TEAM_INTERNAL_WORKER: '',
-    OMX_TEAM_LEADER_CWD: '',
-    OMX_TEAM_MODE: insideTmux ? 'enabled' : '',
-    OMX_QUESTION_RETURN_PANE: '',
-    OMX_LEADER_PANE_ID: '',
-    OMX_TMUX_HUD_OWNER: '',
+    NOMX_TEAM_WORKER: '',
+    NOMX_TEAM_INTERNAL_WORKER: '',
+    NOMX_TEAM_LEADER_CWD: '',
+    NOMX_TEAM_MODE: insideTmux ? 'enabled' : '',
+    NOMX_QUESTION_RETURN_PANE: '',
+    NOMX_LEADER_PANE_ID: '',
+    NOMX_TMUX_HUD_OWNER: '',
     TMUX: insideTmux ? '/tmp/tmux-pr3140-regression' : '',
     TMUX_PANE: insideTmux ? '%3140' : '',
   };
@@ -959,7 +959,7 @@ export function managedCodexHooksByEvent(hooks: readonly CodexHookMetadata[]): R
   for (const event of MANAGED_CODEX_HOOK_EVENTS) {
     const matching = hooks.filter((hook) => hook.event === event && isManagedCodexHookCommand(hook.command));
     if (matching.length !== 1) {
-      throw new Error(`Expected exactly one OMX ${event} hook from Codex, received ${matching.length}`);
+      throw new Error(`Expected exactly one NOMX ${event} hook from Codex, received ${matching.length}`);
     }
     result[event] = matching[0]!;
   }
@@ -1004,7 +1004,7 @@ export function assertGeneratedTrustMatchesCodex(
     || actualKeys.length !== expectedKeys.length
     || actualKeys.some((key, index) => key !== expectedKeys[index])) {
     throw new Error(
-      `Generated trust must contain exactly the ${MANAGED_CODEX_HOOK_EVENTS.length} current OMX hooks with no stale keys`,
+      `Generated trust must contain exactly the ${MANAGED_CODEX_HOOK_EVENTS.length} current NOMX hooks with no stale keys`,
     );
   }
   for (const [key, currentHash] of Object.entries(expected)) {
@@ -1377,7 +1377,7 @@ function runPackedTransportRegressions(hookScript: string, smokeCwd: string): vo
   const g1bThread = 'g1bu-thread';
   const g1bPriorTurn = 'g1bu-turn-old';
   const g1bTurn = 'g1bu-turn-new';
-  const g1bStateDir = join(g1bCwd, '.omx', 'state');
+  const g1bStateDir = join(g1bCwd, '.nomx', 'state');
   const g1bSessionDir = join(g1bStateDir, 'sessions', g1bSession);
   mkdirSync(g1bSessionDir, { recursive: true });
   for (const [path, marker] of [
@@ -1392,7 +1392,7 @@ function runPackedTransportRegressions(hookScript: string, smokeCwd: string): vo
   ] as const) {
     writeFileSync(path, JSON.stringify({ active: false, mode: 'autopilot', current_phase: 'complete', session_id: g1bSession, thread_id: g1bThread, turn_id: g1bPriorTurn, marker }));
   }
-  const g1bEnv = { ...buildPackedRegressionEnvironment({ name: 'g1bu' }), OMX_TEAM_MODE: 'disabled' };
+  const g1bEnv = { ...buildPackedRegressionEnvironment({ name: 'g1bu' }), NOMX_TEAM_MODE: 'disabled' };
   const g1bPrompt = '$team $autopilot restart — café';
   const g1bPayload = { hook_event_name: 'UserPromptSubmit', cwd: g1bCwd, session_id: g1bSession, thread_id: g1bThread, turn_id: g1bTurn, prompt: g1bPrompt };
   validateHookStdout('UserPromptSubmit', String(invoke(g1bCwd, g1bEnv, g1bPayload).stdout || ''));
@@ -1407,7 +1407,7 @@ function runPackedTransportRegressions(hookScript: string, smokeCwd: string): vo
 
   const g2aCwd = join(smokeCwd, 'g2a');
   const g2aSession = 'g2a-stale-predecessor';
-  const g2aStateDir = join(g2aCwd, '.omx', 'state');
+  const g2aStateDir = join(g2aCwd, '.nomx', 'state');
   const g2aSessionDir = join(g2aStateDir, 'sessions', g2aSession);
   const g2aFiles = [join(g2aStateDir, 'skill-active-state.json'), join(g2aStateDir, 'ralplan-state.json'), join(g2aSessionDir, 'skill-active-state.json'), join(g2aSessionDir, 'ralplan-state.json'), join(g2aStateDir, 'session.json')];
   mkdirSync(g2aCwd, { recursive: true });
@@ -1421,7 +1421,7 @@ function runPackedTransportRegressions(hookScript: string, smokeCwd: string): vo
 
   const g2bCwd = join(smokeCwd, 'g2b');
   const g2bSession = 'g2b-terminal-session';
-  const g2bStateDir = join(g2bCwd, '.omx', 'state');
+  const g2bStateDir = join(g2bCwd, '.nomx', 'state');
   const g2bSessionDir = join(g2bStateDir, 'sessions', g2bSession);
   const g2bFiles = [join(g2bStateDir, 'skill-active-state.json'), join(g2bStateDir, 'autopilot-state.json'), join(g2bSessionDir, 'skill-active-state.json'), join(g2bSessionDir, 'autopilot-state.json'), join(g2bStateDir, 'session.json')];
   mkdirSync(g2bSessionDir, { recursive: true });
@@ -1440,9 +1440,9 @@ function runPackedTransportRegressions(hookScript: string, smokeCwd: string): vo
 }
 
   const globalNodeModules = resolveGlobalNodeModules(prefixDir);
-  const packageRoot = join(globalNodeModules, 'oh-my-codex');
+  const packageRoot = join(globalNodeModules, 'nomx');
   const hookScript = join(packageRoot, 'dist', 'scripts', 'codex-native-hook.js');
-  const smokeCwd = mkdtempSync(join(tmpdir(), 'omx-packed-hook-smoke-'));
+  const smokeCwd = mkdtempSync(join(tmpdir(), 'nomx-packed-hook-smoke-'));
   try {
     for (const eventName of PACKED_INSTALL_NATIVE_HOOK_SMOKE_EVENTS) {
       const payload = buildNativeHookSmokePayload(eventName, smokeCwd);
@@ -1450,11 +1450,11 @@ function runPackedTransportRegressions(hookScript: string, smokeCwd: string): vo
         cwd: smokeCwd,
         env: {
           ...process.env,
-          OMX_NATIVE_HOOK_DOCTOR_SMOKE: '1',
-          OMX_ROOT: join(smokeCwd, '.omx-packed-hook-root'),
-          OMX_SESSION_ID: `packed-install-smoke-${eventName}`,
-          OMX_SOURCE_CWD: smokeCwd,
-          OMX_STARTUP_CWD: smokeCwd,
+          NOMX_NATIVE_HOOK_DOCTOR_SMOKE: '1',
+          NOMX_ROOT: join(smokeCwd, '.nomx-packed-hook-root'),
+          NOMX_SESSION_ID: `packed-install-smoke-${eventName}`,
+          NOMX_SOURCE_CWD: smokeCwd,
+          NOMX_STARTUP_CWD: smokeCwd,
         },
         input: JSON.stringify(payload),
       });
@@ -1481,7 +1481,7 @@ function runPackedTransportRegressions(hookScript: string, smokeCwd: string): vo
         input: JSON.stringify(promptPayload),
       });
       validateHookStdout('UserPromptSubmit', promptResult.stdout as string);
-      const skillStatePath = join(caseCwd, '.omx', 'state', 'sessions', sessionId, 'skill-active-state.json');
+      const skillStatePath = join(caseCwd, '.nomx', 'state', 'sessions', sessionId, 'skill-active-state.json');
       if (testCase.expectedSkill === null) {
         if (existsSync(skillStatePath)) throw new Error(`packed regression ${testCase.name} created workflow state`);
       } else {
@@ -1524,11 +1524,11 @@ function sameJson(left: unknown, right: unknown): boolean {
 function isolatedSmokeEnv(home: string, codexHome: string): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env, HOME: home, CODEX_HOME: codexHome };
   for (const key of [
-    'OMX_SESSION_ID',
-    'OMX_RUN_ID',
-    'OMX_ROOT',
-    'OMX_STATE_ROOT',
-    'OMX_ACTIVE_SESSION_PID',
+    'NOMX_SESSION_ID',
+    'NOMX_RUN_ID',
+    'NOMX_ROOT',
+    'NOMX_STATE_ROOT',
+    'NOMX_ACTIVE_SESSION_PID',
     'CODEX_SESSION_ID',
     'TMUX',
     'TMUX_PANE',
@@ -1574,7 +1574,7 @@ function assertNoSetupOwnedTrustKeys(configToml: string, setupTrust: Record<stri
   if (!isRecord(state)) return;
   const retained = Object.keys(setupTrust).filter((key) => Object.hasOwn(state, key));
   if (retained.length > 0) {
-    throw new Error(`packed uninstall retained setup-owned OMX hook trust keys: ${retained.join(', ')}`);
+    throw new Error(`packed uninstall retained setup-owned NOMX hook trust keys: ${retained.join(', ')}`);
   }
 }
 
@@ -1587,7 +1587,7 @@ function assertNativeHooksEnabledForForeignGroups(configToml: string): void {
 }
 
 function assertNoUninstallTransactionArtifacts(codexDir: string): void {
-  const artifacts = readdirSync(codexDir).filter((entry) => entry.includes('.omx-uninstall-'));
+  const artifacts = readdirSync(codexDir).filter((entry) => entry.includes('.nomx-uninstall-'));
   if (artifacts.length > 0) {
     throw new Error(`unsafe packed uninstall left replacement, staged, or tombstone paths: ${artifacts.join(', ')}`);
   }
@@ -1626,7 +1626,7 @@ function assertManagedHooksAppendAfterForeign(hooksContent: string, marker: stri
     managedIndices.length !== 1 ||
     managedIndices[0]! <= Math.max(...foreignIndices)
   ) {
-    throw new Error('packed first install did not append the OMX PreToolUse group after both foreign groups');
+    throw new Error('packed first install did not append the NOMX PreToolUse group after both foreign groups');
   }
 }
 
@@ -1646,7 +1646,7 @@ function assertManagedHooksRemainBeforeForeign(hooksContent: string, marker: str
 function assertTrustedManagedHooks(hooks: readonly CodexHookMetadata[]): void {
   for (const [event, hook] of Object.entries(managedCodexHooksByEvent(hooks))) {
     if (hook.trustStatus !== 'trusted') {
-      throw new Error(`Codex did not trust OMX ${event}; received ${hook.trustStatus}`);
+      throw new Error(`Codex did not trust NOMX ${event}; received ${hook.trustStatus}`);
     }
   }
 }
@@ -1654,7 +1654,7 @@ function assertTrustedManagedHooks(hooks: readonly CodexHookMetadata[]): void {
 function assertManagedHooksNotAlreadyTrusted(hooks: readonly CodexHookMetadata[]): void {
   for (const [event, hook] of Object.entries(managedCodexHooksByEvent(hooks))) {
     if (hook.trustStatus === 'trusted') {
-      throw new Error(`setup-generated project trust unexpectedly pre-approved OMX ${event}`);
+      throw new Error(`setup-generated project trust unexpectedly pre-approved NOMX ${event}`);
     }
   }
 }
@@ -1708,7 +1708,7 @@ async function observeInstalledCodexHooks(
 ): Promise<CodexHooksListEntry> {
   const server = await CodexAppServer.start({ cwd: projectDir, env });
   try {
-    await initializeCodexAppServer(server, 'omx-packed-install-smoke');
+    await initializeCodexAppServer(server, 'nomx-packed-install-smoke');
     return await listCodexHooks(server, projectDir, hooksPath);
   } finally {
     await server.close();
@@ -1725,15 +1725,15 @@ export interface PackedHookTrustLifecycleResult {
  * only when the `codex` executable is absent.
  */
 export async function smokePackedHookTrustLifecycle(
-  omxPath: string,
+  nomxPath: string,
 ): Promise<PackedHookTrustLifecycleResult> {
-  const lifecycleRoot = mkdtempSync(join(tmpdir(), 'omx-packed-hook-trust-'));
+  const lifecycleRoot = mkdtempSync(join(tmpdir(), 'nomx-packed-hook-trust-'));
   const projectDir = resolve(lifecycleRoot, 'project');
   const home = join(lifecycleRoot, 'home');
   const codexHome = join(lifecycleRoot, 'codex-home');
   const hooksPath = join(projectDir, '.codex', 'hooks.json');
   const configPath = join(projectDir, '.codex', 'config.toml');
-  const marker = 'omx-packed-foreign';
+  const marker = 'nomx-packed-foreign';
   const agentsPath = join(projectDir, 'AGENTS.md');
   const foreignAgentsContent = '# User project instructions\n\nPreserve this packed lifecycle guidance.\n';
   const env = isolatedSmokeEnv(home, codexHome);
@@ -1746,7 +1746,7 @@ export async function smokePackedHookTrustLifecycle(
     writeFileSync(join(codexHome, 'config.toml'), trustedProjectConfig(projectDir), 'utf-8');
     writeFileSync(agentsPath, foreignAgentsContent, 'utf-8');
 
-    // Pre-seed foreign groups so uninstall may safely remove OMX's appended suffix.
+    // Pre-seed foreign groups so uninstall may safely remove NOMX's appended suffix.
     writeFileSync(
       hooksPath,
       appendDisplayOrderStableForeignHookGroups('{"hooks":{}}', marker, { appendGroups: true }),
@@ -1770,7 +1770,7 @@ export async function smokePackedHookTrustLifecycle(
     if (codexVersion !== null) {
       const server = await CodexAppServer.start({ cwd: projectDir, env });
       try {
-        await initializeCodexAppServer(server, 'omx-packed-install-smoke');
+        await initializeCodexAppServer(server, 'nomx-packed-install-smoke');
         const preSetupCodexHooks = await listCodexHooks(server, projectDir, hooksPath);
         const preSetupForeignHooks = preSetupCodexHooks.hooks.filter((hook) =>
           hook.command.includes(marker) && !hook.command.includes('-inserted.js'));
@@ -1801,7 +1801,7 @@ export async function smokePackedHookTrustLifecycle(
       );
     }
 
-    const setupResult = run(omxPath, ['setup', '--scope', 'project', '--merge-agents', '--legacy'], {
+    const setupResult = run(nomxPath, ['setup', '--scope', 'project', '--merge-agents', '--legacy'], {
       cwd: projectDir,
       env,
     });
@@ -1823,7 +1823,7 @@ export async function smokePackedHookTrustLifecycle(
     if (codexVersion !== null) {
       const server = await CodexAppServer.start({ cwd: projectDir, env });
       try {
-        await initializeCodexAppServer(server, 'omx-packed-install-smoke');
+        await initializeCodexAppServer(server, 'nomx-packed-install-smoke');
         const initialCodexHooks = await listCodexHooks(server, projectDir, hooksPath);
         assertGeneratedTrustMatchesCodex(generatedTrust, initialCodexHooks.hooks);
         assertManagedHooksNotAlreadyTrusted(initialCodexHooks.hooks);
@@ -1867,7 +1867,7 @@ export async function smokePackedHookTrustLifecycle(
       );
     }
 
-    run(omxPath, ['setup', '--scope', 'project', '--merge-agents', '--legacy'], {
+    run(nomxPath, ['setup', '--scope', 'project', '--merge-agents', '--legacy'], {
       cwd: projectDir,
       env,
     });
@@ -1895,7 +1895,7 @@ export async function smokePackedHookTrustLifecycle(
       }
     }
 
-    run(omxPath, ['setup', '--scope', 'project', '--merge-agents', '--legacy'], {
+    run(nomxPath, ['setup', '--scope', 'project', '--merge-agents', '--legacy'], {
       cwd: projectDir,
       env,
     });
@@ -1921,15 +1921,15 @@ export async function smokePackedHookTrustLifecycle(
         throw new Error('third packed setup changed Codex hook metadata or display order');
       }
     }
-    run(omxPath, ['doctor', '--verbose'], { cwd: projectDir, env });
+    run(nomxPath, ['doctor', '--verbose'], { cwd: projectDir, env });
     if (!existsSync(agentsPath) || !readFileSync(agentsPath, 'utf-8').includes(foreignAgentsContent.trim())) {
       throw new Error('packed doctor lifecycle did not preserve pre-existing user AGENTS.md guidance');
     }
 
-    run(omxPath, ['uninstall'], { cwd: projectDir, env });
+    run(nomxPath, ['uninstall'], { cwd: projectDir, env });
     const afterUninstallHooksContent = readFileSync(hooksPath, 'utf-8');
     if (rawManagedHookCount(afterUninstallHooksContent) !== 0) {
-      throw new Error('packed uninstall retained an OMX-managed native hook');
+      throw new Error('packed uninstall retained an NOMX-managed native hook');
     }
     assertNoEmptyManagedEventGroups(afterUninstallHooksContent);
     assertForeignHookGroupsPreserved(foreignSnapshot, afterUninstallHooksContent, marker);
@@ -1953,9 +1953,9 @@ export async function smokePackedHookTrustLifecycle(
     const managedFirstProjectDir = resolve(lifecycleRoot, 'managed-first-project');
     const managedFirstHooksPath = join(managedFirstProjectDir, '.codex', 'hooks.json');
     const managedFirstConfigPath = join(managedFirstProjectDir, '.codex', 'config.toml');
-    const managedFirstMarker = 'omx-packed-managed-first-foreign';
+    const managedFirstMarker = 'nomx-packed-managed-first-foreign';
     mkdirSync(join(managedFirstProjectDir, '.codex'), { recursive: true });
-    run(omxPath, ['setup', '--scope', 'project', '--merge-agents', '--legacy'], {
+    run(nomxPath, ['setup', '--scope', 'project', '--merge-agents', '--legacy'], {
       cwd: managedFirstProjectDir,
       env,
     });
@@ -1976,7 +1976,7 @@ export async function smokePackedHookTrustLifecycle(
     }
     assertManagedHooksRemainBeforeForeign(managedFirstBeforeRerunHooks, managedFirstMarker);
 
-    run(omxPath, ['setup', '--scope', 'project', '--merge-agents', '--legacy'], {
+    run(nomxPath, ['setup', '--scope', 'project', '--merge-agents', '--legacy'], {
       cwd: managedFirstProjectDir,
       env,
     });
@@ -1995,7 +1995,7 @@ export async function smokePackedHookTrustLifecycle(
     const managedFirstBeforeUninstallConfigBytes = readFileSync(managedFirstConfigPath);
 
     const expectedUnsafeManagedRemovalDiagnostic =
-      'Removing OMX hooks would shift a foreign coordinate or discard opaque metadata.';
+      'Removing NOMX hooks would shift a foreign coordinate or discard opaque metadata.';
     const unsafeRemoval = planManagedCodexHooksRemoval(managedFirstBeforeRerunHooks, managedFirstHooksPath);
     if (
       unsafeRemoval.ok ||
@@ -2004,7 +2004,7 @@ export async function smokePackedHookTrustLifecycle(
     ) {
       throw new Error('packed managed-first fixture did not return the exact unsafe_managed_removal diagnostic');
     }
-    const failedUninstall = spawnSync(omxPath, ['uninstall'], {
+    const failedUninstall = spawnSync(nomxPath, ['uninstall'], {
       cwd: managedFirstProjectDir,
       env,
       encoding: 'utf-8',
@@ -2046,7 +2046,7 @@ async function main(): Promise<void> {
   parseArgs(process.argv.slice(2));
 
   const repoRoot = process.cwd();
-  const tempRoot = mkdtempSync(join(tmpdir(), 'omx-packed-install-'));
+  const tempRoot = mkdtempSync(join(tmpdir(), 'nomx-packed-install-'));
   const prefixDir = join(tempRoot, 'prefix');
   mkdirSync(prefixDir, { recursive: true });
 
@@ -2064,12 +2064,12 @@ async function main(): Promise<void> {
 
     run('npm', ['install', '-g', tarballPath, '--prefix', prefixDir], { cwd: repoRoot });
 
-    const omxPath = join(prefixDir, process.platform === 'win32' ? '' : 'bin', npmBinName('nomx'));
+    const nomxPath = join(prefixDir, process.platform === 'win32' ? '' : 'bin', npmBinName('nomx'));
     for (const argv of PACKED_INSTALL_SMOKE_CORE_COMMANDS) {
-      run(omxPath, argv, { cwd: repoRoot });
+      run(nomxPath, argv, { cwd: repoRoot });
     }
     smokeInstalledNativeHookDist(prefixDir);
-    const lifecycle = await smokePackedHookTrustLifecycle(omxPath);
+    const lifecycle = await smokePackedHookTrustLifecycle(nomxPath);
     console.log(
       lifecycle.codexVersion !== null
         ? `packed install smoke: installed Codex 0.142.5 lifecycle passed (${lifecycle.codexVersion})`

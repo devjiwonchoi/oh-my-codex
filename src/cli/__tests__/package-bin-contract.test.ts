@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 type PackageJson = {
+  name?: string;
   bin?: string | Record<string, string>;
   files?: string[];
   scripts?: Record<string, string>;
@@ -17,6 +18,7 @@ describe('package bin contract', () => {
       readFileSync(join(process.cwd(), 'package.json'), 'utf8'),
     ) as PackageJson;
 
+    assert.equal(pkg.name, 'nomx');
     assert.deepEqual(pkg.bin, { nomx: 'dist/cli/nomx.js' });
     assert.equal(pkg.files?.includes('Cargo.toml'), false);
     assert.equal(pkg.files?.includes('Cargo.lock'), false);

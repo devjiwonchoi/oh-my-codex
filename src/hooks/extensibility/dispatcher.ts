@@ -3,7 +3,7 @@ import { existsSync } from "fs";
 import { appendFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { getPackageRoot } from "../../utils/package.js";
-import { omxRoot } from "../../utils/paths.js";
+import { nomxRoot } from "../../utils/paths.js";
 import {
 	createLifecycleBroadcastFingerprint,
 	recordLifecycleHookBroadcastSent,
@@ -28,24 +28,24 @@ interface RunnerResult {
 	error?: string;
 }
 
-const RESULT_PREFIX = "__OMX_PLUGIN_RESULT__ ";
+const RESULT_PREFIX = "__NOMX_PLUGIN_RESULT__ ";
 const RUNNER_SIGKILL_GRACE_MS = 250;
 
 function hooksLogPath(cwd: string): string {
 	const day = new Date().toISOString().slice(0, 10);
-	return join(omxRoot(cwd), "logs", `hooks-${day}.jsonl`);
+	return join(nomxRoot(cwd), "logs", `hooks-${day}.jsonl`);
 }
 
 async function appendHooksLog(
 	cwd: string,
 	payload: Record<string, unknown>,
 ): Promise<void> {
-	await mkdir(join(omxRoot(cwd), "logs"), { recursive: true });
+	await mkdir(join(nomxRoot(cwd), "logs"), { recursive: true });
 	await appendFile(
 		hooksLogPath(cwd),
 		`${JSON.stringify({ timestamp: new Date().toISOString(), ...payload })}\n`,
 	).catch((error: unknown) => {
-		console.warn("[omx] warning: failed to append hook dispatch log entry", {
+		console.warn("[nomx] warning: failed to append hook dispatch log entry", {
 			cwd,
 			error: error instanceof Error ? error.message : String(error),
 		});
@@ -54,7 +54,7 @@ async function appendHooksLog(
 
 function isTeamWorker(env: NodeJS.ProcessEnv): boolean {
 	return (
-		typeof env.OMX_TEAM_WORKER === "string" && env.OMX_TEAM_WORKER.trim() !== ""
+		typeof env.NOMX_TEAM_WORKER === "string" && env.NOMX_TEAM_WORKER.trim() !== ""
 	);
 }
 
@@ -340,7 +340,7 @@ export async function dispatchHookEvent(
 	if (
 		dedupeFingerprint
 		&& !shouldSendLifecycleHookBroadcast(
-			join(omxRoot(cwd), "state"),
+			join(nomxRoot(cwd), "state"),
 			event.session_id,
 			event.event,
 			dedupeFingerprint,
@@ -394,7 +394,7 @@ export async function dispatchHookEvent(
 
 	if (dedupeFingerprint && summary.results.some((result) => result.ok)) {
 		recordLifecycleHookBroadcastSent(
-			join(omxRoot(cwd), "state"),
+			join(nomxRoot(cwd), "state"),
 			event.session_id,
 			event.event,
 			dedupeFingerprint,

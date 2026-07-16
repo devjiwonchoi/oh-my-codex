@@ -20,7 +20,7 @@ import { appendQuestionAnsweredEventOnce, appendQuestionEvent, readQuestionEvent
 const tempDirs: string[] = [];
 
 async function makeRepo(): Promise<string> {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-question-state-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-question-state-'));
   tempDirs.push(cwd);
   return cwd;
 }
@@ -47,7 +47,7 @@ describe('question state', () => {
   });
 
   it('resolves session-scoped question records under the questions namespace for state roots', async () => {
-    const stateDir = join('/tmp', 'omx-state-root');
+    const stateDir = join('/tmp', 'nomx-state-root');
 
     assert.equal(
       getQuestionRecordPathForStateDir(stateDir, 'question-1', 'sess-1'),

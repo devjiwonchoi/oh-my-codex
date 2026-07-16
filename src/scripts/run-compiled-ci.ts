@@ -26,9 +26,9 @@ function run(command: string, args: readonly string[]): void {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      OMX_AUTO_UPDATE: "0",
-      OMX_NOTIFY_FALLBACK: "0",
-      OMX_HOOK_DERIVED_SIGNALS: "0",
+      NOMX_AUTO_UPDATE: "0",
+      NOMX_NOTIFY_FALLBACK: "0",
+      NOMX_HOOK_DERIVED_SIGNALS: "0",
     },
     stdio: "inherit",
   });

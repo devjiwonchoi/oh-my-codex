@@ -50,11 +50,11 @@ describe('resolveApprovedRalphExecutionHint', () => {
 
 describe('readMatchedApprovedRalphExecutionHint', () => {
   it('selects the matching approved Ralph hint when a PRD lists multiple launch hints', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-approved-context-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-approved-context-'));
     try {
-      await mkdir(join(cwd, '.omx', 'plans'), { recursive: true });
+      await mkdir(join(cwd, '.nomx', 'plans'), { recursive: true });
       await writeFile(
-        join(cwd, '.omx', 'plans', 'prd-issue-909.md'),
+        join(cwd, '.nomx', 'plans', 'prd-issue-909.md'),
         [
           '# PRD',
           '',
@@ -62,7 +62,7 @@ describe('readMatchedApprovedRalphExecutionHint', () => {
           'Launch via nomx ralph "Execute beta"',
         ].join('\n'),
       );
-      await writeFile(join(cwd, '.omx', 'plans', 'test-spec-issue-909.md'), '# Test Spec\n');
+      await writeFile(join(cwd, '.nomx', 'plans', 'test-spec-issue-909.md'), '# Test Spec\n');
 
       const hint = readMatchedApprovedRalphExecutionHint(cwd, 'Execute alpha');
       assert.ok(hint);
@@ -74,11 +74,11 @@ describe('readMatchedApprovedRalphExecutionHint', () => {
   });
 
   it('fails closed for bare Ralph follow-up reuse when a PRD lists multiple Ralph launch hints', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-approved-context-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-approved-context-'));
     try {
-      await mkdir(join(cwd, '.omx', 'plans'), { recursive: true });
+      await mkdir(join(cwd, '.nomx', 'plans'), { recursive: true });
       await writeFile(
-        join(cwd, '.omx', 'plans', 'prd-issue-909-bare.md'),
+        join(cwd, '.nomx', 'plans', 'prd-issue-909-bare.md'),
         [
           '# PRD',
           '',
@@ -86,7 +86,7 @@ describe('readMatchedApprovedRalphExecutionHint', () => {
           'Launch via nomx ralph "Execute beta"',
         ].join('\n'),
       );
-      await writeFile(join(cwd, '.omx', 'plans', 'test-spec-issue-909-bare.md'), '# Test Spec\n');
+      await writeFile(join(cwd, '.nomx', 'plans', 'test-spec-issue-909-bare.md'), '# Test Spec\n');
 
       const hint = readMatchedApprovedRalphExecutionHint(cwd, 'ralph-cli-launch');
       assert.equal(hint, null);
@@ -146,38 +146,38 @@ const approvedHint: ApprovedExecutionLaunchHint = {
   mode: 'ralph',
   command: 'nomx ralph "Execute approved issue 1072 plan"',
   task: 'Execute approved issue 1072 plan',
-  sourcePath: '.omx/plans/prd-issue-1072.md',
-  testSpecPaths: ['.omx/plans/test-spec-issue-1072.md'],
-  deepInterviewSpecPaths: ['.omx/specs/deep-interview-issue-1072.md'],
+  sourcePath: '.nomx/plans/prd-issue-1072.md',
+  testSpecPaths: ['.nomx/plans/test-spec-issue-1072.md'],
+  deepInterviewSpecPaths: ['.nomx/specs/deep-interview-issue-1072.md'],
   repositoryContextSummary: {
-    sourcePath: '.omx/plans/repo-context-issue-1072.md',
+    sourcePath: '.nomx/plans/repo-context-issue-1072.md',
     content: 'Key files: src/cli/ralph.ts and src/planning/artifacts.ts',
     truncated: false,
   },
 };
 
 describe('assertRequiredRalphPrdJson', () => {
-  it('throws when --prd mode starts without .omx/prd.json', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-prd-gate-'));
+  it('throws when --prd mode starts without .nomx/prd.json', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-prd-gate-'));
     try {
       assert.throws(
         () => assertRequiredRalphPrdJson(cwd, ['--prd', 'ship release checklist']),
-        /Missing required PRD\.json at \.omx\/prd\.json/,
+        /Missing required PRD\.json at \.nomx\/prd\.json/,
       );
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
-  it('still requires legacy .omx/prd.json even when canonical PRD markdown exists', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-prd-gate-'));
+  it('still requires legacy .nomx/prd.json even when canonical PRD markdown exists', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-prd-gate-'));
     try {
-      await mkdir(join(cwd, '.omx', 'plans'), { recursive: true });
-      await writeFile(join(cwd, '.omx', 'plans', 'prd-existing.md'), '# Existing canonical PRD\n');
+      await mkdir(join(cwd, '.nomx', 'plans'), { recursive: true });
+      await writeFile(join(cwd, '.nomx', 'plans', 'prd-existing.md'), '# Existing canonical PRD\n');
 
       assert.throws(
         () => assertRequiredRalphPrdJson(cwd, ['--prd', 'ship release checklist']),
-        /Missing required PRD\.json at \.omx\/prd\.json/,
+        /Missing required PRD\.json at \.nomx\/prd\.json/,
       );
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -185,10 +185,10 @@ describe('assertRequiredRalphPrdJson', () => {
   });
 
   it('rejects completed stories without architect approval', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-prd-gate-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-prd-gate-'));
     try {
-      await mkdir(join(cwd, '.omx'), { recursive: true });
-      await writeFile(join(cwd, '.omx', 'prd.json'), JSON.stringify({
+      await mkdir(join(cwd, '.nomx'), { recursive: true });
+      await writeFile(join(cwd, '.nomx', 'prd.json'), JSON.stringify({
         project: 'Issue 1555',
         userStories: [{
           id: 'US-001',
@@ -207,10 +207,10 @@ describe('assertRequiredRalphPrdJson', () => {
   });
 
   it('allows completed stories with architect approval recorded', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-prd-gate-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-prd-gate-'));
     try {
-      await mkdir(join(cwd, '.omx'), { recursive: true });
-      await writeFile(join(cwd, '.omx', 'prd.json'), JSON.stringify({
+      await mkdir(join(cwd, '.nomx'), { recursive: true });
+      await writeFile(join(cwd, '.nomx', 'prd.json'), JSON.stringify({
         project: 'Issue 1555',
         userStories: [{
           id: 'US-001',
@@ -226,11 +226,11 @@ describe('assertRequiredRalphPrdJson', () => {
     }
   });
 
-  it('allows --prd mode when .omx/prd.json exists', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-prd-gate-'));
+  it('allows --prd mode when .nomx/prd.json exists', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-prd-gate-'));
     try {
-      await mkdir(join(cwd, '.omx'), { recursive: true });
-      await writeFile(join(cwd, '.omx', 'prd.json'), JSON.stringify({
+      await mkdir(join(cwd, '.nomx'), { recursive: true });
+      await writeFile(join(cwd, '.nomx', 'prd.json'), JSON.stringify({
         project: 'Issue 1555',
         userStories: [],
       }, null, 2));
@@ -242,7 +242,7 @@ describe('assertRequiredRalphPrdJson', () => {
   });
 
   it('does not gate non-prd Ralph runs', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralph-prd-gate-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralph-prd-gate-'));
     try {
       assert.doesNotThrow(() => assertRequiredRalphPrdJson(cwd, ['fix', 'the', 'bug']));
     } finally {
@@ -254,12 +254,12 @@ describe('assertRequiredRalphPrdJson', () => {
 describe('ralph launch wiring', () => {
   it('requires conditional native subagent routing guidance', () => {
     const instructions = buildRalphAppendInstructions('fix issue 920', { approvedHint: null });
-    assert.match(instructions, /When the native surface exposes `agent_type` role routing, every Codex native subagent dispatch MUST set `agent_type` to an installed OMX role/);
-    assert.match(instructions, /never omit `agent_type` for generic OMX work/);
+    assert.match(instructions, /When the native surface exposes `agent_type` role routing, every Codex native subagent dispatch MUST set `agent_type` to an installed NOMX role/);
+    assert.match(instructions, /never omit `agent_type` for generic NOMX work/);
     assert.match(instructions, /role_routing_unavailable/);
     assert.match(instructions, /do not fabricate `agent_type`/);
-    assert.match(instructions, /OMX adapted role-pass protocol/);
-    assert.match(instructions, /pre-validated role intent in the OMX subagent ledger/);
+    assert.match(instructions, /NOMX adapted role-pass protocol/);
+    assert.match(instructions, /pre-validated role intent in the NOMX subagent ledger/);
     assert.match(instructions, /never fake the role via a prompt label/);
     assert.match(instructions, /use `reasoning_effort` instead of `tier`/);
     assert.match(instructions, /LOW -> `low`/);

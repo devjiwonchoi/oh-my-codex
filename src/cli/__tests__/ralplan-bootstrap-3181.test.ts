@@ -24,7 +24,7 @@ async function invoke(cwd: string, args: string[], deps: Omit<RalplanCommandDepe
 // Simulate the state the native hook (Phase 1) leaves before the CLI runs: a reconciled
 // canonical session pointer plus a durable leader attestation.
 async function seedAuthenticatedPointer(cwd: string, sessionId: string, leaderThreadId: string): Promise<void> {
-  const stateDir = join(cwd, '.omx', 'state');
+  const stateDir = join(cwd, '.nomx', 'state');
   await mkdir(stateDir, { recursive: true });
   await writeFile(join(stateDir, 'session.json'), JSON.stringify({
     session_id: sessionId,
@@ -37,9 +37,9 @@ async function seedAuthenticatedPointer(cwd: string, sessionId: string, leaderTh
 }
 
 async function withCwd(fn: (cwd: string) => Promise<void>): Promise<void> {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-3181-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-3181-'));
   try {
-    delete process.env.OMX_SESSION_ID;
+    delete process.env.NOMX_SESSION_ID;
     delete process.env.CODEX_SESSION_ID;
     delete process.env.SESSION_ID;
     await fn(cwd);
@@ -68,7 +68,7 @@ describe('#3181 ralplan CLI fresh-turn bootstrap', () => {
       assert.equal(receipt.intent.role, 'architect');
       assert.equal(receipt.intent.session_id, 'sess-app');
       assert.equal(receipt.intent.parent_thread_id, 'codex-leader-thread');
-      assert.match(receipt.spawn_task_name, /^omx_role_intent_[a-z0-9_]+$/);
+      assert.match(receipt.spawn_task_name, /^nomx_role_intent_[a-z0-9_]+$/);
       assert.equal(parseRoleIntentCorrelationToken(receipt.spawn_task_name), receipt.intent.correlation_token);
       const state = await readSubagentTrackingState(cwd);
       assert.equal(state.sessions['sess-app']?.threads['codex-leader-thread']?.kind, 'leader');
@@ -118,14 +118,14 @@ describe('#3181 ralplan CLI fresh-turn bootstrap', () => {
   });
 
   it('does not use a durable attestation for an env-selected session with no usable current pointer (stale/foreign guard)', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-ralplan-3181-env-'));
-    const prior = process.env.OMX_SESSION_ID;
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-ralplan-3181-env-'));
+    const prior = process.env.NOMX_SESSION_ID;
     try {
       delete process.env.CODEX_SESSION_ID;
       delete process.env.SESSION_ID;
       // The usable pointer belongs to session B, but a stale process selects attested
       // session A via the environment. A has an attestation in the shared tracker.
-      const stateDir = join(cwd, '.omx', 'state');
+      const stateDir = join(cwd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
         session_id: 'sess-real-B',
@@ -135,15 +135,15 @@ describe('#3181 ralplan CLI fresh-turn bootstrap', () => {
       }));
       const attest = attestLeaderThread(cwd, { sessionId: 'sess-attested-A', leaderThreadId: 'attacker-known-leader', source: 'native-pretooluse' });
       assert.equal(attest.ok, true);
-      process.env.OMX_SESSION_ID = 'sess-attested-A';
+      process.env.NOMX_SESSION_ID = 'sess-attested-A';
 
       const res = await invoke(cwd, ['role-intent', 'write', '--role', 'architect', '--parent-thread', 'attacker-known-leader', '--json']);
       assert.equal(res.exitCode, 1);
       assert.deepEqual(JSON.parse(res.stdout.join('\n')), { ok: false, reason: 'parent_not_active_leader' });
       assert.deepEqual((await readSubagentTrackingState(cwd)).pending_role_intents, []);
     } finally {
-      if (prior === undefined) delete process.env.OMX_SESSION_ID;
-      else process.env.OMX_SESSION_ID = prior;
+      if (prior === undefined) delete process.env.NOMX_SESSION_ID;
+      else process.env.NOMX_SESSION_ID = prior;
       await rm(cwd, { recursive: true, force: true });
     }
   });
@@ -152,7 +152,7 @@ describe('#3181 ralplan CLI fresh-turn bootstrap', () => {
     await withCwd(async (cwd) => {
       // A reconciled pointer PLUS a positively-provenanced tracker leader (from a real
       // recorded leader turn); the leader thread equals the native session id, as in reality.
-      const stateDir = join(cwd, '.omx', 'state');
+      const stateDir = join(cwd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
         session_id: 'sess-legacy', native_session_id: 'native-legacy', started_at: '2026-07-14T00:00:00.000Z', cwd,
@@ -171,7 +171,7 @@ describe('#3181 ralplan CLI fresh-turn bootstrap', () => {
 
   it('legacy native-session path: refuses a native leader that is also tracked as a subagent (atomic, no downgrade)', async () => {
     await withCwd(async (cwd) => {
-      const stateDir = join(cwd, '.omx', 'state');
+      const stateDir = join(cwd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
         session_id: 'sess-legacy', native_session_id: 'native-legacy', started_at: '2026-07-14T00:00:00.000Z', cwd,

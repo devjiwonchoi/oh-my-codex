@@ -79,7 +79,7 @@ describe("verify-native-agents", () => {
   });
 
   it("does not accept prompt-body sentinel text as generated delegation metadata", async () => {
-    const root = await mkdtemp(join(tmpdir(), "omx-verify-native-spoof-"));
+    const root = await mkdtemp(join(tmpdir(), "nomx-verify-native-spoof-"));
     try {
       await mkdir(join(root, "prompts"), { recursive: true });
       await writeFile(

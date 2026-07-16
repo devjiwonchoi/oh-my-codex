@@ -14,7 +14,7 @@ import {
 	compareSkillMirror,
 } from "../catalog/skill-mirror.js";
 import { MANAGED_HOOK_EVENTS } from "../config/codex-hooks.js";
-import { buildOmxPluginMcpManifest } from "../config/omx-first-party-mcp.js";
+import { buildNomxPluginMcpManifest } from "../config/nomx-first-party-mcp.js";
 
 export interface SyncPluginMirrorOptions {
 	root?: string;
@@ -52,16 +52,16 @@ type PackageJson = {
 	version?: string;
 };
 
-const PLUGIN_NAME = "oh-my-codex";
+const PLUGIN_NAME = "nomx";
 const SETUP_OWNED_PLUGIN_MANIFEST_FIELDS = [
 	"agents",
 	"prompts",
 ] as const;
-const OMX_PLUGIN_HOOK_COMMAND =
+const NOMX_PLUGIN_HOOK_COMMAND =
 	'node "${PLUGIN_ROOT}/hooks/codex-native-hook.mjs"';
 // The launcher itself must not shell-wrap node.exe on Windows; see GH #2858.
-const OMX_PLUGIN_HOOK_LAUNCHER_CONTRACT_MARKER =
-	"omx-plugin-hook-launcher:v1";
+const NOMX_PLUGIN_HOOK_LAUNCHER_CONTRACT_MARKER =
+	"nomx-plugin-hook-launcher:v1";
 // Plugin-scoped Codex hooks intentionally mirror the setup-managed lifecycle
 // roster today while using PLUGIN_ROOT-local launch commands. If plugin and
 // setup hook coverage diverge, split this alias into a plugin-owned roster.
@@ -79,7 +79,7 @@ function stringifyJson(value: unknown): string {
 function commandHook(timeout?: number): JsonValue {
 	return {
 		type: "command",
-		command: OMX_PLUGIN_HOOK_COMMAND,
+		command: NOMX_PLUGIN_HOOK_COMMAND,
 		...(typeof timeout === "number" ? { timeout } : {}),
 	};
 }
@@ -94,7 +94,7 @@ function pluginHookEntry(eventName: PluginHookEventName): JsonValue {
 	return base;
 }
 
-function buildOmxPluginHooksManifest(): JsonValue {
+function buildNomxPluginHooksManifest(): JsonValue {
 	return {
 		hooks: Object.fromEntries(
 			PLUGIN_HOOK_EVENTS.map((eventName) => [
@@ -129,7 +129,7 @@ function assertPluginHookLauncherContractMarkerPresent(
 	content: string,
 ): void {
 	const requiredMarkers = [
-		OMX_PLUGIN_HOOK_LAUNCHER_CONTRACT_MARKER,
+		NOMX_PLUGIN_HOOK_LAUNCHER_CONTRACT_MARKER,
 	];
 	const missingMarkers = requiredMarkers.filter(
 		(marker) => !content.includes(marker),
@@ -320,9 +320,9 @@ async function assertPluginMetadata(root: string): Promise<void> {
 			readFile(pluginHookLauncherPath, "utf-8"),
 		]);
 
-	assertDeepJsonEqual(actualMcp, buildOmxPluginMcpManifest(), "mcp-manifest");
+	assertDeepJsonEqual(actualMcp, buildNomxPluginMcpManifest(), "mcp-manifest");
 	assertDeepJsonEqual(actualApps, { apps: {} }, "apps-manifest");
-	assertDeepJsonEqual(actualHooks, buildOmxPluginHooksManifest(), "hooks-manifest");
+	assertDeepJsonEqual(actualHooks, buildNomxPluginHooksManifest(), "hooks-manifest");
 	assertPluginHookLauncherContractMarkerPresent(
 		pluginHookLauncherPath,
 		actualHookLauncher,
@@ -340,10 +340,10 @@ async function writePluginMetadata(
 		pluginManifestPath,
 		pluginHooksPath,
 	} = getPluginPaths(root);
-	const expectedMcp = buildOmxPluginMcpManifest();
+	const expectedMcp = buildNomxPluginMcpManifest();
 	const expectedApps = { apps: {} };
 	const expectedManifest = await buildExpectedPluginManifest(root);
-	const expectedHooks = buildOmxPluginHooksManifest();
+	const expectedHooks = buildNomxPluginHooksManifest();
 	const writes = [
 		{
 			path: pluginMcpPath,

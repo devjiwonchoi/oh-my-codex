@@ -16,7 +16,7 @@ import {
 } from '../validation.js';
 
 async function withTempRepo<T>(run: (cwd: string) => Promise<T>): Promise<T> {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-goal-workflow-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-goal-workflow-'));
   try {
     return await run(cwd);
   } finally {
@@ -25,7 +25,7 @@ async function withTempRepo<T>(run: (cwd: string) => Promise<T>): Promise<T> {
 }
 
 describe('goal-workflow artifacts', () => {
-  it('creates durable status and ledger artifacts under .omx/goals', async () => {
+  it('creates durable status and ledger artifacts under .nomx/goals', async () => {
     await withTempRepo(async (cwd) => {
       const run = await createGoalWorkflowRun(cwd, {
         workflow: 'performance-goal',
@@ -34,11 +34,11 @@ describe('goal-workflow artifacts', () => {
         now: new Date('2026-05-04T10:00:00Z'),
       });
 
-      assert.equal(run.artifactDir, '.omx/goals/performance-goal/latency-pass');
+      assert.equal(run.artifactDir, '.nomx/goals/performance-goal/latency-pass');
       assert.equal(run.status, 'pending');
       assert.equal((await readGoalWorkflowRun(cwd, 'performance-goal', 'latency-pass')).objective, 'Reduce p95 latency below 100ms.');
 
-      const ledger = await readFile(join(cwd, '.omx/goals/performance-goal/latency-pass/ledger.jsonl'), 'utf-8');
+      const ledger = await readFile(join(cwd, '.nomx/goals/performance-goal/latency-pass/ledger.jsonl'), 'utf-8');
       assert.match(ledger, /"event":"workflow_created"/);
     });
   });
@@ -56,7 +56,7 @@ describe('goal-workflow artifacts', () => {
       const placeholder = normalizeGoalWorkflowValidation({
         status: 'pass',
         summary: 'TODO placeholder evaluator says pass.',
-        artifactPath: '.omx/goals/scrum-goal/strict/audit.json',
+        artifactPath: '.nomx/goals/scrum-goal/strict/audit.json',
       });
       await assert.rejects(
         () => transitionGoalWorkflowRun(cwd, 'scrum-goal', 'strict', { status: 'validation_passed', validation: placeholder }),
@@ -87,7 +87,7 @@ describe('goal-workflow artifacts', () => {
       const validation = normalizeGoalWorkflowValidation({
         status: 'pass',
         summary: 'Worker evidence matrix passed leader audit.',
-        artifactPath: '.omx/goals/scrum-goal/release/audit.json',
+        artifactPath: '.nomx/goals/scrum-goal/release/audit.json',
         checkedAt: new Date('2026-05-04T10:02:00Z'),
       });
       assertGoalWorkflowCanComplete(validation);
@@ -96,7 +96,7 @@ describe('goal-workflow artifacts', () => {
       const completed = await transitionGoalWorkflowRun(cwd, 'scrum-goal', 'release', { status: 'complete', evidence: 'audit passed' });
       assert.equal(completed.status, 'complete');
 
-      const ledger = await readFile(join(cwd, '.omx/goals/scrum-goal/release/ledger.jsonl'), 'utf-8');
+      const ledger = await readFile(join(cwd, '.nomx/goals/scrum-goal/release/ledger.jsonl'), 'utf-8');
       assert.match(ledger, /"event":"goal_started"/);
       assert.match(ledger, /"event":"validation_passed"/);
       assert.match(ledger, /"event":"goal_completed"/);
@@ -123,7 +123,7 @@ describe('goal-workflow handoff and validation', () => {
     const validation = normalizeGoalWorkflowValidation({
       status: true,
       summary: 'TODO placeholder evaluator says pass.',
-      artifactPath: '.omx/goals/demo/evaluator.json',
+      artifactPath: '.nomx/goals/demo/evaluator.json',
     });
 
     assert.throws(() => assertGoalWorkflowCanComplete(validation), GoalWorkflowValidationError);

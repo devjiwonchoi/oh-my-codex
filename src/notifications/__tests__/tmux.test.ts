@@ -15,7 +15,7 @@ import {
 
 describe('getCurrentTmuxSession', () => {
   const originalTmux = process.env.TMUX;
-  const originalPidFallback = process.env.OMX_TMUX_PID_FALLBACK;
+  const originalPidFallback = process.env.NOMX_TMUX_PID_FALLBACK;
 
   afterEach(() => {
     if (originalTmux !== undefined) {
@@ -24,9 +24,9 @@ describe('getCurrentTmuxSession', () => {
       delete process.env.TMUX;
     }
     if (originalPidFallback !== undefined) {
-      process.env.OMX_TMUX_PID_FALLBACK = originalPidFallback;
+      process.env.NOMX_TMUX_PID_FALLBACK = originalPidFallback;
     } else {
-      delete process.env.OMX_TMUX_PID_FALLBACK;
+      delete process.env.NOMX_TMUX_PID_FALLBACK;
     }
   });
 
@@ -40,7 +40,7 @@ describe('getCurrentTmuxSession', () => {
     const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
     Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
     delete process.env.TMUX;
-    process.env.OMX_TMUX_PID_FALLBACK = '1';
+    process.env.NOMX_TMUX_PID_FALLBACK = '1';
     try {
       assert.equal(getCurrentTmuxSession(), null);
     } finally {
@@ -52,7 +52,7 @@ describe('getCurrentTmuxSession', () => {
 describe('getCurrentTmuxPaneId', () => {
   const originalTmux = process.env.TMUX;
   const originalPane = process.env.TMUX_PANE;
-  const originalPidFallback = process.env.OMX_TMUX_PID_FALLBACK;
+  const originalPidFallback = process.env.NOMX_TMUX_PID_FALLBACK;
 
   afterEach(() => {
     if (originalTmux !== undefined) {
@@ -66,9 +66,9 @@ describe('getCurrentTmuxPaneId', () => {
       delete process.env.TMUX_PANE;
     }
     if (originalPidFallback !== undefined) {
-      process.env.OMX_TMUX_PID_FALLBACK = originalPidFallback;
+      process.env.NOMX_TMUX_PID_FALLBACK = originalPidFallback;
     } else {
-      delete process.env.OMX_TMUX_PID_FALLBACK;
+      delete process.env.NOMX_TMUX_PID_FALLBACK;
     }
   });
 
@@ -104,7 +104,7 @@ describe('getCurrentTmuxPaneId', () => {
     Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
     delete process.env.TMUX;
     delete process.env.TMUX_PANE;
-    process.env.OMX_TMUX_PID_FALLBACK = '1';
+    process.env.NOMX_TMUX_PID_FALLBACK = '1';
     try {
       assert.equal(getCurrentTmuxPaneId(), null);
     } finally {
@@ -159,7 +159,7 @@ describe('getTeamTmuxSessions - session matching', () => {
   });
 
   function makeFakeTmux(sessions: string[]): void {
-    const fakeBinDir = mkdtempSync(join(tmpdir(), 'omx-tmux-team-test-'));
+    const fakeBinDir = mkdtempSync(join(tmpdir(), 'nomx-tmux-team-test-'));
     tmpDirs.push(fakeBinDir);
     const tmuxPath = join(fakeBinDir, 'tmux');
     const lines = sessions.length > 0
@@ -170,18 +170,18 @@ describe('getTeamTmuxSessions - session matching', () => {
     process.env.PATH = `${fakeBinDir}:${originalPath ?? ''}`;
   }
 
-  it('returns canonical session name (omx-team-alpha) for team "alpha"', () => {
-    makeFakeTmux(['omx-team-alpha', 'other-session']);
-    assert.deepEqual(getTeamTmuxSessions('alpha'), ['omx-team-alpha']);
+  it('returns canonical session name (nomx-team-alpha) for team "alpha"', () => {
+    makeFakeTmux(['nomx-team-alpha', 'other-session']);
+    assert.deepEqual(getTeamTmuxSessions('alpha'), ['nomx-team-alpha']);
   });
 
-  it('returns prefixed worker sessions (omx-team-alpha-worker1)', () => {
-    makeFakeTmux(['omx-team-alpha-worker1', 'omx-team-alpha-worker2']);
-    assert.deepEqual(getTeamTmuxSessions('alpha'), ['omx-team-alpha-worker1', 'omx-team-alpha-worker2']);
+  it('returns prefixed worker sessions (nomx-team-alpha-worker1)', () => {
+    makeFakeTmux(['nomx-team-alpha-worker1', 'nomx-team-alpha-worker2']);
+    assert.deepEqual(getTeamTmuxSessions('alpha'), ['nomx-team-alpha-worker1', 'nomx-team-alpha-worker2']);
   });
 
   it('does NOT return sessions for a different team', () => {
-    makeFakeTmux(['omx-team-beta', 'omx-team-beta-worker1']);
+    makeFakeTmux(['nomx-team-beta', 'nomx-team-beta-worker1']);
     assert.deepEqual(getTeamTmuxSessions('alpha'), []);
   });
 
@@ -229,7 +229,7 @@ describe('captureTmuxPane', () => {
 
   it('captures output for valid pane id and sanitizes/clamps lines', () => {
     const livePid = process.pid;
-    const fakeBinDir = mkdtempSync(join(tmpdir(), 'omx-tmux-test-'));
+    const fakeBinDir = mkdtempSync(join(tmpdir(), 'nomx-tmux-test-'));
     tmpDirs.push(fakeBinDir);
     const tmuxPath = join(fakeBinDir, 'tmux');
     writeFileSync(
@@ -261,7 +261,7 @@ describe('captureTmuxPane', () => {
   });
 
   it('suppresses capture when the target pane is already dead', () => {
-    const fakeBinDir = mkdtempSync(join(tmpdir(), 'omx-tmux-dead-pane-test-'));
+    const fakeBinDir = mkdtempSync(join(tmpdir(), 'nomx-tmux-dead-pane-test-'));
     tmpDirs.push(fakeBinDir);
     const tmuxPath = join(fakeBinDir, 'tmux');
     writeFileSync(
@@ -294,7 +294,7 @@ describe('sanitizeTmuxAlertText', () => {
     const raw = [
       'fix/issue-1525-post-stop-keyword-replay',
       'fix/issue-1525-post-stop-keyword-replay | ralph:2/50 | turns:4 | session:1m | last:5s ago',
-      '[OMX#3] ultrawork active',
+      '[NOMX#3] ultrawork active',
     ].join('\n');
 
     assert.equal(sanitizeTmuxAlertText(raw), undefined);

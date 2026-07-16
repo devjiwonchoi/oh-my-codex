@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { describe, it, afterEach } from 'node:test';
+import { describe, it, afterEach, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { getProxyForUrl, noProxyMatches, requestJson, type ProxyEnv } from '../http-client.js';
@@ -49,9 +49,20 @@ describe('requestJson proxy routing', () => {
     await Promise.all(servers.splice(0).map((server) => server.close()));
   });
 
-  async function listen(handler: (req: IncomingMessage, res: ServerResponse) => void): Promise<{ url: string; close: () => Promise<void> }> {
+  async function listen(t: TestContext, handler: (req: IncomingMessage, res: ServerResponse) => void): Promise<{ url: string; close: () => Promise<void> } | null> {
     const server = createServer(handler);
-    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      await new Promise<void>((resolve, reject) => {
+        server.once('error', reject);
+        server.listen(0, '127.0.0.1', resolve);
+      });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EPERM' || (error as NodeJS.ErrnoException).code === 'EACCES') {
+        t.skip('local TCP listeners are unavailable in this environment');
+        return null;
+      }
+      throw error;
+    }
     const address = server.address();
     assert.equal(typeof address, 'object');
     assert.ok(address);
@@ -64,18 +75,20 @@ describe('requestJson proxy routing', () => {
     return handle;
   }
 
-  it('sends HTTP requests through HTTP_PROXY when configured', async () => {
+  it('sends HTTP requests through HTTP_PROXY when configured', async (t) => {
     const seen: string[] = [];
-    const target = await listen((_req, res) => {
+    const target = await listen(t, (_req, res) => {
       res.statusCode = 500;
       res.end('direct path should not be used');
     });
-    const proxy = await listen((req, res) => {
+    if (!target) return;
+    const proxy = await listen(t, (req, res) => {
       seen.push(req.url ?? '');
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ ok: true }));
     });
 
+    if (!proxy) return;
     const response = await requestJson(`${target.url}/notify?x=1`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -87,19 +100,21 @@ describe('requestJson proxy routing', () => {
     assert.deepEqual(seen, [`${target.url}/notify?x=1`]);
   });
 
-  it('bypasses proxy when NO_PROXY matches the target host', async () => {
+  it('bypasses proxy when NO_PROXY matches the target host', async (t) => {
     let directHits = 0;
     let proxyHits = 0;
-    const target = await listen((_req, res) => {
+    const target = await listen(t, (_req, res) => {
       directHits += 1;
       res.end('ok');
     });
-    const proxy = await listen((_req, res) => {
+    if (!target) return;
+    const proxy = await listen(t, (_req, res) => {
       proxyHits += 1;
       res.statusCode = 502;
       res.end('proxy should not be used');
     });
 
+    if (!proxy) return;
     const response = await requestJson(`${target.url}/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

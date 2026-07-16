@@ -22,12 +22,6 @@ export const KEYWORD_TRIGGER_DEFINITIONS: readonly KeywordTriggerDefinition[] = 
   { keyword: '$ultragoal', skill: 'ultragoal', priority: 10, guidance: 'Activate durable ultragoal planning/execution over Codex goal mode artifacts' },
   { keyword: 'ultragoal', skill: 'ultragoal', priority: 10, guidance: 'Activate durable ultragoal planning/execution over Codex goal mode artifacts' },
   { keyword: '$ultraqa', skill: 'ultraqa', priority: 8, guidance: 'Activate UltraQA cycling workflow' },
-  { keyword: '$analyze', skill: 'analyze', priority: 7, guidance: 'Activate deep analysis workflow' },
-  { keyword: 'investigate', skill: 'analyze', priority: 7, guidance: 'Activate deep analysis workflow' },
-
-
-  { keyword: '$prometheus-strict', skill: 'prometheus-strict', priority: 11, guidance: 'Activate Prometheus Strict clean-room interview-driven planner workflow' },
-
   { keyword: '$deep-interview', skill: 'deep-interview', priority: 8, guidance: 'Activate Ouroboros-inspired Socratic ambiguity-gated interview workflow' },
   { keyword: 'deep interview', skill: 'deep-interview', priority: 8, guidance: 'Activate Ouroboros-inspired Socratic ambiguity-gated interview workflow' },
   { keyword: 'gather requirements', skill: 'deep-interview', priority: 8, guidance: 'Activate Ouroboros-inspired Socratic ambiguity-gated interview workflow' },
@@ -46,20 +40,12 @@ export const KEYWORD_TRIGGER_DEFINITIONS: readonly KeywordTriggerDefinition[] = 
 
   { keyword: '$best-practice-research', skill: 'best-practice-research', priority: 8, guidance: 'Activate bounded best-practice research wrapper' },
 
-  { keyword: '$design', skill: 'design', priority: 6, guidance: 'Activate canonical DESIGN.md design-source-of-truth workflow' },
-  { keyword: '$frontend-ui-ux', skill: 'design', priority: 5, guidance: 'Deprecated: route to $design for DESIGN.md guidance; use $visual-ralph for visual-reference implementation' },
-
   { keyword: '$team', skill: 'team', priority: 8, guidance: 'Activate coordinated team mode' },
   { keyword: 'coordinated team', skill: 'team', priority: 8, guidance: 'Activate coordinated team mode' },
 
-  { keyword: '$cancel', skill: 'cancel', priority: 5, guidance: 'Cancel active execution modes' },
-  { keyword: 'stop', skill: 'cancel', priority: 5, guidance: 'Cancel active execution modes' },
-  { keyword: 'abort', skill: 'cancel', priority: 5, guidance: 'Cancel active execution modes' },
-
-  { keyword: '$wiki', skill: 'wiki', priority: 5, guidance: 'Activate the project wiki skill' },
-  { keyword: 'wiki query', skill: 'wiki', priority: 5, guidance: 'Activate the project wiki skill for search' },
-  { keyword: 'wiki add', skill: 'wiki', priority: 5, guidance: 'Activate the project wiki skill for page creation' },
-  { keyword: 'wiki lint', skill: 'wiki', priority: 5, guidance: 'Activate the project wiki skill for wiki health checks' },
+  { keyword: '$cancel', skill: 'cancel', priority: 5, guidance: 'Run the NOMX cancellation control path' },
+  { keyword: 'stop', skill: 'cancel', priority: 5, guidance: 'Run the NOMX cancellation control path' },
+  { keyword: 'abort', skill: 'cancel', priority: 5, guidance: 'Run the NOMX cancellation control path' },
 
   { keyword: 'code review', skill: 'code-review', priority: 6, guidance: 'Activate code-review workflow' },
   { keyword: '$code-review', skill: 'code-review', priority: 6, guidance: 'Activate code-review workflow' },
@@ -78,7 +64,6 @@ export interface ExplicitSkillDefinition {
 
 export const EXPLICIT_SKILL_ALIASES: readonly ExplicitSkillAlias[] = Object.freeze([
   Object.freeze({ source: 'ulw', target: 'ultrawork' }),
-  Object.freeze({ source: 'frontend-ui-ux', target: 'design' }),
 ]);
 
 function createExplicitSkillLookup(): Readonly<Record<string, ExplicitSkillDefinition>> {

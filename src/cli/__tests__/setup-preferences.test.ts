@@ -13,10 +13,10 @@ import {
 
 describe("persisted setup merge policy", () => {
 	it("accepts literal booleans only when the same record has a valid or migrated scope", async () => {
-		const root = await mkdtemp(join(tmpdir(), "omx-setup-preferences-"));
+		const root = await mkdtemp(join(tmpdir(), "nomx-setup-preferences-"));
 		try {
-			const path = join(root, ".omx", "setup-scope.json");
-			await mkdir(join(root, ".omx"), { recursive: true });
+			const path = join(root, ".nomx", "setup-scope.json");
+			await mkdir(join(root, ".nomx"), { recursive: true });
 
 			await writeFile(path, JSON.stringify({ scope: "user", mergeAgents: true }));
 			assert.equal(resolvePersistedSetupMergeAgents(await readPersistedSetupPreferences(root), "user"), true);
@@ -43,12 +43,12 @@ describe("persisted setup merge policy", () => {
 	});
 
 	it("writes canonical newline-terminated state atomically without retaining temporary files", async () => {
-		const root = await mkdtemp(join(tmpdir(), "omx-setup-preferences-"));
+		const root = await mkdtemp(join(tmpdir(), "nomx-setup-preferences-"));
 		try {
 			await writePersistedSetupPreferences(root, { scope: "project", mergeAgents: false });
-			const path = join(root, ".omx", "setup-scope.json");
+			const path = join(root, ".nomx", "setup-scope.json");
 			assert.equal(await readFile(path, "utf-8"), '{\n  "scope": "project",\n  "mergeAgents": false\n}\n');
-			const entries = await readdir(join(root, ".omx"));
+			const entries = await readdir(join(root, ".nomx"));
 			assert.deepEqual(entries, ["setup-scope.json"]);
 		} finally {
 			await rm(root, { recursive: true, force: true });
@@ -56,9 +56,9 @@ describe("persisted setup merge policy", () => {
 	});
 
 	it("preserves target bytes and cleans its temp file when an atomic replacement fails", async () => {
-		const root = await mkdtemp(join(tmpdir(), "omx-setup-preferences-"));
+		const root = await mkdtemp(join(tmpdir(), "nomx-setup-preferences-"));
 		try {
-			const dir = join(root, ".omx");
+			const dir = join(root, ".nomx");
 			const path = join(dir, "setup-scope.json");
 			const original = '{"scope":"user","mergeAgents":true}\n';
 			await mkdir(dir, { recursive: true });
@@ -77,7 +77,7 @@ describe("persisted setup merge policy", () => {
 	});
 
 	it("does not create a target when the initial atomic write fails", async () => {
-		const root = await mkdtemp(join(tmpdir(), "omx-setup-preferences-"));
+		const root = await mkdtemp(join(tmpdir(), "nomx-setup-preferences-"));
 		try {
 			await assert.rejects(
 				writePersistedSetupPreferences(root, { scope: "user", mergeAgents: true }, {
@@ -85,7 +85,7 @@ describe("persisted setup merge policy", () => {
 				}),
 				/write denied/,
 			);
-			assert.equal(existsSync(join(root, ".omx", "setup-scope.json")), false);
+			assert.equal(existsSync(join(root, ".nomx", "setup-scope.json")), false);
 		} finally {
 			await rm(root, { recursive: true, force: true });
 		}

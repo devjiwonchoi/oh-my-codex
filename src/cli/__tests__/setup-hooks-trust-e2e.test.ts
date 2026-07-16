@@ -33,11 +33,11 @@ import {
 function isolatedEnv(home: string, codexHome: string): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env, HOME: home, CODEX_HOME: codexHome };
   for (const key of [
-    'OMX_SESSION_ID',
-    'OMX_RUN_ID',
-    'OMX_ROOT',
-    'OMX_STATE_ROOT',
-    'OMX_ACTIVE_SESSION_PID',
+    'NOMX_SESSION_ID',
+    'NOMX_RUN_ID',
+    'NOMX_ROOT',
+    'NOMX_STATE_ROOT',
+    'NOMX_ACTIVE_SESSION_PID',
     'CODEX_SESSION_ID',
     'TMUX',
     'TMUX_PANE',
@@ -62,8 +62,8 @@ function trustedProjectConfig(projectDir: string): string {
 
 function runRepoOmxResult(projectDir: string, argv: string[], env: NodeJS.ProcessEnv) {
   const testDir = dirname(fileURLToPath(import.meta.url));
-  const omxBin = join(testDir, '..', '..', '..', 'dist', 'cli', 'nomx.js');
-  return spawnSync(process.execPath, [omxBin, ...argv], {
+  const nomxBin = join(testDir, '..', '..', '..', 'dist', 'cli', 'nomx.js');
+  return spawnSync(process.execPath, [nomxBin, ...argv], {
     cwd: projectDir,
     env,
     encoding: 'utf-8',
@@ -81,7 +81,7 @@ function runRepoOmx(projectDir: string, argv: string[], env: NodeJS.ProcessEnv):
 }
 
 async function assertNoUninstallTransactionArtifacts(codexDir: string): Promise<void> {
-  const artifacts = (await readdir(codexDir)).filter((entry) => entry.includes('.omx-uninstall-'));
+  const artifacts = (await readdir(codexDir)).filter((entry) => entry.includes('.nomx-uninstall-'));
   assert.deepEqual(
     artifacts,
     [],
@@ -97,7 +97,7 @@ async function observeHooks(
 ): Promise<CodexHookMetadata[]> {
   const server = await CodexAppServer.start({ cwd: projectDir, env });
   try {
-    await initializeCodexAppServer(server, 'omx-hook-trust-regression');
+    await initializeCodexAppServer(server, 'nomx-hook-trust-regression');
     return (await listCodexHooks(server, projectDir, hooksPath)).hooks;
   } finally {
     await server.close();
@@ -106,17 +106,17 @@ async function observeHooks(
 
 function assertTrustedOmxHooks(hooks: readonly CodexHookMetadata[]): void {
   for (const [event, hook] of Object.entries(managedCodexHooksByEvent(hooks))) {
-    assert.equal(hook.trustStatus, 'trusted', `Codex did not trust OMX ${event}`);
+    assert.equal(hook.trustStatus, 'trusted', `Codex did not trust NOMX ${event}`);
   }
 }
 
 function assertUnapprovedOmxHooks(hooks: readonly CodexHookMetadata[]): void {
   for (const [event, hook] of Object.entries(managedCodexHooksByEvent(hooks))) {
-    assert.notEqual(hook.trustStatus, 'trusted', `setup-generated trust pre-approved OMX ${event}`);
+    assert.notEqual(hook.trustStatus, 'trusted', `setup-generated trust pre-approved NOMX ${event}`);
   }
 }
 
-function omxMetadataSnapshot(hooks: readonly CodexHookMetadata[]): unknown[] {
+function nomxMetadataSnapshot(hooks: readonly CodexHookMetadata[]): unknown[] {
   return hookMetadataSnapshot(Object.values(managedCodexHooksByEvent(hooks)));
 }
 
@@ -150,13 +150,13 @@ test('Linux installed-Codex hooks/list preserves full foreign metadata through u
     return;
   }
 
-  const root = await mkdtemp(join(tmpdir(), 'omx-setup-hooks-trust-e2e-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-setup-hooks-trust-e2e-'));
   const projectDir = resolve(root, 'project');
   const home = join(root, 'home');
   const codexHome = join(root, 'codex-home');
   const hooksPath = join(projectDir, '.codex', 'hooks.json');
   const configPath = join(projectDir, '.codex', 'config.toml');
-  const foreignMarker = 'omx-hook-trust-e2e-foreign';
+  const foreignMarker = 'nomx-hook-trust-e2e-foreign';
   const env = isolatedEnv(home, codexHome);
 
   try {
@@ -187,7 +187,7 @@ test('Linux installed-Codex hooks/list preserves full foreign metadata through u
 
     const foreignApprovalServer = await CodexAppServer.start({ cwd: projectDir, env });
     try {
-      await initializeCodexAppServer(foreignApprovalServer, 'omx-hook-trust-regression');
+      await initializeCodexAppServer(foreignApprovalServer, 'nomx-hook-trust-regression');
       const preSetupForeignHooks = (await listCodexHooks(foreignApprovalServer, projectDir, hooksPath)).hooks
         .filter((hook) => hook.command.includes(foreignMarker));
       assert.equal(preSetupForeignHooks.length, 2, 'Codex must discover both pre-seeded foreign hooks');
@@ -221,7 +221,7 @@ test('Linux installed-Codex hooks/list preserves full foreign metadata through u
 
     const approvalServer = await CodexAppServer.start({ cwd: projectDir, env });
     try {
-      await initializeCodexAppServer(approvalServer, 'omx-hook-trust-regression');
+      await initializeCodexAppServer(approvalServer, 'nomx-hook-trust-regression');
       const initialHooks = (await listCodexHooks(approvalServer, projectDir, hooksPath)).hooks;
       assertGeneratedTrustMatchesCodex(initialGeneratedTrust, initialHooks);
       assertUnapprovedOmxHooks(initialHooks);
@@ -257,7 +257,7 @@ test('Linux installed-Codex hooks/list preserves full foreign metadata through u
     // Restart after the hooks mutation and snapshot the legitimate post-insertion display ordering.
     const postForeignHooks = await observeHooks(projectDir, hooksPath, env);
     assertTrustedOmxHooks(postForeignHooks);
-    const expectedOmxMetadata = omxMetadataSnapshot(postForeignHooks);
+    const expectedOmxMetadata = nomxMetadataSnapshot(postForeignHooks);
     const expectedForeignMetadata = foreignMetadataSnapshot(postForeignHooks, foreignMarker);
     assert.equal(expectedForeignMetadata.length, 4, 'Codex must discover all foreign command hooks');
     assert.deepEqual(
@@ -266,7 +266,7 @@ test('Linux installed-Codex hooks/list preserves full foreign metadata through u
       'foreign insertion changed pre-approved foreign metadata',
     );
 
-    // Rerun must refresh OMX in place without moving the foreign groups or handlers.
+    // Rerun must refresh NOMX in place without moving the foreign groups or handlers.
     runRepoOmx(projectDir, ['setup', '--scope', 'project', '--merge-agents', '--legacy'], env);
     assert.equal(await readFile(hooksPath, 'utf-8'), postForeignHooksContent, 'rerun changed hooks.json');
     assert.equal(await readFile(configPath, 'utf-8'), postForeignConfig, 'rerun changed config.toml');
@@ -274,7 +274,7 @@ test('Linux installed-Codex hooks/list preserves full foreign metadata through u
 
     const afterRerunHooks = await observeHooks(projectDir, hooksPath, env);
     assertTrustedOmxHooks(afterRerunHooks);
-    assert.deepEqual(omxMetadataSnapshot(afterRerunHooks), expectedOmxMetadata);
+    assert.deepEqual(nomxMetadataSnapshot(afterRerunHooks), expectedOmxMetadata);
     assert.deepEqual(foreignMetadataSnapshot(afterRerunHooks, foreignMarker), expectedForeignMetadata);
 
     // A third setup is the idempotence check and must remain a byte no-op at the real boundary.
@@ -284,7 +284,7 @@ test('Linux installed-Codex hooks/list preserves full foreign metadata through u
     assertForeignHookGroupsPreserved(foreignRawSnapshot, await readFile(hooksPath, 'utf-8'), foreignMarker);
     const afterNoopHooks = await observeHooks(projectDir, hooksPath, env);
     assertTrustedOmxHooks(afterNoopHooks);
-    assert.deepEqual(omxMetadataSnapshot(afterNoopHooks), expectedOmxMetadata);
+    assert.deepEqual(nomxMetadataSnapshot(afterNoopHooks), expectedOmxMetadata);
     assert.deepEqual(foreignMetadataSnapshot(afterNoopHooks, foreignMarker), expectedForeignMetadata);
 
     runRepoOmx(projectDir, ['uninstall'], env);
@@ -307,13 +307,13 @@ test('Linux installed-Codex preserves managed-first foreign order and fails unsa
     return;
   }
 
-  const root = await mkdtemp(join(tmpdir(), 'omx-setup-hooks-managed-first-e2e-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-setup-hooks-managed-first-e2e-'));
   const projectDir = resolve(root, 'project');
   const home = join(root, 'home');
   const codexHome = join(root, 'codex-home');
   const hooksPath = join(projectDir, '.codex', 'hooks.json');
   const configPath = join(projectDir, '.codex', 'config.toml');
-  const foreignMarker = 'omx-hook-trust-managed-first-foreign';
+  const foreignMarker = 'nomx-hook-trust-managed-first-foreign';
   const env = isolatedEnv(home, codexHome);
 
   try {
@@ -333,7 +333,7 @@ test('Linux installed-Codex preserves managed-first foreign order and fails unsa
     runRepoOmx(projectDir, ['setup', '--scope', 'project', '--merge-agents', '--legacy'], env);
     const approvalServer = await CodexAppServer.start({ cwd: projectDir, env });
     try {
-      await initializeCodexAppServer(approvalServer, 'omx-hook-trust-regression');
+      await initializeCodexAppServer(approvalServer, 'nomx-hook-trust-regression');
       const initialManagedFirstHooks = (await listCodexHooks(approvalServer, projectDir, hooksPath)).hooks;
       assertUnapprovedOmxHooks(initialManagedFirstHooks);
       await approveManagedHooksInCodex(
@@ -377,7 +377,7 @@ test('Linux installed-Codex preserves managed-first foreign order and fails unsa
     const beforeUninstallConfigBytes = await readFile(configPath);
 
     const expectedUnsafeManagedRemovalDiagnostic =
-      'Removing OMX hooks would shift a foreign coordinate or discard opaque metadata.';
+      'Removing NOMX hooks would shift a foreign coordinate or discard opaque metadata.';
     const unsafeRemoval = planManagedCodexHooksRemoval(beforeRerunHooks, hooksPath);
     assert.equal(unsafeRemoval.ok, false);
     if (unsafeRemoval.ok) return;

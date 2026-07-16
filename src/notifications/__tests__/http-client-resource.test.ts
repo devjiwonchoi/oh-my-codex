@@ -11,13 +11,24 @@ describe('HTTP client resource cleanup', () => {
     await Promise.all(servers.splice(0).map((server) => server.close()));
   });
 
-  it('destroys direct sockets on request timeout to avoid resource leaks', async () => {
+  it('destroys direct sockets on request timeout to avoid resource leaks', async (t) => {
     const originalFetch = globalThis.fetch;
     const sockets: Socket[] = [];
     const server = createServer((socket) => {
       sockets.push(socket);
     });
-    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      await new Promise<void>((resolve, reject) => {
+        server.once('error', reject);
+        server.listen(0, '127.0.0.1', resolve);
+      });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EPERM' || (error as NodeJS.ErrnoException).code === 'EACCES') {
+        t.skip('local TCP listeners are unavailable in this environment');
+        return;
+      }
+      throw error;
+    }
     servers.push({ close: () => new Promise((resolve, reject) => {
       for (const socket of sockets) socket.destroy();
       server.close((error) => error ? reject(error) : resolve());

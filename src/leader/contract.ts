@@ -3,7 +3,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 
 export const NATIVE_SPAWN_TASK_NAME_PATTERN = /^[a-z0-9_]+$/;
 export const ROLE_INTENT_CORRELATION_TOKEN_PATTERN = /^[a-z0-9]+$/;
-export const ROLE_INTENT_SPAWN_TASK_NAME_PREFIX = 'omx_role_intent_';
+export const ROLE_INTENT_SPAWN_TASK_NAME_PREFIX = 'nomx_role_intent_';
 
 
 export function buildRoleIntentSpawnTaskName(correlationToken: string): string {
@@ -53,7 +53,7 @@ export function canonicalizeOriginCwd(cwd: string | undefined): string | null {
 }
 
 export const LEADER_CONDUCTOR_PHILOSOPHY =
-  'Conductor Philosophy: The core principle of OMX is: You are the conductor, not the performer.';
+  'Conductor Philosophy: The core principle of NOMX is: You are the conductor, not the performer.';
 
 export const LEADER_CONDUCTOR_GOLDEN_RULE =
   'When the Main agent is acting in Conductor mode, NEVER make plan or code changes directly. ALWAYS delegate implementation to specialized agents. Your role is to guide, review, and orchestrate.';
@@ -66,7 +66,7 @@ export const LEADER_CONDUCTOR_DELEGATION_NOTE =
 
 export const LEADER_CONDUCTOR_REUSE_AND_LEDGER_RULES = [
   'Conductor mode is a Main-root contract only; typed subagents never receive this block.',
-  'Use .omx/state/subagent-tracking.json as the source of truth for saved subagent ids and recovery order.',
+  'Use .nomx/state/subagent-tracking.json as the source of truth for saved subagent ids and recovery order.',
   'On SessionStart, eagerly attempt resume_agent(<subagent id>) for every saved subagent id before spawning any replacement agent.',
   'ralplan consensus planning may activate Conductor; autopilot rework stays exempt.',
 ] as const;
@@ -146,7 +146,7 @@ export const LEADER_CONDUCTOR_UNSUPPORTED_NATIVE_DEGRADE_BLOCK = [
 export const LEADER_CONDUCTOR_ROLE_ROUTING_DEGRADE_BLOCK = [
   'Native role routing is unavailable in this environment.',
   'PROCEED with adapted role-specific consensus using the exposed spawn tool.',
-  'Record role identity via the OMX adapted role-intent ledger.',
+  'Record role identity via the NOMX adapted role-intent ledger.',
   'Keep unknown-role validation loud.',
   'Continue the workflow without claiming native typed-subagent provenance.',
 ].join(' ');
@@ -308,7 +308,7 @@ export function resolveNativeSubagentSupportStatus(input: NativeSubagentCapabili
   if (supportBlockerEvidence) return supportBlockerEvidence;
 
   const payload = supportRecord(input.payload);
-  const explicitCapability = supportRecord(payload?.omx_runtime_capabilities)
+  const explicitCapability = supportRecord(payload?.nomx_runtime_capabilities)
     ?? supportRecord(payload?.capabilities);
   const explicitStatus = capabilityStatusFromRecord(explicitCapability);
   if (explicitStatus === 'unsupported') {
@@ -426,42 +426,42 @@ export interface ConductorAuthorizationDecision {
 }
 
 export const CONDUCTOR_ORCHESTRATION_METADATA_PREFIXES = [
-  '.omx/state',
-  '.omx/ultragoal',
-  '.omx/ralph',
-  '.omx/team',
-  '.omx/mailbox',
-  '.omx/handoff',
-  '.omx/handoffs',
-  '.omx/goals',
-  '.omx/notepad',
-  '.omx/wiki',
+  '.nomx/state',
+  '.nomx/ultragoal',
+  '.nomx/ralph',
+  '.nomx/team',
+  '.nomx/mailbox',
+  '.nomx/handoff',
+  '.nomx/handoffs',
+  '.nomx/goals',
+  '.nomx/notepad',
+  '.nomx/wiki',
   '.beads',
 ] as const;
 
 const CONDUCTOR_SUBSTANTIVE_DELIVERABLE_PREFIXES = [
-  '.omx/context',
-  '.omx/interviews',
-  '.omx/plans',
-  '.omx/specs',
-  '.omx/reviews',
-  '.omx/qa',
+  '.nomx/context',
+  '.nomx/interviews',
+  '.nomx/plans',
+  '.nomx/specs',
+  '.nomx/reviews',
+  '.nomx/qa',
 ] as const;
 
 export function classifyConductorArtifactKind(relativePath: string): ConductorArtifactKind {
   const normalized = relativePath.trim().replace(/^\.\//, '').replace(/\\/g, '/');
   if (!normalized) return 'unknown';
-  if (/^\.omx\/state(?:\/.*)?\/subagent-tracking\.json$/.test(normalized)) {
+  if (/^\.nomx\/state(?:\/.*)?\/subagent-tracking\.json$/.test(normalized)) {
     return 'ledger';
   }
-  if (normalized.startsWith('.omx/state/')) return 'transport';
+  if (normalized.startsWith('.nomx/state/')) return 'transport';
   if (CONDUCTOR_ORCHESTRATION_METADATA_PREFIXES.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`))) {
     return 'orchestration-metadata';
   }
   if (CONDUCTOR_SUBSTANTIVE_DELIVERABLE_PREFIXES.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`))) {
     return 'substantive-plan-spec-interview-review-qa';
   }
-  if (normalized.startsWith('.omx/')) return 'unknown';
+  if (normalized.startsWith('.nomx/')) return 'unknown';
   return 'implementation-source-package-git';
 }
 

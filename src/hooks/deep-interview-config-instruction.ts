@@ -10,7 +10,7 @@ function safeString(value: unknown): string {
 function resolveInitializedStatePath(cwd: string, statePath: string): string {
   if (statePath.startsWith('/')) return statePath;
   const normalized = statePath.replace(/\\/g, '/');
-  const statePrefix = '.omx/state/';
+  const statePrefix = '.nomx/state/';
   if (normalized.startsWith(statePrefix)) {
     return join(getBaseStateDir(cwd), normalized.slice(statePrefix.length));
   }

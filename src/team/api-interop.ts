@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve as resolvePath } from 'node:path';
-import { omxStateDir } from '../utils/paths.js';
+import { nomxStateDir } from '../utils/paths.js';
 import { sendWorkerMessage, shutdownTeam } from './runtime.js';
 import {
   TEAM_NAME_SAFE_PATTERN,
@@ -301,7 +301,7 @@ function buildIdleState(
 }
 
 function readLatestLeaderRuntimeActivityMs(cwd: string): number {
-  const path = join(omxStateDir(cwd), 'leader-runtime-activity.json');
+  const path = join(nomxStateDir(cwd), 'leader-runtime-activity.json');
   if (!existsSync(path)) return Number.NaN;
   try {
     const parsed = JSON.parse(readFileSync(path, 'utf8')) as { last_activity_at?: string };
@@ -481,7 +481,7 @@ function resolveTeamWorkingDirectoryFromMetadata(teamName: string, candidateCwd:
 function resolveTeamWorkingDirectory(teamName: string, preferredCwd: string): string {
   const normalizedTeamName = String(teamName || '').trim();
   if (!normalizedTeamName) return preferredCwd;
-  const envTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
+  const envTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
   if (typeof envTeamStateRoot === 'string' && envTeamStateRoot.trim() !== '') {
     return stateRootToWorkingDirectory(envTeamStateRoot.trim());
   }

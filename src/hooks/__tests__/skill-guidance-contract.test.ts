@@ -12,7 +12,7 @@ describe('execution-heavy skill guidance contract', () => {
 
   it('ultraqa requires adversarial dynamic e2e coverage and structured reporting', () => {
     const rootSkill = loadSurface('skills/ultraqa/SKILL.md');
-    const pluginSkill = loadSurface('plugins/oh-my-codex/skills/ultraqa/SKILL.md');
+    const pluginSkill = loadSurface('plugins/nomx/skills/ultraqa/SKILL.md');
 
     for (const [label, content] of [
       ['root', rootSkill],
@@ -86,13 +86,13 @@ describe('execution-heavy skill guidance contract', () => {
       safeWriter,
     );
 
-    const sanitizedEnv = findPattern('Sanitize OMX runtime env for isolated probes');
+    const sanitizedEnv = findPattern('Sanitize NOMX runtime env for isolated probes');
     assert.match(
-      'Sanitize OMX runtime env for isolated probes: keep OMX_ROOT and OMX_STATE_ROOT unset and run env -u OMX_ROOT -u OMX_STATE_ROOT.',
+      'Sanitize NOMX runtime env for isolated probes: keep NOMX_ROOT and NOMX_STATE_ROOT unset and run env -u NOMX_ROOT -u NOMX_STATE_ROOT.',
       sanitizedEnv,
     );
     assert.doesNotMatch(
-      'Keep OMX_ROOT and OMX_STATE_ROOT set for isolated probes; avoid env -u OMX_ROOT -u OMX_STATE_ROOT.',
+      'Keep NOMX_ROOT and NOMX_STATE_ROOT set for isolated probes; avoid env -u NOMX_ROOT -u NOMX_STATE_ROOT.',
       sanitizedEnv,
     );
 
@@ -104,9 +104,9 @@ describe('execution-heavy skill guidance contract', () => {
     assert.doesNotMatch('Harness debris noted.', harnessDebris);
   });
 
-  it('ultrawork guidance stays OMX-native and routes durability outside ultrawork', () => {
+  it('ultrawork guidance stays NOMX-native and routes durability outside ultrawork', () => {
     const rootSkill = loadSurface('skills/ultrawork/SKILL.md');
-    const pluginSkill = loadSurface('plugins/oh-my-codex/skills/ultrawork/SKILL.md');
+    const pluginSkill = loadSurface('plugins/nomx/skills/ultrawork/SKILL.md');
 
     for (const [label, content] of [
       ['root', rootSkill],

@@ -20,12 +20,12 @@ import {
   type HudPaneOwner,
   type TmuxPaneSnapshot,
 } from './tmux.js';
-import { resolveOmxCliEntryPath } from '../utils/paths.js';
+import { resolveNomxCliEntryPath } from '../utils/paths.js';
 
-export const OMX_TMUX_HUD_OWNER_ENV = 'OMX_TMUX_HUD_OWNER';
+export const NOMX_TMUX_HUD_OWNER_ENV = 'NOMX_TMUX_HUD_OWNER';
 
-function isExplicitOmxOwnedTmuxEnv(env: NodeJS.ProcessEnv): boolean {
-  return env[OMX_TMUX_HUD_OWNER_ENV] === '1';
+function isExplicitNomxOwnedTmuxEnv(env: NodeJS.ProcessEnv): boolean {
+  return env[NOMX_TMUX_HUD_OWNER_ENV] === '1';
 }
 
 /**
@@ -84,7 +84,7 @@ function reapOrphanedSessionHudPanes(
 
 function hasExplicitHudOwnerMarker(pane: TmuxPaneSnapshot): boolean {
   const command = `${pane.startCommand} ${pane.currentCommand}`;
-  return new RegExp(`(?:^|\\s)${OMX_TMUX_HUD_OWNER_ENV}=(?:'1'|1)(?=$|\\s)`).test(command);
+  return new RegExp(`(?:^|\\s)${NOMX_TMUX_HUD_OWNER_ENV}=(?:'1'|1)(?=$|\\s)`).test(command);
 }
 
 function reapStaleCurrentLeaderHudPanes(
@@ -116,7 +116,7 @@ export interface ReconcileHudForPromptSubmitResult {
   status:
     | 'skipped_not_tmux'
     | 'skipped_no_entry'
-    | 'skipped_not_omx_owned_tmux'
+    | 'skipped_not_nomx_owned_tmux'
     | 'skipped_no_session_id'
     | 'skipped_window_too_cramped'
     | 'unchanged'
@@ -144,7 +144,7 @@ export interface ReconcileHudForPromptSubmitDeps {
   resizeTmuxPane?: (paneId: string, heightLines: number) => boolean;
   readHudConfig?: typeof readHudConfig;
   readAllState?: typeof readAllState;
-  resolveOmxCliEntryPath?: typeof resolveOmxCliEntryPath;
+  resolveNomxCliEntryPath?: typeof resolveNomxCliEntryPath;
   registerHudResizeHook?: (
     hudPaneId: string,
     leaderPaneId: string | undefined,
@@ -371,18 +371,18 @@ export async function reconcileHudForPromptSubmit(
     };
   }
 
-  if (!isExplicitOmxOwnedTmuxEnv(env)) {
+  if (!isExplicitNomxOwnedTmuxEnv(env)) {
     return {
-      status: 'skipped_not_omx_owned_tmux',
+      status: 'skipped_not_nomx_owned_tmux',
       paneId: null,
       desiredHeight: null,
       duplicateCount: 0,
     };
   }
 
-  const resolveOmxCliEntryPathFn = deps.resolveOmxCliEntryPath ?? resolveOmxCliEntryPath;
-  const omxBin = resolveOmxCliEntryPathFn();
-  if (!omxBin) {
+  const resolveNomxCliEntryPathFn = deps.resolveNomxCliEntryPath ?? resolveNomxCliEntryPath;
+  const nomxBin = resolveNomxCliEntryPathFn();
+  if (!nomxBin) {
     return {
       status: 'skipped_no_entry',
       paneId: null,
@@ -396,7 +396,7 @@ export async function reconcileHudForPromptSubmit(
   const killPane = deps.killTmuxPane ?? ((paneId) => killTmuxPane(paneId));
   const resizePane = deps.resizeTmuxPane ?? ((paneId, lines) => resizeTmuxPane(paneId, lines));
 
-  const lockPath = join(cwd, '.omx', 'state', 'hud-reconcile.lock');
+  const lockPath = join(cwd, '.nomx', 'state', 'hud-reconcile.lock');
   const lockDirReady = await mkdir(dirname(lockPath), { recursive: true }).then(() => true).catch(() => false);
   const lock = lockDirReady
     ? await acquireHudReconcileLock(
@@ -418,10 +418,10 @@ export async function reconcileHudForPromptSubmit(
   try {
 
   const currentPaneId = env.TMUX_PANE?.trim();
-  const resolvedSessionId = deps.sessionId?.trim() || env.OMX_SESSION_ID?.trim() || undefined;
+  const resolvedSessionId = deps.sessionId?.trim() || env.NOMX_SESSION_ID?.trim() || undefined;
   const equivalentSessionIds = [
     resolvedSessionId,
-    env.OMX_SESSION_ID?.trim(),
+    env.NOMX_SESSION_ID?.trim(),
     ...(deps.sessionIds ?? []),
   ]
     .map((sessionId) => sessionId?.trim() ?? '')
@@ -443,7 +443,7 @@ export async function reconcileHudForPromptSubmit(
   }
 
   // A Codex self-update can restart/resume the leader in the same tmux pane with
-  // a new OMX session id while the old HUD watcher stays alive. That stale HUD
+  // a new NOMX session id while the old HUD watcher stays alive. That stale HUD
   // still names the current leader pane, but with the previous session id, so it
   // does not match same-owner dedupe and the next launch would create a second HUD
   // beside it. Reap only HUDs tied to this exact leader pane; neighboring panes'
@@ -474,10 +474,10 @@ export async function reconcileHudForPromptSubmit(
   const hudState = hudConfig ? await readAllStateFn(cwd, hudConfig).catch(() => null) : null;
   const desiredHeight = hudState ? getHudRenderMaxLines(hudState) : HUD_TMUX_HEIGHT_LINES;
   const preset = hudConfig?.preset;
-  const hudCmd = buildHudWatchCommand(omxBin, preset, resolvedSessionId, env.OMX_ROOT, currentPaneId, {
-    omxStateRoot: env.OMX_STATE_ROOT,
-    omxTeamStateRoot: env.OMX_TEAM_STATE_ROOT,
-    rootSource: env.OMX_TEAM_STATE_ROOT ? 'team-env' : env.OMX_ROOT ? 'omx-root-env' : env.OMX_STATE_ROOT ? 'omx-state-root-env' : 'cwd-default',
+  const hudCmd = buildHudWatchCommand(nomxBin, preset, resolvedSessionId, env.NOMX_ROOT, currentPaneId, {
+    nomxStateRoot: env.NOMX_STATE_ROOT,
+    nomxTeamStateRoot: env.NOMX_TEAM_STATE_ROOT,
+    rootSource: env.NOMX_TEAM_STATE_ROOT ? 'team-env' : env.NOMX_ROOT ? 'nomx-root-env' : env.NOMX_STATE_ROOT ? 'nomx-state-root-env' : 'cwd-default',
   });
   const leaderPane = currentPaneId
     ? panes.find((pane) => pane.paneId === currentPaneId && !isHudWatchPane(pane))

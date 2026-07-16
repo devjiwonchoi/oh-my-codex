@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { getPackageRoot } from '../utils/package.js';
-import { resolveOmxCliEntryPath } from '../utils/paths.js';
+import { resolveNomxCliEntryPath } from '../utils/paths.js';
 
 export interface RunHudAuthorityTickOptions {
   cwd: string;
@@ -124,7 +124,7 @@ function resolveHudWatcherScript(packageRoot: string, scriptName: 'notify-fallba
   const packageScript = join(packageRoot, 'dist', 'scripts', scriptName);
   if (existsSync(packageScript)) return packageScript;
 
-  const entryPath = resolveOmxCliEntryPath({ cwd, env });
+  const entryPath = resolveNomxCliEntryPath({ cwd, env });
   if (entryPath && entryPath.endsWith('/dist/cli/nomx.js')) {
     const entryRoot = dirname(dirname(dirname(entryPath)));
     const entryScript = join(entryRoot, 'dist', 'scripts', scriptName);
@@ -352,14 +352,14 @@ export async function runHudAuthorityTick(
   const minIntervalMs = Math.max(
     250,
     asPositiveNumber(
-      options.minIntervalMs ?? options.env?.OMX_HUD_AUTHORITY_MIN_INTERVAL_MS ?? process.env.OMX_HUD_AUTHORITY_MIN_INTERVAL_MS,
+      options.minIntervalMs ?? options.env?.NOMX_HUD_AUTHORITY_MIN_INTERVAL_MS ?? process.env.NOMX_HUD_AUTHORITY_MIN_INTERVAL_MS,
       5_000,
     ),
   );
   const jitterMaxMs = Math.max(
     0,
     asNonNegativeNumber(
-      options.jitterMs ?? options.env?.OMX_HUD_AUTHORITY_JITTER_MS ?? process.env.OMX_HUD_AUTHORITY_JITTER_MS,
+      options.jitterMs ?? options.env?.NOMX_HUD_AUTHORITY_JITTER_MS ?? process.env.NOMX_HUD_AUTHORITY_JITTER_MS,
       250,
     ),
   );
@@ -369,7 +369,7 @@ export async function runHudAuthorityTick(
   const mergedEnv = { ...process.env, ...options.env };
   const watcherScript = resolveHudWatcherScript(packageRoot, 'notify-fallback-watcher.js', cwd, mergedEnv);
   const notifyScript = resolveHudWatcherScript(packageRoot, 'notify-hook.js', cwd, mergedEnv);
-  const authorityStateDir = join(cwd, '.omx', 'state');
+  const authorityStateDir = join(cwd, '.nomx', 'state');
   const authorityOwnerPath = join(authorityStateDir, 'notify-fallback-authority-owner.json');
   const authorityStatePath = join(authorityStateDir, 'notify-fallback-authority-state.json');
   const authorityLockPath = join(authorityStateDir, 'notify-fallback-authority.lock');
@@ -478,9 +478,9 @@ export async function runHudAuthorityTick(
         env: {
           ...process.env,
           ...(options.env ?? {}),
-          OMX_HUD_AUTHORITY: '1',
-          OMX_HUD_AUTHORITY_MIN_INTERVAL_MS: String(minIntervalMs),
-          OMX_HUD_AUTHORITY_JITTER_MS: String(jitterMaxMs),
+          NOMX_HUD_AUTHORITY: '1',
+          NOMX_HUD_AUTHORITY_MIN_INTERVAL_MS: String(minIntervalMs),
+          NOMX_HUD_AUTHORITY_JITTER_MS: String(jitterMaxMs),
         },
         timeoutMs,
       },

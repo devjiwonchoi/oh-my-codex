@@ -11,13 +11,13 @@ import type { DeepInterviewQuestionEnforcementState } from './deep-interview.js'
 
 const AUTOPILOT_STATE_FILE = 'autopilot-state.json';
 const AUTOPILOT_QUESTION_WAIT_LOCK_TIMEOUT_ENV =
-  'OMX_AUTOPILOT_QUESTION_WAIT_LOCK_TIMEOUT_MS';
+  'NOMX_AUTOPILOT_QUESTION_WAIT_LOCK_TIMEOUT_MS';
 const AUTOPILOT_QUESTION_WAIT_LOCK_STALE_MS = 30_000;
 const DEFAULT_AUTOPILOT_QUESTION_WAIT_LOCK_TIMEOUT_MS = 10_000;
 const MIN_AUTOPILOT_QUESTION_WAIT_LOCK_TIMEOUT_MS = 1;
 const MAX_AUTOPILOT_QUESTION_WAIT_LOCK_TIMEOUT_MS = 120_000;
 export const AUTOPILOT_DEEP_INTERVIEW_QUESTION_OWNER_ENV =
-  'OMX_AUTOPILOT_DEEP_INTERVIEW_QUESTION_OBLIGATION_ID';
+  'NOMX_AUTOPILOT_DEEP_INTERVIEW_QUESTION_OBLIGATION_ID';
 
 export interface AutopilotDeepInterviewQuestionWaitState {
   obligationId: string;
@@ -53,7 +53,7 @@ export function resolveAutopilotQuestionWaitLockTimeoutMs(
 
 function isPendingAutopilotQuestionWait(wait: Record<string, unknown>): boolean {
   return safeString(wait.status) === 'waiting_for_user'
-    && safeString(wait.source) === 'omx-question'
+    && safeString(wait.source) === 'nomx-question'
     && safeString(wait.obligation_id).length > 0;
 }
 
@@ -204,7 +204,7 @@ export async function claimAutopilotDeepInterviewQuestionWaiting(
 
       const wait = {
         status: 'waiting_for_user',
-        source: 'omx-question',
+        source: 'nomx-question',
         obligation_id: obligation.obligation_id,
         previous_phase: currentPhase,
         previous_run_outcome: state.run_outcome ?? null,

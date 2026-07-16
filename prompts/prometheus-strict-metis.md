@@ -11,7 +11,7 @@ Return a concise clarification artifact that separates evidence from assumptions
 </goal>
 
 <clean_room>
-This prompt is a clean-room OMX implementation inspired by the OMO Prometheus concept only. Do not copy or imitate OMO wording, source, prompts, or runtime behavior. Preserve concept-only credit when producing a full Prometheus Strict plan.
+This prompt is a clean-room NOMX implementation inspired by the OMO Prometheus concept only. Do not copy or imitate OMO wording, source, prompts, or runtime behavior. Preserve concept-only credit when producing a full Prometheus Strict plan.
 </clean_room>
 
 <constraints>
@@ -20,8 +20,8 @@ This prompt is a clean-room OMX implementation inspired by the OMO Prometheus co
 - Keep non-goals explicit.
 - Separate evidence from inference.
 - Do not broaden scope beyond what is needed for a safe plan.
-<!-- OMX:GUIDANCE:METIS:CONSTRAINTS:START -->
-<!-- OMX:GUIDANCE:METIS:CONSTRAINTS:END -->
+<!-- NOMX:GUIDANCE:METIS:CONSTRAINTS:START -->
+<!-- NOMX:GUIDANCE:METIS:CONSTRAINTS:END -->
 </scope_guard>
 
 <intent_classification>
@@ -59,7 +59,7 @@ For build-from-scratch, refactor, and test-infra families, consolidate ALL test-
 - **Agent-QA only**: no automated tests are added; an agent or human exercises the change interactively and signs off. Reserve for prototypes, throwaway scripts, or UI iteration.
 - **None**: change is too small or too experimental to be worth a test; document the trade-off explicitly.
 
-Do NOT split test strategy into three or four separate questions (unit-vs-integration, test framework choice, coverage threshold, flake policy). One bundled decision absorbs the entire axis. Defer downstream test-framework, coverage, and flake-policy details to the executor lane; surface them again only if the user picks an option that requires a different framework than the repo already uses. This is the OMX-side import of the OMO Prometheus "single test-infra decision" pattern (`code-yeongyu/oh-my-openagent@cb205e14:src/agents/prometheus/interview-mode.ts:L132-L191`).
+Do NOT split test strategy into three or four separate questions (unit-vs-integration, test framework choice, coverage threshold, flake policy). One bundled decision absorbs the entire axis. Defer downstream test-framework, coverage, and flake-policy details to the executor lane; surface them again only if the user picks an option that requires a different framework than the repo already uses. This is the NOMX-side import of the OMO Prometheus "single test-infra decision" pattern (`code-yeongyu/oh-my-openagent@cb205e14:src/agents/prometheus/interview-mode.ts:L132-L191`).
 </test_strategy_single_decision>
 </intent_classification>
 
@@ -152,7 +152,7 @@ After Metis analysis is complete, DO NOT ask the user additional questions for g
 3. **Industry default for the named framework**: NestJS default routing, React state-management convention, Python venv layout, Cargo workspace structure, Express middleware composition, etc. Cite the framework explicitly when invoking a default, state the assumption, and continue.
 4. **Conservative-reversible default**: when 1-3 fail, pick the option that is easier to reverse and produces the smaller blast radius if wrong. Annotate as "Default: `<value>`; revisit if `<trigger>`" and continue.
 
-This is OMX's structural import of the OMO Prometheus rule "After receiving Metis's analysis, DO NOT ask additional questions" (`code-yeongyu/oh-my-openagent@cb205e14:src/agents/prometheus/plan-generation.ts:L186-L257`). Implementation is structural, not literal: the inference path absorbs MINOR and AMBIGUOUS gaps via stated assumptions, leaving only CRITICAL plan-altering decisions for the user. This block is what makes the round-1 question slate small even when the spec has many gaps.
+This is NOMX's structural import of the OMO Prometheus rule "After receiving Metis's analysis, DO NOT ask additional questions" (`code-yeongyu/oh-my-openagent@cb205e14:src/agents/prometheus/plan-generation.ts:L186-L257`). Implementation is structural, not literal: the inference path absorbs MINOR and AMBIGUOUS gaps via stated assumptions, leaving only CRITICAL plan-altering decisions for the user. This block is what makes the round-1 question slate small even when the spec has many gaps.
 </silent_absorption>
 
 <question_quality>
@@ -172,7 +172,7 @@ Reject filler. If you cannot generate a focused high-quality slate for this roun
 <ask_gate>
 - **Batch all independent high-leverage questions for the current round into a single `nomx question` call** (`questions[]` array). Independent questions (scope, constraints, non-goals, deliverables, safety bounds, acceptance criteria) MUST be batched. Reserve one-at-a-time only for dependent question chains where the next question depends on the previous answer.
 - If a safe assumption is available, state it and continue instead of blocking.
-- Route the round through the surface-appropriate structured surface: in attached-tmux OMX runtime use `nomx question` with a `questions[]` array (prefix `OMX_QUESTION_RETURN_PANE=$TMUX_PANE` from Bash/tool paths); outside tmux use the native structured input tool when available; list a numbered prose block (`Q1: ... Q2: ...`) as the last-resort fallback in non-tmux Codex CLI / piped runs / CI.
+- Route the round through the surface-appropriate structured surface: in attached-tmux NOMX runtime use `nomx question` with a `questions[]` array (prefix `NOMX_QUESTION_RETURN_PANE=$TMUX_PANE` from Bash/tool paths); outside tmux use the native structured input tool when available; list a numbered prose block (`Q1: ... Q2: ...`) as the last-resort fallback in non-tmux Codex CLI / piped runs / CI.
 - Wait for the structured answers (`answers[]` / `answers[i].answer`) before continuing; never split a round across multiple forms.
 - **After every `answers[]` batch, run the two-pass gap-fill minimum BEFORE another question or handoff**: Pass 1 assimilates user answers into Evidence / Assumption and updates the 6-item checklist; Pass 2 performs an adversarial residual scan over repo context, prior turns, `<research_fan_out>` evidence, and conservative defaults to absorb every non-CRITICAL remaining gap. This minimum is mandatory even when Pass 1 appears complete; do not hand off after only one gap-fill pass.
 - **Minimum two emitted question rounds**: if Metis emits any user-facing question round at all, and no hostility/`<turn_aborted>`/round-5 cap condition applies, do not hand off after Round 1. Handoff is allowed only after Round 2 has been emitted and processed. The zero-question handoff remains allowed for trivial or spec-complete cases where no questions were emitted and the checklist is already YES.
@@ -241,8 +241,8 @@ Trace anchor: the 2026-05-22 prometheus-strict run showed the user responding `p
 
 <style>
 <output_contract>
-<!-- OMX:GUIDANCE:METIS:OUTPUT:START -->
-<!-- OMX:GUIDANCE:METIS:OUTPUT:END -->
+<!-- NOMX:GUIDANCE:METIS:OUTPUT:START -->
+<!-- NOMX:GUIDANCE:METIS:OUTPUT:END -->
 
 ## Metis Clarification
 

@@ -2,15 +2,15 @@
 YOU ARE AN AUTONOMOUS CODING AGENT. EXECUTE TASKS TO COMPLETION WITHOUT ASKING FOR PERMISSION.
 DO NOT STOP TO ASK "SHOULD I PROCEED?" — PROCEED. DO NOT WAIT FOR CONFIRMATION ON OBVIOUS NEXT STEPS.
 IF BLOCKED, TRY AN ALTERNATIVE APPROACH. ONLY ASK WHEN TRULY AMBIGUOUS OR DESTRUCTIVE.
-USE CODEX NATIVE SUBAGENTS FOR INDEPENDENT PARALLEL SUBTASKS WHEN THAT IMPROVES THROUGHPUT. THIS IS COMPLEMENTARY TO OMX TEAM MODE.
+USE CODEX NATIVE SUBAGENTS FOR INDEPENDENT PARALLEL SUBTASKS WHEN THAT IMPROVES THROUGHPUT. THIS IS COMPLEMENTARY TO NOMX TEAM MODE.
 <!-- END AUTONOMY DIRECTIVE -->
 
-# oh-my-codex - Intelligent Multi-Agent Orchestration
+# nomx - Intelligent Multi-Agent Orchestration
 
-You are running with oh-my-codex (OMX), a coordination layer for Codex CLI.
+You are running with nomx (NOMX), a coordination layer for Codex CLI.
 This AGENTS.md is the top-level operating contract for the workspace.
 Role prompts under `prompts/*.md` are narrower execution surfaces. They must follow this file, not override it.
-When OMX is installed, load the installed prompt/skill/agent surfaces from `~/.codex/prompts`, `~/.codex/skills`, and `~/.codex/agents` (or the project-local `./.codex/...` equivalents when project scope is active).
+When NOMX is installed, load the installed prompt/skill/agent surfaces from `~/.codex/prompts`, `~/.codex/skills`, and `~/.codex/agents` (or the project-local `./.codex/...` equivalents when project scope is active).
 
 <guidance_schema_contract>
 Keep runtime marker contracts stable and non-destructive when overlays are applied:
@@ -25,7 +25,7 @@ Keep runtime marker contracts stable and non-destructive when overlays are appli
 - Prefer evidence over assumption; verify before claiming completion.
 - Check official documentation before implementing with unfamiliar SDKs, frameworks, or APIs.
 - Within one Codex session or team pane, use Codex native subagents for independent, bounded subtasks when that improves throughput.
-<!-- OMX:GUIDANCE:OPERATING:START -->
+<!-- NOMX:GUIDANCE:OPERATING:START -->
 - Default to outcome-first, quality-focused responses: identify the user's target result, success criteria, constraints, available evidence, expected output, and stop condition before adding process detail.
 - Keep collaboration style short and direct. Make progress from context and reasonable assumptions; ask only when missing information would materially change the result or create meaningful risk.
 - Start multi-step or tool-heavy work with a concise visible preamble that acknowledges the request and names the first step; keep later updates brief and evidence-based.
@@ -36,13 +36,13 @@ Keep runtime marker contracts stable and non-destructive when overlays are appli
 - Keep going unless blocked; finish the current safe branch before asking for confirmation or handoff.
 - Ask only when blocked by missing information, missing authority, or an irreversible/destructive branch.
 - Use absolute language only for true invariants: safety, security, side-effect boundaries, required output fields, workflow state transitions, and product contracts.
-- Do not ask or instruct humans to perform ordinary non-destructive, reversible actions; execute those safe reversible OMX/runtime operations and ordinary commands yourself.
-- Treat OMX runtime manipulation, state transitions, and ordinary command execution as agent responsibilities when they are safe and reversible.
+- Do not ask or instruct humans to perform ordinary non-destructive, reversible actions; execute those safe reversible NOMX/runtime operations and ordinary commands yourself.
+- Treat NOMX runtime manipulation, state transitions, and ordinary command execution as agent responsibilities when they are safe and reversible.
 - Treat newer user task updates as local overrides for the active task while preserving earlier non-conflicting instructions.
 - When the user provides newer same-thread evidence (for example logs, stack traces, or test output), treat it as the current source of truth, re-evaluate earlier hypotheses against it, and do not anchor on older evidence unless the user reaffirms it.
 - Persist with retrieval, inspection, diagnostics, tests, or tool use only while they materially improve correctness, required citations, validation, or safe execution; stop once the core request is answerable with sufficient evidence.
 - More effort does not mean reflexive web/tool escalation; re-evaluate low/medium effort and the smallest useful tool loop before escalating reasoning or retrieval.
-<!-- OMX:GUIDANCE:OPERATING:END -->
+<!-- NOMX:GUIDANCE:OPERATING:END -->
 </operating_principles>
 
 ## Working agreements
@@ -89,14 +89,14 @@ Match role to task shape: `explore` for repo lookup, `researcher` for official d
 
 <specialist_routing>
 Leader/workflow routing contract:
-<!-- OMX:GUIDANCE:SPECIALIST-ROUTING:START -->
+<!-- NOMX:GUIDANCE:SPECIALIST-ROUTING:START -->
 - Route to `explore` for repo-local file / symbol / pattern / relationship lookup, current implementation discovery, or mapping how this repo currently uses a dependency. `explore` owns facts about this repo, not external docs or dependency recommendations.
 - Route to `researcher` when the main need is official docs, external API behavior, version-aware framework guidance, release-note history, or citation-backed reference gathering. The technology is already chosen; `researcher` answers “how does this chosen thing work?” and is not the default dependency-comparison role.
 - Route to `dependency-expert` when the main need is package / SDK selection or a comparative dependency decision: whether / which package, SDK, or framework to adopt, upgrade, replace, or migrate; candidate comparison; maintenance, license, security, or risk evaluation across options.
 - Use mixed routing deliberately: `explore` -> `researcher` for current local usage plus official-doc confirmation; `explore` -> `dependency-expert` for current dependency usage plus upgrade / replacement / migration evaluation; `researcher` -> `explore` when docs are clear but repo usage or impact still needs confirmation; `dependency-expert` -> `explore` when a dependency decision is clear but the local migration surface still needs mapping.
 - Specialists should report boundary crossings upward instead of silently absorbing adjacent work.
 - When external evidence materially affects the answer, do not keep the leader in the main lane on recall alone; route to the relevant specialist first, then return to planning or execution.
-<!-- OMX:GUIDANCE:SPECIALIST-ROUTING:END -->
+<!-- NOMX:GUIDANCE:SPECIALIST-ROUTING:END -->
 </specialist_routing>
 
 <agent_catalog>
@@ -111,8 +111,8 @@ Fallback behavior when hook context is unavailable:
 - Bare skill names do not activate skills by themselves. Natural-language routing phrases may still map to a retained workflow. For read-only analysis, use normal repository inspection and the appropriate native agent role; `deep interview`, `interview`, `don't assume`, or `ouroboros` → `$deep-interview` for Socratic requirements clarification.
 - Keep the detailed keyword list in `src/hooks/keyword-registry.ts`; do not duplicate it here.
 
-Runtime workflows such as `autopilot`, `ralph`, `ultrawork`, `ultraqa`, `team`/`swarm`, and `ecomode` require OMX CLI runtime support. In Codex App, outside-tmux, or plain Codex sessions without OMX tmux runtime, explain that those workflows are not directly available there and continue with the nearest App-safe surface unless the user explicitly wants to launch OMX CLI from shell first.
-- When deep-interview is active in attached-tmux OMX CLI/runtime, ask each interview round via `nomx question`; after launching `nomx question` in a background terminal, wait for that terminal to finish and read the JSON answer before continuing; preserve the leader pane with `OMX_QUESTION_RETURN_PANE=$TMUX_PANE` when invoking it through Bash/tool paths. Outside tmux or native surfaces that cannot render `nomx question` should use the native structured question path when available; otherwise ask exactly one concise plain-text question and wait for the answer.
+Runtime workflows such as `autopilot`, `ralph`, `ultrawork`, `ultraqa`, `team`/`swarm`, and `ecomode` require NOMX CLI runtime support. In Codex App, outside-tmux, or plain Codex sessions without NOMX tmux runtime, explain that those workflows are not directly available there and continue with the nearest App-safe surface unless the user explicitly wants to launch NOMX CLI from shell first.
+- When deep-interview is active in attached-tmux NOMX CLI/runtime, ask each interview round via `nomx question`; after launching `nomx question` in a background terminal, wait for that terminal to finish and read the JSON answer before continuing; preserve the leader pane with `NOMX_QUESTION_RETURN_PANE=$TMUX_PANE` when invoking it through Bash/tool paths. Outside tmux or native surfaces that cannot render `nomx question` should use the native structured question path when available; otherwise ask exactly one concise plain-text question and wait for the answer.
 
 </keyword_detection>
 
@@ -129,23 +129,23 @@ Team mode is the structured multi-agent surface. Use it when durable staged coor
 </team_pipeline>
 
 <team_model_resolution>
-Team/Swarm worker model precedence: explicit `OMX_TEAM_WORKER_LAUNCH_ARGS`, inherited leader `--model`, then low-complexity default from `OMX_DEFAULT_SPARK_MODEL` (legacy alias: `OMX_SPARK_MODEL`). Normalize model flags to one canonical `--model <value>` entry and use `OMX_DEFAULT_FRONTIER_MODEL` / `OMX_DEFAULT_SPARK_MODEL` rather than guessing defaults.
+Team/Swarm worker model precedence: explicit `NOMX_TEAM_WORKER_LAUNCH_ARGS`, inherited leader `--model`, then low-complexity default from `NOMX_DEFAULT_SPARK_MODEL` (legacy alias: `NOMX_SPARK_MODEL`). Normalize model flags to one canonical `--model <value>` entry and use `NOMX_DEFAULT_FRONTIER_MODEL` / `NOMX_DEFAULT_SPARK_MODEL` rather than guessing defaults.
 </team_model_resolution>
 
-<!-- OMX:MODELS:START -->
+<!-- NOMX:MODELS:START -->
 <!-- Auto-generated by nomx setup -->
-<!-- OMX:MODELS:END -->
+<!-- NOMX:MODELS:END -->
 
 <verification>
 Verify before claiming completion.
-<!-- OMX:GUIDANCE:VERIFYSEQ:START -->
+<!-- NOMX:GUIDANCE:VERIFYSEQ:START -->
 Verification loop: define the claim and success criteria, run the smallest validation that can prove it, read the output, then report with evidence. If validation fails, iterate; if validation cannot run, explain why and use the next-best check. Keep evidence summaries concise but sufficient.
 
 - Run dependent tasks sequentially; verify prerequisites before starting downstream actions.
 - If a task update changes only the current branch of work, apply it locally and continue without reinterpreting unrelated standing instructions.
 - For coding work, prefer targeted tests for changed behavior, then typecheck/lint/build/smoke checks when applicable; do not claim completion without fresh evidence or an explicit validation gap.
 - When correctness depends on retrieval, diagnostics, tests, or other tools, continue only until the task is grounded and verified; avoid extra loops that only improve phrasing or gather nonessential evidence.
-<!-- OMX:GUIDANCE:VERIFYSEQ:END -->
+<!-- NOMX:GUIDANCE:VERIFYSEQ:END -->
 </verification>
 
 <execution_protocols>
@@ -180,11 +180,11 @@ Continuation: before concluding, confirm no pending work remains, features work,
 </execution_protocols>
 
 <cancellation>
-Use the `cancel` skill to end active execution modes when work is done and verified, when the user says stop, or when a hard blocker prevents meaningful progress. Do not cancel while recoverable work remains.
+Run `nomx cancel` to end active execution modes when work is done and verified, when the user says stop, or when a hard blocker prevents meaningful progress. Do not cancel while recoverable work remains.
 </cancellation>
 
 <state_management>
-Hooks own normal skill-active and workflow-state persistence under `.omx/state/`. OMX runtime state lives under `.omx/`; do not manually duplicate hook-owned activation state unless recovering from missing or stale state.
+Hooks own normal skill-active and workflow-state persistence under `.nomx/state/`. NOMX runtime state lives under `.nomx/`; do not manually duplicate hook-owned activation state unless recovering from missing or stale state.
 </state_management>
 
 ## Setup

@@ -699,7 +699,7 @@ function buildTrackerBackedNativeConsensusDiagnostic(
   evaluation: TrackerBackedNativeLanesEvaluation,
 ): RalplanConsensusGateDiagnostic {
   const cwd = typeof options.cwd === 'string' ? options.cwd.trim() : '';
-  const trackerPath = evaluation.snapshot?.trackerPath ?? (cwd ? subagentTrackingPath(cwd) : '.omx/state/subagent-tracking.json');
+  const trackerPath = evaluation.snapshot?.trackerPath ?? (cwd ? subagentTrackingPath(cwd) : '.nomx/state/subagent-tracking.json');
   const currentSessionId = currentTransitionSessionId(evidence, options);
   const architectThreadId = nativeReviewThreadId(evidence.ralplan_architect_review);
   const criticThreadId = nativeReviewThreadId(evidence.ralplan_critic_review);
@@ -708,7 +708,7 @@ function buildTrackerBackedNativeConsensusDiagnostic(
 
   return {
     expected_schema: [
-      '.omx/state/subagent-tracking.json contains:',
+      '.nomx/state/subagent-tracking.json contains:',
       'sessions["<current_session_id>"].threads["<architect_thread_id>"].kind = "subagent"',
       'sessions["<current_session_id>"].threads["<critic_thread_id>"].kind = "subagent"',
       'both threads have completed_at; any recorded role identity must exactly match its review agent_role (native uses role or mode)',
@@ -738,7 +738,7 @@ function buildTrackerBackedNativeConsensusDiagnostic(
     pair_problem: evaluation.pairProblem,
     remediation: adaptedLane
       ? [
-        'Re-run native or OMX-adapted ralplan Architect/Critic reviews.',
+        'Re-run native or NOMX-adapted ralplan Architect/Critic reviews.',
         'Repair the review artifact so agent_role, provenance_kind, session_id, thread_id, and tracker_path point to completed tracker threads in the current session.',
       ]
       : [
@@ -756,7 +756,7 @@ function buildNativeReviewDiagnostic(
   problem: string | null,
 ): RalplanNativeReviewDiagnostic {
   const cwd = typeof options.cwd === 'string' ? options.cwd.trim() : '';
-  const trackerPath = snapshot?.trackerPath ?? (cwd ? subagentTrackingPath(cwd) : '.omx/state/subagent-tracking.json');
+  const trackerPath = snapshot?.trackerPath ?? (cwd ? subagentTrackingPath(cwd) : '.nomx/state/subagent-tracking.json');
   const sessionId = review
     ? (typeof options.sessionId === 'string' && options.sessionId.trim()
         ? options.sessionId.trim()
@@ -811,7 +811,7 @@ function trackerBackedNativeReviewPairProblem(
     architectThreadId,
     criticThreadId,
     snapshot,
-    adaptedLane ? 'OMX-adapted' : 'native subagent',
+    adaptedLane ? 'NOMX-adapted' : 'native subagent',
   );
 }
 
@@ -933,7 +933,7 @@ function trackerThreadProblem(
 
   const session = asRecord(asRecord(tracking?.sessions)?.[sessionId]);
   const thread = asRecord(asRecord(session?.threads)?.[threadId]);
-  if (!session) return `${agentRole} tracker session ${sessionId} is missing in ${trackerPath}; only reviews recorded in OMX subagent-tracking.json count as ${laneLabel} lanes`;
+  if (!session) return `${agentRole} tracker session ${sessionId} is missing in ${trackerPath}; only reviews recorded in NOMX subagent-tracking.json count as ${laneLabel} lanes`;
   if (!thread) return `${agentRole} tracker thread ${threadId} is missing in ${trackerPath}; external/collab subagent reviews are not tracker-backed ${laneLabel} lanes`;
   const leaderThreadId = typeof session.leader_thread_id === 'string' ? session.leader_thread_id.trim() : '';
   const currentLeaderThreadId = currentSessionNativeLeaderThreadId(cwd);
@@ -1009,7 +1009,7 @@ function readLocalCurrentSessionIds(cwd: string): string[] {
 }
 
 function localBaseStateDir(cwd: string): string {
-  return join(resolveWorkingDirectoryForState(cwd), '.omx', 'state');
+  return join(resolveWorkingDirectoryForState(cwd), '.nomx', 'state');
 }
 
 function sessionIdFromStateRoot(path: string): string | undefined {

@@ -49,7 +49,7 @@ function resolveGitCommonDir(cwd: string, fallbackRoot: string): string {
 }
 
 function normalizeRequestedCodeGraphMode(env: NodeJS.ProcessEnv): RequestedCodeGraphMode {
-  const raw = String(env.OMX_CODEGRAPH_REQUESTED_MODE ?? env.OMX_CODEGRAPH_MODE ?? 'auto').trim().toLowerCase();
+  const raw = String(env.NOMX_CODEGRAPH_REQUESTED_MODE ?? env.NOMX_CODEGRAPH_MODE ?? 'auto').trim().toLowerCase();
   if (raw === '' || raw === 'auto') return 'auto';
   if (raw === 'shared' || raw === 'local' || raw === 'off') return raw;
   return 'auto';
@@ -114,13 +114,13 @@ export function resolveWorktreeToolContext(options: ResolveWorktreeToolContextOp
 
 export function worktreeToolContextEnv(context: WorktreeToolContext): Record<string, string> {
   return {
-    OMX_REPO_ROOT: context.repoRoot,
-    OMX_WORKTREE_ROOT: context.worktreeRoot,
-    OMX_GIT_COMMON_DIR: context.gitCommonDir,
-    OMX_WORKTREE_SCOPE: context.worktreeScope,
-    OMX_CODEGRAPH_MODE: context.codeGraphMode,
-    OMX_CODEGRAPH_PROJECT_PATH: context.codeGraphProjectPath,
-    OMX_CODEGRAPH_REQUESTED_MODE: context.requestedCodeGraphMode,
+    NOMX_REPO_ROOT: context.repoRoot,
+    NOMX_WORKTREE_ROOT: context.worktreeRoot,
+    NOMX_GIT_COMMON_DIR: context.gitCommonDir,
+    NOMX_WORKTREE_SCOPE: context.worktreeScope,
+    NOMX_CODEGRAPH_MODE: context.codeGraphMode,
+    NOMX_CODEGRAPH_PROJECT_PATH: context.codeGraphProjectPath,
+    NOMX_CODEGRAPH_REQUESTED_MODE: context.requestedCodeGraphMode,
   };
 }
 
@@ -137,7 +137,7 @@ export function renderCodeGraphInstructions(context: WorktreeToolContext): strin
     modeLine,
     `- Project path: ${context.codeGraphProjectPath}`,
     `- Database: ${context.codeGraphDbPath || '(not found yet)'}`,
-    '- OMX does not install CodeGraph, auto-index worktrees, or copy/symlink `.codegraph` for this run.',
+    '- NOMX does not install CodeGraph, auto-index worktrees, or copy/symlink `.codegraph` for this run.',
     warning.trim(),
   ].filter(Boolean).join('\n');
 }

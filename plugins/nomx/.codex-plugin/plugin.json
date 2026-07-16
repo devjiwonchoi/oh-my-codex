@@ -1,0 +1,29 @@
+{
+  "name": "nomx",
+  "version": "0.20.2",
+  "description": "Multi-agent orchestration layer for OpenAI Codex CLI",
+  "author": {
+    "name": "Yeachan Heo",
+    "url": "https://github.com/Yeachan-Heo"
+  },
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "openai",
+    "cli",
+    "agents",
+    "orchestration",
+    "multi-agent"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "apps": "./.app.json",
+  "interface": {
+    "displayName": "NOMX",
+    "shortDescription": "Workflow layer and skill bundle for OpenAI Codex CLI.",
+    "longDescription": "Plugin = NOMX skill/workflow discovery plus plugin-scoped companion metadata for hooks, MCP servers, and apps. Setup = runtime wiring; legacy delivery installs native agents/prompts, while plugin setup enables official plugin-scoped hooks, archives stale compatibility files, and keeps config, optional AGENTS.md, HUD, and runtime state current.",
+    "developerName": "Yeachan Heo",
+    "category": "Developer Tools"
+  },
+  "hooks": "./hooks/hooks.json"
+}

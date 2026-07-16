@@ -27,7 +27,7 @@ import {
   isWorkerPaneOpen,
   getWorkerPanePid,
   killWorkerByPaneIdAsync,
-  paneHasOmxInstanceTag,
+  paneHasNomxInstanceTag,
   readPaneTeamOwnerTagResult,
   restoreStandaloneHudPane,
   teardownWorkerPanes,
@@ -176,7 +176,7 @@ import {
   type WorktreeMode,
 } from './worktree.js';
 import {
-  cleanupOmxMcpProcesses,
+  cleanupNomxMcpProcesses,
   findLaunchSafeCleanupCandidates,
   type CleanupResult,
 } from '../cli/cleanup.js';
@@ -228,7 +228,7 @@ async function syncRootTeamModeStateOnTerminalPhase(
   if (phase !== 'complete' && phase !== 'failed' && phase !== 'cancelled') return;
 
   try {
-    const localStatePath = join(resolve(cwd), '.omx', 'state', 'team-state.json');
+    const localStatePath = join(resolve(cwd), '.nomx', 'state', 'team-state.json');
     const localTeamState = existsSync(localStatePath)
       ? JSON.parse(await readFile(localStatePath, 'utf-8')) as Record<string, unknown>
       : null;
@@ -332,7 +332,7 @@ async function assertTeamStartupIsNonDestructive(
   const currentPhase = existingPhase?.current_phase;
   if (currentPhase && isTerminalPhase(currentPhase)) return;
 
-  const tmuxSession = existingConfig?.tmux_session ?? existingManifest?.tmux_session ?? `omx-team-${teamName}`;
+  const tmuxSession = existingConfig?.tmux_session ?? existingManifest?.tmux_session ?? `nomx-team-${teamName}`;
   const renderedPhase = currentPhase ?? 'team-exec';
   throw new Error(
     `team_name_conflict: active team state already exists for "${teamName}" (phase: ${renderedPhase}, tmux: ${tmuxSession}). `
@@ -429,7 +429,7 @@ function filterSharedSessionShutdownWorkerPaneIdsByOwner(
     const actualOwnerId = readPaneTeamOwnerTagResult(paneId);
     if (actualOwnerId.status === 'value') return actualOwnerId.value === expectedOwnerId;
     if (actualOwnerId.status === 'missing') {
-      // Legacy, already-running Team panes may not have @omx_team_pane_owner_id.
+      // Legacy, already-running Team panes may not have @nomx_team_pane_owner_id.
       // Keep that compatibility path explicitly bounded to panes that are both
       // live worker-command candidates and persisted in this team's state. This
       // preserves old Team cleanup without letting arbitrary worker-looking
@@ -472,7 +472,7 @@ function isTrustedSharedSessionLeaderPaneForHudRestore(params: {
     if (owner.status === 'value') return owner.value === expectedOwnerId;
     if (owner.status === 'error') return false;
   }
-  return paneHasOmxInstanceTag(paneId, legacyInstanceId);
+  return paneHasNomxInstanceTag(paneId, legacyInstanceId);
 }
 
 export function shouldPrekillInteractiveShutdownProcessTrees(sessionName: string): boolean {
@@ -494,7 +494,7 @@ export async function cleanupTeamWorkerLaunchOrphanedMcpProcesses(
   } = {},
 ): Promise<void> {
   const cleanup = dependencies.cleanup ?? (() =>
-    cleanupOmxMcpProcesses([], {
+    cleanupNomxMcpProcesses([], {
       selectCandidates: findLaunchSafeCleanupCandidates,
       writeLine: () => {},
     }));
@@ -504,7 +504,7 @@ export async function cleanupTeamWorkerLaunchOrphanedMcpProcesses(
     const result = await cleanup();
     if (result.failedPids.length > 0) {
       writeWarning(
-        `[team/runtime] Failed to reap ${result.failedPids.length} orphaned OMX MCP process(es); continuing worker launch.`,
+        `[team/runtime] Failed to reap ${result.failedPids.length} orphaned NOMX MCP process(es); continuing worker launch.`,
       );
     }
   } catch (err) {
@@ -781,7 +781,7 @@ function autoCommitDirtyWorktree(
   const addResult = runGitCommand(repoRoot, ['add', '-A'], worktreePath);
   if (!addResult.ok) return { committed: false, commitHash: null };
 
-  const msg = `omx(team): auto-checkpoint ${worker.name} [${taskId}]`;
+  const msg = `nomx(team): auto-checkpoint ${worker.name} [${taskId}]`;
   const commitResult = runGitCommand(repoRoot, ['commit', '--no-verify', '-m', msg], worktreePath);
   if (!commitResult.ok) return { committed: false, commitHash: null };
 
@@ -889,7 +889,7 @@ async function integrateWorkerCommitsIntoLeader(params: {
       // Worker is cleanly ahead → merge --no-ff -X theirs
       const workerBranch = runGitCommand(repoRoot, ['rev-parse', '--abbrev-ref', 'HEAD'], worktreePath);
       const branchRef = resolveWorkerMergeRef(workerBranch, workerHead);
-      const merge = runGitCommand(repoRoot, ['merge', '--no-ff', '-X', 'theirs', '-m', `omx(team): merge ${worker.name}`, branchRef], cwd);
+      const merge = runGitCommand(repoRoot, ['merge', '--no-ff', '-X', 'theirs', '-m', `nomx(team): merge ${worker.name}`, branchRef], cwd);
 
       if (merge.ok) {
         const newLeaderHead = resolveLeaderHead(repoRoot, cwd) ?? leaderHead;
@@ -1232,7 +1232,7 @@ async function prepareShutdownMergeReport(
       return {
         workerName: worker.name,
         worktreePath,
-        reportPath: join(worktreePath, '.omx', 'diff.md'),
+        reportPath: join(worktreePath, '.nomx', 'diff.md'),
         sourceRef: null,
         syntheticCommit: null,
         diffText: getWorktreeDiffText(worktreePath),
@@ -1245,7 +1245,7 @@ async function prepareShutdownMergeReport(
     }
     const commitResult = runGitCommand(
       repoRoot,
-      ['commit', '--no-verify', '-m', `omx(team): checkpoint ${worker.name} shutdown changes`],
+      ['commit', '--no-verify', '-m', `nomx(team): checkpoint ${worker.name} shutdown changes`],
       worktreePath,
     );
     if (commitResult.ok) {
@@ -1255,7 +1255,7 @@ async function prepareShutdownMergeReport(
       return {
         workerName: worker.name,
         worktreePath,
-        reportPath: join(worktreePath, '.omx', 'diff.md'),
+        reportPath: join(worktreePath, '.nomx', 'diff.md'),
         sourceRef: null,
         syntheticCommit: null,
         diffText: getWorktreeDiffText(worktreePath),
@@ -1272,7 +1272,7 @@ async function prepareShutdownMergeReport(
   const sourceRef = sourceRefResult.ok && sourceRefResult.stdout ? sourceRefResult.stdout : null;
   const diffText = getWorktreeDiffText(worktreePath);
   const summaryText = summarizeWorktreeDiff(worktreePath);
-  const reportPath = join(worktreePath, '.omx', 'diff.md');
+  const reportPath = join(worktreePath, '.nomx', 'diff.md');
   const leaderHeadBefore = resolveLeaderHead(repoRoot, leaderCwd);
 
   let mergeOutcome: WorkerShutdownMergeReport['mergeOutcome'] = 'skipped';
@@ -1312,7 +1312,7 @@ async function prepareShutdownMergeReport(
     leaderHeadAfter,
   };
 
-  await mkdir(join(worktreePath, '.omx'), { recursive: true });
+  await mkdir(join(worktreePath, '.nomx'), { recursive: true });
   await writeFile(reportPath, renderWorktreeMergeReport(report), 'utf-8');
   process.stdout.write(`${renderWorktreeMergeReport(report)}\n`);
   return report;
@@ -1327,7 +1327,7 @@ async function prepareWorkerWorktreeShutdownReports(config: TeamConfig, leaderCw
       if (report) reports.push(report);
     } catch (error) {
       const worktreePath = resolve(worker.worktree_path);
-      const reportPath = join(worktreePath, '.omx', 'diff.md');
+      const reportPath = join(worktreePath, '.nomx', 'diff.md');
       const fallback = [
         `# Worker ${worker.name} shutdown report`,
         '',
@@ -1337,7 +1337,7 @@ async function prepareWorkerWorktreeShutdownReports(config: TeamConfig, leaderCw
         `- merge_detail: ${String(error)}`,
         '',
       ].join('\n');
-      await mkdir(join(worktreePath, '.omx'), { recursive: true }).catch(() => {});
+      await mkdir(join(worktreePath, '.nomx'), { recursive: true }).catch(() => {});
       await writeFile(reportPath, fallback, 'utf-8').catch(() => {});
       process.stdout.write(`${fallback}\n`);
     }
@@ -1459,8 +1459,8 @@ function isExplicitUltragoalLinkedTeam(task: string, approvedExecution: unknown,
     JSON.stringify(approvedExecution ?? {}),
     JSON.stringify(selectedApprovedExecutionHint ?? {}),
   ].join('\n');
-  if (/(?:ultragoal|\.omx\/ultragoal)/i.test(approvedHaystack)) return true;
-  return /(?:\.omx\/ultragoal|ultragoal\s+(?:goal|plan|checkpoint)|goal\s+G\d{3}|\bG\d{3}[-\w]*\b)/i.test(task);
+  if (/(?:ultragoal|\.nomx\/ultragoal)/i.test(approvedHaystack)) return true;
+  return /(?:\.nomx\/ultragoal|ultragoal\s+(?:goal|plan|checkpoint)|goal\s+G\d{3}|\bG\d{3}[-\w]*\b)/i.test(task);
 }
 
 async function writeTeamPreflightContextPacket(params: {
@@ -1529,10 +1529,10 @@ async function writeTeamPreflightContextPacket(params: {
   return packetPath;
 }
 
-const MODEL_INSTRUCTIONS_FILE_ENV = 'OMX_MODEL_INSTRUCTIONS_FILE';
-const TEAM_STATE_ROOT_ENV = 'OMX_TEAM_STATE_ROOT';
-const TEAM_LEADER_CWD_ENV = 'OMX_TEAM_LEADER_CWD';
-const WORKTREE_TRIGGER_STATE_ROOT = '$OMX_TEAM_STATE_ROOT';
+const MODEL_INSTRUCTIONS_FILE_ENV = 'NOMX_MODEL_INSTRUCTIONS_FILE';
+const TEAM_STATE_ROOT_ENV = 'NOMX_TEAM_STATE_ROOT';
+const TEAM_LEADER_CWD_ENV = 'NOMX_TEAM_LEADER_CWD';
+const WORKTREE_TRIGGER_STATE_ROOT = '$NOMX_TEAM_STATE_ROOT';
 const STARTUP_EVIDENCE_TIMEOUT_MS = 15_000;
 const STARTUP_EVIDENCE_POLL_MS = 100;
 const STARTUP_EVIDENCE_LAUNCH_TIMEOUT_MS = 45_000;
@@ -1635,7 +1635,7 @@ const STARTUP_DISPATCH_RETRIES = 3;
 const STARTUP_DISPATCH_RETRY_DELAY_S = 3;
 const PROMPT_MODE_CODEX_UNSUPPORTED_REASON = 'prompt_mode_codex_requires_tty';
 // Test-only escape hatch for fake prompt workers that intentionally do not require a real TTY.
-const PROMPT_MODE_CODEX_TEST_ALLOW_ENV = 'OMX_TEST_ALLOW_NONTTY_CODEX_PROMPT';
+const PROMPT_MODE_CODEX_TEST_ALLOW_ENV = 'NOMX_TEST_ALLOW_NONTTY_CODEX_PROMPT';
 
 function resolveInstructionStateRoot(worktreePath?: string | null): string | undefined {
   return worktreePath ? WORKTREE_TRIGGER_STATE_ROOT : undefined;
@@ -1650,13 +1650,13 @@ function assertPromptModeWorkerCliSupported(
     && env[PROMPT_MODE_CODEX_TEST_ALLOW_ENV] !== '1'
   ) {
     throw new Error(
-      `${PROMPT_MODE_CODEX_UNSUPPORTED_REASON}: Codex prompt workers require a terminal; use interactive team mode or set OMX_TEAM_WORKER_CLI=claude/gemini for prompt-mode teammates.`,
+      `${PROMPT_MODE_CODEX_UNSUPPORTED_REASON}: Codex prompt workers require a terminal; use interactive team mode or set NOMX_TEAM_WORKER_CLI=claude/gemini for prompt-mode teammates.`,
     );
   }
 }
 
 function resolveWorkerReadyTimeoutMs(env: NodeJS.ProcessEnv): number {
-  const raw = env.OMX_TEAM_READY_TIMEOUT_MS;
+  const raw = env.NOMX_TEAM_READY_TIMEOUT_MS;
   const parsed = Number.parseInt(String(raw ?? ''), 10);
   if (Number.isFinite(parsed) && parsed >= 0) return Math.floor(parsed);
   return 45_000;
@@ -1666,7 +1666,7 @@ function resolveWorkerStartupEvidenceTimeoutMs(
   env: NodeJS.ProcessEnv,
   workerReadyTimeoutMs: number,
 ): number {
-  const raw = Number.parseInt(String(env.OMX_TEAM_STARTUP_EVIDENCE_TIMEOUT_MS ?? ''), 10);
+  const raw = Number.parseInt(String(env.NOMX_TEAM_STARTUP_EVIDENCE_TIMEOUT_MS ?? ''), 10);
   if (Number.isFinite(raw) && raw >= 0) return Math.floor(raw);
   return Math.max(
     STARTUP_EVIDENCE_TIMEOUT_MS,
@@ -1675,13 +1675,13 @@ function resolveWorkerStartupEvidenceTimeoutMs(
 }
 
 function resolveStartupDispatchRetries(env: NodeJS.ProcessEnv): number {
-  const parsed = Number.parseInt(String(env.OMX_TEAM_STARTUP_DISPATCH_RETRIES ?? ''), 10);
+  const parsed = Number.parseInt(String(env.NOMX_TEAM_STARTUP_DISPATCH_RETRIES ?? ''), 10);
   if (!Number.isFinite(parsed)) return STARTUP_DISPATCH_RETRIES;
   return Math.max(1, Math.min(STARTUP_DISPATCH_RETRIES, Math.floor(parsed)));
 }
 
 function resolveStartupDispatchRetryDelayS(env: NodeJS.ProcessEnv): number {
-  const parsed = Number.parseInt(String(env.OMX_TEAM_STARTUP_DISPATCH_RETRY_DELAY_MS ?? ''), 10);
+  const parsed = Number.parseInt(String(env.NOMX_TEAM_STARTUP_DISPATCH_RETRY_DELAY_MS ?? ''), 10);
   if (!Number.isFinite(parsed)) return STARTUP_DISPATCH_RETRY_DELAY_S;
   return Math.max(0, Math.min(STARTUP_DISPATCH_RETRY_DELAY_S, Math.floor(parsed) / 1000));
 }
@@ -1716,7 +1716,7 @@ function resolveGovernancePolicy(
 }
 
 async function assertNestedTeamAllowed(cwd: string): Promise<void> {
-  const workerContext = parseTeamWorkerContext(process.env.OMX_TEAM_INTERNAL_WORKER || process.env.OMX_TEAM_WORKER);
+  const workerContext = parseTeamWorkerContext(process.env.NOMX_TEAM_INTERNAL_WORKER || process.env.NOMX_TEAM_WORKER);
   if (!workerContext) return;
 
   for (const candidateCwd of resolveManifestLookupCwds(cwd)) {
@@ -1733,7 +1733,7 @@ type WorkerStartupEvidence = 'task_claim' | 'worker_progress' | 'leader_ack' | '
 
 function resolveStartupEvidenceStateRoots(cwd: string): string[] {
   return [...new Set([
-    resolve(cwd, '.omx', 'state'),
+    resolve(cwd, '.nomx', 'state'),
     resolveCanonicalTeamStateRoot(cwd),
   ])];
 }
@@ -1869,7 +1869,7 @@ export async function waitForClaudeStartupEvidence(params: {
 }
 
 function shouldSkipWorkerReadyWait(env: NodeJS.ProcessEnv): boolean {
-  return env.OMX_TEAM_SKIP_READY_WAIT === '1';
+  return env.NOMX_TEAM_SKIP_READY_WAIT === '1';
 }
 
 function isStartupEvidenceMissingReason(reason: string): boolean {
@@ -2348,7 +2348,7 @@ export function resolveWorkerLaunchArgsFromEnv(
     : [];
   const fallbackModel = resolveAgentDefaultModel(agentType, env.CODEX_HOME);
   const diagnostics = resolveTeamWorkerLaunchDiagnostics({
-    existingRaw: env.OMX_TEAM_WORKER_LAUNCH_ARGS,
+    existingRaw: env.NOMX_TEAM_WORKER_LAUNCH_ARGS,
     inheritedArgs,
     fallbackModel,
     preferredReasoning,
@@ -2369,11 +2369,11 @@ export function resolveWorkerLaunchArgsFromEnv(
   const requestedDefaultReasoning = diagnostics.requestedDefaultReasoning ?? 'none';
   const effectiveWorkerCli = workerCliOverride ?? resolveEffectiveWorkerCliForStartupLog(resolved, env);
   if (effectiveWorkerCli === 'claude') {
-    console.log('[omx:team] worker startup resolution: model=claude source=local-settings');
+    console.log('[nomx:team] worker startup resolution: model=claude source=local-settings');
   } else if (effectiveWorkerCli === 'gemini') {
-    console.log('[omx:team] worker startup resolution: model=gemini source=local-settings');
+    console.log('[nomx:team] worker startup resolution: model=gemini source=local-settings');
   } else {
-    console.log(`[omx:team] worker startup resolution: requested_role=${requestedRole} requested_default_model=${requestedDefaultModel} requested_default_reasoning=${requestedDefaultReasoning} actual_model=${resolvedModel} thinking_level=${thinkingLevel} model_source=${modelSource} reasoning_source=${source} inherited_parent_model=${inheritedParentModel}`);
+    console.log(`[nomx:team] worker startup resolution: requested_role=${requestedRole} requested_default_model=${requestedDefaultModel} requested_default_reasoning=${requestedDefaultReasoning} actual_model=${resolvedModel} thinking_level=${thinkingLevel} model_source=${modelSource} reasoning_source=${source} inherited_parent_model=${inheritedParentModel}`);
   }
 
   return resolved;
@@ -2383,7 +2383,7 @@ function resolveEffectiveWorkerCliForStartupLog(
   resolvedLaunchArgs: string[],
   env: NodeJS.ProcessEnv,
 ): 'codex' | 'claude' | 'gemini' {
-  const rawCliMap = String(env.OMX_TEAM_WORKER_CLI_MAP ?? '').trim();
+  const rawCliMap = String(env.NOMX_TEAM_WORKER_CLI_MAP ?? '').trim();
   if (rawCliMap !== '') {
     const entries = rawCliMap
       .split(',')
@@ -2392,7 +2392,7 @@ function resolveEffectiveWorkerCliForStartupLog(
     if (entries.length > 0) {
       const autoCli = resolveTeamWorkerCli(resolvedLaunchArgs, {
         ...env,
-        OMX_TEAM_WORKER_CLI: 'auto',
+        NOMX_TEAM_WORKER_CLI: 'auto',
       });
       const resolvedMap = entries.map((entry): 'codex' | 'claude' | 'gemini' | null => {
         if (entry === 'auto') return autoCli;
@@ -2670,7 +2670,7 @@ export async function startTeam(
   }
 
   // 2. Team name is already sanitized above.
-  let sessionName = `omx-team-${sanitized}`;
+  let sessionName = `nomx-team-${sanitized}`;
   const overlay = generateWorkerOverlay(sanitized);
   let workerInstructionsPath: string | null = null;
   let sessionCreated = false;
@@ -2697,9 +2697,9 @@ export async function startTeam(
       DEFAULT_MAX_WORKERS,
       {
         ...launchEnv,
-        OMX_SESSION_ID: leaderSessionId,
-        OMX_TEAM_DISPLAY_MODE: displayMode,
-        OMX_TEAM_WORKER_LAUNCH_MODE: workerLaunchMode,
+        NOMX_SESSION_ID: leaderSessionId,
+        NOMX_TEAM_DISPLAY_MODE: displayMode,
+        NOMX_TEAM_WORKER_LAUNCH_MODE: workerLaunchMode,
       },
       {
         leader_cwd: leaderCwd,
@@ -2904,18 +2904,18 @@ export async function startTeam(
         [TEAM_STATE_ROOT_ENV]: teamStateRoot,
         [TEAM_LEADER_CWD_ENV]: leaderCwd,
         [MODEL_INSTRUCTIONS_FILE_ENV]: plan.instructionsFilePath,
-        OMX_TEAM_DISPLAY_NAME: displayName,
+        NOMX_TEAM_DISPLAY_NAME: displayName,
         ...(codexHomeOverride ? { CODEX_HOME: codexHomeOverride } : {}),
         ...worktreeToolContextEnv(plan.toolContext),
       };
       if (plan.workerWorkspace.worktreePath) {
-        env.OMX_TEAM_WORKTREE_PATH = plan.workerWorkspace.worktreePath;
+        env.NOMX_TEAM_WORKTREE_PATH = plan.workerWorkspace.worktreePath;
       }
       if (plan.workerWorkspace.worktreeBranch) {
-        env.OMX_TEAM_WORKTREE_BRANCH = plan.workerWorkspace.worktreeBranch;
+        env.NOMX_TEAM_WORKTREE_BRANCH = plan.workerWorkspace.worktreeBranch;
       }
       if (typeof plan.workerWorkspace.worktreeDetached === 'boolean') {
-        env.OMX_TEAM_WORKTREE_DETACHED = plan.workerWorkspace.worktreeDetached ? '1' : '0';
+        env.NOMX_TEAM_WORKTREE_DETACHED = plan.workerWorkspace.worktreeDetached ? '1' : '0';
       }
       return {
         cwd: plan.workerWorkspace.cwd,
@@ -3082,7 +3082,7 @@ export async function startTeam(
 
       const taskRoles = workerLaunchPolicyPlan[workerIndex - 1]?.taskRoles ?? [];
       if (taskRoles.length > 1) {
-        console.log(`[omx:team] ${workerName}: mixed task roles [${taskRoles.join(', ')}], falling back to ${agentType}`);
+        console.log(`[nomx:team] ${workerName}: mixed task roles [${taskRoles.join(', ')}], falling back to ${agentType}`);
       }
 
 
@@ -3782,7 +3782,7 @@ export async function shutdownTeam(teamName: string, cwd: string, options: Shutd
   if (!config) {
     // No config -- just try to kill tmux session and clean up
     try {
-      destroyTeamSession(`omx-team-${sanitized}`);
+      destroyTeamSession(`nomx-team-${sanitized}`);
     } catch (err) {
       process.stderr.write(`[team/runtime] operation failed: ${err}\n`);
     }
@@ -4259,7 +4259,7 @@ async function findActiveTeams(cwd: string, leaderSessionId: string): Promise<st
     const workerLaunchMode = cfg?.worker_launch_mode
       ?? manifest?.policy?.worker_launch_mode
       ?? 'interactive';
-    const tmuxSession = (manifest?.tmux_session || cfg?.tmux_session || `omx-team-${teamName}`).split(':')[0];
+    const tmuxSession = (manifest?.tmux_session || cfg?.tmux_session || `nomx-team-${teamName}`).split(':')[0];
     if (leaderSessionId) {
       const ownerSessionId = manifest?.leader?.session_id?.trim() ?? '';
       if (ownerSessionId && ownerSessionId !== leaderSessionId) continue;
@@ -4285,7 +4285,7 @@ async function detectAndCleanStaleTeam(
   if (!existsSync(stateDir)) return;
 
   const sessions = new Set(listTeamSessions());
-  if (sessions.has(`omx-team-${teamName}`)) return;
+  if (sessions.has(`nomx-team-${teamName}`)) return;
 
   const repoRootResult = spawnSync('git', ['rev-parse', '--show-toplevel'], {
     cwd: leaderCwd, encoding: 'utf-8', windowsHide: true,
@@ -4295,7 +4295,7 @@ async function detectAndCleanStaleTeam(
 
   const worktreePaths: string[] = [];
   for (let i = 1; i <= workerCount; i++) {
-    const wtPath = join(repoRoot, '.omx', 'team', teamName, 'worktrees', `worker-${i}`);
+    const wtPath = join(repoRoot, '.nomx', 'team', teamName, 'worktrees', `worker-${i}`);
     if (existsSync(wtPath)) worktreePaths.push(wtPath);
   }
 
@@ -4332,7 +4332,7 @@ async function detectAndCleanStaleTeam(
 }
 
 async function resolveLeaderSessionId(cwd: string, env: NodeJS.ProcessEnv = process.env): Promise<string> {
-  const fromEnv = env.OMX_SESSION_ID || env.CODEX_SESSION_ID || env.SESSION_ID;
+  const fromEnv = env.NOMX_SESSION_ID || env.CODEX_SESSION_ID || env.SESSION_ID;
   if (fromEnv && fromEnv.trim() !== '') return fromEnv.trim();
 
   const p = teamRuntimeSessionPath(cwd);

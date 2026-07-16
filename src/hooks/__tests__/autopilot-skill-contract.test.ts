@@ -9,7 +9,6 @@ const autopilotSkill = readFileSync(join(__dirname, '../../../skills/autopilot/S
 const ralplanSkill = readFileSync(join(__dirname, '../../../skills/ralplan/SKILL.md'), 'utf-8');
 const codeReviewSkill = readFileSync(join(__dirname, '../../../skills/code-review/SKILL.md'), 'utf-8');
 const ultragoalSkill = readFileSync(join(__dirname, '../../../skills/ultragoal/SKILL.md'), 'utf-8');
-const pipelineSkill = readFileSync(join(__dirname, '../../../skills/pipeline/SKILL.md'), 'utf-8');
 
 describe('autopilot skill default Ultragoal contract', () => {
   it('makes deep-interview -> ralplan -> ultragoal -> code-review -> ultraqa the recommended/default contract', () => {
@@ -104,11 +103,6 @@ describe('autopilot skill default Ultragoal contract', () => {
     assert.match(ralplanSkill, /When the native surface exposes `agent_type` role routing/i);
     assert.match(ralplanSkill, /role[_ -]?routing[_ -]?unavailable/i);
     assert.match(ralplanSkill, /nomx ralplan role-intent write/i);
-  });
-
-  it('documents ralplan consensus completion in the runtime pipeline contract', () => {
-    assert.match(pipelineSkill, /Plan\/test-spec files alone are not consensus evidence/i);
-    assert.match(pipelineSkill, /Architect approval followed by Critic approval/i);
   });
 
   it('does not preserve the old broad phase lifecycle as primary behavior', () => {

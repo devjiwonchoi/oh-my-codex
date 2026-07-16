@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const [mode, notificationModulePath] = process.argv.slice(1);
-const root = process.env.OMX_NOTIFICATION_RECEIPT_ROOT;
+const root = process.env.NOMX_NOTIFICATION_RECEIPT_ROOT;
 const codexHome = process.env.CODEX_HOME;
 if ((mode !== 'suppressed' && mode !== 'default') || !root || !codexHome || !notificationModulePath) {
   throw new Error('invalid notification receipt child invocation');
@@ -22,7 +22,7 @@ if ((mode !== 'suppressed' && mode !== 'default') || !root || !codexHome || !not
 const projectPath = join(root, 'project');
 await mkdir(codexHome, { recursive: true });
 await mkdir(projectPath, { recursive: true });
-await writeFile(join(codexHome, '.omx-config.json'), JSON.stringify({
+await writeFile(join(codexHome, '.nomx-config.json'), JSON.stringify({
   notifications: {
     enabled: true,
     telegram: {
@@ -48,7 +48,7 @@ const lifecycleSessionId = 'receipt-lifecycle';
 const idleSessionId = 'receipt-idle';
 const lifecyclePath = join(
   projectPath,
-  '.omx',
+  '.nomx',
   'state',
   'sessions',
   lifecycleSessionId,
@@ -56,7 +56,7 @@ const lifecyclePath = join(
 );
 const idleStatePath = join(
   projectPath,
-  '.omx',
+  '.nomx',
   'state',
   'sessions',
   idleSessionId,
@@ -64,14 +64,14 @@ const idleStatePath = join(
 );
 const idleLifecyclePath = join(
   projectPath,
-  '.omx',
+  '.nomx',
   'state',
   'sessions',
   idleSessionId,
   'lifecycle-notif-state.json',
 );
-const registryPath = join(process.env.HOME, '.omx', 'state', 'reply-session-registry.jsonl');
-const registryLockPath = join(process.env.HOME, '.omx', 'state', 'reply-session-registry.lock');
+const registryPath = join(process.env.HOME, '.nomx', 'state', 'reply-session-registry.jsonl');
+const registryLockPath = join(process.env.HOME, '.nomx', 'state', 'reply-session-registry.lock');
 
 const firstLifecycle = await notifyLifecycle('session-start', {
   sessionId: lifecycleSessionId,
@@ -95,7 +95,7 @@ const registryContents = existsSync(registryPath)
   : '';
 
 process.stdout.write(JSON.stringify({
-  schema: 'omx.notification-receipt-child.v1',
+  schema: 'nomx.notification-receipt-child.v1',
   mode,
   lifecycle: {
     firstSuccess: firstLifecycle?.anySuccess === true,
@@ -140,7 +140,7 @@ interface ReceiptChildResult {
 }
 
 function runNotificationReceiptChild(mode: ReceiptChildResult['mode']): ReceiptChildResult {
-  const root = mkdtempSync(join(tmpdir(), `omx-notification-receipts-${mode}-`));
+  const root = mkdtempSync(join(tmpdir(), `nomx-notification-receipts-${mode}-`));
   const notificationModulePath = join(dirname(fileURLToPath(import.meta.url)), '..', 'index.js');
   const home = join(root, 'home');
   const codexHome = join(home, '.codex');
@@ -157,12 +157,12 @@ function runNotificationReceiptChild(mode: ReceiptChildResult['mode']): ReceiptC
           ...process.env,
           HOME: home,
           CODEX_HOME: codexHome,
-          OMX_ROOT: project,
-          OMX_NOTIFICATION_RECEIPT_ROOT: root,
-          OMX_OPENCLAW: '',
-          OMX_NOTIFY_TEMP: '',
-          OMX_NOTIFY_TEMP_CONTRACT: '',
-          OMX_SESSION_ID: '',
+          NOMX_ROOT: project,
+          NOMX_NOTIFICATION_RECEIPT_ROOT: root,
+          NOMX_OPENCLAW: '',
+          NOMX_NOTIFY_TEMP: '',
+          NOMX_NOTIFY_TEMP_CONTRACT: '',
+          NOMX_SESSION_ID: '',
           TMUX: '',
           TMUX_PANE: '',
         },
@@ -180,7 +180,7 @@ describe('notification scoped receipt persistence', () => {
     const suppressed = runNotificationReceiptChild('suppressed');
     const defaultResult = runNotificationReceiptChild('default');
 
-    assert.equal(suppressed.schema, 'omx.notification-receipt-child.v1');
+    assert.equal(suppressed.schema, 'nomx.notification-receipt-child.v1');
     assert.equal(suppressed.mode, 'suppressed');
     assert.equal(suppressed.lifecycle.firstSuccess, true);
     assert.equal(suppressed.lifecycle.secondSuccess, true);
@@ -196,7 +196,7 @@ describe('notification scoped receipt persistence', () => {
     assert.equal(suppressed.idle.registryLockExists, false);
     assert.equal(suppressed.idle.registryHasMapping, false);
 
-    assert.equal(defaultResult.schema, 'omx.notification-receipt-child.v1');
+    assert.equal(defaultResult.schema, 'nomx.notification-receipt-child.v1');
     assert.equal(defaultResult.mode, 'default');
     assert.equal(defaultResult.lifecycle.firstSuccess, true);
     assert.equal(defaultResult.lifecycle.secondSuccess, true);

@@ -24,13 +24,13 @@ export const AGENTS_INIT_USAGE = [
   "  --help      Show this message",
 ].join("\n");
 
-const MANAGED_MARKER = "<!-- OMX:AGENTS-INIT:MANAGED -->";
-const MANUAL_START = "<!-- OMX:AGENTS-INIT:MANUAL:START -->";
-const MANUAL_END = "<!-- OMX:AGENTS-INIT:MANUAL:END -->";
+const MANAGED_MARKER = "<!-- NOMX:AGENTS-INIT:MANAGED -->";
+const MANUAL_START = "<!-- NOMX:AGENTS-INIT:MANUAL:START -->";
+const MANUAL_END = "<!-- NOMX:AGENTS-INIT:MANUAL:END -->";
 const DEFAULT_LIST_LIMIT = 12;
 const IGNORE_DIRECTORY_NAMES = new Set([
   ".git",
-  ".omx",
+  ".nomx",
   ".codex",
   "node_modules",
   "dist",
@@ -305,7 +305,7 @@ export async function agentsInit(
   const plannedDirs = await resolveTargetDirectories(targetDir);
   const backupRoot = join(
     cwd,
-    ".omx",
+    ".nomx",
     "backups",
     "agents-init",
     new Date().toISOString().replaceAll(":", "-"),
@@ -315,7 +315,7 @@ export async function agentsInit(
     activeSession && !isSessionStale(activeSession),
   );
 
-  console.log("oh-my-codex AGENTS bootstrap");
+  console.log("nomx AGENTS bootstrap");
   console.log("===========================\n");
   console.log(`Target: ${requestedTarget}`);
   console.log(

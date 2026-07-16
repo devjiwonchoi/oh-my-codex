@@ -8,7 +8,7 @@ import { executeStateOperation } from '../operations.js';
 
 describe('state operations Ralph phase contract', () => {
   it('normalizes legacy Ralph phase aliases on state_write', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ralph-phase-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ralph-phase-'));
     try {
       const response = await executeStateOperation('state_write', {
         workingDirectory: wd,
@@ -19,7 +19,7 @@ describe('state operations Ralph phase contract', () => {
       });
       assert.equal(response.isError, undefined);
 
-      const file = join(wd, '.omx', 'state', 'ralph-state.json');
+      const file = join(wd, '.nomx', 'state', 'ralph-state.json');
       const state = JSON.parse(await readFile(file, 'utf-8'));
       assert.equal(state.current_phase, 'executing');
       assert.equal(state.ralph_phase_normalized_from, 'execution');
@@ -30,7 +30,7 @@ describe('state operations Ralph phase contract', () => {
   });
 
   it('accepts blocked_on_user as an explicit terminal Ralph outcome', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ralph-phase-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ralph-phase-'));
     try {
       const response = await executeStateOperation('state_write', {
         workingDirectory: wd,
@@ -40,7 +40,7 @@ describe('state operations Ralph phase contract', () => {
       });
       assert.equal(response.isError, undefined);
 
-      const file = join(wd, '.omx', 'state', 'ralph-state.json');
+      const file = join(wd, '.nomx', 'state', 'ralph-state.json');
       const state = JSON.parse(await readFile(file, 'utf-8'));
       assert.equal(state.current_phase, 'blocked_on_user');
       assert.equal(state.run_outcome, 'blocked_on_user');
@@ -51,7 +51,7 @@ describe('state operations Ralph phase contract', () => {
   });
 
   it('rejects unknown Ralph phases on state_write', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ralph-phase-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ralph-phase-'));
     try {
       const response = await executeStateOperation('state_write', {
         workingDirectory: wd,
@@ -68,7 +68,7 @@ describe('state operations Ralph phase contract', () => {
   });
 
   it('rejects terminal Ralph phase when active=true', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ralph-phase-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ralph-phase-'));
     try {
       const response = await executeStateOperation('state_write', {
         workingDirectory: wd,
@@ -85,7 +85,7 @@ describe('state operations Ralph phase contract', () => {
   });
 
   it('rejects complete Ralph state without completion-audit evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ralph-complete-audit-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ralph-complete-audit-'));
     try {
       const response = await executeStateOperation('state_write', {
         workingDirectory: wd,
@@ -103,7 +103,7 @@ describe('state operations Ralph phase contract', () => {
   });
 
   it('rejects complete Ralph state without completion-audit evidence when active is omitted', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ralph-complete-audit-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ralph-complete-audit-'));
     try {
       const response = await executeStateOperation('state_write', {
         workingDirectory: wd,
@@ -120,7 +120,7 @@ describe('state operations Ralph phase contract', () => {
   });
 
   it('accepts complete Ralph state with in-state completion-audit evidence and clears stale audit gate markers', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ralph-complete-audit-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ralph-complete-audit-'));
     try {
       const response = await executeStateOperation('state_write', {
         workingDirectory: wd,
@@ -138,7 +138,7 @@ describe('state operations Ralph phase contract', () => {
       });
       assert.equal(response.isError, undefined);
 
-      const file = join(wd, '.omx', 'state', 'ralph-state.json');
+      const file = join(wd, '.nomx', 'state', 'ralph-state.json');
       const state = JSON.parse(await readFile(file, 'utf-8'));
       assert.equal(state.current_phase, 'complete');
       assert.equal(state.active, false);
@@ -152,7 +152,7 @@ describe('state operations Ralph phase contract', () => {
   });
 
   it('accepts complete Ralph state with repo-relative completion-audit artifact', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ralph-complete-audit-path-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ralph-complete-audit-path-'));
     try {
       await writeFile(
         join(wd, 'audit.json'),
@@ -178,7 +178,7 @@ describe('state operations Ralph phase contract', () => {
   });
 
   it('rejects fractional iteration values for Ralph state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ralph-phase-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ralph-phase-'));
     try {
       const response = await executeStateOperation('state_write', {
         workingDirectory: wd,

@@ -9,16 +9,16 @@ import { assertModeStartAllowed, readModeState, startMode, updateModeState } fro
 
 describe('modes/base session-scoped persistence', () => {
   it('writes mode state into the current session scope when session.json exists', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-mode-session-scope-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-mode-session-scope-'));
     try {
-      await mkdir(join(wd, '.omx', 'state'), { recursive: true });
-      await writeFile(join(wd, '.omx', 'state', 'session.json'), JSON.stringify({ session_id: 'sess-base-write' }));
+      await mkdir(join(wd, '.nomx', 'state'), { recursive: true });
+      await writeFile(join(wd, '.nomx', 'state', 'session.json'), JSON.stringify({ session_id: 'sess-base-write' }));
 
       await startMode('ralplan', 'write in session scope', 5, wd);
 
-      const scopedPath = join(wd, '.omx', 'state', 'sessions', 'sess-base-write', 'ralplan-state.json');
+      const scopedPath = join(wd, '.nomx', 'state', 'sessions', 'sess-base-write', 'ralplan-state.json');
       assert.equal(existsSync(scopedPath), true);
-      assert.equal(existsSync(join(wd, '.omx', 'state', 'ralplan-state.json')), false);
+      assert.equal(existsSync(join(wd, '.nomx', 'state', 'ralplan-state.json')), false);
 
       const raw = JSON.parse(await readFile(scopedPath, 'utf-8')) as Record<string, unknown>;
       assert.equal(raw.mode, 'ralplan');
@@ -29,9 +29,9 @@ describe('modes/base session-scoped persistence', () => {
   });
 
   it('writes session canonical skill state under the base state dir without nesting sessions twice', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-mode-session-canonical-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-mode-session-canonical-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-base-canonical';
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
@@ -53,9 +53,9 @@ describe('modes/base session-scoped persistence', () => {
   });
 
   it('persists owner_omx_session_id for Ralph when session scope is active', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-mode-session-ralph-owner-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-mode-session-ralph-owner-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-ralph-owner';
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
@@ -72,9 +72,9 @@ describe('modes/base session-scoped persistence', () => {
   });
 
   it('prefers session-scoped reads over root fallback and writes updates back to the session scope', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-mode-session-read-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-mode-session-read-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-base-read';
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
@@ -100,9 +100,9 @@ describe('modes/base session-scoped persistence', () => {
   });
 
   it('does not rebind root fallback Ralph task fields into a new session update', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-mode-session-ralph-no-rebind-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-mode-session-ralph-no-rebind-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-new-ralph';
       await mkdir(join(stateDir, 'sessions', sessionId), { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({ session_id: sessionId }));
@@ -131,9 +131,9 @@ describe('modes/base session-scoped persistence', () => {
   });
 
   it('allows an explicit Ralph start to overwrite an inactive current-session Ralph file', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-mode-session-ralph-restart-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-mode-session-ralph-restart-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-ralph-restart';
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
@@ -160,31 +160,31 @@ describe('modes/base session-scoped persistence', () => {
       await rm(wd, { recursive: true, force: true });
     }
   });
-  it('fails closed before mode assertion or start can create an unmatched OMX_SESSION_ID scope', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-mode-unmatched-session-'));
-    const previousSessionId = process.env.OMX_SESSION_ID;
+  it('fails closed before mode assertion or start can create an unmatched NOMX_SESSION_ID scope', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-mode-unmatched-session-'));
+    const previousSessionId = process.env.NOMX_SESSION_ID;
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({ session_id: 'sess-canonical', cwd: wd }));
-      process.env.OMX_SESSION_ID = 'sess-unmatched';
+      process.env.NOMX_SESSION_ID = 'sess-unmatched';
 
-      await assert.rejects(() => assertModeStartAllowed('ralplan', wd), /OMX_SESSION_ID is not bound to session\.json/);
-      await assert.rejects(() => startMode('ralplan', 'must not write', 5, wd), /OMX_SESSION_ID is not bound to session\.json/);
+      await assert.rejects(() => assertModeStartAllowed('ralplan', wd), /NOMX_SESSION_ID is not bound to session\.json/);
+      await assert.rejects(() => startMode('ralplan', 'must not write', 5, wd), /NOMX_SESSION_ID is not bound to session\.json/);
       assert.equal(existsSync(join(stateDir, 'sessions', 'sess-unmatched')), false);
       assert.equal(existsSync(join(stateDir, 'ralplan-state.json')), false);
     } finally {
-      if (typeof previousSessionId === 'string') process.env.OMX_SESSION_ID = previousSessionId;
-      else delete process.env.OMX_SESSION_ID;
+      if (typeof previousSessionId === 'string') process.env.NOMX_SESSION_ID = previousSessionId;
+      else delete process.env.NOMX_SESSION_ID;
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it('preserves explicit fork updates when the implicit OMX_SESSION_ID is unmatched', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-mode-explicit-fork-'));
-    const previousSessionId = process.env.OMX_SESSION_ID;
+  it('preserves explicit fork updates when the implicit NOMX_SESSION_ID is unmatched', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-mode-explicit-fork-'));
+    const previousSessionId = process.env.NOMX_SESSION_ID;
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const forkSessionId = 'explicit-fork';
       const forkStatePath = join(stateDir, 'sessions', forkSessionId, 'ralplan-state.json');
       await mkdir(join(stateDir, 'sessions', forkSessionId), { recursive: true });
@@ -196,7 +196,7 @@ describe('modes/base session-scoped persistence', () => {
         max_iterations: 5,
         current_phase: 'starting',
       }));
-      process.env.OMX_SESSION_ID = 'sess-unmatched';
+      process.env.NOMX_SESSION_ID = 'sess-unmatched';
 
       await updateModeState('ralplan', { current_phase: 'planning', iteration: 1 }, wd, forkSessionId);
 
@@ -205,8 +205,8 @@ describe('modes/base session-scoped persistence', () => {
       assert.equal(updated.iteration, 1);
       assert.equal(existsSync(join(stateDir, 'sessions', 'sess-unmatched')), false);
     } finally {
-      if (typeof previousSessionId === 'string') process.env.OMX_SESSION_ID = previousSessionId;
-      else delete process.env.OMX_SESSION_ID;
+      if (typeof previousSessionId === 'string') process.env.NOMX_SESSION_ID = previousSessionId;
+      else delete process.env.NOMX_SESSION_ID;
       await rm(wd, { recursive: true, force: true });
     }
   });

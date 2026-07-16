@@ -27,7 +27,7 @@ Options:
   --prd=<task text>    Same as --prd "<task text>"
 
 PRD mode:
-  Ralph initializes persistence artifacts in .omx/ so PRD and progress
+  Ralph initializes persistence artifacts in .nomx/ so PRD and progress
   state can survive across Codex sessions. Provide task text either as
   positional words or with --prd.
   Prompt-side \`$ralph\` activation is separate from this CLI entrypoint and
@@ -42,8 +42,8 @@ Common patterns:
 
 const VALUE_TAKING_FLAGS = new Set(['--model', '--provider', '--config', '-c', '-i', '--images-dir']);
 const RALPH_OMX_FLAGS = new Set(['--prd']);
-const RALPH_APPEND_ENV = 'OMX_RALPH_APPEND_INSTRUCTIONS_FILE';
-const REQUIRED_RALPH_PRD_JSON_PATH = '.omx/prd.json';
+const RALPH_APPEND_ENV = 'NOMX_RALPH_APPEND_INSTRUCTIONS_FILE';
+const REQUIRED_RALPH_PRD_JSON_PATH = '.nomx/prd.json';
 const COMPLETED_RALPH_STORY_STATUSES = new Set(['passed', 'complete', 'completed']);
 const APPROVED_RALPH_ARCHITECT_VERDICTS = new Set(['approve', 'approved']);
 
@@ -239,17 +239,17 @@ export function buildRalphAppendInstructions(
 ): string {
   return [
     '<ralph_native_subagents>',
-    'You are in OMX Ralph persistence mode.',
+    'You are in NOMX Ralph persistence mode.',
     'Conductor philosophy:',
     LEADER_CONDUCTOR_BLOCK,
     LEADER_CONDUCTOR_REUSE_AND_LEDGER_GUIDANCE,
     `Primary task: ${task}`,
     'Parallelism guidance:',
     '- Prefer Codex native subagents for independent parallel subtasks.',
-    '- When the native surface exposes `agent_type` role routing, every Codex native subagent dispatch MUST set `agent_type` to an installed OMX role; choose the narrowest role (for example `executor`, `architect`, `code-reviewer`, `debugger`, or `test-engineer`) and never omit `agent_type` for generic OMX work.',
-    '- When it does not (`role_routing_unavailable`, for example a Codex App `spawn_agent` surface exposing only `task_name`, `message`, and `fork_turns`), do not fabricate `agent_type`; follow the OMX adapted role-pass protocol by recording a pre-validated role intent in the OMX subagent ledger, and never fake the role via a prompt label.',
+    '- When the native surface exposes `agent_type` role routing, every Codex native subagent dispatch MUST set `agent_type` to an installed NOMX role; choose the narrowest role (for example `executor`, `architect`, `code-reviewer`, `debugger`, or `test-engineer`) and never omit `agent_type` for generic NOMX work.',
+    '- When it does not (`role_routing_unavailable`, for example a Codex App `spawn_agent` surface exposing only `task_name`, `message`, and `fork_turns`), do not fabricate `agent_type`; follow the NOMX adapted role-pass protocol by recording a pre-validated role intent in the NOMX subagent ledger, and never fake the role via a prompt label.',
     '- When preserving legacy Ralph tier intent on a native subagent dispatch, use `reasoning_effort` instead of `tier`: LOW -> `low`, STANDARD -> `medium`, THOROUGH -> `xhigh`.',
-    '- Treat `.omx/state/subagent-tracking.json` as the native subagent activity ledger for this session.',
+    '- Treat `.nomx/state/subagent-tracking.json` as the native subagent activity ledger for this session.',
     '- Do not declare the task complete, and do not transition into final verification/completion, while active native subagent threads are still running.',
     '- Before closing a verification wave, confirm that active native subagent threads have drained.',
     ...buildRalphApprovedContextLines(options.approvedHint ?? null),
@@ -271,7 +271,7 @@ async function writeRalphSessionFiles(
   task: string,
   options: { approvedHint?: ApprovedExecutionLaunchHint | null },
 ): Promise<RalphSessionFiles> {
-  const dir = join(cwd, '.omx', 'ralph');
+  const dir = join(cwd, '.nomx', 'ralph');
   await mkdir(dir, { recursive: true });
   const instructionsPath = join(dir, 'session-instructions.md');
   await writeFile(
@@ -307,8 +307,8 @@ export async function ralphCommand(args: string[]): Promise<void> {
     staffing_summary: staffingPlan.staffingSummary,
     staffing_allocations: staffingPlan.allocations,
     native_subagents_enabled: true,
-    native_subagent_tracking_path: '.omx/state/subagent-tracking.json',
-    native_subagent_policy: 'When the native surface exposes agent_type role routing, each parallel Codex dispatch must set agent_type to an installed OMX role and never omit it for OMX work; when it is role_routing_unavailable, do not fabricate agent_type and follow the OMX adapted role-pass protocol with a pre-validated role intent in the OMX subagent ledger, and never fake the role via a prompt label. Phase completion must wait for active native subagent threads to finish.',
+    native_subagent_tracking_path: '.nomx/state/subagent-tracking.json',
+    native_subagent_policy: 'When the native surface exposes agent_type role routing, each parallel Codex dispatch must set agent_type to an installed NOMX role and never omit it for NOMX work; when it is role_routing_unavailable, do not fabricate agent_type and follow the NOMX adapted role-pass protocol with a pre-validated role intent in the NOMX subagent ledger, and never fake the role via a prompt label. Phase completion must wait for active native subagent threads to finish.',
     goal_mode_integration: 'codex-goal-tools',
     goal_mode_policy: 'Use get_goal for active objective discovery and update_goal only after a prompt-to-artifact completion audit proves the objective is achieved.',
     approved_plan_path: approvedHint?.sourcePath,

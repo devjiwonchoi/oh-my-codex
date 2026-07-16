@@ -12,7 +12,7 @@
  * and that architect/critic prompts contain required RALPLAN-DR sections.
  *
  * Note: This file loads SKILL.md and prompt content directly via fs.readFileSync()
- * instead of getBuiltinSkill() (which does not exist in OMX).
+ * instead of getBuiltinSkill() (which does not exist in NOMX).
  */
 
 import { describe, it } from 'node:test';
@@ -150,10 +150,9 @@ describe('Consensus mode execution handoff (plan/SKILL.md)', () => {
     const consensusSection = extractSection(planSkill, 'Consensus Mode');
     assert.ok(consensusSection, 'Consensus Mode section should exist');
     assert.match(consensusSection, /Goal-Mode Follow-up Suggestions/i);
-    assert.match(consensusSection, /\$ultragoal[\s\S]*general goal-oriented follow-up/i);
-    assert.match(consensusSection, /\$autoresearch-goal[\s\S]*research project/i);
-    assert.match(consensusSection, /\$performance-goal[\s\S]*(optimization|performance) project/i);
-    assert.match(consensusSection, /alongside the Team path and any explicit Ralph fallback/i);
+    assert.match(consensusSection, /recommend `\$ultragoal` by default/i);
+    assert.match(consensusSection, /\$team[\s\S]*parallel execution/i);
+    assert.match(consensusSection, /\$best-practice-research[\s\S]*external guidance/i);
   });
 
   it('should mention deliberate mode requirements in consensus mode', () => {
@@ -312,8 +311,6 @@ describe('RALPLAN-DR in ralplan/SKILL.md', () => {
     assert.match(ralplanSkill, /nomx team|launch hints?/i);
     assert.match(ralplanSkill, /team verification/i);
     assert.match(ralplanSkill, /\$ultragoal[\s\S]*general goal-oriented follow-up/i);
-    assert.match(ralplanSkill, /\$autoresearch-goal[\s\S]*research-project follow-up/i);
-    assert.match(ralplanSkill, /\$performance-goal[\s\S]*optimization\/performance follow-up/i);
     assert.match(ralplanSkill, /Ultragoal as the default durable goal-mode follow-up/i);
     assert.match(ralplanSkill, /Ralph only for intentionally selected persistent single-owner/i);
   });
@@ -354,10 +351,7 @@ describe('Planner prompt follow-up staffing guidance', () => {
     assert.match(plannerPrompt, /available-agent-types roster/i);
     assert.match(plannerPrompt, /ultragoal and team follow-up paths/i);
     assert.match(plannerPrompt, /explicit Ralph fallback guidance/i);
-    assert.match(plannerPrompt, /goal-mode follow-up suggestions/i);
-    assert.match(plannerPrompt, /\$ultragoal[\s\S]*generally/i);
-    assert.match(plannerPrompt, /\$autoresearch-goal[\s\S]*research projects/i);
-    assert.match(plannerPrompt, /\$performance-goal[\s\S]*optimization\/performance projects/i);
+    assert.match(plannerPrompt, /ultragoal and team follow-up paths/i);
     assert.match(plannerPrompt, /reasoning levels? by lane|suggested reasoning/i);
     assert.match(plannerPrompt, /launch hints?/i);
     assert.match(plannerPrompt, /team verification path/i);

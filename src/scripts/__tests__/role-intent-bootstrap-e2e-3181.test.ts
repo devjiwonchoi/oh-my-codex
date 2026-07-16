@@ -23,10 +23,10 @@ async function invokeRoleIntent(cwd: string, args: string[]) {
 
 describe('#3181 end-to-end fresh App turn bootstrap', () => {
   it('SessionStart reconcile alone neither attests nor authorizes a role intent (fail-closed; positive provenance required)', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-3181-e2e-'));
-    const priorEnv = { OMX_SESSION_ID: process.env.OMX_SESSION_ID, CODEX_SESSION_ID: process.env.CODEX_SESSION_ID, SESSION_ID: process.env.SESSION_ID };
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-3181-e2e-'));
+    const priorEnv = { NOMX_SESSION_ID: process.env.NOMX_SESSION_ID, CODEX_SESSION_ID: process.env.CODEX_SESSION_ID, SESSION_ID: process.env.SESSION_ID };
     try {
-      delete process.env.OMX_SESSION_ID;
+      delete process.env.NOMX_SESSION_ID;
       delete process.env.CODEX_SESSION_ID;
       delete process.env.SESSION_ID;
       const nativeSessionId = 'codex-native-fresh-app';
@@ -54,7 +54,7 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
       const finalState = await readSubagentTrackingState(cwd);
       assert.deepEqual(finalState.pending_role_intents, []);
     } finally {
-      if (priorEnv.OMX_SESSION_ID !== undefined) process.env.OMX_SESSION_ID = priorEnv.OMX_SESSION_ID;
+      if (priorEnv.NOMX_SESSION_ID !== undefined) process.env.NOMX_SESSION_ID = priorEnv.NOMX_SESSION_ID;
       if (priorEnv.CODEX_SESSION_ID !== undefined) process.env.CODEX_SESSION_ID = priorEnv.CODEX_SESSION_ID;
       if (priorEnv.SESSION_ID !== undefined) process.env.SESSION_ID = priorEnv.SESSION_ID;
       await rm(cwd, { recursive: true, force: true });
@@ -62,15 +62,15 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
   });
 
   it('PreToolUse (leader turn) bootstraps the pointer + attestation when SessionStart did not, so the first role-intent write succeeds', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-3181-e2e-pretool-'));
-    const priorEnv = { OMX_SESSION_ID: process.env.OMX_SESSION_ID, CODEX_SESSION_ID: process.env.CODEX_SESSION_ID, SESSION_ID: process.env.SESSION_ID };
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-3181-e2e-pretool-'));
+    const priorEnv = { NOMX_SESSION_ID: process.env.NOMX_SESSION_ID, CODEX_SESSION_ID: process.env.CODEX_SESSION_ID, SESSION_ID: process.env.SESSION_ID };
     try {
-      delete process.env.OMX_SESSION_ID;
+      delete process.env.NOMX_SESSION_ID;
       delete process.env.CODEX_SESSION_ID;
       delete process.env.SESSION_ID;
       const nativeSessionId = 'codex-native-exec-leader';
 
-      // Fresh exec turn where the first event reaching OMX is a leader PreToolUse (no
+      // Fresh exec turn where the first event reaching NOMX is a leader PreToolUse (no
       // prior SessionStart pointer). The leader turn carries thread_id == session_id.
       await dispatchCodexNativeHook(
         {
@@ -97,7 +97,7 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
       assert.equal(receipt.intent.role, 'architect');
       assert.equal((await readSubagentTrackingState(cwd)).pending_role_intents.length, 1);
     } finally {
-      if (priorEnv.OMX_SESSION_ID !== undefined) process.env.OMX_SESSION_ID = priorEnv.OMX_SESSION_ID;
+      if (priorEnv.NOMX_SESSION_ID !== undefined) process.env.NOMX_SESSION_ID = priorEnv.NOMX_SESSION_ID;
       if (priorEnv.CODEX_SESSION_ID !== undefined) process.env.CODEX_SESSION_ID = priorEnv.CODEX_SESSION_ID;
       if (priorEnv.SESSION_ID !== undefined) process.env.SESSION_ID = priorEnv.SESSION_ID;
       await rm(cwd, { recursive: true, force: true });
@@ -105,10 +105,10 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
   });
 
   it('never attests a thread durably tracked as a subagent, even via a source-less leader-shaped PreToolUse', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-3181-e2e-child-'));
-    const priorEnv = { OMX_SESSION_ID: process.env.OMX_SESSION_ID, CODEX_SESSION_ID: process.env.CODEX_SESSION_ID, SESSION_ID: process.env.SESSION_ID };
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-3181-e2e-child-'));
+    const priorEnv = { NOMX_SESSION_ID: process.env.NOMX_SESSION_ID, CODEX_SESSION_ID: process.env.CODEX_SESSION_ID, SESSION_ID: process.env.SESSION_ID };
     try {
-      delete process.env.OMX_SESSION_ID;
+      delete process.env.NOMX_SESSION_ID;
       delete process.env.CODEX_SESSION_ID;
       delete process.env.SESSION_ID;
       const childThreadId = 'codex-native-child-thread';
@@ -140,7 +140,7 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
       const state = await readSubagentTrackingState(cwd);
       assert.equal(state.sessions[childThreadId]?.leader_attested_at, undefined, 'child thread must not be attested as leader');
     } finally {
-      if (priorEnv.OMX_SESSION_ID !== undefined) process.env.OMX_SESSION_ID = priorEnv.OMX_SESSION_ID;
+      if (priorEnv.NOMX_SESSION_ID !== undefined) process.env.NOMX_SESSION_ID = priorEnv.NOMX_SESSION_ID;
       if (priorEnv.CODEX_SESSION_ID !== undefined) process.env.CODEX_SESSION_ID = priorEnv.CODEX_SESSION_ID;
       if (priorEnv.SESSION_ID !== undefined) process.env.SESSION_ID = priorEnv.SESSION_ID;
       await rm(cwd, { recursive: true, force: true });
@@ -148,10 +148,10 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
   });
 
   it('never bootstraps a leader from a PreToolUse carrying a malformed/blank thread_spawn carrier', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-3181-e2e-malformed-spawn-'));
-    const priorEnv = { OMX_SESSION_ID: process.env.OMX_SESSION_ID, CODEX_SESSION_ID: process.env.CODEX_SESSION_ID, SESSION_ID: process.env.SESSION_ID };
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-3181-e2e-malformed-spawn-'));
+    const priorEnv = { NOMX_SESSION_ID: process.env.NOMX_SESSION_ID, CODEX_SESSION_ID: process.env.CODEX_SESSION_ID, SESSION_ID: process.env.SESSION_ID };
     try {
-      delete process.env.OMX_SESSION_ID;
+      delete process.env.NOMX_SESSION_ID;
       delete process.env.CODEX_SESSION_ID;
       delete process.env.SESSION_ID;
       const childThreadId = 'codex-native-malformed-spawn';
@@ -173,7 +173,7 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
       const state = await readSubagentTrackingState(cwd);
       assert.equal(state.sessions[childThreadId]?.leader_attested_at, undefined, 'malformed thread_spawn must not attest as leader');
     } finally {
-      if (priorEnv.OMX_SESSION_ID !== undefined) process.env.OMX_SESSION_ID = priorEnv.OMX_SESSION_ID;
+      if (priorEnv.NOMX_SESSION_ID !== undefined) process.env.NOMX_SESSION_ID = priorEnv.NOMX_SESSION_ID;
       if (priorEnv.CODEX_SESSION_ID !== undefined) process.env.CODEX_SESSION_ID = priorEnv.CODEX_SESSION_ID;
       if (priorEnv.SESSION_ID !== undefined) process.env.SESSION_ID = priorEnv.SESSION_ID;
       await rm(cwd, { recursive: true, force: true });
@@ -181,15 +181,15 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
   });
 
   it('never bootstraps a leader from a PreToolUse carrying an explicit non-installed agent_role', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-3181-e2e-unknown-role-'));
-    const priorEnv = { OMX_SESSION_ID: process.env.OMX_SESSION_ID, CODEX_SESSION_ID: process.env.CODEX_SESSION_ID, SESSION_ID: process.env.SESSION_ID };
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-3181-e2e-unknown-role-'));
+    const priorEnv = { NOMX_SESSION_ID: process.env.NOMX_SESSION_ID, CODEX_SESSION_ID: process.env.CODEX_SESSION_ID, SESSION_ID: process.env.SESSION_ID };
     try {
-      delete process.env.OMX_SESSION_ID;
+      delete process.env.NOMX_SESSION_ID;
       delete process.env.CODEX_SESSION_ID;
       delete process.env.SESSION_ID;
       const childThreadId = 'codex-native-unknown-role';
       // An explicit but non-installed agent role is still role provenance and must veto
-      // leader bootstrap even though it does not resolve to an installed OMX agent.
+      // leader bootstrap even though it does not resolve to an installed NOMX agent.
       await dispatchCodexNativeHook(
         {
           hook_event_name: 'PreToolUse',
@@ -206,7 +206,7 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
       const state = await readSubagentTrackingState(cwd);
       assert.equal(state.sessions[childThreadId]?.leader_attested_at, undefined, 'explicit non-installed agent_role must not attest as leader');
     } finally {
-      if (priorEnv.OMX_SESSION_ID !== undefined) process.env.OMX_SESSION_ID = priorEnv.OMX_SESSION_ID;
+      if (priorEnv.NOMX_SESSION_ID !== undefined) process.env.NOMX_SESSION_ID = priorEnv.NOMX_SESSION_ID;
       if (priorEnv.CODEX_SESSION_ID !== undefined) process.env.CODEX_SESSION_ID = priorEnv.CODEX_SESSION_ID;
       if (priorEnv.SESSION_ID !== undefined) process.env.SESSION_ID = priorEnv.SESSION_ID;
       await rm(cwd, { recursive: true, force: true });

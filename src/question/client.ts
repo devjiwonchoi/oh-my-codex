@@ -1,8 +1,8 @@
 import { spawn } from 'node:child_process';
-import { resolveOmxCliEntryPath } from '../utils/paths.js';
+import { resolveNomxCliEntryPath } from '../utils/paths.js';
 import type { QuestionAnswer, QuestionAnswerEntry, QuestionInput, NormalizedQuestionItem } from './types.js';
 
-export interface OmxQuestionSuccessPayload {
+export interface NomxQuestionSuccessPayload {
   ok: true;
   question_id: string;
   session_id?: string;
@@ -13,7 +13,7 @@ export interface OmxQuestionSuccessPayload {
   answer?: QuestionAnswer;
 }
 
-export interface OmxQuestionErrorPayload {
+export interface NomxQuestionErrorPayload {
   ok: false;
   question_id?: string;
   session_id?: string;
@@ -23,30 +23,30 @@ export interface OmxQuestionErrorPayload {
   };
 }
 
-export type OmxQuestionPayload = OmxQuestionSuccessPayload | OmxQuestionErrorPayload;
+export type NomxQuestionPayload = NomxQuestionSuccessPayload | NomxQuestionErrorPayload;
 
-export interface OmxQuestionClientOptions {
+export interface NomxQuestionClientOptions {
   cwd?: string;
   env?: NodeJS.ProcessEnv;
   argv1?: string | null;
-  runner?: OmxQuestionProcessRunner;
+  runner?: NomxQuestionProcessRunner;
 }
 
-export interface OmxQuestionProcessResult {
+export interface NomxQuestionProcessResult {
   code: number | null;
   stdout: string;
   stderr: string;
 }
 
-export type OmxQuestionProcessRunner = (
+export type NomxQuestionProcessRunner = (
   command: string,
   args: string[],
   options: { cwd: string; env: NodeJS.ProcessEnv },
-) => Promise<OmxQuestionProcessResult>;
+) => Promise<NomxQuestionProcessResult>;
 
-export class OmxQuestionError extends Error {
+export class NomxQuestionError extends Error {
   readonly code: string;
-  readonly payload?: OmxQuestionErrorPayload;
+  readonly payload?: NomxQuestionErrorPayload;
   readonly stdout: string;
   readonly stderr: string;
   readonly exitCode: number | null;
@@ -55,14 +55,14 @@ export class OmxQuestionError extends Error {
     code: string,
     message: string,
     options: {
-      payload?: OmxQuestionErrorPayload;
+      payload?: NomxQuestionErrorPayload;
       stdout?: string;
       stderr?: string;
       exitCode?: number | null;
     } = {},
   ) {
     super(`${code}: ${message}`);
-    this.name = 'OmxQuestionError';
+    this.name = 'NomxQuestionError';
     this.code = code;
     this.payload = options.payload;
     this.stdout = options.stdout ?? '';
@@ -71,11 +71,11 @@ export class OmxQuestionError extends Error {
   }
 }
 
-export async function defaultOmxQuestionProcessRunner(
+export async function defaultNomxQuestionProcessRunner(
   command: string,
   args: string[],
   options: { cwd: string; env: NodeJS.ProcessEnv },
-): Promise<OmxQuestionProcessResult> {
+): Promise<NomxQuestionProcessResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
@@ -96,10 +96,10 @@ export async function defaultOmxQuestionProcessRunner(
   });
 }
 
-function parseQuestionStdout(stdout: string, stderr: string, exitCode: number | null): OmxQuestionPayload {
+function parseQuestionStdout(stdout: string, stderr: string, exitCode: number | null): NomxQuestionPayload {
   const trimmed = stdout.trim();
   if (!trimmed) {
-    throw new OmxQuestionError('question_no_stdout', 'nomx question did not emit a JSON response on stdout.', {
+    throw new NomxQuestionError('question_no_stdout', 'nomx question did not emit a JSON response on stdout.', {
       stdout,
       stderr,
       exitCode,
@@ -107,9 +107,9 @@ function parseQuestionStdout(stdout: string, stderr: string, exitCode: number | 
   }
 
   try {
-    return JSON.parse(trimmed) as OmxQuestionPayload;
+    return JSON.parse(trimmed) as NomxQuestionPayload;
   } catch (error) {
-    throw new OmxQuestionError(
+    throw new NomxQuestionError(
       'question_invalid_stdout',
       `nomx question emitted invalid JSON on stdout: ${(error as Error).message}`,
       { stdout, stderr, exitCode },
@@ -117,27 +117,27 @@ function parseQuestionStdout(stdout: string, stderr: string, exitCode: number | 
   }
 }
 
-export async function runOmxQuestion(
+export async function runNomxQuestion(
   input: (Partial<QuestionInput> & { question: string }) | { questions: Array<Partial<QuestionInput> & { question: string }>; header?: string; source?: string; session_id?: string },
-  options: OmxQuestionClientOptions = {},
-): Promise<OmxQuestionSuccessPayload> {
+  options: NomxQuestionClientOptions = {},
+): Promise<NomxQuestionSuccessPayload> {
   const cwd = options.cwd ?? process.cwd();
   const env = options.env ?? process.env;
-  const omxBin = resolveOmxCliEntryPath({ argv1: options.argv1, cwd, env });
-  if (!omxBin) {
-    throw new OmxQuestionError('question_cli_not_found', 'Could not resolve the nomx CLI entrypoint for blocking question execution.');
+  const nomxBin = resolveNomxCliEntryPath({ argv1: options.argv1, cwd, env });
+  if (!nomxBin) {
+    throw new NomxQuestionError('question_cli_not_found', 'Could not resolve the nomx CLI entrypoint for blocking question execution.');
   }
 
-  const runner = options.runner ?? defaultOmxQuestionProcessRunner;
+  const runner = options.runner ?? defaultNomxQuestionProcessRunner;
   const result = await runner(
     process.execPath,
-    [omxBin, 'question', '--json', '--input', JSON.stringify(input)],
+    [nomxBin, 'question', '--json', '--input', JSON.stringify(input)],
     { cwd, env },
   );
   const payload = parseQuestionStdout(result.stdout, result.stderr, result.code);
 
   if (!payload.ok) {
-    throw new OmxQuestionError(payload.error.code, payload.error.message, {
+    throw new NomxQuestionError(payload.error.code, payload.error.message, {
       payload,
       stdout: result.stdout,
       stderr: result.stderr,
@@ -146,7 +146,7 @@ export async function runOmxQuestion(
   }
 
   if (result.code !== 0) {
-    throw new OmxQuestionError(
+    throw new NomxQuestionError(
       'question_nonzero_exit',
       `nomx question returned an answer but exited with code ${result.code}.`,
       { stdout: result.stdout, stderr: result.stderr, exitCode: result.code },

@@ -50,9 +50,9 @@ Aliases:
   create -> create-goals, complete|next|start-next -> complete-goals
 
 Artifacts:
-  .omx/ultragoal/brief.md
-  .omx/ultragoal/goals.json
-  .omx/ultragoal/ledger.jsonl
+  .nomx/ultragoal/brief.md
+  .nomx/ultragoal/goals.json
+  .nomx/ultragoal/ledger.jsonl
 
 Codex goal integration:
   This command cannot directly invoke the interactive /goal tool from a shell.
@@ -62,11 +62,11 @@ Codex goal integration:
   multiple sequential ultragoal runs in one Codex session/thread, manually run
   /goal clear in the Codex UI before creating the next aggregate goal.
   New plans default to aggregate mode: one Codex goal covers the whole ultragoal
-  run while OMX checkpoints G001/G002 stories in the durable ledger. Legacy
+  run while NOMX checkpoints G001/G002 stories in the durable ledger. Legacy
   per-story plans retain completed-goal blocker handling when a completed thread
   goal prevents create_goal for the next story.
   Dynamic steering is explicit-only: steer accepts structured fields or directive JSON,
-  audits accepted/rejected/deduped results in .omx/ultragoal/ledger.jsonl, and
+  audits accepted/rejected/deduped results in .nomx/ultragoal/ledger.jsonl, and
   rejects broad natural-language mutation requests.
   Repeated identical external authorization blockers become non-retriable
   needs_user_decision stories; complete-goals --retry-failed skips them and prints
@@ -144,7 +144,7 @@ function printStatus(plan: Awaited<ReturnType<typeof readUltragoalPlan>>): void 
     console.log(`microgoal ledger bookkeeping (progress-only): ${summary.complete}/${summary.total} complete, ${summary.pending} pending, ${summary.inProgress} in progress, ${summary.failed} failed, ${summary.reviewBlocked} review-blocked, ${summary.needsUserDecision} needs-user-decision`);
   } else if (summary.artifactComplete) {
     console.log('ultragoal artifact goals: complete');
-    console.log(`codex goal reconciliation: not recorded in OMX aggregateCompletion; status is artifact-backed until a fresh Codex goal snapshot is available.`);
+    console.log(`codex goal reconciliation: not recorded in NOMX aggregateCompletion; status is artifact-backed until a fresh Codex goal snapshot is available.`);
     console.log(`microgoal ledger: ${summary.complete}/${summary.total} complete, ${summary.pending} pending, ${summary.inProgress} in progress, ${summary.failed} failed, ${summary.reviewBlocked} review-blocked, ${summary.needsUserDecision} needs-user-decision`);
   } else {
     console.log(`ultragoal: ${summary.complete}/${summary.total} complete, ${summary.pending} pending, ${summary.inProgress} in progress, ${summary.failed} failed, ${summary.reviewBlocked} review-blocked, ${summary.needsUserDecision} needs-user-decision`);
@@ -338,9 +338,9 @@ const ULTRAGOAL_MUTATING_COMMANDS = new Set([
 ]);
 
 function readTeamWorkerIdentity(env: NodeJS.ProcessEnv = process.env): string | null {
-  const publicIdentity = typeof env.OMX_TEAM_WORKER === 'string' ? env.OMX_TEAM_WORKER.trim() : '';
+  const publicIdentity = typeof env.NOMX_TEAM_WORKER === 'string' ? env.NOMX_TEAM_WORKER.trim() : '';
   if (publicIdentity) return publicIdentity;
-  const internalIdentity = typeof env.OMX_TEAM_INTERNAL_WORKER === 'string' ? env.OMX_TEAM_INTERNAL_WORKER.trim() : '';
+  const internalIdentity = typeof env.NOMX_TEAM_INTERNAL_WORKER === 'string' ? env.NOMX_TEAM_INTERNAL_WORKER.trim() : '';
   return internalIdentity || null;
 }
 
@@ -350,7 +350,7 @@ function assertUltragoalMutationAllowedFromCurrentProcess(command: string): void
   if (!workerIdentity) return;
   throw new UltragoalError(
     `Refusing mutating ultragoal command "${command}" from Team worker ${workerIdentity}. `
-    + 'Ultragoal state is leader-owned; workers must report checkpoint evidence upward instead of mutating .omx/ultragoal.',
+    + 'Ultragoal state is leader-owned; workers must report checkpoint evidence upward instead of mutating .nomx/ultragoal.',
   );
 }
 

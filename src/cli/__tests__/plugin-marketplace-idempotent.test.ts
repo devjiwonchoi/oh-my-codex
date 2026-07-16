@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import TOML from "@iarna/toml";
-import { OMX_FIRST_PARTY_MCP_SERVER_NAMES } from "../../config/omx-first-party-mcp.js";
+import { NOMX_FIRST_PARTY_MCP_SERVER_NAMES } from "../../config/nomx-first-party-mcp.js";
 import {
-	OMX_LOCAL_MARKETPLACE_NAME,
-	OMX_LOCAL_PLUGIN_CONFIG_KEY,
+	NOMX_LOCAL_MARKETPLACE_NAME,
+	NOMX_LOCAL_PLUGIN_CONFIG_KEY,
 	upsertLocalOmxMarketplaceRegistration,
 	upsertLocalOmxPluginEnablement,
 	upsertLocalOmxPluginMcpServerEnablement,
@@ -26,28 +26,28 @@ function applyPluginModeConfig(content: string, packageRoot: string): string {
 
 describe("plugin marketplace config upserts", () => {
 	it("keeps repeated plugin-mode setup config updates idempotent", () => {
-		const packageRoot = "/tmp/oh-my-codex";
+		const packageRoot = "/tmp/nomx";
 		const first = applyPluginModeConfig('model = "gpt-5.6-sol"\n', packageRoot);
 		const second = applyPluginModeConfig(first, packageRoot);
 
 		assert.equal(second, first);
 		assert.equal(
-			countMatches(second, /^\[marketplaces\.oh-my-codex-local\]$/gm),
+			countMatches(second, /^\[marketplaces\.nomx-local\]$/gm),
 			1,
 		);
 		assert.equal(
 			countMatches(
 				second,
-				/^\[plugins\."oh-my-codex@oh-my-codex-local"\]$/gm,
+				/^\[plugins\."nomx@nomx-local"\]$/gm,
 			),
 			1,
 		);
-		for (const serverName of OMX_FIRST_PARTY_MCP_SERVER_NAMES) {
+		for (const serverName of NOMX_FIRST_PARTY_MCP_SERVER_NAMES) {
 			assert.equal(
 				countMatches(
 					second,
 					new RegExp(
-						`^\\[plugins\\.${JSON.stringify(OMX_LOCAL_PLUGIN_CONFIG_KEY).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\.mcp_servers\\.${serverName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\]$`,
+						`^\\[plugins\\.${JSON.stringify(NOMX_LOCAL_PLUGIN_CONFIG_KEY).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\.mcp_servers\\.${serverName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\]$`,
 						"gm",
 					),
 				),
@@ -58,55 +58,55 @@ describe("plugin marketplace config upserts", () => {
 		assert.doesNotThrow(() => TOML.parse(second));
 	});
 
-	it("normalizes legacy local plugin scalar before emitting plugin table", () => {
+	it("normalizes a local plugin scalar before emitting the canonical plugin table", () => {
 		const repaired = upsertLocalOmxPluginEnablement(
 			[
 				'model = "gpt-5.6-sol"',
 				'',
 				'[plugins]',
-				`"${OMX_LOCAL_PLUGIN_CONFIG_KEY}" = true`,
+				`"${NOMX_LOCAL_PLUGIN_CONFIG_KEY}" = true`,
 				'other-plugin = true',
 				'',
 			].join("\n"),
 		);
 
 		assert.doesNotThrow(() => TOML.parse(repaired));
-		assert.doesNotMatch(repaired, new RegExp(`^"${OMX_LOCAL_PLUGIN_CONFIG_KEY}"\\s*=`, "m"));
+		assert.doesNotMatch(repaired, new RegExp(`^"${NOMX_LOCAL_PLUGIN_CONFIG_KEY}"\\s*=`, "m"));
 		assert.match(repaired, /^other-plugin = true$/m);
 		assert.equal(
 			countMatches(
 				repaired,
-				/^\[plugins\."oh-my-codex@oh-my-codex-local"\]$/gm,
+				/^\[plugins\."nomx@nomx-local"\]$/gm,
 			),
 			1,
 		);
 	});
 
 	it("dedupes existing local marketplace and plugin MCP blocks without removing unrelated config", () => {
-		const packageRoot = "/tmp/oh-my-codex-new";
+		const packageRoot = "/tmp/nomx-new";
 		const duplicated = [
 			'model = "gpt-5.6-sol"',
 			'',
 			'[mcp_servers.user_tool]',
 			'command = "user-tool"',
 			'',
-			`[plugins.${JSON.stringify(OMX_LOCAL_PLUGIN_CONFIG_KEY)}]`,
+			`[plugins.${JSON.stringify(NOMX_LOCAL_PLUGIN_CONFIG_KEY)}]`,
 			'enabled = false',
 			'',
-			`[plugins.${JSON.stringify(OMX_LOCAL_PLUGIN_CONFIG_KEY)}]`,
+			`[plugins.${JSON.stringify(NOMX_LOCAL_PLUGIN_CONFIG_KEY)}]`,
 			'enabled = false',
 			'',
-			`[plugins.${JSON.stringify(OMX_LOCAL_PLUGIN_CONFIG_KEY)}.mcp_servers.omx_state]`,
+			`[plugins.${JSON.stringify(NOMX_LOCAL_PLUGIN_CONFIG_KEY)}.mcp_servers.nomx_state]`,
 			'enabled = false',
 			'',
-			`[plugins.${JSON.stringify(OMX_LOCAL_PLUGIN_CONFIG_KEY)}.mcp_servers.omx_state]`,
+			`[plugins.${JSON.stringify(NOMX_LOCAL_PLUGIN_CONFIG_KEY)}.mcp_servers.nomx_state]`,
 			'enabled = false',
 			'',
-			`[marketplaces.${OMX_LOCAL_MARKETPLACE_NAME}]`,
+			`[marketplaces.${NOMX_LOCAL_MARKETPLACE_NAME}]`,
 			'source_type = "local"',
 			'source = "/tmp/old"',
 			'',
-			`[marketplaces.${OMX_LOCAL_MARKETPLACE_NAME}]`,
+			`[marketplaces.${NOMX_LOCAL_MARKETPLACE_NAME}]`,
 			'source_type = "local"',
 			'source = "/tmp/older"',
 			'',
@@ -120,14 +120,14 @@ describe("plugin marketplace config upserts", () => {
 		assert.match(repaired, /^\[mcp_servers\.user_tool\]$/m);
 		assert.match(repaired, /^command = "user-tool"$/m);
 		assert.equal(
-			countMatches(repaired, /^\[marketplaces\.oh-my-codex-local\]$/gm),
+			countMatches(repaired, /^\[marketplaces\.nomx-local\]$/gm),
 			1,
 		);
 		assert.match(repaired, new RegExp(`^source = ${JSON.stringify(packageRoot)}$`, "m"));
 		assert.equal(
 			countMatches(
 				repaired,
-				/^\[plugins\."oh-my-codex@oh-my-codex-local"\.mcp_servers\.omx_state\]$/gm,
+				/^\[plugins\."nomx@nomx-local"\.mcp_servers\.nomx_state\]$/gm,
 			),
 			1,
 		);

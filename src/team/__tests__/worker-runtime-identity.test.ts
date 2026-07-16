@@ -24,34 +24,34 @@ function expectedLowComplexityModel(codexHomeOverride?: string): string {
 }
 
 function withoutTeamWorkerEnv<T>(fn: () => T): T {
-  const prev = process.env.OMX_TEAM_WORKER;
-  delete process.env.OMX_TEAM_WORKER;
+  const prev = process.env.NOMX_TEAM_WORKER;
+  delete process.env.NOMX_TEAM_WORKER;
   let restoreImmediately = true;
   try {
     const result = fn();
     if (result instanceof Promise) {
       restoreImmediately = false;
       return result.finally(() => {
-        if (typeof prev === 'string') process.env.OMX_TEAM_WORKER = prev;
-        else delete process.env.OMX_TEAM_WORKER;
+        if (typeof prev === 'string') process.env.NOMX_TEAM_WORKER = prev;
+        else delete process.env.NOMX_TEAM_WORKER;
       }) as T;
     }
     return result;
   } finally {
     if (restoreImmediately) {
-      if (typeof prev === 'string') process.env.OMX_TEAM_WORKER = prev;
-      else delete process.env.OMX_TEAM_WORKER;
+      if (typeof prev === 'string') process.env.NOMX_TEAM_WORKER = prev;
+      else delete process.env.NOMX_TEAM_WORKER;
     }
   }
 }
 
 function withMockPromptModeCodexAllowed<T>(fn: () => T): T {
-  const previous = process.env.OMX_TEST_ALLOW_NONTTY_CODEX_PROMPT;
-  process.env.OMX_TEST_ALLOW_NONTTY_CODEX_PROMPT = '1';
+  const previous = process.env.NOMX_TEST_ALLOW_NONTTY_CODEX_PROMPT;
+  process.env.NOMX_TEST_ALLOW_NONTTY_CODEX_PROMPT = '1';
   let restoreImmediately = true;
   const restore = () => {
-    if (typeof previous === 'string') process.env.OMX_TEST_ALLOW_NONTTY_CODEX_PROMPT = previous;
-    else delete process.env.OMX_TEST_ALLOW_NONTTY_CODEX_PROMPT;
+    if (typeof previous === 'string') process.env.NOMX_TEST_ALLOW_NONTTY_CODEX_PROMPT = previous;
+    else delete process.env.NOMX_TEST_ALLOW_NONTTY_CODEX_PROMPT;
   };
   try {
     const result = fn();
@@ -68,14 +68,14 @@ function withMockPromptModeCodexAllowed<T>(fn: () => T): T {
 describe('worker runtime identity contract', () => {
   it('keeps low-complexity launch defaults without changing the role lane', () => {
     const args = resolveWorkerLaunchArgsFromEnv(
-      { OMX_TEAM_WORKER_LAUNCH_ARGS: '--no-alt-screen' },
+      { NOMX_TEAM_WORKER_LAUNCH_ARGS: '--no-alt-screen' },
       'explore',
     );
     assert.deepEqual(args, ['--no-alt-screen', '--model', expectedLowComplexityModel()]);
   });
 
   it('startTeam preserves low-complexity assigned roles as outer runtime identities', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-runtime-identity-start-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-runtime-identity-start-'));
     const binDir = join(cwd, 'bin');
     const fakeCodexPath = join(binDir, 'codex');
     const captureDir = join(cwd, 'captures');
@@ -91,8 +91,8 @@ describe('worker runtime identity contract', () => {
       `#!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
-const worker = String(process.env.OMX_TEAM_WORKER || 'unknown').replace(/[^a-zA-Z0-9_-]+/g, '__');
-const out = path.join(process.env.OMX_ARGV_CAPTURE_DIR, worker + '.json');
+const worker = String(process.env.NOMX_TEAM_WORKER || 'unknown').replace(/[^a-zA-Z0-9_-]+/g, '__');
+const out = path.join(process.env.NOMX_ARGV_CAPTURE_DIR, worker + '.json');
 fs.writeFileSync(out, JSON.stringify({ argv: process.argv.slice(2), worker }, null, 2));
 process.stdin.resume();
 setTimeout(() => process.exit(0), 5000);
@@ -103,17 +103,17 @@ process.on('SIGTERM', () => process.exit(0));
 
     const prevPath = process.env.PATH;
     const prevTmux = process.env.TMUX;
-    const prevLaunchMode = process.env.OMX_TEAM_WORKER_LAUNCH_MODE;
-    const prevWorkerCli = process.env.OMX_TEAM_WORKER_CLI;
-    const prevCaptureDir = process.env.OMX_ARGV_CAPTURE_DIR;
-    const prevLaunchArgs = process.env.OMX_TEAM_WORKER_LAUNCH_ARGS;
+    const prevLaunchMode = process.env.NOMX_TEAM_WORKER_LAUNCH_MODE;
+    const prevWorkerCli = process.env.NOMX_TEAM_WORKER_CLI;
+    const prevCaptureDir = process.env.NOMX_ARGV_CAPTURE_DIR;
+    const prevLaunchArgs = process.env.NOMX_TEAM_WORKER_LAUNCH_ARGS;
 
     process.env.PATH = `${binDir}:${prevPath ?? ''}`;
     delete process.env.TMUX;
-    process.env.OMX_TEAM_WORKER_LAUNCH_MODE = 'prompt';
-    process.env.OMX_TEAM_WORKER_CLI = 'codex';
-    process.env.OMX_ARGV_CAPTURE_DIR = captureDir;
-    delete process.env.OMX_TEAM_WORKER_LAUNCH_ARGS;
+    process.env.NOMX_TEAM_WORKER_LAUNCH_MODE = 'prompt';
+    process.env.NOMX_TEAM_WORKER_CLI = 'codex';
+    process.env.NOMX_ARGV_CAPTURE_DIR = captureDir;
+    delete process.env.NOMX_TEAM_WORKER_LAUNCH_ARGS;
 
     let runtime: TeamRuntime | null = null;
     try {
@@ -135,8 +135,8 @@ process.on('SIGTERM', () => process.exit(0));
       assert.equal(runtime.config.workers[0]?.role, 'explore');
       assert.equal(runtime.config.workers[1]?.role, 'style-reviewer');
 
-      const worker1Instructions = await readFile(join(cwd, '.omx', 'state', 'team', runtime.teamName, 'workers', 'worker-1', 'AGENTS.md'), 'utf-8');
-      const worker2Instructions = await readFile(join(cwd, '.omx', 'state', 'team', runtime.teamName, 'workers', 'worker-2', 'AGENTS.md'), 'utf-8');
+      const worker1Instructions = await readFile(join(cwd, '.nomx', 'state', 'team', runtime.teamName, 'workers', 'worker-1', 'AGENTS.md'), 'utf-8');
+      const worker2Instructions = await readFile(join(cwd, '.nomx', 'state', 'team', runtime.teamName, 'workers', 'worker-2', 'AGENTS.md'), 'utf-8');
       assert.match(worker1Instructions, /You are operating as the \*\*explore\*\* role/);
       assert.match(worker1Instructions, /You are Explorer\./);
       assert.doesNotMatch(worker1Instructions, /Sisyphus-lite/);
@@ -162,9 +162,9 @@ process.on('SIGTERM', () => process.exit(0));
       const worker1Joined = worker1Args!.join(' ');
       const worker2Joined = worker2Args!.join(' ');
       assert.match(worker1Joined, /model_reasoning_effort="low"/);
-      assert.match(worker1Joined, /--model gpt-5\.6-luna/);
+      assert.match(worker1Joined, new RegExp(`--model ${expectedLowComplexityModel().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
       assert.match(worker2Joined, /model_reasoning_effort="low"/);
-      assert.match(worker2Joined, /--model gpt-5\.6-luna/);
+      assert.match(worker2Joined, new RegExp(`--model ${expectedLowComplexityModel().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
 
       await shutdownTeam(runtime.teamName, cwd, { force: true });
       runtime = null;
@@ -176,21 +176,21 @@ process.on('SIGTERM', () => process.exit(0));
       else delete process.env.PATH;
       if (typeof prevTmux === 'string') process.env.TMUX = prevTmux;
       else delete process.env.TMUX;
-      if (typeof prevLaunchMode === 'string') process.env.OMX_TEAM_WORKER_LAUNCH_MODE = prevLaunchMode;
-      else delete process.env.OMX_TEAM_WORKER_LAUNCH_MODE;
-      if (typeof prevWorkerCli === 'string') process.env.OMX_TEAM_WORKER_CLI = prevWorkerCli;
-      else delete process.env.OMX_TEAM_WORKER_CLI;
-      if (typeof prevCaptureDir === 'string') process.env.OMX_ARGV_CAPTURE_DIR = prevCaptureDir;
-      else delete process.env.OMX_ARGV_CAPTURE_DIR;
-      if (typeof prevLaunchArgs === 'string') process.env.OMX_TEAM_WORKER_LAUNCH_ARGS = prevLaunchArgs;
-      else delete process.env.OMX_TEAM_WORKER_LAUNCH_ARGS;
+      if (typeof prevLaunchMode === 'string') process.env.NOMX_TEAM_WORKER_LAUNCH_MODE = prevLaunchMode;
+      else delete process.env.NOMX_TEAM_WORKER_LAUNCH_MODE;
+      if (typeof prevWorkerCli === 'string') process.env.NOMX_TEAM_WORKER_CLI = prevWorkerCli;
+      else delete process.env.NOMX_TEAM_WORKER_CLI;
+      if (typeof prevCaptureDir === 'string') process.env.NOMX_ARGV_CAPTURE_DIR = prevCaptureDir;
+      else delete process.env.NOMX_ARGV_CAPTURE_DIR;
+      if (typeof prevLaunchArgs === 'string') process.env.NOMX_TEAM_WORKER_LAUNCH_ARGS = prevLaunchArgs;
+      else delete process.env.NOMX_TEAM_WORKER_LAUNCH_ARGS;
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it('scaleUp preserves low-complexity assigned roles as outer runtime identities', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-runtime-identity-scale-'));
-    const fakeBinDir = await mkdtemp(join(tmpdir(), 'omx-runtime-identity-scale-bin-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-runtime-identity-scale-'));
+    const fakeBinDir = await mkdtemp(join(tmpdir(), 'nomx-runtime-identity-scale-bin-'));
     const tmuxStubPath = join(fakeBinDir, 'tmux');
     const tmuxLogPath = join(fakeBinDir, 'tmux.log');
     const previousPath = process.env.PATH;
@@ -226,13 +226,13 @@ process.on('SIGTERM', () => process.exit(0));
       await mkdir(join(cwd, '.codex', 'prompts'), { recursive: true });
       await writeFile(join(cwd, '.codex', 'prompts', 'explore.md'), '<identity>You are Explorer.</identity>');
       await writeFile(join(cwd, '.codex', 'prompts', 'sisyphus-lite.md'), '<identity>You are Sisyphus-lite.</identity>');
-      await mkdir(join(cwd, '.omx', 'state', 'team', 'low-role-scale'), { recursive: true });
-      await writeFile(join(cwd, '.omx', 'state', 'team', 'low-role-scale', 'worker-agents.md'), '# Base worker instructions\n');
+      await mkdir(join(cwd, '.nomx', 'state', 'team', 'low-role-scale'), { recursive: true });
+      await writeFile(join(cwd, '.nomx', 'state', 'team', 'low-role-scale', 'worker-agents.md'), '# Base worker instructions\n');
 
       await initTeamState('low-role-scale', 'task', 'executor', 1, cwd, undefined, process.env, {
         workspace_mode: 'single',
         leader_cwd: cwd,
-        team_state_root: join(cwd, '.omx', 'state'),
+        team_state_root: join(cwd, '.nomx', 'state'),
       });
       await createTask('low-role-scale', {
         subject: 'existing task',
@@ -244,12 +244,12 @@ process.on('SIGTERM', () => process.exit(0));
       const config = await readTeamConfig('low-role-scale', cwd);
       assert.ok(config);
       if (!config) return;
-      config.tmux_session = 'omx-team-low-role-scale';
+      config.tmux_session = 'nomx-team-low-role-scale';
       config.leader_pane_id = '%11';
       config.workers[0]!.pane_id = '%21';
       await saveTeamConfig(config, cwd);
 
-      const manifestPath = join(cwd, '.omx', 'state', 'team', 'low-role-scale', 'manifest.v2.json');
+      const manifestPath = join(cwd, '.nomx', 'state', 'team', 'low-role-scale', 'manifest.v2.json');
       const manifest = JSON.parse(await readFile(manifestPath, 'utf-8')) as { policy?: Record<string, unknown> };
       manifest.policy = {
         ...(manifest.policy ?? {}),
@@ -263,12 +263,12 @@ process.on('SIGTERM', () => process.exit(0));
         'executor',
         [{ subject: 'map files', description: 'map files', owner: 'worker-2', role: 'explore' }],
         cwd,
-        { OMX_TEAM_SCALING_ENABLED: '1', OMX_TEAM_SKIP_READY_WAIT: '1' },
+        { NOMX_TEAM_SCALING_ENABLED: '1', NOMX_TEAM_SKIP_READY_WAIT: '1' },
       );
       assert.equal(result.ok, true);
       if (!result.ok) return;
 
-      const workerAgents = await readFile(join(cwd, '.omx', 'state', 'team', 'low-role-scale', 'workers', 'worker-2', 'AGENTS.md'), 'utf-8');
+      const workerAgents = await readFile(join(cwd, '.nomx', 'state', 'team', 'low-role-scale', 'workers', 'worker-2', 'AGENTS.md'), 'utf-8');
       assert.match(workerAgents, /You are operating as the \*\*explore\*\* role/);
       assert.match(workerAgents, /You are Explorer\./);
       assert.doesNotMatch(workerAgents, /Sisyphus-lite/);
@@ -276,10 +276,10 @@ process.on('SIGTERM', () => process.exit(0));
       const tmuxLog = await readFile(tmuxLogPath, 'utf-8');
       assert.match(tmuxLog, /runtime\/worker-2-startup\.sh/);
       const startupScript = await readFile(
-        join(cwd, '.omx', 'state', 'team', 'low-role-scale', 'runtime', 'worker-2-startup.sh'),
+        join(cwd, '.nomx', 'state', 'team', 'low-role-scale', 'runtime', 'worker-2-startup.sh'),
         'utf-8',
       );
-      assert.match(startupScript, /gpt-5\.6-luna/);
+      assert.match(startupScript, new RegExp(expectedLowComplexityModel().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
       assert.match(startupScript, /model_reasoning_effort.*low/);
     } finally {
       if (typeof previousPath === 'string') process.env.PATH = previousPath;
@@ -290,8 +290,8 @@ process.on('SIGTERM', () => process.exit(0));
   });
 
   it('scaleUp recomputes worker CLI from exact-role-resolved launch args instead of inherited non-Codex model routing', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-runtime-identity-scale-exact-'));
-    const fakeBinDir = await mkdtemp(join(tmpdir(), 'omx-runtime-identity-scale-exact-bin-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-runtime-identity-scale-exact-'));
+    const fakeBinDir = await mkdtemp(join(tmpdir(), 'nomx-runtime-identity-scale-exact-bin-'));
     const tmuxStubPath = join(fakeBinDir, 'tmux');
     const tmuxLogPath = join(fakeBinDir, 'tmux.log');
     const previousPath = process.env.PATH;
@@ -327,8 +327,8 @@ process.on('SIGTERM', () => process.exit(0));
       await writeFile(tmuxLogPath, '');
       process.env.PATH = `${fakeBinDir}:${previousPath ?? ''}`;
 
-      await mkdir(join(cwd, '.omx', 'state', 'team', 'exact-role-cli'), { recursive: true });
-      await writeFile(join(cwd, '.omx', 'state', 'team', 'exact-role-cli', 'worker-agents.md'), '# Base worker instructions\n');
+      await mkdir(join(cwd, '.nomx', 'state', 'team', 'exact-role-cli'), { recursive: true });
+      await writeFile(join(cwd, '.nomx', 'state', 'team', 'exact-role-cli', 'worker-agents.md'), '# Base worker instructions\n');
 
       await initTeamState('exact-role-cli', 'task', 'executor', 1, cwd);
       await createTask('exact-role-cli', {
@@ -342,13 +342,13 @@ process.on('SIGTERM', () => process.exit(0));
       const config = await readTeamConfig('exact-role-cli', cwd);
       assert.ok(config);
       if (!config) return;
-      config.tmux_session = 'omx-team-exact-role-cli';
+      config.tmux_session = 'nomx-team-exact-role-cli';
       config.leader_pane_id = '%11';
       config.workers[0]!.pane_id = '%21';
       config.next_worker_index = 3;
       await saveTeamConfig(config, cwd);
 
-      const manifestPath = join(cwd, '.omx', 'state', 'team', 'exact-role-cli', 'manifest.v2.json');
+      const manifestPath = join(cwd, '.nomx', 'state', 'team', 'exact-role-cli', 'manifest.v2.json');
       const manifest = JSON.parse(await readFile(manifestPath, 'utf-8')) as { policy?: Record<string, unknown> };
       manifest.policy = {
         ...(manifest.policy ?? {}),
@@ -363,20 +363,20 @@ process.on('SIGTERM', () => process.exit(0));
         [{ subject: 'architecture follow-up', description: 'exact-role scale-up regression', owner: 'worker-3', role: 'architect' }],
         cwd,
         {
-          OMX_TEAM_SCALING_ENABLED: '1',
-          OMX_TEAM_SKIP_READY_WAIT: '1',
-          OMX_TEAM_WORKER_LAUNCH_ARGS: '--no-alt-screen',
-          OMX_TEAM_WORKER_INHERITED_MODEL: 'claude-sonnet-4-6',
+          NOMX_TEAM_SCALING_ENABLED: '1',
+          NOMX_TEAM_SKIP_READY_WAIT: '1',
+          NOMX_TEAM_WORKER_LAUNCH_ARGS: '--no-alt-screen',
+          NOMX_TEAM_WORKER_INHERITED_MODEL: 'claude-sonnet-4-6',
         },
       );
       assert.equal(result.ok, true);
       if (!result.ok) return;
 
-      const workerIdentity = JSON.parse(await readFile(join(cwd, '.omx', 'state', 'team', 'exact-role-cli', 'workers', 'worker-3', 'identity.json'), 'utf-8')) as { worker_cli?: string; role?: string };
+      const workerIdentity = JSON.parse(await readFile(join(cwd, '.nomx', 'state', 'team', 'exact-role-cli', 'workers', 'worker-3', 'identity.json'), 'utf-8')) as { worker_cli?: string; role?: string };
       assert.equal(workerIdentity.role, 'architect');
       assert.equal(workerIdentity.worker_cli, 'codex');
 
-      const startupScript = await readFile(join(cwd, '.omx', 'state', 'team', 'exact-role-cli', 'runtime', 'worker-3-startup.sh'), 'utf-8');
+      const startupScript = await readFile(join(cwd, '.nomx', 'state', 'team', 'exact-role-cli', 'runtime', 'worker-3-startup.sh'), 'utf-8');
       assert.match(startupScript, /codex/);
       assert.doesNotMatch(startupScript, /\bclaude\b/);
       assert.doesNotMatch(startupScript, /\bgemini\b/);

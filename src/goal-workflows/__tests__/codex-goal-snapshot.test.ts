@@ -61,7 +61,7 @@ describe('codex goal snapshot reconciliation', () => {
     assert.equal(required.ok, false);
     assert.match(required.errors.join('\n'), /no active goal\/null/);
     assert.match(required.errors.join('\n'), /call create_goal/);
-    assert.match(required.errors.join('\n'), /do not mark complete from OMX state alone/);
+    assert.match(required.errors.join('\n'), /do not mark complete from NOMX state alone/);
   });
 
   it('keeps required reconciliation strict when get_goal is unavailable', () => {
@@ -97,7 +97,7 @@ describe('codex goal snapshot reconciliation', () => {
   });
 
   it('reads inline JSON and path input but rejects malformed sources', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-codex-goal-snapshot-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-codex-goal-snapshot-'));
     try {
       const fromJson = await readCodexGoalSnapshotInput('{"goal":{"objective":"A","status":"active"}}', cwd);
       assert.equal(fromJson?.objective, 'A');

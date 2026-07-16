@@ -1,5 +1,5 @@
 /**
- * nomx setup - Automated installation of oh-my-codex
+ * nomx setup - Automated installation of NOMX
  * Installs skills, prompts, MCP servers config, and AGENTS.md
  */
 
@@ -27,6 +27,11 @@ import { homedir } from "os";
 import TOML from "@iarna/toml";
 import { createHash } from "crypto";
 import {
+	createNomxRootMetadata,
+	nominalRootPair,
+	requireNomxWritable,
+} from "../identity/index.js";
+import {
 	clearNativeHookClaimJournal,
 	persistNativeHookClaimJournal,
 	recoverNativeHookClaimJournal,
@@ -39,10 +44,7 @@ import {
 	codexPromptsDir,
 	codexAgentsDir,
 	userSkillsDir,
-	omxStateDir,
 	detectLegacySkillRootOverlap,
-	omxPlansDir,
-	omxLogsDir,
 } from "../utils/paths.js";
 import {
 	buildMergedConfig,
@@ -60,8 +62,8 @@ import {
 	upsertPluginModeRuntimeFeatureFlags,
 	upsertManagedCodexHookTrustState,
 	stripManagedCodexHookTrustState,
-	OMX_DEVELOPER_INSTRUCTIONS,
-	OMX_PLUGIN_DEVELOPER_INSTRUCTIONS,
+	NOMX_DEVELOPER_INSTRUCTIONS,
+	NOMX_PLUGIN_DEVELOPER_INSTRUCTIONS,
 	hasFirstPartyOmxMcpRegistrations,
 	extractFirstPartyOmxMcpSections,
 	stripFirstPartyOmxMcpSections,
@@ -125,8 +127,8 @@ import {
 	type SetupScope,
 } from "./setup-preferences.js";
 import {
-	OMX_LOCAL_MARKETPLACE_NAME,
-	OMX_PLUGIN_NAME,
+	NOMX_LOCAL_MARKETPLACE_NAME,
+	NOMX_PLUGIN_NAME,
 	materializePackagedOmxPluginCache,
 	resolvePackagedOmxMarketplace,
 	upsertLocalOmxMarketplaceRegistration,
@@ -144,7 +146,7 @@ async function resolveStatusLinePresetForSetup(
 	if (options.force) {
 		return DEFAULT_HUD_CONFIG.statusLine.preset;
 	}
-	const path = join(projectRoot, ".omx", "hud-config.json");
+	const path = join(projectRoot, ".nomx", "hud-config.json");
 	if (!existsSync(path)) return undefined;
 	try {
 		const raw = JSON.parse(await readFile(path, "utf-8")) as {
@@ -253,7 +255,7 @@ export interface SkillFrontmatterMetadata {
 }
 
 const PROJECT_GITIGNORE_ENTRIES = [
-	".omx/",
+	".nomx/",
 	".codex/*",
 	"!.codex/agents/",
 	"!.codex/agents/**",
@@ -266,7 +268,7 @@ const PROJECT_GITIGNORE_ENTRIES = [
 const LEGACY_PROJECT_GITIGNORE_ENTRIES = [".codex/"] as const;
 const SETUP_ONLY_INSTALLABLE_SKILLS = new Set<string>();
 const DEFAULT_SETUP_MCP_MODE: SetupMcpMode = "none";
-const SKIP_NATIVE_AGENT_REFRESH_ENV = "OMX_SKIP_NATIVE_AGENT_REFRESH";
+const SKIP_NATIVE_AGENT_REFRESH_ENV = "NOMX_SKIP_NATIVE_AGENT_REFRESH";
 const HARD_DEPRECATED_SKILL_NAMES = new Set(["web-clone"]);
 const TEAM_MODE_SKILL_NAMES = new Set(["team", "worker"]);
 const TEAM_MODE_PROMPT_NAMES = new Set(["team-executor"]);
@@ -309,8 +311,8 @@ function applyPluginModeWordingToAgentsTemplate(
 			? "`./.codex/skills` for project scope, or `~/.codex/skills` for user-installed skills"
 			: "`~/.codex/skills`";
 	return scopedContent.replace(
-		/Role prompts under `prompts\/\*\.md` are narrower execution surfaces\. They must follow this file, not override it\.\nWhen OMX is installed, load the installed prompt\/skill\/agent surfaces from [^\n]+active\)\./,
-		`Registered Codex plugin marketplace surfaces supply OMX workflows and plugin-scoped companion resources when the plugin is installed. Native agent roles are installed as setup-owned Codex agent TOML files in plugin mode so agent_type routing works. They must follow this file, not override it.\nUser-installed skills may still live under ${userSkillPath}.`,
+		/Role prompts under `prompts\/\*\.md` are narrower execution surfaces\. They must follow this file, not override it\.\nWhen NOMX is installed, load the installed prompt\/skill\/agent surfaces from [^\n]+active\)\./,
+		`Registered Codex plugin marketplace surfaces supply NOMX workflows and plugin-scoped companion resources when the plugin is installed. Native agent roles are installed as setup-owned Codex agent TOML files in plugin mode so agent_type routing works. They must follow this file, not override it.\nUser-installed skills may still live under ${userSkillPath}.`,
 		);
 }
 
@@ -428,12 +430,12 @@ function getBackupContext(
 	const timestamp = new Date().toISOString().replace(/[:]/g, "-");
 	if (scope === "project") {
 		return {
-			backupRoot: join(projectRoot, ".omx", "backups", "setup", timestamp),
+			backupRoot: join(projectRoot, ".nomx", "backups", "setup", timestamp),
 			baseRoot: projectRoot,
 		};
 	}
 	return {
-		backupRoot: join(homedir(), ".omx", "backups", "setup", timestamp),
+		backupRoot: join(homedir(), ".nomx", "backups", "setup", timestamp),
 		baseRoot: homedir(),
 	};
 }
@@ -897,7 +899,7 @@ function assertWindowsNativeHookShimOwnership(
 	);
 	if (ownership === "current" || ownership === "historical") return;
 	throw new Error(
-		`Refusing to replace modified Windows native hook shim ${shimPath}. Restore the complete OMX-generated shim or remove it after verifying no foreign hook references it.`,
+		`Refusing to replace modified Windows native hook shim ${shimPath}. Restore the complete NOMX-generated shim or remove it after verifying no foreign hook references it.`,
 	);
 }
 
@@ -1072,7 +1074,7 @@ function nativeHookTransactionTemporaryPath(
 	nativeHookTransactionSequence += 1;
 	return join(
 		dirname(path),
-		`.${basename(path)}.omx-${purpose}-${process.pid}-${nativeHookTransactionSequence}.tmp`,
+		`.${basename(path)}.nomx-${purpose}-${process.pid}-${nativeHookTransactionSequence}.tmp`,
 	);
 }
 
@@ -1080,7 +1082,7 @@ function nativeHookTransactionClaimPath(path: string): string {
 	nativeHookTransactionSequence += 1;
 	return join(
 		dirname(path),
-		`.${basename(path)}.omx-claim-${process.pid}-${nativeHookTransactionSequence}.tmp`,
+		`.${basename(path)}.nomx-claim-${process.pid}-${nativeHookTransactionSequence}.tmp`,
 	);
 }
 
@@ -1196,7 +1198,7 @@ async function atomicWriteNativeHookTransactionArtifact(
 				});
 				await refreshNativeHookTransactionAncestorPrecondition(
 					ancestorPrecondition,
-					join(ancestorPrecondition.controlledRoot, ".omx", "native-hook-claim-journal.json"),
+					join(ancestorPrecondition.controlledRoot, ".nomx", "native-hook-claim-journal.json"),
 				);
 				journaledClaim = true;
 			}
@@ -2146,7 +2148,7 @@ function rewriteInstalledSkillDescriptionBadge(
 	filePath = "SKILL.md",
 ): string {
 	const metadata = parseSkillFrontmatter(content, filePath);
-	const badgePrefix = "[OMX] ";
+	const badgePrefix = "[NOMX] ";
 	const displayDescription = metadata.description.startsWith(badgePrefix)
 		? metadata.description
 		: `${badgePrefix}${metadata.description}`;
@@ -2272,10 +2274,10 @@ async function promptForSetupInstallMode(
 	try {
 		console.log("Select user-scope skill delivery mode:");
 		console.log(
-			`  1) legacy${defaultMode === "legacy" ? " (default)" : ""} — install/update OMX skills in the resolved user skill root`,
+			`  1) legacy${defaultMode === "legacy" ? " (default)" : ""} — install/update NOMX skills in the resolved user skill root`,
 		);
 		console.log(
-			`  2) plugin${defaultMode === "plugin" ? " (default)" : ""} — rely on Codex plugin discovery and clean up matching legacy OMX-managed setup artifacts`,
+			`  2) plugin${defaultMode === "plugin" ? " (default)" : ""} — rely on Codex plugin discovery and clean up matching legacy NOMX-managed setup artifacts`,
 		);
 		const defaultChoice = defaultMode === "plugin" ? "2" : "1";
 		const answer = (
@@ -2303,14 +2305,14 @@ async function promptForFirstPartyMcpRemoval(
 		output: process.stdout,
 	});
 	try {
-		console.log("Deprecated first-party OMX MCP registration detected:");
+		console.log("Deprecated first-party NOMX MCP registration detected:");
 		console.log(`  ${configPath}`);
 		console.log(`  ${registrationKinds.join(", ")}`);
 		console.log(
-			"  OMX is CLI-first by default now; first-party MCP compatibility is legacy/explicit.",
+			"  NOMX is CLI-first by default now; first-party MCP compatibility is legacy/explicit.",
 		);
 		const answer = (
-			await rl.question("Remove first-party OMX MCP registrations now? [y/N]: ")
+			await rl.question("Remove first-party NOMX MCP registrations now? [y/N]: ")
 		)
 			.trim()
 			.toLowerCase();
@@ -2357,7 +2359,7 @@ async function promptForPersistedSetupReview(
 		output: process.stdout,
 	});
 	try {
-		console.log("Existing OMX setup preferences detected:");
+		console.log("Existing NOMX setup preferences detected:");
 		console.log(`  ${formatPersistedSetupPreferenceSummary(preferences)}`);
 		console.log("  1) keep   — reuse these choices for this setup run");
 		console.log(
@@ -2443,7 +2445,7 @@ async function promptForPluginAgentsMdDefault(
 	try {
 		const answer = (
 			await rl.question(
-				`Plugin mode: install/update OMX AGENTS.md defaults at "${destinationPath}"? [Y/n]: `,
+				`Plugin mode: install/update NOMX AGENTS.md defaults at "${destinationPath}"? [Y/n]: `,
 			)
 		)
 			.trim()
@@ -2455,7 +2457,7 @@ async function promptForPluginAgentsMdDefault(
 }
 
 const LEGACY_PLUGIN_DEVELOPER_INSTRUCTIONS =
-	"You have oh-my-codex installed through Codex plugin mode. AGENTS.md is the orchestration brain and main control surface. Follow AGENTS.md for skill/keyword routing and $name workflow invocation. When spawning native subagents, set `agent_type` to an installed role and never omit it for OMX work. Registered Codex plugin marketplace surfaces supply OMX workflows and plugin-scoped companion resources when the plugin is installed; native agent roles are installed as setup-owned Codex agent TOML files in plugin mode so agent_type routing works. User-installed skills may still live under ~/.codex/skills. Use outcome-first, concise progress updates: state the target result, constraints, validation evidence, and stop condition before adding process detail.";
+	"You have nomx installed through Codex plugin mode. AGENTS.md is the orchestration brain and main control surface. Follow AGENTS.md for skill/keyword routing and $name workflow invocation. When spawning native subagents, set `agent_type` to an installed role and never omit it for NOMX work. Registered Codex plugin marketplace surfaces supply NOMX workflows and plugin-scoped companion resources when the plugin is installed; native agent roles are installed as setup-owned Codex agent TOML files in plugin mode so agent_type routing works. User-installed skills may still live under ~/.codex/skills. Use outcome-first, concise progress updates: state the target result, constraints, validation evidence, and stop condition before adding process detail.";
 
 function normalizeDeveloperInstructionsText(value: string): string {
 	return value.replace(/\r\n/g, "\n").trim();
@@ -2468,7 +2470,7 @@ function classifyPluginDeveloperInstructions(
 	const normalized = normalizeDeveloperInstructionsText(value);
 	if (
 		normalized ===
-		normalizeDeveloperInstructionsText(OMX_PLUGIN_DEVELOPER_INSTRUCTIONS)
+		normalizeDeveloperInstructionsText(NOMX_PLUGIN_DEVELOPER_INSTRUCTIONS)
 	) {
 		return "current";
 	}
@@ -2479,7 +2481,7 @@ function classifyPluginDeveloperInstructions(
 		return "historical";
 	}
 	if (
-		normalized === normalizeDeveloperInstructionsText(OMX_DEVELOPER_INSTRUCTIONS)
+		normalized === normalizeDeveloperInstructionsText(NOMX_DEVELOPER_INSTRUCTIONS)
 	) {
 		return "historical";
 	}
@@ -2492,7 +2494,7 @@ function readRootDeveloperInstructions(config: string): unknown | undefined {
 		const parsed = TOML.parse(config) as Record<string, unknown>;
 		return parsed.developer_instructions;
 	} catch {
-		return Symbol.for("omx.invalid-developer-instructions");
+		return Symbol.for("nomx.invalid-developer-instructions");
 	}
 }
 
@@ -2554,7 +2556,7 @@ async function resolvePluginDeveloperInstructionsDecision(
 			);
 		}
 		const install = await askYesNoDefaultYes(
-			`Plugin mode: add OMX developer_instructions bootstrap to "${configPath}"? [Y/n]: `,
+			`Plugin mode: add NOMX developer_instructions bootstrap to "${configPath}"? [Y/n]: `,
 		);
 		return install
 			? {
@@ -2574,7 +2576,7 @@ async function resolvePluginDeveloperInstructionsDecision(
 		return {
 			action: "preserve",
 			state,
-			reason: "current OMX developer_instructions already installed",
+			reason: "current NOMX developer_instructions already installed",
 		};
 	}
 
@@ -2585,29 +2587,29 @@ async function resolvePluginDeveloperInstructionsDecision(
 					state,
 				)
 			: await askYesNoDefaultYes(
-					`Plugin mode: update OMX developer_instructions bootstrap at "${configPath}"? [Y/n]: `,
+					`Plugin mode: update NOMX developer_instructions bootstrap at "${configPath}"? [Y/n]: `,
 				)
 				? {
 						action: "update",
 						state,
-						reason: "recognized historical OMX developer_instructions",
+						reason: "recognized historical NOMX developer_instructions",
 					} satisfies PluginDeveloperInstructionsDecision
 				: {
 						action: "preserve",
 						state,
-						reason: "historical OMX developer_instructions preserved",
+						reason: "historical NOMX developer_instructions preserved",
 					} satisfies PluginDeveloperInstructionsDecision;
 		const update = updateDecision.action === "update";
 		return update
 			? {
 					action: "update",
 					state,
-					reason: "recognized historical OMX developer_instructions",
+					reason: "recognized historical NOMX developer_instructions",
 				}
 			: {
 					action: "preserve",
 					state,
-					reason: "historical OMX developer_instructions preserved",
+					reason: "historical NOMX developer_instructions preserved",
 				};
 	}
 
@@ -2665,7 +2667,7 @@ async function readPluginManifestName(
 	}
 }
 
-interface OmxPluginCacheManifest {
+interface NomxPluginCacheManifest {
 	name: string | null;
 	version: string | null;
 	skills: string | null;
@@ -2674,7 +2676,7 @@ interface OmxPluginCacheManifest {
 
 async function readPluginManifestSummary(
 	manifestPath: string,
-): Promise<OmxPluginCacheManifest | null> {
+): Promise<NomxPluginCacheManifest | null> {
 	try {
 		const parsed = JSON.parse(await readFile(manifestPath, "utf-8")) as unknown;
 		if (typeof parsed !== "object" || parsed === null) return null;
@@ -2725,7 +2727,7 @@ async function discoverOmxPluginCacheDirs(
 		const manifestPath = join(current.path, ".codex-plugin", "plugin.json");
 		if (existsSync(manifestPath)) {
 			const name = await readPluginManifestName(manifestPath);
-			if (name === "oh-my-codex") {
+			if (name === "nomx" || name === "nomx") {
 				matches.push(current.path);
 				continue;
 			}
@@ -2788,7 +2790,7 @@ async function refreshOmxPluginDiscoveryCache(
 		const manifest = await readPluginManifestSummary(
 			join(cacheDir, ".codex-plugin", "plugin.json"),
 		);
-		if (manifest?.name !== "oh-my-codex") continue;
+		if (manifest?.name !== "nomx" && manifest?.name !== "nomx") continue;
 
 		const cachedSkillNames = await listChildDirectoryNames(join(cacheDir, "skills"));
 		const versionChanged =
@@ -2797,7 +2799,7 @@ async function refreshOmxPluginDiscoveryCache(
 		const hooksPointerChanged = manifest.hooks !== "./hooks/hooks.json";
 		const hookFilesMissing = !existsSync(join(cacheDir, "hooks", "hooks.json"))
 			|| !existsSync(join(cacheDir, "hooks", "codex-native-hook.mjs"))
-			|| !existsSync(join(cacheDir, "hooks", "omx-command.json"));
+			|| !existsSync(join(cacheDir, "hooks", "nomx-command.json"));
 		const hookFilesChanged = !hookFilesMissing
 			&& !(await pluginHookCacheMatchesPackaged(cacheDir, packagedMarketplace));
 		const skillListChanged =
@@ -2911,7 +2913,7 @@ async function resolveSetupInstallMode(
 	) {
 		if (discoveredPluginCacheDir) {
 			console.log(
-				`Detected installed oh-my-codex Codex plugin cache at ${discoveredPluginCacheDir}.`,
+				`Detected installed NOMX Codex plugin cache at ${discoveredPluginCacheDir}.`,
 			);
 		}
 		const installMode = installModePrompt
@@ -2946,7 +2948,7 @@ function shouldAddProjectGitignoreEntry(
 ): boolean {
 	if (hasGitignoreEntry(content, entry)) return false;
 
-	if (entry === ".omx/" && isProjectPathIgnoredByGit(projectRoot, entry)) {
+	if (entry === ".nomx/" && isProjectPathIgnoredByGit(projectRoot, entry)) {
 		return false;
 	}
 
@@ -3111,7 +3113,7 @@ function stripPluginModeLegacyRootDefaults(
 		if (
 			index < boundary &&
 			line.trim() ===
-				"# oh-my-codex top-level settings (must be before any [table])"
+				"# NOMX top-level settings (must be before any [table])"
 		) {
 			continue;
 		}
@@ -3332,7 +3334,7 @@ function buildPluginDeveloperInstructionsConfigPlan(
 		};
 	}
 
-	const line = `developer_instructions = ${JSON.stringify(OMX_PLUGIN_DEVELOPER_INSTRUCTIONS)}`;
+	const line = `developer_instructions = ${JSON.stringify(NOMX_PLUGIN_DEVELOPER_INSTRUCTIONS)}`;
 	const hasExistingDeveloperInstructions = rootHasTomlKey(
 		existingConfig,
 		"developer_instructions",
@@ -3702,6 +3704,39 @@ async function planNativeHookSetupTransaction(
 	};
 }
 
+/** @internal Initializes the selected namespace root before setup writes. */
+export async function prepareNomxRoot(projectRoot: string, dryRun: boolean): Promise<void> {
+	const pair = nominalRootPair(projectRoot);
+	const authority = await requireNomxWritable(pair);
+	if (authority.state !== "fresh_nomx" || dryRun) return;
+
+	await mkdir(pair.canonicalRoot, { recursive: true });
+	const metadataPath = join(pair.canonicalRoot, "identity.json");
+	const temporaryPath = join(
+		pair.canonicalRoot,
+		`.identity-${process.pid}-${Date.now()}.tmp`,
+	);
+	try {
+		await writeFile(
+			temporaryPath,
+			`${JSON.stringify(createNomxRootMetadata(pair.canonicalRoot), null, 2)}\n`,
+			{ flag: "wx", mode: 0o600 },
+		);
+		await rename(temporaryPath, metadataPath);
+	} catch (error) {
+		await rm(temporaryPath, { force: true }).catch(() => undefined);
+		throw error;
+	}
+}
+
+export function resolveSetupNamespaceBase(
+	scope: SetupScope,
+	projectRoot: string,
+	userHome = homedir(),
+): string {
+	return scope === "user" ? userHome : projectRoot;
+}
+
 export async function setup(options: SetupOptions = {}): Promise<void> {
 	const {
 		force = false,
@@ -3776,6 +3811,10 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		persistedReviewDecision,
 		persistedPreferences,
 		setupScopePrompt,
+	);
+	const namespaceBase = resolveSetupNamespaceBase(
+		resolvedScope.scope,
+		projectRoot,
 	);
 	const requestedMergeAgentsPolicy =
 		options.mergeAgentsPolicy ??
@@ -3867,7 +3906,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		: undefined;
 	const firstPartyMcpRegistrationKinds = [
 		hasFirstPartyOmxMcpRegistrations(existingConfigForMcpMigration)
-			? "config.toml [mcp_servers.omx_*]"
+			? "config.toml [mcp_servers.nomx_*]"
 			: null,
 		hasLocalOmxPluginMcpServerRegistrations(existingConfigForMcpMigration)
 			? "plugin mcp_servers overrides"
@@ -3894,7 +3933,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		}
 	}
 	const scopeSourceMessage =
-		resolvedScope.source === "persisted" ? " (from .omx/setup-scope.json)" : "";
+		resolvedScope.source === "persisted" ? " (from .nomx/setup-scope.json)" : "";
 	const backupContext = getBackupContext(resolvedScope.scope, projectRoot);
 	const isPluginInstallMode = resolvedInstallMode?.installMode === "plugin";
 	const pluginAgentsMdDst =
@@ -3952,7 +3991,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		: null;
 	const statusLinePreset = isPluginInstallMode
 		? undefined
-		: await resolveStatusLinePresetForSetup(projectRoot, { force });
+		: await resolveStatusLinePresetForSetup(namespaceBase, { force });
 	const nativeHookSetupTransaction = await planNativeHookSetupTransaction({
 		configPath: scopeDirs.codexConfigFile,
 		hooksPath: scopeDirs.codexHooksFile,
@@ -3985,16 +4024,17 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 	await assertNativeHookTransactionAncestorPrecondition(
 		nativeHookTransactionAncestorPrecondition,
 	);
+	await prepareNomxRoot(namespaceBase, dryRun);
 
-	console.log("oh-my-codex setup");
-	console.log("=================\n");
+	console.log("NOMX setup");
+	console.log("==========\n");
 	console.log(
 		`Using setup scope: ${resolvedScope.scope}${scopeSourceMessage}\n`,
 	);
 	if (resolvedInstallMode) {
 		const installModeSourceMessage =
 			resolvedInstallMode.source === "persisted"
-				? " (from .omx/setup-scope.json)"
+				? " (from .nomx/setup-scope.json)"
 				: "";
 		console.log(
 			`Using setup install mode: ${resolvedInstallMode.installMode}${installModeSourceMessage}\n`,
@@ -4002,7 +4042,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 	}
 	const mcpModeSourceMessage =
 		resolvedMcpMode.source === "persisted"
-			? " (from .omx/setup-scope.json)"
+			? " (from .nomx/setup-scope.json)"
 			: "";
 	console.log(
 		`Using setup MCP mode: ${resolvedMcpMode.mcpMode}${mcpModeSourceMessage}\n`,
@@ -4011,11 +4051,11 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 	if (shouldOfferFirstPartyMcpRemoval) {
 		if (removeFirstPartyMcpRegistrations) {
 			console.log(
-				"Deprecated first-party OMX MCP registrations will be removed from config.toml during this setup run.\n",
+				"Deprecated first-party NOMX MCP registrations will be removed from config.toml during this setup run.\n",
 			);
 		} else {
 			console.log(
-				"warning: deprecated first-party OMX MCP registrations were detected but preserved. OMX supports CLI-first setup by default; rerun interactively and answer yes to remove them, or use --mcp compat only when explicit MCP compatibility is required.\n",
+				"warning: deprecated first-party NOMX MCP registrations were detected but preserved. NOMX supports CLI-first setup by default; rerun interactively and answer yes to remove them, or use --mcp compat only when explicit MCP compatibility is required.\n",
 			);
 		}
 	}
@@ -4026,18 +4066,18 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		? [
 				scopeDirs.codexHomeDir,
 				scopeDirs.nativeAgentsDir,
-				omxStateDir(projectRoot),
-				omxPlansDir(projectRoot),
-				omxLogsDir(projectRoot),
+				join(namespaceBase, ".nomx", "state"),
+				join(namespaceBase, ".nomx", "plans"),
+				join(namespaceBase, ".nomx", "logs"),
 			]
 		: [
 				scopeDirs.codexHomeDir,
 				scopeDirs.promptsDir,
 				scopeDirs.skillsDir,
 				scopeDirs.nativeAgentsDir,
-				omxStateDir(projectRoot),
-				omxPlansDir(projectRoot),
-				omxLogsDir(projectRoot),
+				join(namespaceBase, ".nomx", "state"),
+				join(namespaceBase, ".nomx", "plans"),
+				join(namespaceBase, ".nomx", "logs"),
 			];
 	for (const dir of dirs) {
 		if (!dryRun) {
@@ -4068,11 +4108,11 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		);
 		if (gitignoreResult === "created") {
 			console.log(
-				"  Created .gitignore with OMX project ignore rules so local runtime state stays out of source control while .codex agents, skills, and prompts remain trackable.\n",
+				"  Created .gitignore with NOMX project ignore rules so local runtime state stays out of source control while .codex agents, skills, and prompts remain trackable.\n",
 			);
 		} else if (gitignoreResult === "updated") {
 			console.log(
-				"  Updated .gitignore with OMX project ignore rules so local runtime state stays out of source control while .codex agents, skills, and prompts remain trackable.\n",
+				"  Updated .gitignore with NOMX project ignore rules so local runtime state stays out of source control while .codex agents, skills, and prompts remain trackable.\n",
 			);
 		}
 	}
@@ -4093,8 +4133,8 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 			);
 			console.log(
 				summary.prompts.removed > 0
-					? `  ${dryRun ? "Would archive and remove" : "Archived and removed"} ${summary.prompts.removed} legacy OMX-managed prompt file(s).\n`
-					: "  Prompt refresh skipped; no legacy OMX-managed prompt files found.\n",
+					? `  ${dryRun ? "Would archive and remove" : "Archived and removed"} ${summary.prompts.removed} legacy NOMX-managed prompt file(s).\n`
+					: "  Prompt refresh skipped; no legacy NOMX-managed prompt files found.\n",
 			);
 		} else {
 			summary.prompts = await installPrompts(
@@ -4154,11 +4194,11 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 			}
 			if (cleanup.removedSkillNames.length > 0) {
 				console.log(
-					`  ${dryRun ? "Would remove" : "Removed"} ${cleanup.removedSkillNames.length} legacy OMX-managed skill director${cleanup.removedSkillNames.length === 1 ? "y" : "ies"}.`,
+					`  ${dryRun ? "Would remove" : "Removed"} ${cleanup.removedSkillNames.length} legacy NOMX-managed skill director${cleanup.removedSkillNames.length === 1 ? "y" : "ies"}.`,
 				);
 			} else {
 				console.log(
-					"  Skill refresh skipped; no removable legacy OMX-managed skill directories found.",
+					"  Skill refresh skipped; no removable legacy NOMX-managed skill directories found.",
 				);
 			}
 		} else {
@@ -4226,7 +4266,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 	// Step 5: Update config.toml
 	console.log("[5/8] Updating config.toml...");
 	const resolvedConfig = nativeHookSetupTransaction.finalConfig;
-	const omxManagesTui = !isPluginInstallMode;
+	const nomxManagesTui = !isPluginInstallMode;
 	if (verbose) {
 		console.log(
 			`  Native Codex hook feature flag: [features].${codexHookFeatureFlag}`,
@@ -4292,22 +4332,22 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		if (nativeHookSetupTransaction.cleanedLegacyConfig) {
 			summary.config.removed += 1;
 			console.log(
-				`  ${dryRun ? "Would clean" : "Cleaned"} legacy OMX config entries for plugin mode.\n`,
+				`  ${dryRun ? "Would clean" : "Cleaned"} legacy NOMX config entries for plugin mode.\n`,
 			);
 		} else {
-			console.log("  Config refresh skipped; no legacy OMX config entries found.\n");
+			console.log("  Config refresh skipped; no legacy NOMX config entries found.\n");
 		}
 		if (nativeHookSetupTransaction.pluginMarketplaceResult === "unavailable") {
 			console.log(
-				`  warning: packaged ${OMX_LOCAL_MARKETPLACE_NAME} Codex plugin marketplace metadata not found; /skills plugin discovery was not registered.`,
+				`  warning: packaged ${NOMX_LOCAL_MARKETPLACE_NAME} Codex plugin marketplace metadata not found; /skills plugin discovery was not registered.`,
 			);
 		} else if (nativeHookSetupTransaction.pluginMarketplaceResult === "updated") {
 			console.log(
-				`  ${dryRun ? "Would register" : "Registered"} local Codex plugin marketplace ${OMX_LOCAL_MARKETPLACE_NAME} (${pkgRoot}).`,
+				`  ${dryRun ? "Would register" : "Registered"} local Codex plugin marketplace ${NOMX_LOCAL_MARKETPLACE_NAME} (${pkgRoot}).`,
 			);
 		} else {
 			console.log(
-				`  Local Codex plugin marketplace ${OMX_LOCAL_MARKETPLACE_NAME} already registered (${pkgRoot}).`,
+				`  Local Codex plugin marketplace ${NOMX_LOCAL_MARKETPLACE_NAME} already registered (${pkgRoot}).`,
 			);
 		}
 		const pluginCacheRefresh = await refreshOmxPluginDiscoveryCache(
@@ -4334,16 +4374,16 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		);
 		if (pluginCacheMaterialize.status === "materialized") {
 			console.log(
-				`  ${dryRun ? "Would install" : "Installed"} local Codex plugin cache for ${OMX_LOCAL_MARKETPLACE_NAME}/${OMX_PLUGIN_NAME} at ${pluginCacheMaterialize.cacheDir}.`,
+				`  ${dryRun ? "Would install" : "Installed"} local Codex plugin cache for ${NOMX_LOCAL_MARKETPLACE_NAME}/${NOMX_PLUGIN_NAME} at ${pluginCacheMaterialize.cacheDir}.`,
 			);
 		} else if (pluginCacheMaterialize.status === "unchanged") {
-			console.log("  Local Codex plugin cache already exposes packaged OMX skills.");
+			console.log("  Local Codex plugin cache already exposes packaged NOMX skills.");
 		}
 		if (
 			pluginCacheMaterialize.status === "materialized" ||
 			pluginCacheMaterialize.status === "unchanged"
 		) {
-			console.log("  Start a new Codex session if /skills still shows stale OMX plugin skill metadata; the current session may keep its in-memory plugin registry until restart.");
+			console.log("  Start a new Codex session if /skills still shows stale NOMX plugin skill metadata; the current session may keep its in-memory plugin registry until restart.");
 		}
 		if (shouldSyncSharedMcpRegistry && resolvedScope.scope === "user") {
 			await syncClaudeCodeMcpSettings(
@@ -4384,7 +4424,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		}
 		if (nativeHookSetupTransaction.repairedLegacyTeamRunTable) {
 			console.log(
-				"  Removed retired [mcp_servers.omx_team_run] config during refresh.",
+				"  Removed retired [mcp_servers.nomx_team_run] config during refresh.",
 			);
 		}
 		console.log(`  Config refresh complete (${scopeDirs.codexConfigFile}).\n`);
@@ -4485,8 +4525,8 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 						);
 						console.log(
 							resolvedScope.scope === "project"
-								? "  Merged plugin-mode OMX-managed AGENTS.md sections into project root."
-								: `  Merged plugin-mode OMX-managed AGENTS.md sections into ${scopeDirs.codexHomeDir}.`,
+								? "  Merged plugin-mode NOMX-managed AGENTS.md sections into project root."
+								: `  Merged plugin-mode NOMX-managed AGENTS.md sections into ${scopeDirs.codexHomeDir}.`,
 						);
 					}
 				}
@@ -4598,7 +4638,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 					const scopeFlag =
 						resolvedScope.scope === "project" ? "--scope project" : "--scope user";
 					console.log(
-						`  WARNING: Existing AGENTS.md at ${agentsMdDst} lacks OMX contract markers; it may have been overwritten by another tool.`,
+						`  WARNING: Existing AGENTS.md at ${agentsMdDst} lacks NOMX contract markers; it may have been overwritten by another tool.`,
 					);
 					console.log(
 						`  Repair safely with "nomx setup ${scopeFlag} --merge-agents" to preserve local guidance, or "nomx setup ${scopeFlag} --force" to replace it after backup.`,
@@ -4668,8 +4708,8 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 				);
 				console.log(
 					resolvedScope.scope === "project"
-						? "  Merged OMX-managed AGENTS.md sections into project root."
-						: `  Merged OMX-managed AGENTS.md sections into ${scopeDirs.codexHomeDir}.`,
+						? "  Merged NOMX-managed AGENTS.md sections into project root."
+						: `  Merged NOMX-managed AGENTS.md sections into ${scopeDirs.codexHomeDir}.`,
 				);
 			} else if (canApplyManagedModelRefresh) {
 				await syncManagedContent(
@@ -4739,18 +4779,18 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 
 	// Step 8: Configure HUD
 	console.log("[8/8] Configuring HUD...");
-	const hudConfigPath = join(projectRoot, ".omx", "hud-config.json");
+	const hudConfigPath = join(namespaceBase, ".nomx", "hud-config.json");
 	if (force || !existsSync(hudConfigPath)) {
 		if (!dryRun) {
 			const defaultHudConfig = { preset: "focused" };
 			await writeFile(hudConfigPath, JSON.stringify(defaultHudConfig, null, 2));
 		}
-		if (verbose) console.log("  Wrote .omx/hud-config.json");
+		if (verbose) console.log("  Wrote .nomx/hud-config.json");
 		console.log("  HUD config created (preset: focused).");
 	} else {
 		console.log("  HUD config already exists (use --force to overwrite).");
 	}
-	if (omxManagesTui) {
+	if (nomxManagesTui) {
 		console.log("  StatusLine configured in config.toml via [tui] section.");
 	}
 	console.log();
@@ -4778,7 +4818,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 		console.log();
 	}
 
-	await persistSetupPreferences(projectRoot, setupPreferencesToPersist, {
+	await persistSetupPreferences(namespaceBase, setupPreferencesToPersist, {
 		dryRun,
 		verbose,
 	});
@@ -4803,7 +4843,7 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 	console.log("  1. Start Codex CLI in your project directory");
 	if (isPluginInstallMode) {
 		console.log(
-			`  2. Registered Codex marketplace ${OMX_LOCAL_MARKETPLACE_NAME} supplies OMX skills and workflow surfaces`,
+			`  2. Registered Codex marketplace ${NOMX_LOCAL_MARKETPLACE_NAME} supplies NOMX skills and workflow surfaces`,
 		);
 		console.log("  3. Browse plugin-provided skills with /skills");
 		console.log(
@@ -4823,11 +4863,11 @@ export async function setup(options: SetupOptions = {}): Promise<void> {
 			"  4. The AGENTS.md orchestration brain is loaded automatically",
 		);
 		console.log(
-			"  5. Native agent role TOML files written to .codex/agents/; use explicit agent_type when spawning OMX roles",
+			"  5. Native agent role TOML files written to .codex/agents/; use explicit agent_type when spawning NOMX roles",
 		);
 	}
 	if (isGitHubCliConfigured()) {
-		console.log("\nSupport the project: gh repo star Yeachan-Heo/oh-my-codex");
+		console.log("\nNOMX setup complete.");
 	}
 }
 
@@ -4973,7 +5013,7 @@ function hashContent(content: string): string {
 }
 
 function nativeAgentInstallManifestPath(agentsDir: string): string {
-	return join(agentsDir, "..", ".omx", "native-agents.json");
+	return join(agentsDir, "..", ".nomx", "native-agents.json");
 }
 
 async function readNativeAgentInstallManifest(
@@ -5265,7 +5305,7 @@ function isGeneratedOmxNativeAgentToml(
 	agentName: string,
 ): boolean {
 	const firstLine = content.split(/\r?\n/, 1)[0]?.trim();
-	return firstLine === `# oh-my-codex agent: ${agentName}`;
+	return firstLine === `# NOMX agent: ${agentName}` || firstLine === `# nomx agent: ${agentName}`;
 }
 
 async function cleanupGeneratedNonInstallableNativeAgents(
@@ -5302,7 +5342,7 @@ async function cleanupGeneratedNonInstallableNativeAgents(
 		if (!isGeneratedOmxNativeAgentToml(content, agentName)) {
 			if (options.verbose) {
 				console.log(
-					`  skipped stale native agent ${file}: not an OMX-generated native agent`,
+					`  skipped stale native agent ${file}: not an NOMX-generated native agent`,
 				);
 			}
 			continue;
@@ -5486,7 +5526,7 @@ async function cleanupObsoleteNativeAgents(
 		) {
 			if (options.verbose) {
 				console.log(
-					`  skipped stale obsolete native agent ${file}: not an OMX-generated native agent`,
+					`  skipped stale obsolete native agent ${file}: not an NOMX-generated native agent`,
 				);
 			}
 			continue;
@@ -5716,7 +5756,7 @@ async function cleanupLegacyManagedSkills(
 		);
 
 		if (installedSkillContent !== expectedInstalledContent) {
-			const warning = `Skipping legacy skill cleanup for ${skillName}: installed SKILL.md differs from OMX-managed content.`;
+			const warning = `Skipping legacy skill cleanup for ${skillName}: installed SKILL.md differs from NOMX-managed content.`;
 			result.skippedSkillNames.push(skillName);
 			result.warnings.push(warning);
 			continue;
@@ -5744,7 +5784,7 @@ interface NotifyMergePlan {
 }
 
 function getNotifyMetadataPath(codexHomeDir: string): string {
-	return join(codexHomeDir, ".omx", "notify-dispatch.json");
+	return join(codexHomeDir, ".nomx", "notify-dispatch.json");
 }
 
 function isOmxDispatcherNotifyCommand(
@@ -5805,7 +5845,7 @@ async function buildNotifyMergePlan(
 		return { notifyCommand: false };
 	}
 
-	const omxNotify = ["node", join(pkgRoot, "dist", "scripts", "notify-hook.js")];
+	const nomxNotify = ["node", join(pkgRoot, "dist", "scripts", "notify-hook.js")];
 	const metadataPath = getNotifyMetadataPath(codexHomeDir);
 	const dispatcherNotify = [
 		"node",
@@ -5816,12 +5856,12 @@ async function buildNotifyMergePlan(
 	const existingNotify = getRootTomlArray(existingConfig, "notify");
 
 	if (!existingNotify) {
-		return { notifyCommand: omxNotify };
+		return { notifyCommand: nomxNotify };
 	}
 
 	if (isOmxManagedNotifyCommand(existingNotify, pkgRoot)) {
 		if (!isOmxDispatcherNotifyCommand(existingNotify, pkgRoot)) {
-			return { notifyCommand: omxNotify };
+			return { notifyCommand: nomxNotify };
 		}
 		if (!metadataSnapshot) {
 			throw new Error(
@@ -5842,32 +5882,32 @@ async function buildNotifyMergePlan(
 				pkgRoot,
 			);
 			if (!sanitizedPreviousNotify) {
-				return { notifyCommand: omxNotify, metadataPath, metadataSnapshot };
+				return { notifyCommand: nomxNotify, metadataPath, metadataSnapshot };
 			}
 			return {
 				notifyCommand: dispatcherNotify,
 				metadataPath,
 				metadataSnapshot,
 				metadata: {
-					managedBy: "oh-my-codex",
+					managedBy: "nomx",
 					version: 1,
 					previousNotify: sanitizedPreviousNotify,
-					omxNotify,
+					nomxNotify,
 					dispatcherNotify,
 				},
 			};
 		}
-		return { notifyCommand: omxNotify, metadataPath, metadataSnapshot };
+		return { notifyCommand: nomxNotify, metadataPath, metadataSnapshot };
 	}
 
 	return {
 		notifyCommand: dispatcherNotify,
 		metadataPath,
 		metadata: {
-			managedBy: "oh-my-codex",
+			managedBy: "nomx",
 			version: 1,
 			previousNotify: sanitizePreviousNotifyCommand(existingNotify, pkgRoot),
-			omxNotify,
+			nomxNotify,
 			dispatcherNotify,
 		},
 	};

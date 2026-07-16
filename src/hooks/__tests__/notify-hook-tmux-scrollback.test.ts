@@ -1,5 +1,5 @@
 /**
- * Tests for issue #215: tmux scrollback preservation during OMX output injection.
+ * Tests for issue #215: tmux scrollback preservation during NOMX output injection.
  *
  * When a pane is in copy-mode (scrollback), tmux's `pane_in_mode` format
  * variable returns "1".  Injecting send-keys into such a pane would kick the
@@ -19,7 +19,7 @@ import { buildTmuxSessionName } from '../../cli/index.js';
 const NOTIFY_HOOK_SCRIPT = new URL('../../../dist/scripts/notify-hook.js', import.meta.url);
 
 async function withTempWorkingDir(run: (cwd: string) => Promise<void>): Promise<void> {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-notify-scroll-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-notify-scroll-'));
   try {
     await run(cwd);
   } finally {
@@ -99,7 +99,7 @@ if [[ "$cmd" == "display-message" ]]; then
     exit 0
   fi
   if [[ "$format" == "#S" ]]; then
-    echo "\${OMX_TEST_TMUX_SESSION_NAME:-devsess}"
+    echo "\${NOMX_TEST_TMUX_SESSION_NAME:-devsess}"
     exit 0
   fi
   if [[ "$format" == "#{pane_in_mode}" ]]; then
@@ -108,6 +108,10 @@ if [[ "$cmd" == "display-message" ]]; then
   fi
   echo "unsupported format: $format" >&2
   exit 1
+fi
+if [[ "$cmd" == "show-option" ]]; then
+  echo "nomx-scroll-test"
+  exit 0
 fi
 if [[ "$cmd" == "set-buffer" ]]; then
   printf '%s' "\${@: -1}" > "${cwd}/tmux-buffer"
@@ -133,10 +137,10 @@ exit 1
 }
 
 async function setupFixture(cwd: string, paneInMode: '0' | '1', skipIfScrolling = true) {
-  const omxDir = join(cwd, '.omx');
-  const stateDir = join(omxDir, 'state');
-  const logsDir = join(omxDir, 'logs');
-  const sessionId = 'omx-scroll-test';
+  const nomxDir = join(cwd, '.nomx');
+  const stateDir = join(nomxDir, 'state');
+  const logsDir = join(nomxDir, 'logs');
+  const sessionId = 'nomx-scroll-test';
   const sessionStateDir = join(stateDir, 'sessions', sessionId);
   const fakeBinDir = join(cwd, 'fake-bin');
   const fakeTmuxPath = join(fakeBinDir, 'tmux');
@@ -155,14 +159,14 @@ async function setupFixture(cwd: string, paneInMode: '0' | '1', skipIfScrolling 
     pid_cmdline: readLinuxCmdline(process.pid),
   });
   await writeJson(join(sessionStateDir, 'ralph-state.json'), { active: true, iteration: 0 });
-  await writeJson(join(omxDir, 'tmux-hook.json'), {
+  await writeJson(join(nomxDir, 'tmux-hook.json'), {
     enabled: true,
     target: { type: 'pane', value: '%42' },
     allowed_modes: ['ralph'],
     cooldown_ms: 0,
     max_injections_per_session: 10,
-    prompt_template: 'Continue [OMX_TMUX_INJECT]',
-    marker: '[OMX_TMUX_INJECT]',
+    prompt_template: 'Continue [NOMX_TMUX_INJECT]',
+    marker: '[NOMX_TMUX_INJECT]',
     dry_run: false,
     log_level: 'debug',
     skip_if_scrolling: skipIfScrolling,
@@ -188,10 +192,11 @@ function runNotifyHook(cwd: string, fakeBinDir: string, threadId: string) {
     env: {
       ...process.env,
       PATH: `${fakeBinDir}:${process.env.PATH || ''}`,
-      OMX_TEAM_WORKER: '',
-      OMX_SESSION_ID: 'omx-scroll-test',
-      OMX_TEST_TMUX_SESSION_NAME: buildTmuxSessionName(cwd, 'omx-scroll-test'),
+      NOMX_TEAM_WORKER: '',
+      NOMX_SESSION_ID: 'nomx-scroll-test',
+      NOMX_TEST_TMUX_SESSION_NAME: buildTmuxSessionName(cwd, 'nomx-scroll-test'),
       TMUX_PANE: '%42',
+      TMUX: '1',
     },
   });
 }

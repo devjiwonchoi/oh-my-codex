@@ -1,0 +1,44 @@
+{
+  "mcpServers": {
+    "nomx_state": {
+      "command": "nomx",
+      "args": [
+        "mcp-serve",
+        "state"
+      ],
+      "enabled": false
+    },
+    "nomx_memory": {
+      "command": "nomx",
+      "args": [
+        "mcp-serve",
+        "memory"
+      ],
+      "enabled": false
+    },
+    "nomx_code_intel": {
+      "command": "nomx",
+      "args": [
+        "mcp-serve",
+        "code-intel"
+      ],
+      "enabled": false
+    },
+    "nomx_trace": {
+      "command": "nomx",
+      "args": [
+        "mcp-serve",
+        "trace"
+      ],
+      "enabled": false
+    },
+    "nomx_hermes": {
+      "command": "nomx",
+      "args": [
+        "mcp-serve",
+        "hermes"
+      ],
+      "enabled": false
+    }
+  }
+}

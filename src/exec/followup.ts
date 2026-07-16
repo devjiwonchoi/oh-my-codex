@@ -41,7 +41,7 @@ const QUEUE_LOCK_RETRY_MS = 10;
 const QUEUE_LOCK_MAX_WAIT_MS = 5_000;
 
 function stateDir(cwd: string): string {
-  return join(cwd, ".omx", "state");
+  return join(cwd, ".nomx", "state");
 }
 
 function sessionQueuePath(cwd: string, sessionId: string): string {
@@ -53,7 +53,7 @@ function sessionQueueLockPath(queuePath: string): string {
 }
 
 function auditLogPath(cwd: string, nowIso: string): string {
-  return join(cwd, ".omx", "logs", `exec-followups-${nowIso.slice(0, 10)}.jsonl`);
+  return join(cwd, ".nomx", "logs", `exec-followups-${nowIso.slice(0, 10)}.jsonl`);
 }
 
 function safeTimestampForPath(nowIso: string): string {
@@ -335,7 +335,7 @@ export async function buildExecFollowupStopOutput(
     `Follow-up ${index + 1} (${record.id}) from ${record.actor} at ${record.created_at}:\n${record.prompt}`
   )).join("\n\n");
   const systemMessage =
-    `OMX exec has ${pending.length} queued follow-up instruction${pending.length === 1 ? "" : "s"} for this non-interactive job. ` +
+    `NOMX exec has ${pending.length} queued follow-up instruction${pending.length === 1 ? "" : "s"} for this non-interactive job. ` +
     "Treat them as the newest user instructions, continue the same run, and include the follow-up id(s) in your final audit summary.\n\n" +
     rendered;
 

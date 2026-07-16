@@ -5,52 +5,52 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   buildAgentsModelTable,
-  OMX_MODELS_END_MARKER,
-  OMX_MODELS_START_MARKER,
+  NOMX_MODELS_END_MARKER,
+  NOMX_MODELS_START_MARKER,
   resolveAgentsModelTableContext,
   upsertAgentsModelTable,
 } from '../agents-model-table.js';
 
-const originalFrontierEnv = process.env.OMX_DEFAULT_FRONTIER_MODEL;
-const originalStandardEnv = process.env.OMX_DEFAULT_STANDARD_MODEL;
-const originalSparkEnv = process.env.OMX_DEFAULT_SPARK_MODEL;
-const originalLegacySparkEnv = process.env.OMX_SPARK_MODEL;
+const originalFrontierEnv = process.env.NOMX_DEFAULT_FRONTIER_MODEL;
+const originalStandardEnv = process.env.NOMX_DEFAULT_STANDARD_MODEL;
+const originalSparkEnv = process.env.NOMX_DEFAULT_SPARK_MODEL;
+const originalLegacySparkEnv = process.env.NOMX_SPARK_MODEL;
 
 beforeEach(() => {
-  delete process.env.OMX_DEFAULT_FRONTIER_MODEL;
-  delete process.env.OMX_DEFAULT_STANDARD_MODEL;
-  delete process.env.OMX_DEFAULT_SPARK_MODEL;
-  delete process.env.OMX_SPARK_MODEL;
+  delete process.env.NOMX_DEFAULT_FRONTIER_MODEL;
+  delete process.env.NOMX_DEFAULT_STANDARD_MODEL;
+  delete process.env.NOMX_DEFAULT_SPARK_MODEL;
+  delete process.env.NOMX_SPARK_MODEL;
 });
 
 afterEach(() => {
   if (typeof originalFrontierEnv === 'string') {
-    process.env.OMX_DEFAULT_FRONTIER_MODEL = originalFrontierEnv;
+    process.env.NOMX_DEFAULT_FRONTIER_MODEL = originalFrontierEnv;
   } else {
-    delete process.env.OMX_DEFAULT_FRONTIER_MODEL;
+    delete process.env.NOMX_DEFAULT_FRONTIER_MODEL;
   }
   if (typeof originalStandardEnv === 'string') {
-    process.env.OMX_DEFAULT_STANDARD_MODEL = originalStandardEnv;
+    process.env.NOMX_DEFAULT_STANDARD_MODEL = originalStandardEnv;
   } else {
-    delete process.env.OMX_DEFAULT_STANDARD_MODEL;
+    delete process.env.NOMX_DEFAULT_STANDARD_MODEL;
   }
   if (typeof originalSparkEnv === 'string') {
-    process.env.OMX_DEFAULT_SPARK_MODEL = originalSparkEnv;
+    process.env.NOMX_DEFAULT_SPARK_MODEL = originalSparkEnv;
   } else {
-    delete process.env.OMX_DEFAULT_SPARK_MODEL;
+    delete process.env.NOMX_DEFAULT_SPARK_MODEL;
   }
   if (typeof originalLegacySparkEnv === 'string') {
-    process.env.OMX_SPARK_MODEL = originalLegacySparkEnv;
+    process.env.NOMX_SPARK_MODEL = originalLegacySparkEnv;
   } else {
-    delete process.env.OMX_SPARK_MODEL;
+    delete process.env.NOMX_SPARK_MODEL;
   }
 });
 
 describe('agents model table', () => {
   it('resolves frontier from config.toml, standard from environment, and spark from environment', () => {
-    process.env.OMX_DEFAULT_FRONTIER_MODEL = 'frontier-env';
-    process.env.OMX_DEFAULT_STANDARD_MODEL = 'standard-env';
-    process.env.OMX_DEFAULT_SPARK_MODEL = 'spark-env';
+    process.env.NOMX_DEFAULT_FRONTIER_MODEL = 'frontier-env';
+    process.env.NOMX_DEFAULT_STANDARD_MODEL = 'standard-env';
+    process.env.NOMX_DEFAULT_SPARK_MODEL = 'spark-env';
 
     const context = resolveAgentsModelTableContext('model = "frontier-config"\n');
 
@@ -62,7 +62,10 @@ describe('agents model table', () => {
   });
 
   it('uses the configured frontier model as the standard subagent default when no standard override exists', () => {
-    const context = resolveAgentsModelTableContext('model = "frontier-config"\n');
+    const context = resolveAgentsModelTableContext('model = "frontier-config"\n', {
+      codexHomeOverride: join(tmpdir(), `nomx-empty-model-home-${process.pid}`),
+      env: {},
+    });
 
     assert.deepEqual(context, {
       frontierModel: 'frontier-config',
@@ -82,20 +85,20 @@ describe('agents model table', () => {
     assert.match(table, /\| Spark \(explorer\/fast\) \| `gpt-spark` \| low \|/);
     assert.match(table, /\| Standard \(subagent default\) \| `gpt-standard` \| high \|/);
     assert.match(table, /\| `explore` \| `gpt-spark` \| low \| Fast codebase search and file\/symbol mapping \(fast-lane, fast\) \|/);
-    assert.match(table, /\| `planner` \| `gpt-5\.6-sol` \| medium \| Task sequencing, execution plans, risk flags \(frontier-orchestrator, frontier\) \|/);
-    assert.match(table, /\| `architect` \| `gpt-5\.6-sol` \| xhigh \| System design, boundaries, interfaces, long-horizon tradeoffs \(frontier-orchestrator, frontier\) \|/);
+    assert.match(table, /\| `planner` \| `gpt-5\.5` \| medium \| Task sequencing, execution plans, risk flags \(frontier-orchestrator, frontier\) \|/);
+    assert.match(table, /\| `architect` \| `gpt-5\.5` \| xhigh \| System design, boundaries, interfaces, long-horizon tradeoffs \(frontier-orchestrator, frontier\) \|/);
     assert.doesNotMatch(table, /\| `security-reviewer` \|/);
     assert.doesNotMatch(table, /\| `build-fixer` \|/);
-    assert.match(table, /\| `code-reviewer` \| `gpt-frontier` \| high \| Comprehensive review across all concerns \(frontier-orchestrator, frontier\) \|/);
-    assert.match(table, /\| `critic` \| `gpt-frontier` \| high \| Plan\/design critical challenge and review \(frontier-orchestrator, frontier\) \|/);
+    assert.match(table, /\| `code-reviewer` \| `gpt-5\.5` \| high \| Comprehensive review across all concerns \(frontier-orchestrator, frontier\) \|/);
+    assert.match(table, /\| `critic` \| `gpt-5\.5` \| high \| Plan\/design critical challenge and review \(frontier-orchestrator, frontier\) \|/);
     assert.match(table, /\| `writer` \| `gpt-standard` \| high \| Documentation, migration notes, user guidance \(fast-lane, standard\) \|/);
-    assert.match(table, /\| `executor` \| `gpt-frontier` \| medium \| Code implementation, refactoring, feature work \(deep-worker, standard\) \|/);
+    assert.match(table, /\| `executor` \| `gpt-5\.5` \| medium \| Code implementation, refactoring, feature work \(deep-worker, standard\) \|/);
   });
 
   it('reflects per-agent model and reasoning overrides', async () => {
-    const codexHome = await mkdtemp(join(tmpdir(), 'omx-agents-model-table-'));
+    const codexHome = await mkdtemp(join(tmpdir(), 'nomx-agents-model-table-'));
     try {
-      await writeFile(join(codexHome, '.omx-config.json'), JSON.stringify({
+      await writeFile(join(codexHome, '.nomx-config.json'), JSON.stringify({
         agentModels: {
           architect: 'gpt-5.6-sol-architect',
           explore: 'gpt-5.6-sol-explore',
@@ -128,9 +131,9 @@ describe('agents model table', () => {
 
     const withMarkers = [
       'before',
-      OMX_MODELS_START_MARKER,
+      NOMX_MODELS_START_MARKER,
       'stale',
-      OMX_MODELS_END_MARKER,
+      NOMX_MODELS_END_MARKER,
       'after',
     ].join('\n');
     const replaced = upsertAgentsModelTable(withMarkers, context);
@@ -149,7 +152,7 @@ describe('agents model table', () => {
     const inserted = upsertAgentsModelTable(withoutMarkers, context);
     assert.match(
       inserted,
-      /<\/team_model_resolution>\n\n<!-- OMX:MODELS:START -->[\s\S]*<!-- OMX:MODELS:END -->\n\n---/,
+      /<\/team_model_resolution>\n\n<!-- NOMX:MODELS:START -->[\s\S]*<!-- NOMX:MODELS:END -->\n\n---/,
     );
   });
 });

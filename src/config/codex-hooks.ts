@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { realpathSync } from "fs";
 import { readdir, realpath } from "fs/promises";
 import { basename, dirname, join, relative, resolve, win32 } from "path";
 
@@ -170,7 +171,7 @@ function quoteWindowsProcessArgument(value: string): string {
 
 export const WINDOWS_NATIVE_HOOK_SHIM_RELATIVE_PATH = [
   "hooks",
-  "omx-native-hook-windows-shim.ps1",
+  "nomx-native-hook-windows-shim.ps1",
 ] as const;
 
 export interface ManagedCodexHookOptions {
@@ -1564,7 +1565,7 @@ function isNativeHookScriptPath(path: string, platform: HookCommandPlatform): bo
 }
 
 function hasNativeHookShimSuffix(path: string): boolean {
-  return /(?:^|[\\/])hooks[\\/]omx-native-hook-windows-shim\.ps1$/i.test(path);
+  return /(?:^|[\\/])hooks[\\/]nomx-native-hook-windows-shim\.ps1$/i.test(path);
 }
 
 function isNativeHookShimPath(path: string): boolean {
@@ -1630,7 +1631,7 @@ function hasStaticWindowsShimCommandGrammar(command: string): boolean {
 }
 
 /**
- * Parse an OMX Windows shim invocation using the managed-command ownership
+ * Parse an NOMX Windows shim invocation using the managed-command ownership
  * grammar. Returns the validated shim path; returns null for every other
  * command. Supplying current install options additionally recognizes the exact
  * non-Windows host-path spelling used by platform-seam validation.
@@ -1654,12 +1655,12 @@ function isValidWindowsShimCommand(command: string): boolean {
   return parseManagedCodexNativeHookWindowsShimCommand(command) !== null;
 }
 
-const OMX_COMMAND_PATTERN = /(?:codex-native-hook\.js|omx-native-hook-windows-shim\.ps1)/i;
+const NOMX_COMMAND_PATTERN = /(?:codex-native-hook\.js|nomx-native-hook-windows-shim\.ps1)/i;
 
 /**
  * Lex only static POSIX word fragments for ambiguity detection. This is
  * deliberately more permissive than the ownership grammar: backslash-newline
- * continuations and escaped characters must identify OMX-looking commands as
+ * continuations and escaped characters must identify NOMX-looking commands as
  * ambiguous, never make them owned.
  */
 function decodedPosixCommandWords(command: string): string[] {
@@ -1727,11 +1728,11 @@ function decodedPosixCommandWords(command: string): string[] {
 }
 
 function commandMentionsDecodedPosixOmx(command: string): boolean {
-  return decodedPosixCommandWords(command).some((word) => OMX_COMMAND_PATTERN.test(word));
+  return decodedPosixCommandWords(command).some((word) => NOMX_COMMAND_PATTERN.test(word));
 }
 
 function commandMentionsOmx(command: string): boolean {
-  return OMX_COMMAND_PATTERN.test(command) || OMX_COMMAND_PATTERN.test(command.replace(/["']/g, ""));
+  return NOMX_COMMAND_PATTERN.test(command) || NOMX_COMMAND_PATTERN.test(command.replace(/["']/g, ""));
 }
 
 function isValidManagedCommand(command: string, platform: HookCommandPlatform): boolean {
@@ -1769,8 +1770,38 @@ function isExactCurrentWindowsShimCommand(
     options.codexHomeDir === undefined ||
     !hasStaticWindowsShimCommandGrammar(command)
   ) return false;
-  return command === buildManagedCodexNativeHookCommand("", options) ||
-    command === buildExactCurrentWindowsHostShimCommand(options);
+  const generated = buildManagedCodexNativeHookCommand("", options);
+  const hostJoined = buildExactCurrentWindowsHostShimCommand(options);
+  if (command === generated || command === hostJoined) return true;
+
+  // macOS exposes /var through the canonical /private/var realpath. Windows
+  // seam tests can therefore build an exact current drive-less command before
+  // chdir canonicalizes the Codex home. Accept that spelling only when every
+  // non-path token is identical and both existing shim paths resolve to the
+  // same host file.
+  if (process.platform === "win32") return false;
+  const supplied = tokenizePowerShellCommand(command);
+  const expected = tokenizePowerShellCommand(generated);
+  if (!supplied || !expected || supplied.hasCallOperator !== expected.hasCallOperator) return false;
+  if (supplied.tokens.length !== expected.tokens.length) return false;
+  if (supplied.tokens.some((token, index) => index !== 5 && token.value !== expected.tokens[index]?.value)) return false;
+  const toHostCodexHome = (value: string | undefined): string | null => {
+    if (!value || !/^[\\/](?![\\/])/.test(value)) return null;
+    const withoutShim = value.replace(
+      /[\\/]hooks[\\/]nomx-native-hook-windows-shim\.ps1$/i,
+      "",
+    );
+    if (withoutShim === value) return null;
+    return withoutShim.replace(/\\/g, "/");
+  };
+  const suppliedHome = toHostCodexHome(supplied.tokens[5]?.value);
+  const expectedHome = toHostCodexHome(expected.tokens[5]?.value);
+  if (!suppliedHome || !expectedHome) return false;
+  try {
+    return realpathSync(suppliedHome) === realpathSync(expectedHome);
+  } catch {
+    return false;
+  }
 }
 
 function isValidHistoricalManagedCommand(command: string): boolean {
@@ -1780,7 +1811,7 @@ function isValidHistoricalManagedCommand(command: string): boolean {
 }
 
 /**
- * Returns whether a command has the exact approved token grammar of an OMX
+ * Returns whether a command has the exact approved token grammar of an NOMX
  * native hook from this or a historical installation. Ownership requires a
  * shell-static executable and provenance-qualified terminal script path, but
  * never a current package-root path. The union is deliberately narrow and
@@ -1809,7 +1840,7 @@ function classifyManagedCommand(
   let hasForeignAlternative = false;
   for (const suppliedCommand of supplied) {
     // Examine static POSIX word decoding before exact grammar validation. A
-    // non-exact invocation can hide an OMX filename with escapes or a line
+    // non-exact invocation can hide an NOMX filename with escapes or a line
     // continuation, and must fail closed rather than become a foreign hook.
     const mentionsDecodedPosixOmx = commandMentionsDecodedPosixOmx(suppliedCommand.command);
     if (
@@ -1872,7 +1903,7 @@ function matcherOwnershipError(
 ): ManagedCodexHooksPlanError | null {
   const matcher = groupMatcher(group.node);
   if (matcherIsAware(eventName) && typeof matcher === "string" && !isValidCodexMatcher(matcher)) {
-    return planError("ambiguous_managed_group", "Cannot mutate an OMX group with an invalid matcher.", {
+    return planError("ambiguous_managed_group", "Cannot mutate an NOMX group with an invalid matcher.", {
       eventName,
       groupIndex: group.groupIndex,
     });
@@ -1884,13 +1915,13 @@ function matcherOwnershipError(
       ? matcher === "startup|resume|clear"
       : matcher === undefined || matcher === null || matcher === "startup" || matcher === "startup|resume" || matcher === "startup|resume|clear";
     if (!allowed) {
-      return planError("ambiguous_managed_group", "SessionStart matcher is not compatible with OMX ownership.", {
+      return planError("ambiguous_managed_group", "SessionStart matcher is not compatible with NOMX ownership.", {
         eventName,
         groupIndex: group.groupIndex,
       });
     }
   } else if (matcher !== undefined && matcher !== null) {
-    return planError("ambiguous_managed_group", "OMX managed groups must not carry a matcher for this event.", {
+    return planError("ambiguous_managed_group", "NOMX managed groups must not carry a matcher for this event.", {
       eventName,
       groupIndex: group.groupIndex,
     });
@@ -1918,7 +1949,7 @@ function inspectOwnership(
         let classification: ManagedCommandClassification = "foreign";
         if (type === "command") classification = classifyManagedCommand(handlerNode, options);
         if (classification === "ambiguous") {
-          return planError("ambiguous_managed_handler", "A command mentions OMX but does not match the managed command grammar.", {
+          return planError("ambiguous_managed_handler", "A command mentions NOMX but does not match the managed command grammar.", {
             eventName,
             groupIndex,
             handlerIndex,
@@ -1931,7 +1962,7 @@ function inspectOwnership(
           asyncProperty.value.value === true;
         if (classification !== "owned" || !isManagedHookEventName(eventName)) {
           if (classification === "owned") {
-            return planError("ambiguous_managed_handler", "An OMX command is attached to an unmanaged Codex event.", {
+            return planError("ambiguous_managed_handler", "An NOMX command is attached to an unmanaged Codex event.", {
               eventName,
               groupIndex,
               handlerIndex,
@@ -1945,7 +1976,7 @@ function inspectOwnership(
         }
         const command = effectiveCommandForPlatform(handlerNode, options.platform ?? process.platform);
         if (asynchronous || commandIsSkipped(command)) {
-          return planError("ambiguous_managed_handler", "Cannot mutate skipped OMX command handlers.", {
+          return planError("ambiguous_managed_handler", "Cannot mutate skipped NOMX command handlers.", {
             eventName,
             groupIndex,
             handlerIndex,
@@ -1975,7 +2006,7 @@ function inspectOwnership(
       const groupOwners = handlers.flatMap((handler) => handler.owner ? [handler.owner] : []);
       if (groupOwners.length > 0) {
         if (handlers.some((handler) => handler.discoverySkipped)) {
-          return planError("ambiguous_managed_handler", "Cannot mutate an OMX group that also contains a skipped command handler.", {
+          return planError("ambiguous_managed_handler", "Cannot mutate an NOMX group that also contains a skipped command handler.", {
             eventName,
             groupIndex,
           });
@@ -2396,7 +2427,7 @@ function prepareLegacyState(content: string): PreparedDocument | InvalidCodexHoo
   if (rootStates.length === 1) {
     const exact = exactLegacyState(rootStates[0]!.value);
     if (!exact) {
-      return { ok: false, error: planError("invalid_document", "Top-level state is not an exact historical OMX trust map.") };
+      return { ok: false, error: planError("invalid_document", "Top-level state is not an exact historical NOMX trust map.") };
     }
     const conflict = mergeLegacyTrustState(legacyTrustState, exact, "root");
     if (conflict) return { ok: false, error: conflict };
@@ -2411,7 +2442,7 @@ function prepareLegacyState(content: string): PreparedDocument | InvalidCodexHoo
   if (nestedStates.length > 1 && exactNestedStates.some((state) => state === null)) {
     return {
       ok: false,
-      error: planError("invalid_document", "Duplicate hooks.state entries must be exact historical OMX trust maps."),
+      error: planError("invalid_document", "Duplicate hooks.state entries must be exact historical NOMX trust maps."),
     };
   }
   if (nestedStates.length === 0 || exactNestedStates[0] !== null) {
@@ -2657,7 +2688,7 @@ export function planManagedCodexHooksMerge(
   if (!proof.safe) {
     return {
       ok: false,
-      error: planError("unsafe_managed_removal", "Removing duplicate OMX hooks would shift a foreign coordinate or discard opaque metadata.", proof.shifted ? { shifted: proof.shifted } : {}),
+      error: planError("unsafe_managed_removal", "Removing duplicate NOMX hooks would shift a foreign coordinate or discard opaque metadata.", proof.shifted ? { shifted: proof.shifted } : {}),
       diagnostics: afterMerge.result.diagnostics,
     };
   }
@@ -2690,7 +2721,7 @@ export function planManagedCodexHooksRemoval(
   if (!proof.safe) {
     return {
       ok: false,
-      error: planError("unsafe_managed_removal", "Removing OMX hooks would shift a foreign coordinate or discard opaque metadata.", proof.shifted ? { shifted: proof.shifted } : {}),
+      error: planError("unsafe_managed_removal", "Removing NOMX hooks would shift a foreign coordinate or discard opaque metadata.", proof.shifted ? { shifted: proof.shifted } : {}),
       diagnostics: validation.result.diagnostics,
     };
   }
@@ -2793,13 +2824,13 @@ export function isRuntimeCodexHomeMirrorPath(
     return false;
   }
 
-  const omxIndex = segments.indexOf(".omx");
-  if (omxIndex < 0) return false;
+  const nomxIndex = segments.indexOf(".nomx");
+  if (nomxIndex < 0) return false;
 
   return (
-    segments[omxIndex + 1] === "runtime" &&
-    segments[omxIndex + 2] === "codex-home" &&
-    segments.length > omxIndex + 4 &&
+    segments[nomxIndex + 1] === "runtime" &&
+    segments[nomxIndex + 2] === "codex-home" &&
+    segments.length > nomxIndex + 4 &&
     segments[segments.length - 1] === "hooks.json"
   );
 }

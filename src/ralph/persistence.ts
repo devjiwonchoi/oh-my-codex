@@ -6,8 +6,8 @@ import { comparePlanningArtifactPaths, planningArtifactTimestamp } from '../plan
 import { getStateDir } from '../state/paths.js';
 import { VISUAL_NEXT_ACTIONS_LIMIT, type VisualVerdictStatus } from '../visual/constants.js';
 
-const LEGACY_PRD_PATH = '.omx/prd.json';
-const LEGACY_PROGRESS_PATH = '.omx/progress.txt';
+const LEGACY_PRD_PATH = '.nomx/prd.json';
+const LEGACY_PROGRESS_PATH = '.nomx/progress.txt';
 const PRD_PREFIX = 'prd-';
 const PRD_SUFFIX = '.md';
 const DEFAULT_VISUAL_THRESHOLD = 90;
@@ -97,7 +97,7 @@ function resolveLegacyPrdTitle(parsed: Record<string, unknown>): string {
 }
 
 async function listCanonicalPrdFiles(cwd: string): Promise<string[]> {
-  const plansDir = join(cwd, '.omx', 'plans');
+  const plansDir = join(cwd, '.nomx', 'plans');
   if (!existsSync(plansDir)) return [];
   const files = await readdir(plansDir).catch(() => [] as string[]);
   return files
@@ -160,7 +160,7 @@ async function writeMigrationMarker(
   cwd: string,
   patch: Record<string, unknown>,
 ): Promise<void> {
-  const markerPath = join(cwd, '.omx', 'plans', 'ralph-migration-marker.json');
+  const markerPath = join(cwd, '.nomx', 'plans', 'ralph-migration-marker.json');
   let existing: Record<string, unknown> = {};
   if (existsSync(markerPath)) {
     try {
@@ -198,7 +198,7 @@ async function migrateLegacyPrdIfNeeded(
     legacyParsed = { parse_error: 'invalid_json', raw: legacyRaw };
   }
 
-  const plansDir = join(cwd, '.omx', 'plans');
+  const plansDir = join(cwd, '.nomx', 'plans');
   await mkdir(plansDir, { recursive: true });
 
   const title = resolveLegacyPrdTitle(legacyParsed);
@@ -214,7 +214,7 @@ async function migrateLegacyPrdIfNeeded(
   const markdown = [
     `# ${title}`,
     '',
-    '> Migrated from legacy `.omx/prd.json` (read-only compatibility import).',
+    '> Migrated from legacy `.nomx/prd.json` (read-only compatibility import).',
     '',
     '## Migration Marker',
     `- Source: \`${LEGACY_PRD_PATH}\``,
@@ -325,7 +325,7 @@ export async function ensureCanonicalRalphArtifacts(
   sessionId?: string,
 ): Promise<RalphCanonicalArtifacts> {
   const canonicalProgressPath = join(getStateDir(cwd, sessionId), 'ralph-progress.json');
-  await mkdir(join(cwd, '.omx', 'plans'), { recursive: true });
+  await mkdir(join(cwd, '.nomx', 'plans'), { recursive: true });
   await mkdir(getStateDir(cwd, sessionId), { recursive: true });
 
   const canonicalPrdFiles = await listCanonicalPrdFiles(cwd);

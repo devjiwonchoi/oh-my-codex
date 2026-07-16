@@ -290,7 +290,7 @@ Usage: nomx team [N:agent-type] "<task description>"
 Notes:
   team workers use dedicated worktrees automatically by default.
   --worktree is deprecated for nomx team and is now only a backward-compatible no-op override.
-  nomx team is a tmux-runtime surface by default; in Codex App or plain outside-tmux sessions, launch OMX CLI from shell first instead of treating team as directly available.
+  nomx team is a tmux-runtime surface by default; in Codex App or plain outside-tmux sessions, launch NOMX CLI from shell first instead of treating team as directly available.
   use native Codex subagents for small in-session fanout; use nomx team for durable tmux/state/worktree coordination.
   repo-aware DAG handoff is opt-in: Team only imports a DAG when the invocation matches the latest approved PRD/test-spec launch hint (or a short approved follow-up like \`nomx team team\`).
 
@@ -414,7 +414,7 @@ function sampleValueForTeamApiField(field: string): unknown {
       return {
         summary: 'worker diff report',
         worktree_path: '/tmp/team/worktrees/worker-1',
-        diff_path: '/tmp/team/worktrees/worker-1/.omx/diff.md',
+        diff_path: '/tmp/team/worktrees/worker-1/.nomx/diff.md',
         full_diff_available: true,
       };
     case 'requested_by': return 'leader-fixed';
@@ -1299,7 +1299,7 @@ async function persistTeamShutdownModeState(
     agentType: string;
   } | null,
 ): Promise<void> {
-  const sessionStatePath = join(cwd, '.omx', 'state', 'session.json');
+  const sessionStatePath = join(cwd, '.nomx', 'state', 'session.json');
   let scopedSessionId: string | undefined;
   if (existsSync(sessionStatePath)) {
     try {
@@ -1714,7 +1714,7 @@ export async function teamCommand(args: string[], _options: TeamCliOptions = {})
         }
         : null,
     ).catch((error: unknown) => {
-      console.warn('[omx] warning: failed to persist team mode shutdown state', {
+      console.warn('[nomx] warning: failed to persist team mode shutdown state', {
         team: name,
         error: error instanceof Error ? error.message : String(error),
       });

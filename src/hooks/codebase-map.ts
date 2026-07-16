@@ -1,5 +1,5 @@
 /**
- * Codebase Map Generator for oh-my-codex
+ * Codebase Map Generator for nomx
  *
  * Generates a lightweight snapshot of the project's source structure and
  * key exported symbols, injected into agent context at session start.
@@ -18,7 +18,7 @@ import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
 import { execSync } from 'node:child_process';
 import { findGitLayout } from '../utils/git-layout.js';
-import { omxRoot } from '../utils/paths.js';
+import { nomxRoot } from '../utils/paths.js';
 
 /** Max chars for the whole map output. */
 const MAX_MAP_CHARS = 1000;
@@ -44,7 +44,7 @@ interface CodebaseMapCacheFile {
 }
 
 function cachePathForWorktree(worktreeRoot: string): string {
-  return join(omxRoot(worktreeRoot), 'cache', 'codebase-map.json');
+  return join(nomxRoot(worktreeRoot), 'cache', 'codebase-map.json');
 }
 
 function readGitIndexSignature(gitDir: string): { mtimeMs: number; size: number } | null {
@@ -83,7 +83,7 @@ async function writeCachedCodebaseMap(
   const targetPath = cachePathForWorktree(worktreeRoot);
   const tempPath = `${targetPath}.${process.pid}.${Date.now()}.tmp`;
   try {
-    await mkdir(join(omxRoot(worktreeRoot), 'cache'), { recursive: true });
+    await mkdir(join(nomxRoot(worktreeRoot), 'cache'), { recursive: true });
     const payload: CodebaseMapCacheFile = {
       version: CACHE_VERSION,
       worktreeRoot,
@@ -116,7 +116,7 @@ function getTrackedSourceFiles(cwd: string): string[] {
     return out
       .trim()
       .split('\n')
-      .filter((f) => f && !f.split('/').includes('.omx') && SOURCE_EXTS.has(extname(f)));
+      .filter((f) => f && !f.split('/').includes('.nomx') && SOURCE_EXTS.has(extname(f)));
   } catch {
     return [];
   }

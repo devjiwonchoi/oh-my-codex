@@ -1,6 +1,6 @@
 /**
- * Config.toml generator/merger for oh-my-codex
- * Merges OMX MCP server entries and feature flags into existing config.toml
+ * Config.toml generator/merger for nomx
+ * Merges NOMX MCP server entries and feature flags into existing config.toml
  *
  * TOML structure reminder: bare key=value pairs after a [table] header belong
  * to that table.  Top-level (root-table) keys MUST appear before the first
@@ -25,9 +25,9 @@ import {
   type CodexHookFeatureFlag,
 } from "./codex-feature-flags.js";
 import {
-  OMX_FIRST_PARTY_MCP_SERVER_NAMES,
-  getOmxFirstPartySetupMcpServers,
-} from "./omx-first-party-mcp.js";
+  NOMX_FIRST_PARTY_MCP_SERVER_NAMES,
+  getNomxFirstPartySetupMcpServers,
+} from "./nomx-first-party-mcp.js";
 import {
   buildManagedCodexHookTrustState,
   escapeTomlBasicString,
@@ -73,11 +73,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 // ---------------------------------------------------------------------------
-// Top-level OMX keys (must live before any [table] header)
+// Top-level NOMX keys (must live before any [table] header)
 // ---------------------------------------------------------------------------
 
 /** Keys we own at the TOML root level. Used for upsert + strip. */
-const OMX_TOP_LEVEL_KEYS = [
+const NOMX_TOP_LEVEL_KEYS = [
   "notify",
   "model_reasoning_effort",
   "developer_instructions",
@@ -87,18 +87,18 @@ export const DEFAULT_SETUP_MODEL = DEFAULT_FRONTIER_MODEL;
 
 const LEGACY_SEEDED_MODEL_CONTEXT_WINDOW = 250000;
 const LEGACY_SEEDED_MODEL_AUTO_COMPACT_TOKEN_LIMIT = 200000;
-const OMX_SEEDED_BEHAVIORAL_DEFAULTS_START_MARKER =
-  "# oh-my-codex seeded behavioral defaults (uninstall removes unchanged defaults)";
-const OMX_SEEDED_BEHAVIORAL_DEFAULTS_END_MARKER =
-  "# End oh-my-codex seeded behavioral defaults";
+const NOMX_SEEDED_BEHAVIORAL_DEFAULTS_START_MARKER =
+  "# nomx seeded behavioral defaults (uninstall removes unchanged defaults)";
+const NOMX_SEEDED_BEHAVIORAL_DEFAULTS_END_MARKER =
+  "# End nomx seeded behavioral defaults";
 
-export const OMX_DEVELOPER_INSTRUCTIONS =
-  "You have oh-my-codex installed. AGENTS.md is the orchestration brain and main control surface. Follow AGENTS.md for skill/keyword routing, $name workflow invocation, and role-specialized subagents; when the native surface exposes `agent_type` role routing, set `agent_type` to an installed role and never omit it for OMX work. When it does not (`role_routing_unavailable`, for example a Codex App `spawn_agent` surface exposing only `task_name`, `message`, and `fork_turns`), do not fabricate `agent_type`; follow the OMX adapted role-pass protocol by recording a pre-validated role intent in the OMX subagent ledger, and never fake the role via a prompt label. Use outcome-first, concise progress updates: state the target result, constraints, validation evidence, and stop condition before adding process detail. Native subagents live in .codex/agents and may handle independent parallel subtasks within one Codex session or team pane. Skills load from .codex/skills, not native-agent TOMLs. Treat installed prompts as narrower execution surfaces under AGENTS.md authority.";
-export const OMX_PLUGIN_DEVELOPER_INSTRUCTIONS =
-  '<nomx version="1">You have oh-my-codex installed through Codex plugin mode. AGENTS.md is the orchestration brain and main control surface. Follow AGENTS.md for skill/keyword routing and $name workflow invocation. When the native surface exposes `agent_type` role routing, set `agent_type` to an installed role and never omit it for OMX work. When it does not (`role_routing_unavailable`, for example a Codex App `spawn_agent` surface exposing only `task_name`, `message`, and `fork_turns`), do not fabricate `agent_type`; follow the OMX adapted role-pass protocol by recording a pre-validated role intent in the OMX subagent ledger, and never fake the role via a prompt label. Registered Codex plugin marketplace surfaces supply OMX workflows and plugin-scoped companion resources when the plugin is installed; native agent roles are installed as setup-owned Codex agent TOML files in plugin mode so agent_type routing works. User-installed skills may still live under ~/.codex/skills. Use outcome-first, concise progress updates: state the target result, constraints, validation evidence, and stop condition before adding process detail.</omx>';
-const SHARED_MCP_REGISTRY_MARKER = "oh-my-codex (OMX) Shared MCP Registry Sync";
+export const NOMX_DEVELOPER_INSTRUCTIONS =
+  "You have nomx installed. AGENTS.md is the orchestration brain and main control surface. Follow AGENTS.md for skill/keyword routing, $name workflow invocation, and role-specialized subagents; when the native surface exposes `agent_type` role routing, set `agent_type` to an installed role and never omit it for NOMX work. When it does not (`role_routing_unavailable`, for example a Codex App `spawn_agent` surface exposing only `task_name`, `message`, and `fork_turns`), do not fabricate `agent_type`; follow the NOMX adapted role-pass protocol by recording a pre-validated role intent in the NOMX subagent ledger, and never fake the role via a prompt label. Use outcome-first, concise progress updates: state the target result, constraints, validation evidence, and stop condition before adding process detail. Native subagents live in .codex/agents and may handle independent parallel subtasks within one Codex session or team pane. Skills load from .codex/skills, not native-agent TOMLs. Treat installed prompts as narrower execution surfaces under AGENTS.md authority.";
+export const NOMX_PLUGIN_DEVELOPER_INSTRUCTIONS =
+  '<nomx version="1">You have nomx installed through Codex plugin mode. AGENTS.md is the orchestration brain and main control surface. Follow AGENTS.md for skill/keyword routing and $name workflow invocation. When the native surface exposes `agent_type` role routing, set `agent_type` to an installed role and never omit it for NOMX work. When it does not (`role_routing_unavailable`, for example a Codex App `spawn_agent` surface exposing only `task_name`, `message`, and `fork_turns`), do not fabricate `agent_type`; follow the NOMX adapted role-pass protocol by recording a pre-validated role intent in the NOMX subagent ledger, and never fake the role via a prompt label. Registered Codex plugin marketplace surfaces supply NOMX workflows and plugin-scoped companion resources when the plugin is installed; native agent roles are installed as setup-owned Codex agent TOML files in plugin mode so agent_type routing works. User-installed skills may still live under ~/.codex/skills. Use outcome-first, concise progress updates: state the target result, constraints, validation evidence, and stop condition before adding process detail.</nomx>';
+const SHARED_MCP_REGISTRY_MARKER = "nomx (NOMX) Shared MCP Registry Sync";
 const SHARED_MCP_REGISTRY_END_MARKER =
-  "# End oh-my-codex shared MCP registry sync";
+  "# End nomx shared MCP registry sync";
 
 export type LegacyMultiAgentKey =
   | "features.multi_agent"
@@ -190,8 +190,8 @@ export function analyzeLegacyMultiAgentConfig(
   };
 }
 
-const OMX_EXPLORE_ROUTING_DEFAULT = "0";
-const OMX_EXPLORE_CMD_ENV = "USE_OMX_EXPLORE_CMD";
+const NOMX_EXPLORE_ROUTING_DEFAULT = "0";
+const NOMX_EXPLORE_CMD_ENV = "USE_OMX_EXPLORE_CMD";
 const DEFAULT_LAUNCHER_MCP_STARTUP_TIMEOUT_SEC = 15;
 const STATUS_LINE_FOCUSED_FIELDS: readonly string[] = [
   "model-with-reasoning",
@@ -222,36 +222,36 @@ export function statusLineForPreset(
   return `status_line = [${fields.map((field) => `"${field}"`).join(", ")}]`;
 }
 
-// Marker comment OMX emits immediately above any status_line it owns. New writes
+// Marker comment NOMX emits immediately above any status_line it owns. New writes
 // always include it; the customized-section detector keys on this marker so a
 // user-edited status_line that happens to byte-match a preset literal (e.g.
 // `["model-with-reasoning", "git-branch"]` matching the `minimal` preset) is
 // still recognized as a user customization and preserved.
-const OMX_MANAGED_STATUS_LINE_MARKER = "# omx:managed-status-line";
+const NOMX_MANAGED_STATUS_LINE_MARKER = "# nomx:managed-status-line";
 
 // Pre-marker installs only ever shipped the seven-field `focused` array.
-// Treat that exact value as OMX-managed for backward compatibility so
+// Treat that exact value as NOMX-managed for backward compatibility so
 // upgrades/preset switches still strip the legacy line. Any other preset
 // literal without the marker is assumed user-written.
 const LEGACY_OMX_STATUS_LINE = statusLineForPreset(
   DEFAULT_STATUS_LINE_PRESET,
 );
 
-// Set of every status_line literal OMX itself can emit today. Used together
+// Set of every status_line literal NOMX itself can emit today. Used together
 // with the marker comment: if a status_line is preceded by the marker AND
-// its value is a known OMX preset, it is OMX-managed. If the marker is
+// its value is a known NOMX preset, it is NOMX-managed. If the marker is
 // present but the value is something else, the user edited the value (and
 // left the marker untouched) — treat as a user customization and preserve.
-const OMX_PRESET_STATUS_LINE_VALUES: ReadonlySet<string> = new Set(
+const NOMX_PRESET_STATUS_LINE_VALUES: ReadonlySet<string> = new Set(
   (Object.keys(STATUS_LINE_PRESETS) as HudPreset[]).map((preset) =>
     statusLineForPreset(preset),
   ),
 );
 const LEGACY_OMX_TEAM_RUN_TABLE_PATTERN =
-  /^\s*\[mcp_servers\.(?:"omx_team_run"|omx_team_run)\]\s*$/m;
-const OMX_CONFIG_MARKER = "oh-my-codex (OMX) Configuration";
-const OMX_CONFIG_START_MARKER = `# ${OMX_CONFIG_MARKER}`;
-const OMX_CONFIG_END_MARKER = "# End oh-my-codex";
+  /^\s*\[mcp_servers\.(?:"nomx_team_run"|nomx_team_run)\]\s*$/m;
+const NOMX_CONFIG_MARKER = "nomx (NOMX) Configuration";
+const NOMX_CONFIG_START_MARKER = `# ${NOMX_CONFIG_MARKER}`;
+const NOMX_CONFIG_END_MARKER = "# End nomx";
 
 const CODEX_MODEL_AVAILABILITY_NUX_TABLE_PATTERN = /^\s*\[tui\.model_availability_nux\]\s*(?:#.*)?$/;
 const TOML_TABLE_HEADER_PATTERN = /^\s*\[\[?[^\]]+\]?\]\s*(?:#.*)?$/;
@@ -426,18 +426,18 @@ function isOmxDispatcherMetadataCommand(command: readonly string[] | null | unde
   }
   const metadataIndex = command.indexOf("--metadata");
   const metadataPath = metadataIndex >= 0 ? command[metadataIndex + 1] : undefined;
-  return typeof metadataPath === "string" && /(?:^|[\\/])(?:\.omx[\\/])?notify-dispatch\.json$/.test(metadataPath);
+  return typeof metadataPath === "string" && /(?:^|[\\/])(?:\.nomx[\\/])?notify-dispatch\.json$/.test(metadataPath);
 }
 
 function isOmxManagedPayloadText(value: string): boolean {
   const containsManagedPackageNotify =
     /(?:^|[\\/])notify-(?:hook|dispatcher)\.js(?:\s|$|["'])/.test(
       value,
-    ) && /(?:^|[\\/])oh-my-codex(?:[\\/]|$)/.test(value);
+    ) && /(?:^|[\\/])nomx(?:[\\/]|$)/.test(value);
   const containsDispatcherMetadataNotify =
     /(?:^|[\\/])notify-dispatcher\.js(?:\s|$|["'])/.test(value) &&
     /--metadata(?:\s|=)/.test(value) &&
-    /(?:^|[\\/])(?:\.omx[\\/])?notify-dispatch\.json(?:\s|$|["'])/.test(value);
+    /(?:^|[\\/])(?:\.nomx[\\/])?notify-dispatch\.json(?:\s|$|["'])/.test(value);
   return containsManagedPackageNotify || containsDispatcherMetadataNotify;
 }
 
@@ -523,7 +523,7 @@ export function isOmxManagedNotifyCommand(
       ])
     : new Set<string>();
   if (pkgRoot && managedScripts.has(resolve(entrypoint))) return true;
-  return /(?:^|[\\/])oh-my-codex(?:[\\/]|$)/.test(entrypoint);
+  return /(?:^|[\\/])nomx(?:[\\/]|$)/.test(entrypoint);
 }
 
 export function sanitizePreviousNotifyCommand(
@@ -545,12 +545,12 @@ function getOmxTopLevelLines(
   const rootValues = parseRootKeyValues(existingConfig);
 
   const lines = [
-    "# oh-my-codex top-level settings (must be before any [table])",
+    "# nomx top-level settings (must be before any [table])",
     ...(notifyCommand === false
       ? []
       : [`notify = ${formatTomlStringArray(notifyCommand)}`]),
     'model_reasoning_effort = "medium"',
-    `developer_instructions = "${escapeTomlString(OMX_DEVELOPER_INSTRUCTIONS)}"`,
+    `developer_instructions = "${escapeTomlString(NOMX_DEVELOPER_INSTRUCTIONS)}"`,
   ];
 
   const existingModel = rootValues.get("model");
@@ -601,9 +601,9 @@ function analyzeOmxSeededBehavioralDefaults(config: string): SeededBehavioralDef
   const firstTable = lines.findIndex((line) => TOML_TABLE_HEADER_PATTERN.test(line.content));
   const boundary = firstTable < 0 ? lines.length : firstTable;
   const starts = lines.map((line, index) => ({ line, index }))
-    .filter(({ line }) => line.content === OMX_SEEDED_BEHAVIORAL_DEFAULTS_START_MARKER);
+    .filter(({ line }) => line.content === NOMX_SEEDED_BEHAVIORAL_DEFAULTS_START_MARKER);
   const ends = lines.map((line, index) => ({ line, index }))
-    .filter(({ line }) => line.content === OMX_SEEDED_BEHAVIORAL_DEFAULTS_END_MARKER);
+    .filter(({ line }) => line.content === NOMX_SEEDED_BEHAVIORAL_DEFAULTS_END_MARKER);
   if (starts.length === 0 && ends.length === 0) return { state: "absent", spans: [] };
   if (starts.length !== 1 || ends.length !== 1 || starts[0].index >= ends[0].index) {
     return { state: "malformed-or-ambiguous", spans: [] };
@@ -630,8 +630,8 @@ function analyzeOmxSeededBehavioralDefaults(config: string): SeededBehavioralDef
   const block = lines.slice(start.index, end.index + 1);
   const exact = (body: readonly string[]): boolean =>
     block.length === body.length + 2 &&
-    block[0].content === OMX_SEEDED_BEHAVIORAL_DEFAULTS_START_MARKER &&
-    block.at(-1)?.content === OMX_SEEDED_BEHAVIORAL_DEFAULTS_END_MARKER &&
+    block[0].content === NOMX_SEEDED_BEHAVIORAL_DEFAULTS_START_MARKER &&
+    block.at(-1)?.content === NOMX_SEEDED_BEHAVIORAL_DEFAULTS_END_MARKER &&
     body.every((line, index) => block[index + 1].content === line);
   const blockSpan = [{ start: start.line.start, end: end.line.end }];
   const markerSpans = [
@@ -705,11 +705,11 @@ function stripRootLevelKeys(config: string, keys: readonly string[]): string {
   const filteredEntries = entries.filter((entry) => {
     if (
       keys.some((key) =>
-        OMX_TOP_LEVEL_KEYS.includes(key as (typeof OMX_TOP_LEVEL_KEYS)[number]),
+        NOMX_TOP_LEVEL_KEYS.includes(key as (typeof NOMX_TOP_LEVEL_KEYS)[number]),
       ) &&
       entry.lines.length === 1 &&
       entry.lines[0].trim() ===
-        "# oh-my-codex top-level settings (must be before any [table])"
+        "# nomx top-level settings (must be before any [table])"
     ) {
       return false;
     }
@@ -758,11 +758,11 @@ function stripOrphanedManagedNotify(config: string, pkgRoot: string): string {
 }
 
 /**
- * Remove any existing OMX-owned top-level keys so we can re-insert them
+ * Remove any existing NOMX-owned top-level keys so we can re-insert them
  * cleanly. Also removes the comment line that precedes them.
  */
 export function stripOmxTopLevelKeys(config: string): string {
-  return stripRootLevelKeys(config, OMX_TOP_LEVEL_KEYS);
+  return stripRootLevelKeys(config, NOMX_TOP_LEVEL_KEYS);
 }
 
 // ---------------------------------------------------------------------------
@@ -932,12 +932,12 @@ function upsertFeatureFlags(
   return lines.join("\n");
 }
 
-const OMX_HOOK_TRUST_START_MARKER = "# OMX-owned Codex hook trust state";
-const OMX_HOOK_TRUST_END_MARKER = "# End OMX-owned Codex hook trust state";
-const OMX_PROJECT_TRUST_START_MARKER =
-  "# OMX-synced Codex project trust state (from runtime CODEX_HOME)";
-const OMX_PROJECT_TRUST_END_MARKER =
-  "# End OMX-synced Codex project trust state";
+const NOMX_HOOK_TRUST_START_MARKER = "# NOMX-owned Codex hook trust state";
+const NOMX_HOOK_TRUST_END_MARKER = "# End NOMX-owned Codex hook trust state";
+const NOMX_PROJECT_TRUST_START_MARKER =
+  "# NOMX-synced Codex project trust state (from runtime CODEX_HOME)";
+const NOMX_PROJECT_TRUST_END_MARKER =
+  "# End NOMX-synced Codex project trust state";
 
 function extractMarkerBlockContent(
   config: string,
@@ -1037,15 +1037,15 @@ export function repairProjectScopeTrustStateForLaunch(
 ): string {
   const syncedTrustBlock = extractMarkerBlockContent(
     projectConfig,
-    OMX_PROJECT_TRUST_START_MARKER,
-    OMX_PROJECT_TRUST_END_MARKER,
+    NOMX_PROJECT_TRUST_START_MARKER,
+    NOMX_PROJECT_TRUST_END_MARKER,
   );
   if (!syncedTrustBlock) return projectConfig;
 
   const stripped = stripMarkerBlock(
     projectConfig,
-    OMX_PROJECT_TRUST_START_MARKER,
-    OMX_PROJECT_TRUST_END_MARKER,
+    NOMX_PROJECT_TRUST_START_MARKER,
+    NOMX_PROJECT_TRUST_END_MARKER,
   );
   const repaired = syncProjectScopeTrustStateFromRuntime(
     stripped,
@@ -1078,8 +1078,8 @@ export function syncProjectScopeTrustStateFromRuntime(
 
   const stripped = stripMarkerBlock(
     projectConfig,
-    OMX_PROJECT_TRUST_START_MARKER,
-    OMX_PROJECT_TRUST_END_MARKER,
+    NOMX_PROJECT_TRUST_START_MARKER,
+    NOMX_PROJECT_TRUST_END_MARKER,
   );
   const existingHookTrustStateKeys = collectProjectHookTrustStateKeys(stripped);
   const trustBlockLines: string[] = [];
@@ -1125,9 +1125,9 @@ export function syncProjectScopeTrustStateFromRuntime(
   }
 
   const block = [
-    OMX_PROJECT_TRUST_START_MARKER,
+    NOMX_PROJECT_TRUST_START_MARKER,
     ...trustBlockLines,
-    OMX_PROJECT_TRUST_END_MARKER,
+    NOMX_PROJECT_TRUST_END_MARKER,
     "",
   ].join("\n");
 
@@ -1878,8 +1878,8 @@ function collectManagedHookTrustStateSourceRepresentations(
   for (const [index, line] of lines.entries()) {
     if (
       source.lineStartsOutsideMultiline[index] &&
-      (line.trim() === OMX_HOOK_TRUST_END_MARKER ||
-        line.trim() === OMX_CONFIG_END_MARKER)
+      (line.trim() === NOMX_HOOK_TRUST_END_MARKER ||
+        line.trim() === NOMX_CONFIG_END_MARKER)
     ) {
       boundaries.add(index);
     }
@@ -1893,15 +1893,15 @@ function collectManagedHookTrustStateSourceRepresentations(
   const managedMarkerRanges = [
     ...collectMarkerRanges(
       source,
-      OMX_HOOK_TRUST_START_MARKER,
-      OMX_HOOK_TRUST_END_MARKER,
+      NOMX_HOOK_TRUST_START_MARKER,
+      NOMX_HOOK_TRUST_END_MARKER,
       false,
       parsedAssignmentSpans,
     ),
     ...collectMarkerRanges(
       source,
-      OMX_CONFIG_START_MARKER,
-      OMX_CONFIG_END_MARKER,
+      NOMX_CONFIG_START_MARKER,
+      NOMX_CONFIG_END_MARKER,
       true,
       parsedAssignmentSpans,
     ),
@@ -1919,8 +1919,8 @@ function collectManagedHookTrustStateSourceRepresentations(
       if (
         !source.lineStartsOutsideMultiline[cursor] ||
         line.trim().length === 0 ||
-        line.trim() === OMX_HOOK_TRUST_START_MARKER ||
-        line.trim() === OMX_CONFIG_START_MARKER
+        line.trim() === NOMX_HOOK_TRUST_START_MARKER ||
+        line.trim() === NOMX_CONFIG_START_MARKER
       ) {
         cursor += 1;
         continue;
@@ -2066,19 +2066,19 @@ function removeEmptyManagedHookTrustStateMarkerBlocks(
   for (let start = 0; start < lines.length; start += 1) {
     if (
       !source.lineStartsOutsideMultiline[start] ||
-      lines[start]?.trim() !== OMX_HOOK_TRUST_START_MARKER
+      lines[start]?.trim() !== NOMX_HOOK_TRUST_START_MARKER
     ) continue;
     const end = lines.findIndex(
       (line, index) =>
         index > start &&
         source.lineStartsOutsideMultiline[index] &&
-        line.trim() === OMX_HOOK_TRUST_END_MARKER,
+        line.trim() === NOMX_HOOK_TRUST_END_MARKER,
     );
     const nestedStart = lines.findIndex(
       (line, index) =>
         index > start &&
         source.lineStartsOutsideMultiline[index] &&
-        line.trim() === OMX_HOOK_TRUST_START_MARKER,
+        line.trim() === NOMX_HOOK_TRUST_START_MARKER,
     );
     if (end === -1 || (nestedStart !== -1 && nestedStart < end)) continue;
 
@@ -2388,10 +2388,10 @@ export function upsertManagedCodexHookTrustState(
     [
       stripped,
       "",
-      OMX_HOOK_TRUST_START_MARKER,
+      NOMX_HOOK_TRUST_START_MARKER,
       "# Trusts only setup-managed native hook wrappers.",
       hookTrustToml,
-      OMX_HOOK_TRUST_END_MARKER,
+      NOMX_HOOK_TRUST_END_MARKER,
       "",
     ].filter((line, index) => index !== 0 || line.length > 0).join("\n"),
     options.legacyHookTrustState,
@@ -2619,11 +2619,11 @@ function upsertEnvSettings(config: string): string {
     const envLines = legacyEnvEntries.flatMap((entry) => entry.lines);
     if (
       legacyEnvEntries.every(
-        (entry) => entry.key !== OMX_EXPLORE_CMD_ENV,
+        (entry) => entry.key !== NOMX_EXPLORE_CMD_ENV,
       )
     ) {
       envLines.push(
-        `${OMX_EXPLORE_CMD_ENV} = "${OMX_EXPLORE_ROUTING_DEFAULT}"`,
+        `${NOMX_EXPLORE_CMD_ENV} = "${NOMX_EXPLORE_ROUTING_DEFAULT}"`,
       );
     }
     const envBlock = [
@@ -2649,9 +2649,9 @@ function upsertEnvSettings(config: string): string {
     }
   }
 
-  if (!shellEnvKeys.has(OMX_EXPLORE_CMD_ENV)) {
+  if (!shellEnvKeys.has(NOMX_EXPLORE_CMD_ENV)) {
     linesToInsert.push(
-      `${OMX_EXPLORE_CMD_ENV} = "${OMX_EXPLORE_ROUTING_DEFAULT}"`,
+      `${NOMX_EXPLORE_CMD_ENV} = "${NOMX_EXPLORE_ROUTING_DEFAULT}"`,
     );
   }
 
@@ -2663,7 +2663,7 @@ function upsertEnvSettings(config: string): string {
 }
 
 /**
- * Remove OMX-owned feature flags from the [features] section.
+ * Remove NOMX-owned feature flags from the [features] section.
  * If `preserveMultiAgent` is set, retain multi_agent unchanged.
  * If the section becomes empty after removal, remove the section header too.
  */
@@ -2686,7 +2686,7 @@ export function stripOmxFeatureFlags(
     }
   }
 
-  const omxFlags = [
+  const nomxFlags = [
     ...(options.preserveMultiAgent ? [] : ["multi_agent"]),
     "child_agents_md",
     "hooks",
@@ -2698,7 +2698,7 @@ export function stripOmxFeatureFlags(
   const filtered: string[] = [];
   for (let i = 0; i < lines.length; i++) {
     if (i > featuresStart && i < sectionEnd) {
-      const isOmxFlag = omxFlags.some((f) =>
+      const isOmxFlag = nomxFlags.some((f) =>
         new RegExp(`^\\s*${f}\\s*=`).test(lines[i]),
       );
       if (isOmxFlag) continue;
@@ -2728,7 +2728,7 @@ export function stripOmxFeatureFlags(
 }
 
 /**
- * Preserve native Codex hook enablement without re-adding other OMX feature
+ * Preserve native Codex hook enablement without re-adding other NOMX feature
  * flags. Used by uninstall when user-owned hooks remain in hooks.json.
  */
 export function upsertCodexHooksFeatureFlag(
@@ -2769,17 +2769,17 @@ export function upsertCodexHooksFeatureFlag(
 
 export function stripOmxEnvSettings(config: string): string {
   let lines = config.split(/\r?\n/);
-  lines = stripTomlTableKey(lines, /^\s*\[env\]\s*$/, OMX_EXPLORE_CMD_ENV);
+  lines = stripTomlTableKey(lines, /^\s*\[env\]\s*$/, NOMX_EXPLORE_CMD_ENV);
   lines = stripTomlTableKey(
     lines,
     /^\s*\[shell_environment_policy\.set\]\s*$/,
-    OMX_EXPLORE_CMD_ENV,
+    NOMX_EXPLORE_CMD_ENV,
   );
   return lines.join("\n");
 }
 
 // ---------------------------------------------------------------------------
-// Orphaned OMX table sections (no marker block)
+// Orphaned NOMX table sections (no marker block)
 // ---------------------------------------------------------------------------
 
 function isOmxFirstPartyMcpSection(tableName: string): boolean {
@@ -2787,14 +2787,14 @@ function isOmxFirstPartyMcpSection(tableName: string): boolean {
   const name = match?.[1] ?? match?.[2];
   return Boolean(
     name &&
-      ((OMX_FIRST_PARTY_MCP_SERVER_NAMES as readonly string[]).includes(name) ||
-        name === "omx_team_run"),
+      ((NOMX_FIRST_PARTY_MCP_SERVER_NAMES as readonly string[]).includes(name) ||
+        name === "nomx_team_run"),
   );
 }
 
 
 /**
- * Strip first-party OMX MCP table sections that exist outside the marker block.
+ * Strip first-party NOMX MCP table sections that exist outside the marker block.
  * This covers legacy configs that were written before markers were added,
  * or configs where the marker was accidentally removed.
  */
@@ -2811,14 +2811,14 @@ function stripOrphanedOmxSections(config: string): string {
       const tableName = tableMatch[1];
       // Note: [tui] is NOT stripped here because it could be user-owned.
       // The marker-based stripExistingOmxBlocks already handles [tui]
-      // when it lives inside the OMX marker block.
+      // when it lives inside the NOMX marker block.
       const isOmxSection = isOmxFirstPartyMcpSection(tableName);
 
       if (isOmxSection) {
-        // Remove preceding OMX comment lines and blank lines
+        // Remove preceding NOMX comment lines and blank lines
         while (result.length > 0) {
           const last = result[result.length - 1];
-          if (last.trim() === "" || /^#\s*(OMX|oh-my-codex)/i.test(last)) {
+          if (last.trim() === "" || /^#\s*(NOMX|nomx)/i.test(last)) {
             result.pop();
           } else {
             break;
@@ -2843,8 +2843,8 @@ function stripOrphanedOmxSections(config: string): string {
 
 export function hasFirstPartyOmxMcpRegistrations(config: string): boolean {
   const firstPartyNames = new Set<string>([
-    ...OMX_FIRST_PARTY_MCP_SERVER_NAMES,
-    "omx_team_run",
+    ...NOMX_FIRST_PARTY_MCP_SERVER_NAMES,
+    "nomx_team_run",
   ]);
   for (const line of config.split(/\r?\n/)) {
     const match = line.match(/^\s*\[mcp_servers\.(?:"([^"]+)"|([A-Za-z0-9_-]+))\]\s*$/);
@@ -2905,10 +2905,10 @@ function extractCustomizedTuiSectionsFromOmxBlocks(config: string): string[] {
   let searchStart = 0;
 
   while (true) {
-    const markerIdx = config.indexOf(OMX_CONFIG_MARKER, searchStart);
+    const markerIdx = config.indexOf(NOMX_CONFIG_MARKER, searchStart);
     if (markerIdx < 0) break;
 
-    const endIdx = config.indexOf(OMX_CONFIG_END_MARKER, markerIdx);
+    const endIdx = config.indexOf(NOMX_CONFIG_END_MARKER, markerIdx);
     if (endIdx < 0) break;
 
     const blockLines = config.slice(markerIdx, endIdx).split(/\r?\n/);
@@ -2928,18 +2928,18 @@ function extractCustomizedTuiSectionsFromOmxBlocks(config: string): string[] {
 
         tuiLines.push(trimmed);
         if (/^status_line\s*=/.test(trimmed)) {
-          // OMX-managed when:
+          // NOMX-managed when:
           //   1. Preceded by the managed-status-line marker AND the value is
-          //      a known OMX preset literal (post-marker installs). If the
+          //      a known NOMX preset literal (post-marker installs). If the
           //      marker is present but the value isn't a preset, the user
           //      edited the value and left the marker — treat as customized.
           //   2. No marker but the value byte-matches the legacy seven-field
           //      default (pre-marker installs only ever shipped focused).
-          // Anything else inside an OMX-marker block is treated as a user
+          // Anything else inside an NOMX-marker block is treated as a user
           // customization and preserved across rebuild.
           const hasMarker =
-            lastNonBlankBeforeStatusLine === OMX_MANAGED_STATUS_LINE_MARKER;
-          const matchesPreset = OMX_PRESET_STATUS_LINE_VALUES.has(trimmed);
+            lastNonBlankBeforeStatusLine === NOMX_MANAGED_STATUS_LINE_MARKER;
+          const matchesPreset = NOMX_PRESET_STATUS_LINE_VALUES.has(trimmed);
           const isManagedByMarker = hasMarker && matchesPreset;
           const isManagedByLegacyValue =
             !hasMarker && trimmed === LEGACY_OMX_STATUS_LINE;
@@ -2955,7 +2955,7 @@ function extractCustomizedTuiSectionsFromOmxBlocks(config: string): string[] {
       }
     }
 
-    searchStart = endIdx + OMX_CONFIG_END_MARKER.length;
+    searchStart = endIdx + NOMX_CONFIG_END_MARKER.length;
   }
 
   return sections;
@@ -3024,9 +3024,9 @@ function upsertTuiStatusLine(
         }
         const statusLineEntry = entryLines.join("\n");
         const hasMarker =
-          lastNonBlankBeforeStatusLine === OMX_MANAGED_STATUS_LINE_MARKER;
+          lastNonBlankBeforeStatusLine === NOMX_MANAGED_STATUS_LINE_MARKER;
         const isManagedByMarker =
-          hasMarker && OMX_PRESET_STATUS_LINE_VALUES.has(statusLineEntry);
+          hasMarker && NOMX_PRESET_STATUS_LINE_VALUES.has(statusLineEntry);
         const isManagedByLegacyValue =
           !hasMarker && statusLineEntry === LEGACY_OMX_STATUS_LINE;
         const isOmxManagedStatusLine =
@@ -3048,7 +3048,7 @@ function upsertTuiStatusLine(
     }
   }
 
-  // When OMX is supplying the status_line (no user-preserved value),
+  // When NOMX is supplying the status_line (no user-preserved value),
   // emit the managed-status-line marker comment alongside it so the
   // customized-section detector can unambiguously tell our writes apart
   // from a user edit on the next merge.
@@ -3057,7 +3057,7 @@ function upsertTuiStatusLine(
     : [
         "[tui]",
         ...preservedKeyLines,
-        OMX_MANAGED_STATUS_LINE_MARKER,
+        NOMX_MANAGED_STATUS_LINE_MARKER,
         statusLineForPreset(preset),
       ];
   const firstStart = sections[0].start;
@@ -3087,7 +3087,7 @@ function upsertTuiStatusLine(
 }
 
 // ---------------------------------------------------------------------------
-// OMX [table] sections block (appended at end of file)
+// NOMX [table] sections block (appended at end of file)
 // ---------------------------------------------------------------------------
 
 export function stripExistingOmxBlocks(
@@ -3104,8 +3104,8 @@ export function stripExistingOmxBlocks(
   const { source } = inventory;
   const markerRanges = collectMarkerRanges(
     source,
-    OMX_CONFIG_START_MARKER,
-    OMX_CONFIG_END_MARKER,
+    NOMX_CONFIG_START_MARKER,
+    NOMX_CONFIG_END_MARKER,
     false,
     inventory.parsedAssignmentSpans,
   );
@@ -3353,7 +3353,7 @@ function findLauncherTimeoutRepairTargets(
     const [name, value] = Object.entries(mcpServers ?? {})[0] ?? [];
     if (
       !name ||
-      name.startsWith("omx_") ||
+      name.startsWith("nomx_") ||
       typeof value !== "object" ||
       !value
     ) {
@@ -3481,7 +3481,7 @@ export function mergeSharedMcpRegistryBlock(
 }
 
 /**
- * OMX table-section block (MCP servers, TUI).
+ * NOMX table-section block (MCP servers, TUI).
  * Contains ONLY [table] sections — no bare keys.
  */
 function getOmxTablesBlock(
@@ -3496,13 +3496,13 @@ function getOmxTablesBlock(
   const lines = [
     "",
     "# ============================================================",
-    "# oh-my-codex (OMX) Configuration",
+    "# nomx (NOMX) Configuration",
     "# Managed by nomx setup - manual edits preserved on next setup",
     "# ============================================================",
   ];
 
   if (includeFirstPartyMcp) {
-    for (const server of getOmxFirstPartySetupMcpServers(pkgRoot)) {
+    for (const server of getNomxFirstPartySetupMcpServers(pkgRoot)) {
       lines.push("");
       lines.push(server.title);
       lines.push(`[mcp_servers.${server.name}]`);
@@ -3529,26 +3529,26 @@ function getOmxTablesBlock(
   );
   if (hookTrustToml) {
     lines.push("");
-    lines.push("# OMX-owned Codex hook trust state");
+    lines.push("# NOMX-owned Codex hook trust state");
     lines.push("# Trusts only setup-managed native hook wrappers.");
     lines.push(hookTrustToml);
-    lines.push("# End OMX-owned Codex hook trust state");
+    lines.push("# End NOMX-owned Codex hook trust state");
   }
 
   lines.push(
     ...(includeTui
       ? [
           "",
-          "# OMX TUI StatusLine (Codex CLI v0.101.0+)",
+          "# NOMX TUI StatusLine (Codex CLI v0.101.0+)",
           "[tui]",
-          OMX_MANAGED_STATUS_LINE_MARKER,
+          NOMX_MANAGED_STATUS_LINE_MARKER,
           statusLineForPreset(statusLinePreset),
           "",
         ]
       : [""]),
   );
   lines.push("# ============================================================");
-  lines.push("# End oh-my-codex");
+  lines.push("# End nomx");
   lines.push("");
   return lines.join("\n");
 }
@@ -3558,15 +3558,15 @@ function getOmxTablesBlock(
 // ---------------------------------------------------------------------------
 
 /**
- * Merge OMX config into existing config.toml
- * Preserves existing user settings, appends OMX block if not present.
+ * Merge NOMX config into existing config.toml
+ * Preserves existing user settings, appends NOMX block if not present.
  *
  * Layout:
- *   1. OMX top-level keys (notify, model_reasoning_effort, developer_instructions)
+ *   1. NOMX top-level keys (notify, model_reasoning_effort, developer_instructions)
  *   2. [features] with child_agents_md + hooks + goals
  *   3. [shell_environment_policy.set] with defaulted deprecated explore-routing opt-out
  *   4. … user sections …
- *   5. OMX [table] sections (mcp_servers, tui)
+ *   5. NOMX [table] sections (mcp_servers, tui)
  */
 export function buildMergedConfig(
   existingConfig: string,
@@ -3600,7 +3600,7 @@ export function buildMergedConfig(
   const customizedManagedTuiSections =
     extractCustomizedTuiSectionsFromOmxBlocks(existing);
 
-  if (existing.includes(OMX_CONFIG_MARKER)) {
+  if (existing.includes(NOMX_CONFIG_MARKER)) {
     const stripped = stripExistingOmxBlocks(existing, {
       managedTrustState,
       priorManagedHookTrustState: options.priorManagedHookTrustState,
@@ -3690,8 +3690,8 @@ export function buildMergedConfig(
  *
  * After an nomx version upgrade the OLD setup code (still loaded in memory)
  * may leave a config with duplicate [tui] sections or the retired
- * [mcp_servers.omx_team_run] table. Codex rejects duplicate tables and newer
- * OMX builds no longer ship the team MCP entrypoint, so we repair both before
+ * [mcp_servers.nomx_team_run] table. Codex rejects duplicate tables and newer
+ * NOMX builds no longer ship the team MCP entrypoint, so we repair both before
  * the CLI is spawned.
  *
  * Returns `true` if a repair was performed.

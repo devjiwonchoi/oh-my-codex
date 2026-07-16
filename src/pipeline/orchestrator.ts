@@ -1,10 +1,10 @@
 /**
- * Pipeline Orchestrator for oh-my-codex
+ * Pipeline Orchestrator for nomx
  *
  * Sequences configurable stages (deep-interview -> ralplan -> ultragoal -> code-review -> ultraqa)
  * and persists state through the ModeState system.
  *
- * Mirrors OMC #1130 pipeline design with OMX-specific adaptations:
+ * Mirrors OMC #1130 pipeline design with NOMX-specific adaptations:
  * - Legacy Ralph iteration count is configurable
  * - Code review is the merge-readiness gate
  * - Non-clean review artifacts can drive a return to ralplan

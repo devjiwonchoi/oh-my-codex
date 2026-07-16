@@ -2,7 +2,7 @@ import { existsSync, realpathSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { omxRoot } from '../utils/paths.js';
+import { nomxRoot } from '../utils/paths.js';
 
 export interface ProjectRuntimeCodexHome {
   path: string;
@@ -27,14 +27,14 @@ export async function discoverProjectRuntimeCodexHomes(cwd: string): Promise<Pro
 }
 
 async function discoverLocalProjectRuntimeCodexHomes(cwd: string): Promise<ProjectRuntimeCodexHome[]> {
-  const root = join(omxRoot(cwd), 'runtime', 'codex-home');
+  const root = join(nomxRoot(cwd), 'runtime', 'codex-home');
   if (!existsSync(root)) return [];
 
   const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
   const homes: ProjectRuntimeCodexHome[] = [];
 
   for (const entry of entries) {
-    if (!entry.isDirectory() || !entry.name.startsWith('omx-')) continue;
+    if (!entry.isDirectory() || !entry.name.startsWith('nomx-')) continue;
     const home = join(root, entry.name);
     const sessions = join(home, 'sessions');
     if (!existsSync(sessions)) continue;
@@ -55,10 +55,10 @@ async function discoverAssociatedMadmaxRuntimeCodexHomes(
   const associatedRunDirs = await discoverAssociatedMadmaxRunDirs(cwd, runsRoot);
   const homes: ProjectRuntimeCodexHome[] = [];
   for (const runDir of associatedRunDirs) {
-    const codexHomeRoot = join(runDir, '.omx', 'runtime', 'codex-home');
+    const codexHomeRoot = join(runDir, '.nomx', 'runtime', 'codex-home');
     const entries = await readdir(codexHomeRoot, { withFileTypes: true }).catch(() => []);
     for (const entry of entries) {
-      if (!entry.isDirectory() || !entry.name.startsWith('omx-')) continue;
+      if (!entry.isDirectory() || !entry.name.startsWith('nomx-')) continue;
       const home = join(codexHomeRoot, entry.name);
       const sessions = join(home, 'sessions');
       if (!existsSync(sessions)) continue;
@@ -103,7 +103,7 @@ async function discoverAssociatedMadmaxRunDirs(cwd: string, runsRoot: string): P
   const entries = await readdir(runsRoot, { withFileTypes: true }).catch(() => []);
   for (const entry of entries) {
     if (!entry.isDirectory() || !entry.name.startsWith('run-')) continue;
-    const metadataPath = join(runsRoot, entry.name, '.omxbox-run.json');
+    const metadataPath = join(runsRoot, entry.name, '.nomxbox-run.json');
     try {
       addMetadata(JSON.parse(await readFile(metadataPath, 'utf-8')));
     } catch {}
@@ -113,7 +113,7 @@ async function discoverAssociatedMadmaxRunDirs(cwd: string, runsRoot: string): P
 }
 
 function resolveMadmaxRunsRoot(env: NodeJS.ProcessEnv): string {
-  return resolve(env.OMX_RUNS_DIR || join(homedir(), '.omx-runs'));
+  return resolve(env.NOMX_RUNS_DIR || join(homedir(), '.nomx-runs'));
 }
 
 function parseMadmaxRunMetadata(raw: unknown): { sourceCwd: string; runDir: string } | null {

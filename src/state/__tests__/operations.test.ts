@@ -35,42 +35,42 @@ async function withAmbientTmuxEnv<T>(env: NodeJS.ProcessEnv, run: () => Promise<
 }
 
 async function withOmxRootEnv<T>(root: string, run: () => Promise<T>): Promise<T> {
-  const previousOmxRoot = process.env.OMX_ROOT;
-  const previousOmxStateRoot = process.env.OMX_STATE_ROOT;
-  const previousTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
-  process.env.OMX_ROOT = root;
-  delete process.env.OMX_STATE_ROOT;
-  delete process.env.OMX_TEAM_STATE_ROOT;
+  const previousOmxRoot = process.env.NOMX_ROOT;
+  const previousOmxStateRoot = process.env.NOMX_STATE_ROOT;
+  const previousTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
+  process.env.NOMX_ROOT = root;
+  delete process.env.NOMX_STATE_ROOT;
+  delete process.env.NOMX_TEAM_STATE_ROOT;
   try {
     return await run();
   } finally {
-    if (typeof previousOmxRoot === 'string') process.env.OMX_ROOT = previousOmxRoot;
-    else delete process.env.OMX_ROOT;
-    if (typeof previousOmxStateRoot === 'string') process.env.OMX_STATE_ROOT = previousOmxStateRoot;
-    else delete process.env.OMX_STATE_ROOT;
-    if (typeof previousTeamStateRoot === 'string') process.env.OMX_TEAM_STATE_ROOT = previousTeamStateRoot;
-    else delete process.env.OMX_TEAM_STATE_ROOT;
+    if (typeof previousOmxRoot === 'string') process.env.NOMX_ROOT = previousOmxRoot;
+    else delete process.env.NOMX_ROOT;
+    if (typeof previousOmxStateRoot === 'string') process.env.NOMX_STATE_ROOT = previousOmxStateRoot;
+    else delete process.env.NOMX_STATE_ROOT;
+    if (typeof previousTeamStateRoot === 'string') process.env.NOMX_TEAM_STATE_ROOT = previousTeamStateRoot;
+    else delete process.env.NOMX_TEAM_STATE_ROOT;
   }
 }
-async function withStateRootEnv<T>(env: Partial<Record<'OMX_ROOT' | 'OMX_STATE_ROOT' | 'OMX_TEAM_STATE_ROOT', string>>, run: () => Promise<T>): Promise<T> {
-  const previousOmxRoot = process.env.OMX_ROOT;
-  const previousOmxStateRoot = process.env.OMX_STATE_ROOT;
-  const previousTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
-  if (typeof env.OMX_ROOT === 'string') process.env.OMX_ROOT = env.OMX_ROOT;
-  else delete process.env.OMX_ROOT;
-  if (typeof env.OMX_STATE_ROOT === 'string') process.env.OMX_STATE_ROOT = env.OMX_STATE_ROOT;
-  else delete process.env.OMX_STATE_ROOT;
-  if (typeof env.OMX_TEAM_STATE_ROOT === 'string') process.env.OMX_TEAM_STATE_ROOT = env.OMX_TEAM_STATE_ROOT;
-  else delete process.env.OMX_TEAM_STATE_ROOT;
+async function withStateRootEnv<T>(env: Partial<Record<'NOMX_ROOT' | 'NOMX_STATE_ROOT' | 'NOMX_TEAM_STATE_ROOT', string>>, run: () => Promise<T>): Promise<T> {
+  const previousOmxRoot = process.env.NOMX_ROOT;
+  const previousOmxStateRoot = process.env.NOMX_STATE_ROOT;
+  const previousTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
+  if (typeof env.NOMX_ROOT === 'string') process.env.NOMX_ROOT = env.NOMX_ROOT;
+  else delete process.env.NOMX_ROOT;
+  if (typeof env.NOMX_STATE_ROOT === 'string') process.env.NOMX_STATE_ROOT = env.NOMX_STATE_ROOT;
+  else delete process.env.NOMX_STATE_ROOT;
+  if (typeof env.NOMX_TEAM_STATE_ROOT === 'string') process.env.NOMX_TEAM_STATE_ROOT = env.NOMX_TEAM_STATE_ROOT;
+  else delete process.env.NOMX_TEAM_STATE_ROOT;
   try {
     return await run();
   } finally {
-    if (typeof previousOmxRoot === 'string') process.env.OMX_ROOT = previousOmxRoot;
-    else delete process.env.OMX_ROOT;
-    if (typeof previousOmxStateRoot === 'string') process.env.OMX_STATE_ROOT = previousOmxStateRoot;
-    else delete process.env.OMX_STATE_ROOT;
-    if (typeof previousTeamStateRoot === 'string') process.env.OMX_TEAM_STATE_ROOT = previousTeamStateRoot;
-    else delete process.env.OMX_TEAM_STATE_ROOT;
+    if (typeof previousOmxRoot === 'string') process.env.NOMX_ROOT = previousOmxRoot;
+    else delete process.env.NOMX_ROOT;
+    if (typeof previousOmxStateRoot === 'string') process.env.NOMX_STATE_ROOT = previousOmxStateRoot;
+    else delete process.env.NOMX_STATE_ROOT;
+    if (typeof previousTeamStateRoot === 'string') process.env.NOMX_TEAM_STATE_ROOT = previousTeamStateRoot;
+    else delete process.env.NOMX_TEAM_STATE_ROOT;
   }
 }
 
@@ -78,6 +78,11 @@ function responsePayload<T extends Record<string, unknown>>(response: { payload:
   assert.equal(response.isError, undefined);
   assert.ok(response.payload && typeof response.payload === 'object' && !Array.isArray(response.payload));
   return response.payload as T;
+}
+
+function assertSameFilesystemPath(actual: string, expected: string): void {
+  const normalizeDarwinPrivateAlias = (value: string): string => value.replace(/^\/private(?=\/var\/)/, '');
+  assert.equal(normalizeDarwinPrivateAlias(actual), normalizeDarwinPrivateAlias(expected));
 }
 
 function validExecutionContract(stride: 'task' | 'deliverable' | 'milestone'): Record<string, unknown> {
@@ -156,8 +161,8 @@ function ralplanConsensusGate(
       provenance_kind: provenanceKind,
       session_id: sessionId,
       thread_id: architectThread,
-      artifact_path: '.omx/artifacts/architect.md',
-      tracker_path: '.omx/state/subagent-tracking.json',
+      artifact_path: '.nomx/artifacts/architect.md',
+      tracker_path: '.nomx/state/subagent-tracking.json',
     },
     ralplan_critic_review: {
       agent_role: 'critic',
@@ -165,8 +170,8 @@ function ralplanConsensusGate(
       provenance_kind: provenanceKind,
       session_id: sessionId,
       thread_id: criticThread,
-      artifact_path: '.omx/artifacts/critic.md',
-      tracker_path: '.omx/state/subagent-tracking.json',
+      artifact_path: '.nomx/artifacts/critic.md',
+      tracker_path: '.nomx/state/subagent-tracking.json',
     },
   };
 }
@@ -230,10 +235,10 @@ exit 1
 
 describe('state operations directory initialization', () => {
   it('keeps state_list_active side-effect-free without setup', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-test-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-test-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
-      const tmuxHookConfig = join(wd, '.omx', 'tmux-hook.json');
+      const stateDir = join(wd, '.nomx', 'state');
+      const tmuxHookConfig = join(wd, '.nomx', 'tmux-hook.json');
       assert.equal(existsSync(stateDir), false);
       assert.equal(existsSync(tmuxHookConfig), false);
 
@@ -250,11 +255,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('keeps state_get_status side-effect-free when session_id is provided', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-status-readonly-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-status-readonly-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', 'sess1');
-      const tmuxHookConfig = join(wd, '.omx', 'tmux-hook.json');
+      const tmuxHookConfig = join(wd, '.nomx', 'tmux-hook.json');
       assert.equal(existsSync(sessionDir), false);
       assert.equal(existsSync(tmuxHookConfig), false);
 
@@ -272,112 +277,112 @@ describe('state operations directory initialization', () => {
     }
   });
 
-  it('writes and clears session state under OMX_TEAM_STATE_ROOT without creating cwd .omx', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-state-ops-team-root-'));
+  it('writes and clears session state under NOMX_TEAM_STATE_ROOT without creating cwd .nomx', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'nomx-state-ops-team-root-'));
     try {
       const wd = join(root, 'workspace');
       const teamStateRoot = join(root, 'team-state');
       await mkdir(wd, { recursive: true });
 
-      await withStateRootEnv({ OMX_TEAM_STATE_ROOT: teamStateRoot }, async () => {
+      await withStateRootEnv({ NOMX_TEAM_STATE_ROOT: teamStateRoot }, async () => {
         const writeResponse = await executeStateOperation('state_write', {
           workingDirectory: wd,
           session_id: 'sess-team-write',
-          mode: 'autoresearch',
+          mode: 'ultrawork',
           active: true,
           current_phase: 'running',
         });
         const writePayload = responsePayload<{ path: string }>(writeResponse);
-        assert.equal(writePayload.path, join(teamStateRoot, 'sessions', 'sess-team-write', 'autoresearch-state.json'));
+        assertSameFilesystemPath(writePayload.path, join(teamStateRoot, 'sessions', 'sess-team-write', 'ultrawork-state.json'));
         assert.equal(existsSync(writePayload.path), true);
         assert.equal(existsSync(join(teamStateRoot, 'sessions', 'sess-team-write', 'skill-active-state.json')), true);
-        assert.equal(existsSync(join(wd, '.omx')), false);
+        assert.equal(existsSync(join(wd, '.nomx')), false);
 
         const clearResponse = await executeStateOperation('state_clear', {
           workingDirectory: wd,
           session_id: 'sess-team-write',
-          mode: 'autoresearch',
+          mode: 'ultrawork',
         });
         const clearPayload = responsePayload<{ path: string }>(clearResponse);
-        assert.equal(clearPayload.path, writePayload.path);
+        assertSameFilesystemPath(clearPayload.path, writePayload.path);
         assert.equal(existsSync(writePayload.path), false);
         assert.equal(existsSync(join(teamStateRoot, 'sessions', 'sess-team-write', 'skill-active-state.json')), true);
-        assert.equal(existsSync(join(wd, '.omx')), false);
+        assert.equal(existsSync(join(wd, '.nomx')), false);
       });
     } finally {
       await rm(root, { recursive: true, force: true });
     }
   });
 
-  it('writes and clears session state under OMX_ROOT when cwd is filesystem root', async () => {
-    const boxRoot = await mkdtemp(join(tmpdir(), 'omx-state-ops-omx-root-'));
+  it('writes and clears session state under NOMX_ROOT when cwd is filesystem root', async () => {
+    const boxRoot = await mkdtemp(join(tmpdir(), 'nomx-state-ops-nomx-root-'));
     try {
-      await withStateRootEnv({ OMX_ROOT: boxRoot }, async () => {
+      await withStateRootEnv({ NOMX_ROOT: boxRoot }, async () => {
         const writeResponse = await executeStateOperation('state_write', {
           workingDirectory: '/',
-          session_id: 'sess-omx-root',
-          mode: 'autoresearch',
+          session_id: 'sess-nomx-root',
+          mode: 'ultrawork',
           active: true,
           current_phase: 'running',
         });
         const writePayload = responsePayload<{ path: string }>(writeResponse);
-        const expectedPath = join(boxRoot, '.omx', 'state', 'sessions', 'sess-omx-root', 'autoresearch-state.json');
-        assert.equal(writePayload.path, expectedPath);
+        const expectedPath = join(boxRoot, '.nomx', 'state', 'sessions', 'sess-nomx-root', 'ultrawork-state.json');
+        assertSameFilesystemPath(writePayload.path, expectedPath);
         assert.equal(existsSync(expectedPath), true);
 
         const clearResponse = await executeStateOperation('state_clear', {
           workingDirectory: '/',
-          session_id: 'sess-omx-root',
-          mode: 'autoresearch',
+          session_id: 'sess-nomx-root',
+          mode: 'ultrawork',
         });
         const clearPayload = responsePayload<{ path: string }>(clearResponse);
-        assert.equal(clearPayload.path, expectedPath);
+        assertSameFilesystemPath(clearPayload.path, expectedPath);
         assert.equal(existsSync(expectedPath), false);
 
         const workspace = join(boxRoot, 'workspace');
         await mkdir(workspace, { recursive: true });
         const workspaceResponse = await executeStateOperation('state_write', {
           workingDirectory: workspace,
-          session_id: 'sess-omx-root-workspace',
-          mode: 'autoresearch',
+          session_id: 'sess-nomx-root-workspace',
+          mode: 'ultrawork',
           active: true,
           current_phase: 'running',
         });
         const workspacePayload = responsePayload<{ path: string }>(workspaceResponse);
-        assert.equal(
+        assertSameFilesystemPath(
           workspacePayload.path,
-          join(boxRoot, '.omx', 'state', 'sessions', 'sess-omx-root-workspace', 'autoresearch-state.json'),
+          join(boxRoot, '.nomx', 'state', 'sessions', 'sess-nomx-root-workspace', 'ultrawork-state.json'),
         );
-        assert.equal(existsSync(join(workspace, '.omx')), false);
+        assert.equal(existsSync(join(workspace, '.nomx')), false);
       });
     } finally {
       await rm(boxRoot, { recursive: true, force: true });
     }
   });
 
-  it('writes and clears session state under OMX_STATE_ROOT when cwd is filesystem root', async () => {
-    const stateRoot = await mkdtemp(join(tmpdir(), 'omx-state-ops-state-root-'));
+  it('writes and clears session state under NOMX_STATE_ROOT when cwd is filesystem root', async () => {
+    const stateRoot = await mkdtemp(join(tmpdir(), 'nomx-state-ops-state-root-'));
     try {
-      await withStateRootEnv({ OMX_STATE_ROOT: stateRoot }, async () => {
+      await withStateRootEnv({ NOMX_STATE_ROOT: stateRoot }, async () => {
         const writeResponse = await executeStateOperation('state_write', {
           workingDirectory: '/',
           session_id: 'sess-state-root',
-          mode: 'autoresearch',
+          mode: 'ultrawork',
           active: true,
           current_phase: 'running',
         });
         const writePayload = responsePayload<{ path: string }>(writeResponse);
-        const expectedPath = join(stateRoot, '.omx', 'state', 'sessions', 'sess-state-root', 'autoresearch-state.json');
-        assert.equal(writePayload.path, expectedPath);
+        const expectedPath = join(stateRoot, '.nomx', 'state', 'sessions', 'sess-state-root', 'ultrawork-state.json');
+        assertSameFilesystemPath(writePayload.path, expectedPath);
         assert.equal(existsSync(expectedPath), true);
 
         const clearResponse = await executeStateOperation('state_clear', {
           workingDirectory: '/',
           session_id: 'sess-state-root',
-          mode: 'autoresearch',
+          mode: 'ultrawork',
         });
         const clearPayload = responsePayload<{ path: string }>(clearResponse);
-        assert.equal(clearPayload.path, expectedPath);
+        assertSameFilesystemPath(clearPayload.path, expectedPath);
         assert.equal(existsSync(expectedPath), false);
 
         const workspace = join(stateRoot, 'workspace');
@@ -385,16 +390,16 @@ describe('state operations directory initialization', () => {
         const workspaceResponse = await executeStateOperation('state_write', {
           workingDirectory: workspace,
           session_id: 'sess-state-root-workspace',
-          mode: 'autoresearch',
+          mode: 'ultrawork',
           active: true,
           current_phase: 'running',
         });
         const workspacePayload = responsePayload<{ path: string }>(workspaceResponse);
-        assert.equal(
+        assertSameFilesystemPath(
           workspacePayload.path,
-          join(stateRoot, '.omx', 'state', 'sessions', 'sess-state-root-workspace', 'autoresearch-state.json'),
+          join(stateRoot, '.nomx', 'state', 'sessions', 'sess-state-root-workspace', 'ultrawork-state.json'),
         );
-        assert.equal(existsSync(join(workspace, '.omx')), false);
+        assert.equal(existsSync(join(workspace, '.nomx')), false);
       });
     } finally {
       await rm(stateRoot, { recursive: true, force: true });
@@ -402,11 +407,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('surfaces active ultragoal artifacts in list-active without mode state files', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ultragoal-artifact-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ultragoal-artifact-'));
     try {
-      await mkdir(join(wd, '.omx', 'ultragoal'), { recursive: true });
+      await mkdir(join(wd, '.nomx', 'ultragoal'), { recursive: true });
       await writeFile(
-        join(wd, '.omx', 'ultragoal', 'goals.json'),
+        join(wd, '.nomx', 'ultragoal', 'goals.json'),
         JSON.stringify({
           activeGoalId: 'G001',
           goals: [{
@@ -432,7 +437,7 @@ describe('state operations directory initialization', () => {
       }).statuses || {};
       assert.equal(statuses.ultragoal?.active, true);
       assert.equal(statuses.ultragoal?.phase, 'in_progress');
-      assert.equal(statuses.ultragoal?.path, join(wd, '.omx', 'ultragoal', 'goals.json'));
+      assert.equal(statuses.ultragoal?.path, join(wd, '.nomx', 'ultragoal', 'goals.json'));
       assert.equal(statuses.ultragoal?.source, 'ultragoal-artifacts');
     } finally {
       await rm(wd, { recursive: true, force: true });
@@ -440,11 +445,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('reports reconciled task-scoped aggregate ultragoal artifacts as inactive in get-status', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ultragoal-reconciled-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ultragoal-reconciled-'));
     try {
-      await mkdir(join(wd, '.omx', 'ultragoal'), { recursive: true });
+      await mkdir(join(wd, '.nomx', 'ultragoal'), { recursive: true });
       await writeFile(
-        join(wd, '.omx', 'ultragoal', 'goals.json'),
+        join(wd, '.nomx', 'ultragoal', 'goals.json'),
         JSON.stringify({
           aggregateCompletion: {
             status: 'complete',
@@ -486,7 +491,7 @@ describe('state operations directory initialization', () => {
       }).statuses || {};
       assert.equal(statuses.ultragoal?.active, false);
       assert.equal(statuses.ultragoal?.phase, 'complete');
-      assert.equal(statuses.ultragoal?.path, join(wd, '.omx', 'ultragoal', 'goals.json'));
+      assert.equal(statuses.ultragoal?.path, join(wd, '.nomx', 'ultragoal', 'goals.json'));
       assert.equal(statuses.ultragoal?.source, 'ultragoal-artifacts');
       assert.equal(statuses.ultragoal?.data?.activeGoal, undefined);
       assert.equal(statuses.ultragoal?.data?.complete, 1);
@@ -498,16 +503,16 @@ describe('state operations directory initialization', () => {
   });
 
   it('prefers active ultragoal artifacts over stale inactive mode state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ultragoal-stale-state-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ultragoal-stale-state-'));
     try {
-      await mkdir(join(wd, '.omx', 'state'), { recursive: true });
-      await mkdir(join(wd, '.omx', 'ultragoal'), { recursive: true });
+      await mkdir(join(wd, '.nomx', 'state'), { recursive: true });
+      await mkdir(join(wd, '.nomx', 'ultragoal'), { recursive: true });
       await writeFile(
-        join(wd, '.omx', 'state', 'ultragoal-state.json'),
+        join(wd, '.nomx', 'state', 'ultragoal-state.json'),
         JSON.stringify({ active: false, current_phase: 'cleared' }, null, 2),
       );
       await writeFile(
-        join(wd, '.omx', 'ultragoal', 'goals.json'),
+        join(wd, '.nomx', 'ultragoal', 'goals.json'),
         JSON.stringify({
           activeGoalId: 'G001',
           goals: [{
@@ -540,9 +545,9 @@ describe('state operations directory initialization', () => {
   });
 
   it('does not treat root fallback as active for explicit session list-active decisions', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-active-scope-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-active-scope-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(
         join(stateDir, 'ralph-state.json'),
@@ -572,10 +577,10 @@ describe('state operations directory initialization', () => {
   });
 
   it('keeps missing state_read side-effect-free without setup', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-readonly-missing-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-readonly-missing-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
-      const tmuxHookConfig = join(wd, '.omx', 'tmux-hook.json');
+      const stateDir = join(wd, '.nomx', 'state');
+      const tmuxHookConfig = join(wd, '.nomx', 'tmux-hook.json');
       assert.equal(existsSync(stateDir), false);
       assert.equal(existsSync(tmuxHookConfig), false);
 
@@ -593,9 +598,9 @@ describe('state operations directory initialization', () => {
   });
 
   it('bootstraps tmux-hook from the current tmux pane for mutating state operations', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-live-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-live-'));
     try {
-      const tmuxHookConfig = join(wd, '.omx', 'tmux-hook.json');
+      const tmuxHookConfig = join(wd, '.nomx', 'tmux-hook.json');
       const fakeBin = await createFakeTmuxBin(wd);
 
       await withAmbientTmuxEnv(
@@ -626,7 +631,7 @@ describe('state operations directory initialization', () => {
   });
 
   it('writes and reads deep-interview state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-readwrite-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-readwrite-'));
     try {
       const writeResponse = await executeStateOperation('state_write', {
         workingDirectory: wd,
@@ -643,7 +648,7 @@ describe('state operations directory initialization', () => {
       assert.deepEqual(writeResponse.payload, {
         success: true,
         mode: 'deep-interview',
-        path: join(wd, '.omx', 'state', 'deep-interview-state.json'),
+        path: join(wd, '.nomx', 'state', 'deep-interview-state.json'),
       });
 
       const readResponse = await executeStateOperation('state_read', {
@@ -663,7 +668,7 @@ describe('state operations directory initialization', () => {
   });
 
   it('normalizes terminal deep-interview snapshots by releasing stale locks', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-di-terminal-normalize-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-di-terminal-normalize-'));
     try {
       const completedAt = '2026-07-09T00:00:00.000Z';
       const writeResponse = await executeStateOperation('state_write', {
@@ -682,7 +687,7 @@ describe('state operations directory initialization', () => {
         },
         question_enforcement: {
           obligation_id: 'obligation-stale',
-          source: 'omx-question',
+          source: 'nomx-question',
           status: 'pending',
           lifecycle_outcome: 'askuserQuestion',
           requested_at: '2026-07-08T23:59:00.000Z',
@@ -717,12 +722,12 @@ describe('state operations directory initialization', () => {
     }
   });
 
-  it('writes and reads autoresearch state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autoresearch-'));
+  it('writes and reads ultrawork state', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ultrawork-'));
     try {
       const writeResponse = await executeStateOperation('state_write', {
         workingDirectory: wd,
-        mode: 'autoresearch',
+        mode: 'ultrawork',
         active: true,
         current_phase: 'running',
       });
@@ -730,13 +735,13 @@ describe('state operations directory initialization', () => {
       assert.equal(writeResponse.isError, undefined);
       assert.deepEqual(writeResponse.payload, {
         success: true,
-        mode: 'autoresearch',
-        path: join(wd, '.omx', 'state', 'autoresearch-state.json'),
+        mode: 'ultrawork',
+        path: join(wd, '.nomx', 'state', 'ultrawork-state.json'),
       });
 
       const readResponse = await executeStateOperation('state_read', {
         workingDirectory: wd,
-        mode: 'autoresearch',
+        mode: 'ultrawork',
       });
 
       assert.equal(readResponse.isError, undefined);
@@ -749,10 +754,10 @@ describe('state operations directory initialization', () => {
   });
 
   it('lists active modes from the explicit session scope without leaking a sibling Ralph session', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-foreign-ralph-scope-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-foreign-ralph-scope-'));
     try {
-      const currentSessionDir = join(wd, '.omx', 'state', 'sessions', 'sess-current');
-      const foreignSessionDir = join(wd, '.omx', 'state', 'sessions', 'sess-foreign');
+      const currentSessionDir = join(wd, '.nomx', 'state', 'sessions', 'sess-current');
+      const foreignSessionDir = join(wd, '.nomx', 'state', 'sessions', 'sess-foreign');
       await mkdir(currentSessionDir, { recursive: true });
       await mkdir(foreignSessionDir, { recursive: true });
       await writeFile(
@@ -772,7 +777,7 @@ describe('state operations directory initialization', () => {
   });
 
   it('isolates same workflow state across explicit session ids when starting and clearing one session', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-same-workflow-isolation-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-same-workflow-isolation-'));
     try {
       const writeA = await executeStateOperation('state_write', {
         workingDirectory: wd,
@@ -786,8 +791,8 @@ describe('state operations directory initialization', () => {
       });
       assert.equal(writeA.isError, undefined);
 
-      const sessionAStatePath = join(wd, '.omx', 'state', 'sessions', 'sess-a', 'ralph-state.json');
-      const sessionACanonicalPath = join(wd, '.omx', 'state', 'sessions', 'sess-a', 'skill-active-state.json');
+      const sessionAStatePath = join(wd, '.nomx', 'state', 'sessions', 'sess-a', 'ralph-state.json');
+      const sessionACanonicalPath = join(wd, '.nomx', 'state', 'sessions', 'sess-a', 'skill-active-state.json');
       const sessionAStateBefore = JSON.parse(await readFile(sessionAStatePath, 'utf-8')) as Record<string, unknown>;
       const sessionACanonicalBefore = JSON.parse(await readFile(sessionACanonicalPath, 'utf-8')) as Record<string, unknown>;
 
@@ -832,7 +837,7 @@ describe('state operations directory initialization', () => {
   });
 
   it('serializes concurrent state_write calls per mode file and preserves merged fields', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-concurrency-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-concurrency-'));
     try {
       const writes = Array.from({ length: 16 }, (_, i) =>
         executeStateOperation('state_write', {
@@ -847,7 +852,7 @@ describe('state operations directory initialization', () => {
         assert.equal(response.isError, undefined);
       }
 
-      const filePath = join(wd, '.omx', 'state', 'team-state.json');
+      const filePath = join(wd, '.nomx', 'state', 'team-state.json');
       const state = JSON.parse(await readFile(filePath, 'utf-8')) as Record<string, unknown>;
       for (let i = 0; i < 16; i++) {
         assert.equal(state[`k${i}`], i);
@@ -858,9 +863,9 @@ describe('state operations directory initialization', () => {
   });
 
   it('does not report a legacy root mode active after clearing the current session scope', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-clear-root-fallback-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-clear-root-fallback-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-clear';
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
@@ -916,9 +921,9 @@ describe('state operations directory initialization', () => {
   });
 
   it('all_sessions clear removes session-only canonical workflow state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-all-sessions-session-only-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-all-sessions-session-only-'));
     try {
-      const sessionDir = join(wd, '.omx', 'state', 'sessions', 'sess-only');
+      const sessionDir = join(wd, '.nomx', 'state', 'sessions', 'sess-only');
       await mkdir(sessionDir, { recursive: true });
       await writeFile(
         join(sessionDir, 'ralph-state.json'),
@@ -950,12 +955,12 @@ describe('state operations directory initialization', () => {
   });
 
   it('does not list a mode active when terminal canonical visibility contradicts an active detail state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-terminal-canonical-wins-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-terminal-canonical-wins-'));
     try {
       const sessionId = 'sess-terminal-visible';
-      const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+      const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
-      await writeFile(join(wd, '.omx', 'state', 'session.json'), JSON.stringify({ session_id: sessionId }, null, 2));
+      await writeFile(join(wd, '.nomx', 'state', 'session.json'), JSON.stringify({ session_id: sessionId }, null, 2));
       await writeFile(join(sessionDir, 'autopilot-state.json'), JSON.stringify({
         active: true,
         current_phase: 'deep-interview',
@@ -985,12 +990,12 @@ describe('state operations directory initialization', () => {
   });
 
   it('uses the implicit current session canonical state when filtering list-active', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-terminal-canonical-implicit-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-terminal-canonical-implicit-'));
     try {
       const sessionId = 'sess-terminal-implicit';
-      const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+      const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
-      await writeFile(join(wd, '.omx', 'state', 'session.json'), JSON.stringify({ session_id: sessionId }, null, 2));
+      await writeFile(join(wd, '.nomx', 'state', 'session.json'), JSON.stringify({ session_id: sessionId }, null, 2));
       await writeFile(join(sessionDir, 'autopilot-state.json'), JSON.stringify({
         active: true,
         current_phase: 'deep-interview',
@@ -1016,17 +1021,17 @@ describe('state operations directory initialization', () => {
   });
 
   it('syncs canonical skill-active state for tracked mode writes and clears', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-canonical-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-canonical-'));
     try {
       await executeStateOperation('state_write', {
         workingDirectory: wd,
         session_id: 'sess-sync',
-        mode: 'autoresearch',
+        mode: 'ultrawork',
         active: true,
         current_phase: 'running',
       });
 
-      const canonicalPath = join(wd, '.omx', 'state', 'sessions', 'sess-sync', 'skill-active-state.json');
+      const canonicalPath = join(wd, '.nomx', 'state', 'sessions', 'sess-sync', 'skill-active-state.json');
       const canonical = JSON.parse(await readFile(canonicalPath, 'utf-8')) as {
         active_skills?: Array<{
           skill: string;
@@ -1037,7 +1042,7 @@ describe('state operations directory initialization', () => {
         }>;
       };
       assert.deepEqual(canonical.active_skills, [{
-        skill: 'autoresearch',
+        skill: 'ultrawork',
         phase: 'running',
         active: true,
         activated_at: canonical.active_skills?.[0]?.activated_at,
@@ -1048,7 +1053,7 @@ describe('state operations directory initialization', () => {
       await executeStateOperation('state_clear', {
         workingDirectory: wd,
         session_id: 'sess-sync',
-        mode: 'autoresearch',
+        mode: 'ultrawork',
       });
 
       const cleared = JSON.parse(await readFile(canonicalPath, 'utf-8')) as {
@@ -1063,11 +1068,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('finalizes completed ralplan writes across root and current session state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-complete-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-complete-'));
     try {
       const sessionId = 'sess-ralplan-complete';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
@@ -1111,11 +1116,11 @@ describe('state operations directory initialization', () => {
         terminal_reason: 'consensus approved bounded no-op',
         ralplan_architect_review: {
           verdict: 'APPROVE',
-          artifact_path: '.omx/plans/architect.md',
+          artifact_path: '.nomx/plans/architect.md',
         },
         ralplan_critic_review: {
           verdict: 'APPROVE',
-          artifact_path: '.omx/plans/critic.md',
+          artifact_path: '.nomx/plans/critic.md',
         },
         ralplan_consensus_gate: consensusGate,
       });
@@ -1152,14 +1157,14 @@ describe('state operations directory initialization', () => {
   });
 
   it('finalizes ralplan when runtime tracker lags but workspace tracker has completed native reviews', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-runtime-lag-complete-'));
-    const stateRoot = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-runtime-lag-root-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-runtime-lag-complete-'));
+    const stateRoot = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-runtime-lag-root-'));
     try {
-      await withStateRootEnv({ OMX_STATE_ROOT: stateRoot }, async () => {
+      await withStateRootEnv({ NOMX_STATE_ROOT: stateRoot }, async () => {
         const sessionId = 'sess-ralplan-runtime-lag-complete';
-        const runtimeStateDir = join(stateRoot, '.omx', 'state');
+        const runtimeStateDir = join(stateRoot, '.nomx', 'state');
         const sessionDir = join(runtimeStateDir, 'sessions', sessionId);
-        const workspaceStateDir = join(wd, '.omx', 'state');
+        const workspaceStateDir = join(wd, '.nomx', 'state');
         await mkdir(sessionDir, { recursive: true });
         await mkdir(workspaceStateDir, { recursive: true });
         await writeFile(join(runtimeStateDir, 'session.json'), JSON.stringify({
@@ -1217,7 +1222,7 @@ describe('state operations directory initialization', () => {
           active: false,
           current_phase: 'complete',
           planning_complete: true,
-          latest_plan_path: '.omx/plans/prd-clickstack-otel-consumer-20260707T043000Z.md',
+          latest_plan_path: '.nomx/plans/prd-clickstack-otel-consumer-20260707T043000Z.md',
           terminal_reason: 'consensus approved despite runtime tracker lag',
           ralplan_consensus_gate: consensusGate,
         });
@@ -1237,11 +1242,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('rejects forged ralplan complete gates before mutating active session state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-forged-complete-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-forged-complete-'));
     try {
       const sessionId = 'sess-ralplan-forged-complete';
       await writeNativeSubagentTracking(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
@@ -1276,10 +1281,10 @@ describe('state operations directory initialization', () => {
   });
 
   it('allows ralplan unsupported native non-clean recovery without tracker-backed consensus', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-unsupported-recovery-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-unsupported-recovery-'));
     try {
       const sessionId = 'sess-ralplan-unsupported-recovery';
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({ session_id: sessionId, cwd: wd }, null, 2));
@@ -1314,10 +1319,10 @@ describe('state operations directory initialization', () => {
   });
 
   it('rejects ralplan clean complete without tracker-backed native consensus after unsupported recovery support', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-clean-still-strict-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-clean-still-strict-'));
     try {
       const sessionId = 'sess-ralplan-clean-still-strict';
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({ session_id: sessionId, cwd: wd }, null, 2));
@@ -1353,11 +1358,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('rejects ralplan clean complete with unsupported evidence even when native consensus is valid', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-clean-unsupported-valid-consensus-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-clean-unsupported-valid-consensus-deny-'));
     try {
       const sessionId = 'sess-ralplan-clean-unsupported-valid-consensus-deny';
       await writeNativeSubagentTracking(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({ session_id: sessionId, cwd: wd }, null, 2));
@@ -1394,11 +1399,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('rejects ralplan clean complete with handoff-artifact unsupported evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-clean-handoff-unsupported-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-clean-handoff-unsupported-deny-'));
     try {
       const sessionId = 'sess-ralplan-clean-handoff-unsupported-deny';
       await writeNativeSubagentTracking(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({ session_id: sessionId, cwd: wd }, null, 2));
@@ -1439,11 +1444,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('rejects ralplan clean complete with nested handoff-artifact unsupported evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-clean-nested-handoff-unsupported-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-clean-nested-handoff-unsupported-deny-'));
     try {
       const sessionId = 'sess-ralplan-clean-nested-handoff-unsupported-deny';
       await writeNativeSubagentTracking(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({ session_id: sessionId, cwd: wd }, null, 2));
@@ -1486,11 +1491,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('rejects ralplan clean complete with handoff-root unsupported evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-clean-handoff-root-unsupported-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-clean-handoff-root-unsupported-deny-'));
     try {
       const sessionId = 'sess-ralplan-clean-handoff-root-unsupported-deny';
       await writeNativeSubagentTracking(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({ session_id: sessionId, cwd: wd }, null, 2));
@@ -1529,11 +1534,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('rejects ralplan clean status alias with unsupported evidence even when native consensus is valid', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-status-alias-unsupported-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-status-alias-unsupported-deny-'));
     try {
       const sessionId = 'sess-ralplan-status-alias-unsupported-deny';
       await writeNativeSubagentTracking(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({ session_id: sessionId, cwd: wd }, null, 2));
@@ -1569,11 +1574,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('normalizes currentPhase before gating ralplan terminal writes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-current-phase-alias-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-current-phase-alias-'));
     try {
       const sessionId = 'sess-ralplan-current-phase-alias';
       await writeNativeSubagentTracking(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
@@ -1606,11 +1611,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('reuses existing tracker-backed ralplan consensus when terminal writes omit gate payload', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-existing-consensus-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-existing-consensus-'));
     try {
       const sessionId = 'sess-ralplan-existing-consensus';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
@@ -1648,11 +1653,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('finalizes completed ralplan updateModeState writes across root and current session state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-complete-update-mode-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-complete-update-mode-'));
     try {
       const sessionId = 'sess-ralplan-complete-update-mode';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
@@ -1730,11 +1735,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('rejects forged ralplan complete gates from updateModeState before mutating active state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-update-mode-forged-complete-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-update-mode-forged-complete-'));
     try {
       const sessionId = 'sess-ralplan-update-mode-forged-complete';
       await writeNativeSubagentTracking(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
@@ -1769,9 +1774,9 @@ describe('state operations directory initialization', () => {
 
   it('activates deep-interview when terminal Team detail outranks foreign legacy mirrors', async () => {
     await withStateRootEnv({}, async () => {
-      const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-stale-team-transition-'));
+      const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-stale-team-transition-'));
       try {
-        const stateDir = join(wd, '.omx', 'state');
+        const stateDir = join(wd, '.nomx', 'state');
         await mkdir(stateDir, { recursive: true });
         const teamState = { active: false, mode: 'team', current_phase: 'cancelled', run_outcome: 'continue' };
         const foreignSkillState = {
@@ -1820,11 +1825,11 @@ describe('state operations directory initialization', () => {
     });
   });
   it('fails closed without mutating root state when ralplan terminalization sees a foreign session pointer', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-stale-session-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-stale-session-'));
     try {
       const staleSessionId = 'sess-ralplan-stale';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, staleSessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', staleSessionId);
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
@@ -1894,11 +1899,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('does not hide unrelated root detail state when ralplan terminalizes without canonical state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-root-detail-only-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-root-detail-only-'));
     try {
       const sessionId = 'sess-ralplan-root-detail-only';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       await mkdir(stateDir, { recursive: true });
       await writeFile(join(stateDir, 'team-state.json'), JSON.stringify({
         mode: 'team',
@@ -1930,11 +1935,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('preserves an unrelated active root ralplan when a session ralplan terminalizes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-preserve-root-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-preserve-root-'));
     try {
       const sessionId = 'sess-ralplan-preserve-root';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
@@ -2029,11 +2034,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('does not hide a legacy active root ralplan detail state when a session ralplan terminalizes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-legacy-root-detail-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-legacy-root-detail-'));
     try {
       const sessionId = 'sess-ralplan-legacy-root-detail';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
@@ -2089,11 +2094,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('removes an empty session-only root mirror when a session ralplan terminalizes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-empty-root-mirror-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-empty-root-mirror-'));
     try {
       const sessionId = 'sess-ralplan-empty-root-mirror';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
@@ -2162,11 +2167,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('preserves run_outcome-only root canonical tombstones when a session ralplan terminalizes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-preserve-root-tombstone-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-preserve-root-tombstone-'));
     try {
       const sessionId = 'sess-ralplan-root-tombstone';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'team-state.json'), JSON.stringify({
@@ -2228,11 +2233,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('removes terminal_reason-only active root canonical state when a session ralplan terminalizes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-terminal-reason-only-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-terminal-reason-only-'));
     try {
       const sessionId = 'sess-ralplan-terminal-reason-only';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
@@ -2292,11 +2297,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('removes non-terminal lifecycle_outcome root canonical state when a session ralplan terminalizes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-lifecycle-nonterminal-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-lifecycle-nonterminal-'));
     try {
       const sessionId = 'sess-ralplan-lifecycle-nonterminal';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'ralplan-state.json'), JSON.stringify({
@@ -2356,11 +2361,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('preserves unrelated active session skills when ralplan terminalizes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-preserve-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-preserve-'));
     try {
       const sessionId = 'sess-ralplan-preserve';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(stateDir, 'session.json'), JSON.stringify({
@@ -2373,8 +2378,8 @@ describe('state operations directory initialization', () => {
         current_phase: 'planning',
         session_id: sessionId,
       }, null, 2));
-      await writeFile(join(sessionDir, 'autoresearch-state.json'), JSON.stringify({
-        mode: 'autoresearch',
+      await writeFile(join(sessionDir, 'ultrawork-state.json'), JSON.stringify({
+        mode: 'ultrawork',
         active: true,
         current_phase: 'running',
         session_id: sessionId,
@@ -2394,7 +2399,7 @@ describe('state operations directory initialization', () => {
             session_id: sessionId,
           },
           {
-            skill: 'autoresearch',
+            skill: 'ultrawork',
             phase: 'running',
             active: true,
             session_id: sessionId,
@@ -2429,27 +2434,27 @@ describe('state operations directory initialization', () => {
       };
       for (const state of [rootSkill, sessionSkill]) {
         assert.equal(state.active, true);
-        assert.equal(state.skill, 'autoresearch');
+        assert.equal(state.skill, 'ultrawork');
         assert.equal(state.phase, 'running');
-        assert.deepEqual(state.active_skills?.map((entry) => entry.skill), ['autoresearch']);
+        assert.deepEqual(state.active_skills?.map((entry) => entry.skill), ['ultrawork']);
         assert.deepEqual(state.active_skills?.map((entry) => entry.session_id), [sessionId]);
       }
 
       const listed = await executeStateOperation('state_list_active', {
         workingDirectory: wd,
       });
-      assert.deepEqual(listed.payload, { active_modes: ['autoresearch'] });
+      assert.deepEqual(listed.payload, { active_modes: ['ultrawork'] });
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it('preserves same-session root mirror skills when session canonical state is partial', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-partial-session-skill-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-partial-session-skill-'));
     try {
       const sessionId = 'sess-ralplan-partial-session-skill';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(sessionDir, 'ralplan-state.json'), JSON.stringify({
@@ -2534,11 +2539,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('clears stale terminal phase aliases when preserving same-session root mirror skills', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-terminal-session-skill-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-terminal-session-skill-'));
     try {
       const sessionId = 'sess-ralplan-terminal-session-skill';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(sessionDir, 'ralplan-state.json'), JSON.stringify({
@@ -2620,11 +2625,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('does not hide detail-only active session state when ralplan terminalizes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-session-detail-only-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-session-detail-only-'));
     try {
       const sessionId = 'sess-ralplan-session-detail-only';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+      const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(join(sessionDir, 'ralplan-state.json'), JSON.stringify({
         mode: 'ralplan',
@@ -2632,8 +2637,8 @@ describe('state operations directory initialization', () => {
         current_phase: 'planning',
         session_id: sessionId,
       }, null, 2));
-      await writeFile(join(sessionDir, 'autoresearch-state.json'), JSON.stringify({
-        mode: 'autoresearch',
+      await writeFile(join(sessionDir, 'ultrawork-state.json'), JSON.stringify({
+        mode: 'ultrawork',
         active: true,
         current_phase: 'running',
         session_id: sessionId,
@@ -2655,32 +2660,32 @@ describe('state operations directory initialization', () => {
         workingDirectory: wd,
         session_id: sessionId,
       });
-      assert.deepEqual(listed.payload, { active_modes: ['autoresearch'] });
+      assert.deepEqual(listed.payload, { active_modes: ['ultrawork'] });
     } finally {
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it('does not seed session canonical state from root-only skills when ralplan terminalizes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-ralplan-root-only-skill-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-ralplan-root-only-skill-'));
     try {
       const sessionId = 'sess-ralplan-root-only-skill';
       const consensusGate = await writeNativeRalplanConsensusGate(wd, sessionId);
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
-      await writeFile(join(stateDir, 'autoresearch-state.json'), JSON.stringify({
-        mode: 'autoresearch',
+      await writeFile(join(stateDir, 'ultrawork-state.json'), JSON.stringify({
+        mode: 'ultrawork',
         active: true,
         current_phase: 'running',
       }, null, 2));
       await writeFile(join(stateDir, 'skill-active-state.json'), JSON.stringify({
         version: 1,
         active: true,
-        skill: 'autoresearch',
+        skill: 'ultrawork',
         phase: 'running',
         active_skills: [{
-          skill: 'autoresearch',
+          skill: 'ultrawork',
           phase: 'running',
           active: true,
         }],
@@ -2713,7 +2718,7 @@ describe('state operations directory initialization', () => {
       const rootListed = await executeStateOperation('state_list_active', {
         workingDirectory: wd,
       });
-      assert.deepEqual(rootListed.payload, { active_modes: ['autoresearch'] });
+      assert.deepEqual(rootListed.payload, { active_modes: ['ultrawork'] });
 
       const sessionListed = await executeStateOperation('state_list_active', {
         workingDirectory: wd,
@@ -2726,7 +2731,7 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies unsupported overlaps without writing the requested mode state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-deny-overlap-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-deny-overlap-'));
     try {
       const existing = await executeStateOperation('state_write', {
         workingDirectory: wd,
@@ -2747,10 +2752,10 @@ describe('state operations directory initialization', () => {
 
       assert.equal(denied.isError, true);
       assert.match(String((denied.payload as { error?: string }).error || ''), /Unsupported workflow overlap: team \+ autopilot\./);
-      assert.equal(existsSync(join(wd, '.omx', 'state', 'sessions', 'sess-deny', 'autopilot-state.json')), false);
+      assert.equal(existsSync(join(wd, '.nomx', 'state', 'sessions', 'sess-deny', 'autopilot-state.json')), false);
 
       const canonical = JSON.parse(
-        await readFile(join(wd, '.omx', 'state', 'sessions', 'sess-deny', 'skill-active-state.json'), 'utf-8'),
+        await readFile(join(wd, '.nomx', 'state', 'sessions', 'sess-deny', 'skill-active-state.json'), 'utf-8'),
       ) as { active_skills?: Array<{ skill: string }> };
       assert.deepEqual(canonical.active_skills?.map((entry) => entry.skill), ['team']);
     } finally {
@@ -2759,10 +2764,10 @@ describe('state operations directory initialization', () => {
   });
 
   it('does not reject planning writes from stale detail-only execution state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-stale-detail-rollback-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-stale-detail-rollback-'));
     try {
       const sessionId = 'sess-stale-detail';
-      const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+      const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });
       await writeFile(
         join(sessionDir, 'ralph-state.json'),
@@ -2792,11 +2797,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('rejects standalone ralplan writes while preserving active Autopilot supervisor state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ralplan-child-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ralplan-child-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ralplan-child';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -2848,11 +2853,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('rejects standalone ralplan writes from detail-only active Autopilot supervisor state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-detail-only-ralplan-child-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-detail-only-ralplan-child-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-detail-only-ralplan-child';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -2897,11 +2902,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('lets canonical ralplan authority override stale detail-only Autopilot state', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-canonical-ralplan-stale-autopilot-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-canonical-ralplan-stale-autopilot-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-canonical-ralplan-stale-autopilot';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'skill-active-state.json'),
@@ -2951,11 +2956,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('allows Autopilot itself to enter the supervised ralplan child phase', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-child-phase-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-child-phase-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-child-phase';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -2999,11 +3004,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot direct deep-interview to ultragoal skip without deep-interview evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-direct-di-skip-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-direct-di-skip-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-direct-di-skip-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -3038,11 +3043,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot deep-interview completion before the ralplan gate', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-di-complete-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-di-complete-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-di-complete-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -3078,11 +3083,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot direct deep-interview to ultragoal skip even with deep-interview evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-direct-di-complete-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-direct-di-complete-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-direct-di-complete-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -3123,11 +3128,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot deep-interview to ralplan self-write when only a satisfied question exists', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-child-phase-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-child-phase-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-child-phase-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -3137,7 +3142,7 @@ describe('state operations directory initialization', () => {
             current_phase: 'deep-interview',
             question_enforcement: {
               obligation_id: 'obligation-answered',
-              source: 'omx-question',
+              source: 'nomx-question',
               status: 'satisfied',
               lifecycle_outcome: 'askuserQuestion',
               requested_at: '2026-05-28T00:00:00.000Z',
@@ -3168,11 +3173,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot waiting-for-user to ralplan self-write while the deep-interview question is unresolved', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-waiting-question-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-waiting-question-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-waiting-question-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -3185,7 +3190,7 @@ describe('state operations directory initialization', () => {
             state: {
               deep_interview_question: {
                 status: 'waiting_for_user',
-                source: 'omx-question',
+                source: 'nomx-question',
                 obligation_id: 'obligation-waiting',
                 previous_phase: 'deep-interview',
                 requested_at: '2026-05-28T00:00:00.000Z',
@@ -3219,11 +3224,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot handoff when the next state omits a still-pending deep-interview question', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-omitted-question-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-omitted-question-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-omitted-question-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -3236,7 +3241,7 @@ describe('state operations directory initialization', () => {
             state: {
               deep_interview_question: {
                 status: 'waiting_for_user',
-                source: 'omx-question',
+                source: 'nomx-question',
                 obligation_id: 'obligation-omitted',
                 previous_phase: 'deep-interview',
                 requested_at: '2026-05-28T00:00:00.000Z',
@@ -3279,11 +3284,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('ignores stale standalone deep-interview question state for Autopilot supervisor handoff', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ignore-standalone-di-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ignore-standalone-di-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ignore-standalone-di';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'deep-interview-state.json'),
@@ -3293,7 +3298,7 @@ describe('state operations directory initialization', () => {
             current_phase: 'completed',
             question_enforcement: {
               obligation_id: 'stale-obligation',
-              source: 'omx-question',
+              source: 'nomx-question',
               status: 'pending',
               lifecycle_outcome: 'askuserQuestion',
               requested_at: '2026-05-28T00:00:00.000Z',
@@ -3338,11 +3343,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot satisfied nested question handoff without a record-backed question id', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-satisfied-question-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-satisfied-question-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-satisfied-question-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -3353,7 +3358,7 @@ describe('state operations directory initialization', () => {
             state: {
               deep_interview_question: {
                 status: 'satisfied',
-                source: 'omx-question',
+                source: 'nomx-question',
                 obligation_id: 'obligation-no-record',
                 previous_phase: 'deep-interview',
                 requested_at: '2026-05-28T00:00:00.000Z',
@@ -3388,11 +3393,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('allows Autopilot handoff when next state satisfies a previously pending question', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-next-question-satisfied-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-next-question-satisfied-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-next-question-satisfied';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         const questionId = 'question-next-satisfied';
         await mkdir(join(sessionDir, 'questions'), { recursive: true });
         await writeFile(
@@ -3416,7 +3421,7 @@ describe('state operations directory initialization', () => {
             state: {
               deep_interview_question: {
                 obligation_id: 'obligation-next-satisfied',
-                source: 'omx-question',
+                source: 'nomx-question',
                 status: 'waiting_for_user',
                 requested_at: '2026-05-28T00:00:00.000Z',
               },
@@ -3434,7 +3439,7 @@ describe('state operations directory initialization', () => {
           state: {
             deep_interview_question: {
               obligation_id: 'obligation-next-satisfied',
-              source: 'omx-question',
+              source: 'nomx-question',
               status: 'satisfied',
               requested_at: '2026-05-28T00:00:00.000Z',
               question_id: questionId,
@@ -3463,11 +3468,11 @@ describe('state operations directory initialization', () => {
 
   it('allows Autopilot deep-interview to ralplan handoff with required valid execution contract strides', async () => {
     for (const stride of ['task', 'deliverable', 'milestone'] as const) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-state-ops-autopilot-execution-contract-${stride}-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-state-ops-autopilot-execution-contract-${stride}-`));
       try {
         await withOmxRootEnv(wd, async () => {
           const sessionId = `sess-autopilot-execution-contract-${stride}`;
-          const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+          const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
           await mkdir(sessionDir, { recursive: true });
           await writeFile(
             join(sessionDir, 'autopilot-state.json'),
@@ -3512,11 +3517,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('allows partial Autopilot ralplan handoff writes when a required execution contract is already persisted', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-execution-contract-partial-write-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-execution-contract-partial-write-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-execution-contract-partial-write';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -3606,11 +3611,11 @@ describe('state operations directory initialization', () => {
         },
       },
     })) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-state-ops-autopilot-execution-contract-deny-${caseName}-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-state-ops-autopilot-execution-contract-deny-${caseName}-`));
       try {
         await withOmxRootEnv(wd, async () => {
           const sessionId = `sess-autopilot-execution-contract-deny-${caseName}`;
-          const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+          const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
           await mkdir(sessionDir, { recursive: true });
           await writeFile(
             join(sessionDir, 'autopilot-state.json'),
@@ -3652,11 +3657,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('preserves Autopilot legacy behavior when execution contract is absent or not required', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-execution-contract-not-required-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-execution-contract-not-required-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-execution-contract-not-required';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -3722,11 +3727,11 @@ describe('state operations directory initialization', () => {
       ['handoff', {}, {}, { execution_contract_required: true }],
       ['handoff-camel', {}, {}, { executionContractRequired: true }],
     ] as const) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-state-ops-autopilot-execution-contract-marker-${caseName}-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-state-ops-autopilot-execution-contract-marker-${caseName}-`));
       try {
         await withOmxRootEnv(wd, async () => {
           const sessionId = `sess-autopilot-execution-contract-marker-${caseName}`;
-          const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+          const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
           await mkdir(sessionDir, { recursive: true });
           await writeFile(
             join(sessionDir, 'autopilot-state.json'),
@@ -3774,11 +3779,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies stale valid execution contracts from masking an invalid next-state contract', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-execution-contract-precedence-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-execution-contract-precedence-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-execution-contract-precedence';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -3840,11 +3845,11 @@ describe('state operations directory initialization', () => {
       ['missing-handoff-contract', {}, true],
       ['invalid-handoff-contract', { execution_contract: { ...validExecutionContract('deliverable'), source: 'ralplan' } }, false],
     ] as const) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-state-ops-autopilot-execution-contract-${caseName}-handoff-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-state-ops-autopilot-execution-contract-${caseName}-handoff-`));
       try {
         await withOmxRootEnv(wd, async () => {
           const sessionId = `sess-contract-${caseName}`;
-          const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+          const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
           await mkdir(sessionDir, { recursive: true });
           await writeFile(
             join(sessionDir, 'autopilot-state.json'),
@@ -3901,11 +3906,11 @@ describe('state operations directory initialization', () => {
         execution_contract: validExecutionContract('task'),
       }, true],
     ] as const) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-state-ops-autopilot-execution-contract-skip-${caseName}-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-state-ops-autopilot-execution-contract-skip-${caseName}-`));
       try {
         await withOmxRootEnv(wd, async () => {
           const sessionId = `sess-autopilot-execution-contract-skip-${caseName}`;
-          const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+          const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
           await mkdir(sessionDir, { recursive: true });
           await writeFile(
             join(sessionDir, 'autopilot-state.json'),
@@ -3953,11 +3958,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('allows Autopilot deep-interview to ralplan self-write with explicit user-authorized skip evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-child-phase-skip-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-child-phase-skip-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-child-phase-skip';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -3997,11 +4002,11 @@ describe('state operations directory initialization', () => {
     }
   });
 
-  it('resolves Autopilot satisfied question evidence under OMX_TEAM_STATE_ROOT', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-team-question-'));
-    const previousOmxRoot = process.env.OMX_ROOT;
-    const previousOmxStateRoot = process.env.OMX_STATE_ROOT;
-    const previousTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
+  it('resolves Autopilot satisfied question evidence under NOMX_TEAM_STATE_ROOT', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-team-question-'));
+    const previousOmxRoot = process.env.NOMX_ROOT;
+    const previousOmxStateRoot = process.env.NOMX_STATE_ROOT;
+    const previousTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
     try {
       const wd = join(root, 'source');
       const teamStateRoot = join(root, 'team-state');
@@ -4029,7 +4034,7 @@ describe('state operations directory initialization', () => {
           current_phase: 'deep-interview',
           question_enforcement: {
             obligation_id: 'obligation-team-question',
-            source: 'omx-question',
+            source: 'nomx-question',
             status: 'satisfied',
             lifecycle_outcome: 'askuserQuestion',
             requested_at: '2026-05-28T00:00:00.000Z',
@@ -4045,9 +4050,9 @@ describe('state operations directory initialization', () => {
         }, null, 2),
       );
 
-      delete process.env.OMX_ROOT;
-      delete process.env.OMX_STATE_ROOT;
-      process.env.OMX_TEAM_STATE_ROOT = teamStateRoot;
+      delete process.env.NOMX_ROOT;
+      delete process.env.NOMX_STATE_ROOT;
+      process.env.NOMX_TEAM_STATE_ROOT = teamStateRoot;
 
       const response = await executeStateOperation('state_write', {
         workingDirectory: wd,
@@ -4062,25 +4067,25 @@ describe('state operations directory initialization', () => {
         await readFile(join(sessionDir, 'autopilot-state.json'), 'utf-8'),
       ) as Record<string, unknown>;
       assert.equal(state.current_phase, 'ralplan');
-      assert.equal(existsSync(join(wd, '.omx', 'state', 'sessions', sessionId, 'questions', `${questionId}.json`)), false);
+      assert.equal(existsSync(join(wd, '.nomx', 'state', 'sessions', sessionId, 'questions', `${questionId}.json`)), false);
     } finally {
-      if (typeof previousOmxRoot === 'string') process.env.OMX_ROOT = previousOmxRoot;
-      else delete process.env.OMX_ROOT;
-      if (typeof previousOmxStateRoot === 'string') process.env.OMX_STATE_ROOT = previousOmxStateRoot;
-      else delete process.env.OMX_STATE_ROOT;
-      if (typeof previousTeamStateRoot === 'string') process.env.OMX_TEAM_STATE_ROOT = previousTeamStateRoot;
-      else delete process.env.OMX_TEAM_STATE_ROOT;
+      if (typeof previousOmxRoot === 'string') process.env.NOMX_ROOT = previousOmxRoot;
+      else delete process.env.NOMX_ROOT;
+      if (typeof previousOmxStateRoot === 'string') process.env.NOMX_STATE_ROOT = previousOmxStateRoot;
+      else delete process.env.NOMX_STATE_ROOT;
+      if (typeof previousTeamStateRoot === 'string') process.env.NOMX_TEAM_STATE_ROOT = previousTeamStateRoot;
+      else delete process.env.NOMX_TEAM_STATE_ROOT;
       await rm(root, { recursive: true, force: true });
     }
   });
 
 
   it('denies Autopilot direct ralplan to code-review skip without native consensus evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-direct-ralplan-skip-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-direct-ralplan-skip-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-direct-ralplan-skip-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4112,11 +4117,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot ralplan completion before the ultragoal gate', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ralplan-complete-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ralplan-complete-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ralplan-complete-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4127,8 +4132,8 @@ describe('state operations directory initialization', () => {
             state: {
               handoff_artifacts: {
                 ralplan: {
-                  plan_path: '.omx/plans/prd.md',
-                  test_spec_path: '.omx/plans/test-spec.md',
+                  plan_path: '.nomx/plans/prd.md',
+                  test_spec_path: '.nomx/plans/test-spec.md',
                 },
               },
             },
@@ -4157,11 +4162,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('allows Autopilot ralplan unsupported native non-clean recovery', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ralplan-unsupported-recovery-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ralplan-unsupported-recovery-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ralplan-unsupported-recovery';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(join(sessionDir, 'autopilot-state.json'), JSON.stringify({
           active: true,
@@ -4193,11 +4198,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot ralplan to ultragoal self-write with codex_exec consensus evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ralplan-native-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ralplan-native-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ralplan-native-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4208,8 +4213,8 @@ describe('state operations directory initialization', () => {
             state: {
               handoff_artifacts: {
                 ralplan: {
-                  plan_path: '.omx/plans/prd.md',
-                  test_spec_path: '.omx/plans/test-spec.md',
+                  plan_path: '.nomx/plans/prd.md',
+                  test_spec_path: '.nomx/plans/test-spec.md',
                 },
                 ralplan_consensus_gate: ralplanConsensusGate(sessionId, 'codex_exec'),
               },
@@ -4238,11 +4243,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot ralplan to ultragoal when unsupported native evidence is present', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ralplan-unsupported-ultragoal-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ralplan-unsupported-ultragoal-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ralplan-unsupported-ultragoal-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(join(sessionDir, 'autopilot-state.json'), JSON.stringify({
           active: true,
@@ -4279,11 +4284,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot ralplan to ultragoal with unsupported evidence even when native consensus is valid', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ralplan-unsupported-valid-consensus-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ralplan-unsupported-valid-consensus-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ralplan-unsupported-valid-consensus-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeNativeSubagentTracking(wd, sessionId);
         await writeFile(join(sessionDir, 'autopilot-state.json'), JSON.stringify({
@@ -4298,8 +4303,8 @@ describe('state operations directory initialization', () => {
           state: {
             handoff_artifacts: {
               ralplan: {
-                plan_path: '.omx/plans/prd.md',
-                test_spec_path: '.omx/plans/test-spec.md',
+                plan_path: '.nomx/plans/prd.md',
+                test_spec_path: '.nomx/plans/test-spec.md',
               },
               ralplan_consensus_gate: ralplanConsensusGate(sessionId, 'native_subagent'),
             },
@@ -4331,11 +4336,11 @@ describe('state operations directory initialization', () => {
     { lane: 'critic', architectVerdict: 'approve', criticVerdict: 'iterate' },
   ] as const) {
     it(`denies Autopilot ralplan to ultragoal self-write when ${lane} verdict is iterate despite complete consensus flag`, async () => {
-      const wd = await mkdtemp(join(tmpdir(), `omx-state-ops-autopilot-ralplan-${lane}-iterate-deny-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-state-ops-autopilot-ralplan-${lane}-iterate-deny-`));
       try {
         await withOmxRootEnv(wd, async () => {
           const sessionId = `sess-autopilot-ralplan-${lane}-iterate-deny`;
-          const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+          const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
           await mkdir(sessionDir, { recursive: true });
           await writeNativeSubagentTracking(wd, sessionId);
           const consensusGate = ralplanConsensusGate(sessionId, 'native_subagent');
@@ -4350,8 +4355,8 @@ describe('state operations directory initialization', () => {
               state: {
                 handoff_artifacts: {
                   ralplan: {
-                    plan_path: '.omx/plans/prd.md',
-                    test_spec_path: '.omx/plans/test-spec.md',
+                    plan_path: '.nomx/plans/prd.md',
+                    test_spec_path: '.nomx/plans/test-spec.md',
                   },
                   ralplan_consensus_gate: consensusGate,
                 },
@@ -4383,11 +4388,11 @@ describe('state operations directory initialization', () => {
 
 
   it('explains when native ralplan reviews are not present in subagent tracking', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ralplan-native-missing-tracker-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ralplan-native-missing-tracker-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ralplan-native-missing-tracker';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4398,8 +4403,8 @@ describe('state operations directory initialization', () => {
             state: {
               handoff_artifacts: {
                 ralplan: {
-                  plan_path: '.omx/plans/prd.md',
-                  test_spec_path: '.omx/plans/test-spec.md',
+                  plan_path: '.nomx/plans/prd.md',
+                  test_spec_path: '.nomx/plans/test-spec.md',
                 },
                 ralplan_consensus_gate: ralplanConsensusGate(sessionId, 'native_subagent'),
               },
@@ -4418,7 +4423,7 @@ describe('state operations directory initialization', () => {
         assert.equal(response.isError, true);
         const error = String((response.payload as { error?: string }).error || '');
         assert.match(error, /subagent-tracking\.json/);
-        assert.match(error, /only reviews recorded in OMX subagent-tracking\.json count as native lanes/i);
+        assert.match(error, /only reviews recorded in NOMX subagent-tracking\.json count as native lanes/i);
       });
     } finally {
       await rm(wd, { recursive: true, force: true });
@@ -4427,11 +4432,11 @@ describe('state operations directory initialization', () => {
 
 
   it('denies Autopilot ralplan to ultragoal self-write when native reviews reuse one subagent thread', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ralplan-same-thread-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ralplan-same-thread-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ralplan-same-thread-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeNativeSubagentTracking(wd, sessionId);
         await writeFile(
@@ -4443,8 +4448,8 @@ describe('state operations directory initialization', () => {
             state: {
               handoff_artifacts: {
                 ralplan: {
-                  plan_path: '.omx/plans/prd.md',
-                  test_spec_path: '.omx/plans/test-spec.md',
+                  plan_path: '.nomx/plans/prd.md',
+                  test_spec_path: '.nomx/plans/test-spec.md',
                 },
                 ralplan_consensus_gate: ralplanConsensusGate(sessionId, 'native_subagent', {
                   critic: 'thread-architect',
@@ -4475,11 +4480,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies legacy Autopilot planning to ultragoal without ralplan consensus evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-legacy-planning-gate-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-legacy-planning-gate-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-legacy-planning-gate';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4512,11 +4517,11 @@ describe('state operations directory initialization', () => {
 
   it('denies Autopilot implementation-phase completion before the code-review gate', async () => {
     for (const phase of ['ultragoal', 'rework', 'team', 'ralph']) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-state-ops-autopilot-${phase}-complete-deny-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-state-ops-autopilot-${phase}-complete-deny-`));
       try {
         await withOmxRootEnv(wd, async () => {
           const sessionId = `sess-autopilot-${phase}-complete-deny`;
-          const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+          const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
           await mkdir(sessionDir, { recursive: true });
           await writeFile(
             join(sessionDir, 'autopilot-state.json'),
@@ -4535,8 +4540,8 @@ describe('state operations directory initialization', () => {
             active: false,
             current_phase: 'complete',
             state: {
-              review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/reviews/code-review.json' },
-              qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/oh-my-codex/actions/runs/1' },
+              review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/reviews/code-review.json' },
+              qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/nomx/actions/runs/1' },
             },
           });
 
@@ -4554,11 +4559,11 @@ describe('state operations directory initialization', () => {
 
   it('denies Autopilot implementation-phase skip directly to ultraqa', async () => {
     for (const phase of ['ultragoal', 'rework', 'team', 'ralph']) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-state-ops-autopilot-${phase}-ultraqa-skip-deny-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-state-ops-autopilot-${phase}-ultraqa-skip-deny-`));
       try {
         await withOmxRootEnv(wd, async () => {
           const sessionId = `sess-autopilot-${phase}-ultraqa-skip-deny`;
-          const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+          const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
           await mkdir(sessionDir, { recursive: true });
           await writeFile(
             join(sessionDir, 'autopilot-state.json'),
@@ -4591,11 +4596,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot code-review completion before the ultraqa gate', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-code-review-complete-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-code-review-complete-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-code-review-complete-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4634,11 +4639,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('allows Autopilot code-review REQUEST_CHANGES to enter implementation rework', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-review-rework-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-review-rework-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-review-rework';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4659,7 +4664,7 @@ describe('state operations directory initialization', () => {
                 recommendation: 'REQUEST_CHANGES',
                 architectural_status: 'CLEAR',
                 clean: false,
-                artifact_path: '.omx/reviews/code-review-cycle-1.json',
+                artifact_path: '.nomx/reviews/code-review-cycle-1.json',
                 findings: ['Fix src/implementation.ts'],
               },
             },
@@ -4668,7 +4673,7 @@ describe('state operations directory initialization', () => {
               recommendation: 'REQUEST_CHANGES',
               architectural_status: 'CLEAR',
               clean: false,
-              artifact_path: '.omx/reviews/code-review-cycle-1.json',
+              artifact_path: '.nomx/reviews/code-review-cycle-1.json',
               findings: ['Fix src/implementation.ts'],
             },
             return_to_ralplan_reason: null,
@@ -4687,11 +4692,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('replaces stale blocking review state when Autopilot completes with clean latest evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-clean-clears-stale-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-clean-clears-stale-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-clean-clears-stale';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4701,19 +4706,19 @@ describe('state operations directory initialization', () => {
             current_phase: 'ultraqa',
             return_to_ralplan_reason: 'Earlier code-review BLOCK required fixes.',
             handoff_artifacts: {
-              code_review: { stage: 'code-review', recommendation: 'REQUEST_CHANGES', architectural_status: 'BLOCK', clean: false, artifact_path: '.omx/reviews/stale-block.json' },
+              code_review: { stage: 'code-review', recommendation: 'REQUEST_CHANGES', architectural_status: 'BLOCK', clean: false, artifact_path: '.nomx/reviews/stale-block.json' },
               ultraqa: null,
             },
             state: {
-              review_verdict: { stage: 'code-review', recommendation: 'REQUEST_CHANGES', architectural_status: 'BLOCK', clean: false, artifact_path: '.omx/reviews/stale-block.json' },
+              review_verdict: { stage: 'code-review', recommendation: 'REQUEST_CHANGES', architectural_status: 'BLOCK', clean: false, artifact_path: '.nomx/reviews/stale-block.json' },
               qa_verdict: null,
               return_to_ralplan_reason: 'Earlier code-review BLOCK required fixes.',
             },
           }, null, 2),
         );
 
-        const cleanReview = { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/reviews/code-review-cycle-2.json' };
-        const cleanQa = { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/oh-my-codex/actions/runs/2864' };
+        const cleanReview = { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/reviews/code-review-cycle-2.json' };
+        const cleanQa = { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/nomx/actions/runs/2864' };
         const response = await executeStateOperation('state_write', {
           workingDirectory: wd,
           session_id: sessionId,
@@ -4748,11 +4753,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot ultraqa completion without clean review and QA evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ultraqa-complete-evidence-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ultraqa-complete-evidence-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ultraqa-complete-evidence-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4791,11 +4796,11 @@ describe('state operations directory initialization', () => {
 
   it('denies Autopilot implementation and code-review terminalization via inactive ultraqa phase', async () => {
     for (const phase of ['ultragoal', 'rework', 'team', 'ralph', 'code-review']) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-state-ops-autopilot-${phase}-inactive-ultraqa-deny-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-state-ops-autopilot-${phase}-inactive-ultraqa-deny-`));
       try {
         await withOmxRootEnv(wd, async () => {
           const sessionId = `sess-autopilot-${phase}-inactive-ultraqa-deny`;
-          const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+          const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
           await mkdir(sessionDir, { recursive: true });
           await writeFile(
             join(sessionDir, 'autopilot-state.json'),
@@ -4809,8 +4814,8 @@ describe('state operations directory initialization', () => {
             active: false,
             current_phase: 'ultraqa',
             state: {
-              review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/reviews/code-review.json' },
-              qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/oh-my-codex/actions/runs/3' },
+              review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/reviews/code-review.json' },
+              qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/nomx/actions/runs/3' },
             },
           });
 
@@ -4830,37 +4835,37 @@ describe('state operations directory initialization', () => {
     const cases = [
       {
         name: 'swapped-stage',
-        review_verdict: { stage: 'ultraqa', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/state/autopilot-state.json#pipeline_stage_results.ultraqa.artifacts.qa_verdict' },
-        qa_verdict: { stage: 'code-review', clean: true, skipped: false, artifact_path: '.omx/state/autopilot-state.json#pipeline_stage_results.code-review.artifacts.review_verdict' },
+        review_verdict: { stage: 'ultraqa', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/state/autopilot-state.json#pipeline_stage_results.ultraqa.artifacts.qa_verdict' },
+        qa_verdict: { stage: 'code-review', clean: true, skipped: false, artifact_path: '.nomx/state/autopilot-state.json#pipeline_stage_results.code-review.artifacts.review_verdict' },
       },
       {
         name: 'swapped-artifact-path',
-        review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/state/autopilot-state.json#pipeline_stage_results.ultraqa.artifacts.qa_verdict' },
-        qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, artifact_path: '.omx/state/autopilot-state.json#pipeline_stage_results.code-review.artifacts.review_verdict' },
+        review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/state/autopilot-state.json#pipeline_stage_results.ultraqa.artifacts.qa_verdict' },
+        qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, artifact_path: '.nomx/state/autopilot-state.json#pipeline_stage_results.code-review.artifacts.review_verdict' },
       },
       {
         name: 'review-uses-ultraqa-provenance',
-        review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/ultraqa/qa-verdict.json' },
-        qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, artifact_path: '.omx/qa/qa-verdict.json' },
+        review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/ultraqa/qa-verdict.json' },
+        qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, artifact_path: '.nomx/qa/qa-verdict.json' },
       },
       {
         name: 'qa-uses-code-review-provenance',
-        review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/reviews/code-review.json' },
-        qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, artifact_path: '.omx/reviews/code-review.json' },
+        review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/reviews/code-review.json' },
+        qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, artifact_path: '.nomx/reviews/code-review.json' },
       },
       {
         name: 'shared-neutral-provenance',
-        review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/evidence/shared.json' },
-        qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, artifact_path: '.omx/evidence/shared.json' },
+        review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/evidence/shared.json' },
+        qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, artifact_path: '.nomx/evidence/shared.json' },
       },
     ];
 
     for (const testCase of cases) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-state-ops-autopilot-ultraqa-${testCase.name}-deny-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-state-ops-autopilot-ultraqa-${testCase.name}-deny-`));
       try {
         await withOmxRootEnv(wd, async () => {
           const sessionId = `sess-autopilot-ultraqa-${testCase.name}-deny`;
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4892,11 +4897,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot ultraqa completion with self-attested clean verdicts but no durable provenance', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ultraqa-self-attested-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ultraqa-self-attested-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ultraqa-self-attested-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4935,11 +4940,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot ultraqa skipped completion without durable QA provenance', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ultraqa-skipped-no-provenance-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ultraqa-skipped-no-provenance-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ultraqa-skipped-no-provenance-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4953,7 +4958,7 @@ describe('state operations directory initialization', () => {
           active: false,
           current_phase: 'complete',
           state: {
-            review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/reviews/code-review.json' },
+            review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/reviews/code-review.json' },
             qa_verdict: { stage: 'ultraqa', clean: true, skipped: true, reason: 'Docs-only change; QA not applicable.' },
           },
         });
@@ -4970,11 +4975,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot completion from an unknown active phase', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-unknown-phase-complete-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-unknown-phase-complete-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-unknown-phase-complete-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -4993,8 +4998,8 @@ describe('state operations directory initialization', () => {
           current_phase: 'complete',
           completed_at: '2026-06-09T14:40:00.000Z',
           state: {
-            review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/reviews/code-review.json' },
-            qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/oh-my-codex/actions/runs/5' },
+            review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/reviews/code-review.json' },
+            qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/nomx/actions/runs/5' },
           },
         });
 
@@ -5010,11 +5015,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('denies Autopilot completion from an unknown active phase when persisted state omits mode', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-unknown-phase-no-mode-complete-deny-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-unknown-phase-no-mode-complete-deny-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-unknown-phase-no-mode-complete-deny';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -5032,8 +5037,8 @@ describe('state operations directory initialization', () => {
           current_phase: 'complete',
           completed_at: '2026-06-09T14:45:00.000Z',
           state: {
-            review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/reviews/code-review.json' },
-            qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/oh-my-codex/actions/runs/6' },
+            review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/reviews/code-review.json' },
+            qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/nomx/actions/runs/6' },
           },
         });
 
@@ -5050,11 +5055,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('does not persist user-supplied trustedPipelineProgress from Autopilot state_write', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-trusted-field-strip-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-trusted-field-strip-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-trusted-field-strip';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -5087,11 +5092,11 @@ describe('state operations directory initialization', () => {
 
   it('allows Autopilot state_write cancellation from gated phases without clean review and QA evidence', async () => {
     for (const phase of ['deep-interview', 'ralplan', 'ultragoal', 'code-review']) {
-      const wd = await mkdtemp(join(tmpdir(), `omx-state-ops-autopilot-${phase}-cancel-allow-`));
+      const wd = await mkdtemp(join(tmpdir(), `nomx-state-ops-autopilot-${phase}-cancel-allow-`));
       try {
         await withOmxRootEnv(wd, async () => {
           const sessionId = `sess-autopilot-${phase}-cancel-allow`;
-          const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+          const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
           await mkdir(sessionDir, { recursive: true });
           await writeFile(
             join(sessionDir, 'autopilot-state.json'),
@@ -5124,11 +5129,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('allows Autopilot ultraqa completion with clean review and QA evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ultraqa-complete-allow-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ultraqa-complete-allow-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ultraqa-complete-allow';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -5137,8 +5142,8 @@ describe('state operations directory initialization', () => {
             mode: 'autopilot',
             current_phase: 'ultraqa',
             state: {
-              review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/reviews/code-review.json' },
-              qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/oh-my-codex/actions/runs/1' },
+              review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/reviews/code-review.json' },
+              qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/nomx/actions/runs/1' },
             },
           }, null, 2),
         );
@@ -5151,8 +5156,8 @@ describe('state operations directory initialization', () => {
           current_phase: 'complete',
           completed_at: '2026-06-09T14:30:00.000Z',
           state: {
-            review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/reviews/code-review.json' },
-            qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/oh-my-codex/actions/runs/1' },
+            review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/reviews/code-review.json' },
+            qa_verdict: { stage: 'ultraqa', clean: true, skipped: false, url: 'https://github.com/Yeachan-Heo/nomx/actions/runs/1' },
           },
         });
 
@@ -5167,11 +5172,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('allows Autopilot ultraqa skipped completion with reason and durable QA provenance', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ultraqa-skipped-allow-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ultraqa-skipped-allow-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ultraqa-skipped-allow';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'autopilot-state.json'),
@@ -5186,13 +5191,13 @@ describe('state operations directory initialization', () => {
           current_phase: 'complete',
           completed_at: '2026-06-09T14:35:00.000Z',
           state: {
-            review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.omx/reviews/code-review.json' },
+            review_verdict: { stage: 'code-review', recommendation: 'APPROVE', architectural_status: 'CLEAR', clean: true, artifact_path: '.nomx/reviews/code-review.json' },
             qa_verdict: {
               stage: 'ultraqa',
               clean: true,
               skipped: true,
               reason: 'Docs-only change; QA not applicable.',
-              artifact_path: '.omx/state/autopilot-state.json#pipeline_stage_results.ultraqa.artifacts.qa_verdict',
+              artifact_path: '.nomx/state/autopilot-state.json#pipeline_stage_results.ultraqa.artifacts.qa_verdict',
             },
           },
         });
@@ -5208,11 +5213,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('allows Autopilot ralplan to ultragoal self-write with tracker-backed native consensus evidence', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-autopilot-ralplan-native-allow-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-autopilot-ralplan-native-allow-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-autopilot-ralplan-native-allow';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeNativeSubagentTracking(wd, sessionId);
         await writeFile(
@@ -5224,8 +5229,8 @@ describe('state operations directory initialization', () => {
             state: {
               handoff_artifacts: {
                 ralplan: {
-                  plan_path: '.omx/plans/prd.md',
-                  test_spec_path: '.omx/plans/test-spec.md',
+                  plan_path: '.nomx/plans/prd.md',
+                  test_spec_path: '.nomx/plans/test-spec.md',
                 },
                 ralplan_consensus_gate: ralplanConsensusGate(sessionId, 'native_subagent'),
               },
@@ -5253,11 +5258,11 @@ describe('state operations directory initialization', () => {
   });
 
   it('fails closed when canonical deep-interview is active but mode state is missing', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-missing-deep-interview-state-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-missing-deep-interview-state-'));
     try {
       await withOmxRootEnv(wd, async () => {
         const sessionId = 'sess-missing-deep-interview-state';
-        const sessionDir = join(wd, '.omx', 'state', 'sessions', sessionId);
+        const sessionDir = join(wd, '.nomx', 'state', 'sessions', sessionId);
         await mkdir(sessionDir, { recursive: true });
         await writeFile(
           join(sessionDir, 'skill-active-state.json'),
@@ -5298,9 +5303,9 @@ describe('state operations directory initialization', () => {
   });
 
   it('does not auto-complete existing workflow state when tracked write validation fails', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-validate-before-transition-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-validate-before-transition-'));
     try {
-      const sessionDir = join(wd, '.omx', 'state', 'sessions', 'sess-invalid');
+      const sessionDir = join(wd, '.nomx', 'state', 'sessions', 'sess-invalid');
       await mkdir(sessionDir, { recursive: true });
       await writeFile(
         join(sessionDir, 'ralplan-state.json'),
@@ -5330,9 +5335,9 @@ describe('state operations directory initialization', () => {
   });
 
   it('keeps session-scoped tracked state writable after root-state parse fallback on resume', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-state-ops-resume-root-fallback-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-state-ops-resume-root-fallback-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const sessionId = 'sess-resume-root-fallback';
       const sessionDir = join(stateDir, 'sessions', sessionId);
       await mkdir(sessionDir, { recursive: true });

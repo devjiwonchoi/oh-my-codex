@@ -13,7 +13,7 @@ const pointer = (overrides: Partial<EvaluateResolvedPromptTurnInput['selectedPoi
     session_id: 'selected-root',
     native_session_id: 'native-root',
     previous_native_session_id: 'native-prior',
-    owner_omx_session_id: 'omx-owner',
+    owner_omx_session_id: 'nomx-owner',
     owner_codex_session_id: 'codex-owner',
     started_at: '2026-07-14T00:00:00.000Z',
     cwd: '/selected',

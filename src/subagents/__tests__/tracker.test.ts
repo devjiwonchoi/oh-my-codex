@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { getBaseStateDir } from '../../state/paths.js';
 import { canonicalizeOriginCwd } from '../../leader/contract.js';
-import { __setCrossProcessPublishBarrierForTest, __setCrossProcessQuarantineBarrierForTest, CrossProcessLockLostError, bindPendingRoleIntentUnderLock, buildSubagentResumeLedger, completeAdaptedRoleBinding, CROSS_PROCESS_LOCK_ARTIFACT_SWEEP_CAP, CROSS_PROCESS_LOCK_LEASE_MS, createSubagentTrackingState, crossProcessLockPath, consumePendingRoleIntent, recordSubagentTurn, NATIVE_SUBAGENT_PROVENANCE, OMX_ADAPTED_PROVENANCE, readProcessStartIdentity, readSubagentTrackingState, recordPendingRoleIntent, selectReusableSubagentEntry, summarizeSubagentSession, withCrossProcessFileLockSync } from '../tracker.js';
+import { __setCrossProcessPublishBarrierForTest, __setCrossProcessQuarantineBarrierForTest, CrossProcessLockLostError, bindPendingRoleIntentUnderLock, buildSubagentResumeLedger, completeAdaptedRoleBinding, CROSS_PROCESS_LOCK_ARTIFACT_SWEEP_CAP, CROSS_PROCESS_LOCK_LEASE_MS, createSubagentTrackingState, crossProcessLockPath, consumePendingRoleIntent, recordSubagentTurn, NATIVE_SUBAGENT_PROVENANCE, NOMX_ADAPTED_PROVENANCE, readProcessStartIdentity, readSubagentTrackingState, recordPendingRoleIntent, selectReusableSubagentEntry, summarizeSubagentSession, withCrossProcessFileLockSync } from '../tracker.js';
 import { subagentTrackingPath } from '../tracker.js';
 import { NATIVE_SUBAGENT_ROLE_ROUTING_MARKER_FILE, readRoleRoutingMarker, writeRoleRoutingMarker } from '../role-routing-marker.js';
 const credentialDigest = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -55,9 +55,9 @@ interface PendingRoleIntentWorker {
 const PENDING_ROLE_INTENT_WORKER_SOURCE = `
   import { existsSync } from 'node:fs';
 
-  const input = JSON.parse(process.env.OMX_PENDING_ROLE_INTENT_WORKER_INPUT ?? '{}');
-  const tracker = await import(process.env.OMX_TRACKER_MODULE_URL ?? '');
-  const startSignal = process.env.OMX_PENDING_ROLE_INTENT_START_SIGNAL ?? '';
+  const input = JSON.parse(process.env.NOMX_PENDING_ROLE_INTENT_WORKER_INPUT ?? '{}');
+  const tracker = await import(process.env.NOMX_TRACKER_MODULE_URL ?? '');
+  const startSignal = process.env.NOMX_PENDING_ROLE_INTENT_START_SIGNAL ?? '';
   const waitArray = new Int32Array(new SharedArrayBuffer(4));
   const startedAt = Date.now();
 
@@ -81,9 +81,9 @@ function spawnPendingRoleIntentWorker(startSignal: string, input: PendingRoleInt
   const child = spawn(process.execPath, ['--input-type=module', '--eval', PENDING_ROLE_INTENT_WORKER_SOURCE], {
     env: {
       ...process.env,
-      OMX_PENDING_ROLE_INTENT_START_SIGNAL: startSignal,
-      OMX_PENDING_ROLE_INTENT_WORKER_INPUT: JSON.stringify(input),
-      OMX_TRACKER_MODULE_URL: new URL('../tracker.js', import.meta.url).href,
+      NOMX_PENDING_ROLE_INTENT_START_SIGNAL: startSignal,
+      NOMX_PENDING_ROLE_INTENT_WORKER_INPUT: JSON.stringify(input),
+      NOMX_TRACKER_MODULE_URL: new URL('../tracker.js', import.meta.url).href,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -163,12 +163,12 @@ function isConsumedRoleIntent(result: PendingRoleIntentWorkerResult): result is 
 }
 
 const CROSS_PROCESS_LOCK_HOLDER_SOURCE = `
-  const tracker = await import(process.env.OMX_TRACKER_MODULE_URL ?? '');
+  const tracker = await import(process.env.NOMX_TRACKER_MODULE_URL ?? '');
   const { existsSync, writeFileSync } = await import('node:fs');
-  const resourcePath = process.env.OMX_LOCK_RESOURCE_PATH ?? '';
-  const readyPath = process.env.OMX_LOCK_READY_PATH ?? '';
-  const releasePath = process.env.OMX_LOCK_RELEASE_PATH ?? '';
-  const publicationPath = process.env.OMX_LOCK_PUBLICATION_PATH ?? '';
+  const resourcePath = process.env.NOMX_LOCK_RESOURCE_PATH ?? '';
+  const readyPath = process.env.NOMX_LOCK_READY_PATH ?? '';
+  const releasePath = process.env.NOMX_LOCK_RELEASE_PATH ?? '';
+  const publicationPath = process.env.NOMX_LOCK_PUBLICATION_PATH ?? '';
   const waitArray = new Int32Array(new SharedArrayBuffer(4));
 
   tracker.withCrossProcessFileLockSync(resourcePath, () => {
@@ -207,11 +207,11 @@ function spawnCrossProcessLockHolder(
   return spawn(process.execPath, ['--input-type=module', '--eval', CROSS_PROCESS_LOCK_HOLDER_SOURCE], {
     env: {
       ...process.env,
-      OMX_TRACKER_MODULE_URL: new URL('../tracker.js', import.meta.url).href,
-      OMX_LOCK_RESOURCE_PATH: resourcePath,
-      OMX_LOCK_READY_PATH: readyPath,
-      OMX_LOCK_RELEASE_PATH: releasePath,
-      ...(publicationPath ? { OMX_LOCK_PUBLICATION_PATH: publicationPath } : {}),
+      NOMX_TRACKER_MODULE_URL: new URL('../tracker.js', import.meta.url).href,
+      NOMX_LOCK_RESOURCE_PATH: resourcePath,
+      NOMX_LOCK_READY_PATH: readyPath,
+      NOMX_LOCK_RELEASE_PATH: releasePath,
+      ...(publicationPath ? { NOMX_LOCK_PUBLICATION_PATH: publicationPath } : {}),
     },
   });
 }
@@ -838,7 +838,7 @@ describe('subagents/tracker', () => {
   });
 
   it('does not let a stale owner release a successor lock', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     const successorReadyPath = join(cwd, 'successor-ready');
@@ -867,7 +867,7 @@ describe('subagents/tracker', () => {
   });
 
   it('removes displaced quarantine and release artifacts when a replacement wins restoration', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     try {
@@ -896,7 +896,7 @@ describe('subagents/tracker', () => {
   });
 
   it('sweeps only lease-aged parseable lock displacement artifacts', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     const oldQuarantinePath = `${lockPath}.${Date.now() - CROSS_PROCESS_LOCK_LEASE_MS - 1}.fixture.quarantine`;
@@ -918,7 +918,7 @@ describe('subagents/tracker', () => {
   });
 
   it('bounds the displacement-artifact sweep by a fixed per-acquisition cap, oldest-first', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     const overflow = 5;
@@ -947,7 +947,7 @@ describe('subagents/tracker', () => {
   });
 
   it('treats an already-removed displaced release artifact as a clean terminal cleanup', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     try {
       // Simulate a concurrent bounded sweep unlinking the in-flight displaced .release
@@ -965,7 +965,7 @@ describe('subagents/tracker', () => {
   });
 
   it('reclaims a dead-owner cross-process lock', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     try {
       const child = spawn(process.execPath, ['--eval', '']);
@@ -985,7 +985,7 @@ describe('subagents/tracker', () => {
   });
 
   it('does not steal a live different-pid lock within its lease', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     const liveOwner = spawn(process.execPath, ['--eval', 'setInterval(() => {}, 1_000)']);
@@ -1010,7 +1010,7 @@ describe('subagents/tracker', () => {
   });
 
   it('fences a stalled claimant after a remote-lease successor publishes', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     const successorReadyPath = join(cwd, 'successor-ready');
@@ -1044,7 +1044,7 @@ describe('subagents/tracker', () => {
   });
 
   it('prevents a fenced predecessor from publishing after its staged slot is swept', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     let barrierRuns = 0;
@@ -1075,7 +1075,7 @@ describe('subagents/tracker', () => {
   });
 
   it('reports lock loss when a successor sweeps a staged slot before publication opens it', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     try {
@@ -1096,7 +1096,7 @@ describe('subagents/tracker', () => {
   });
 
   it('recovers despite an abandoned legacy recovery guard', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     try {
@@ -1110,7 +1110,7 @@ describe('subagents/tracker', () => {
   });
 
   it('does not use local pid liveness to reclaim a remote claim before its lease', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     const deadOwner = spawn(process.execPath, ['--eval', '']);
@@ -1134,7 +1134,7 @@ describe('subagents/tracker', () => {
   });
 
   it('reclaims a same-host claim held by a reused live pid', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     const pidStartId = readProcessStartIdentity(process.pid);
@@ -1160,7 +1160,7 @@ describe('subagents/tracker', () => {
   });
 
   it('uses the lease fallback for legacy same-host claims without a process identity', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     try {
@@ -1186,7 +1186,7 @@ describe('subagents/tracker', () => {
   });
 
   it('does not steal a live same-host identity-matched claim after its lease or mistake its token for ours', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     const pidStartId = readProcessStartIdentity(process.pid);
@@ -1211,7 +1211,7 @@ describe('subagents/tracker', () => {
   });
 
   it('recovers empty, partial, and malformed cross-process lock claims', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     try {
@@ -1229,7 +1229,7 @@ describe('subagents/tracker', () => {
   });
 
   it('uses the shared recoverable lock for role-routing markers', async () => {
-    const baseStateDir = await mkdtemp(join(tmpdir(), 'omx-role-routing-marker-'));
+    const baseStateDir = await mkdtemp(join(tmpdir(), 'nomx-role-routing-marker-'));
     const nowMs = Date.now();
     try {
       await writeFile(
@@ -1259,7 +1259,7 @@ describe('subagents/tracker', () => {
   });
 
   it('reclaims a same-host claim after a reboot changes the boot id', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const resourcePath = join(cwd, 'lock-resource');
     const lockPath = crossProcessLockPath(resourcePath);
     const pidStartId = readProcessStartIdentity(process.pid);
@@ -1284,7 +1284,7 @@ describe('subagents/tracker', () => {
   });
 
   it('fences a stalled role-routing marker writer after a successor publishes and leaves no temp artifacts', async () => {
-    const baseStateDir = await mkdtemp(join(tmpdir(), 'omx-role-routing-marker-'));
+    const baseStateDir = await mkdtemp(join(tmpdir(), 'nomx-role-routing-marker-'));
     const markerPath = join(baseStateDir, NATIVE_SUBAGENT_ROLE_ROUTING_MARKER_FILE);
     const lockPath = crossProcessLockPath(markerPath);
     const nowMs = Date.now();
@@ -1352,7 +1352,7 @@ describe('subagents/tracker', () => {
   });
 
   it('rejects parser-invalid tokens before persistence and round-trips valid tokens', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-token-grammar-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-token-grammar-'));
     try {
       assert.deepEqual(recordPendingRoleIntent(cwd, {
         role: 'architect',
@@ -1375,7 +1375,7 @@ describe('subagents/tracker', () => {
   });
 
   it('rejects a second live role intent for the same parent thread', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     try {
       assert.equal(
         recordPendingRoleIntent(cwd, {
@@ -1403,7 +1403,7 @@ describe('subagents/tracker', () => {
   });
 
   it('serializes concurrent pending role intent records across processes', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     try {
       const results = await runConcurrentPendingRoleIntentWorkers(cwd, [
         {
@@ -1434,12 +1434,12 @@ describe('subagents/tracker', () => {
   });
 
   it('preserves expired foreign-origin journals through successful pending-role lifecycle writes', async () => {
-    const sharedRoot = await mkdtemp(join(tmpdir(), 'omx-tracker-shared-writeback-'));
+    const sharedRoot = await mkdtemp(join(tmpdir(), 'nomx-tracker-shared-writeback-'));
     const cwdA = join(sharedRoot, 'workspace-a');
     const cwdB = join(sharedRoot, 'workspace-b');
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     try {
-      process.env.OMX_STATE_ROOT = sharedRoot;
+      process.env.NOMX_STATE_ROOT = sharedRoot;
       await mkdir(cwdA, { recursive: true });
       await mkdir(cwdB, { recursive: true });
       assert.equal(getBaseStateDir(cwdA), getBaseStateDir(cwdB));
@@ -1501,26 +1501,26 @@ describe('subagents/tracker', () => {
         parentThreadId: 'parent-consume',
         correlationToken: canonicalCorrelationToken('tokenconsume'),
         nowMs,
-      }), { role: 'critic', provenanceKind: OMX_ADAPTED_PROVENANCE });
+      }), { role: 'critic', provenanceKind: NOMX_ADAPTED_PROVENANCE });
       await assertForeignRetained();
     } finally {
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(sharedRoot, { recursive: true, force: true });
     }
   });
 
   it('binds a pending role intent only when its correlation token matches', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const input = {
       sessionId: 'sess-role-intent',
       parentThreadId: 'thread-parent',
       nowMs: 1_001,
     };
     let bindCount = 0;
-    const bind = (state: ReturnType<typeof createSubagentTrackingState>, intent: { role: string; provenanceKind: typeof OMX_ADAPTED_PROVENANCE }) => {
+    const bind = (state: ReturnType<typeof createSubagentTrackingState>, intent: { role: string; provenanceKind: typeof NOMX_ADAPTED_PROVENANCE }) => {
       bindCount += 1;
-      assert.deepEqual(intent, { role: 'architect', provenanceKind: OMX_ADAPTED_PROVENANCE });
+      assert.deepEqual(intent, { role: 'architect', provenanceKind: NOMX_ADAPTED_PROVENANCE });
       return state;
     };
     try {
@@ -1539,7 +1539,7 @@ describe('subagents/tracker', () => {
       assert.equal((await readSubagentTrackingState(cwd)).pending_role_intents[0]?.correlation_token, canonicalCorrelationToken('expectedtoken'));
       const firstBinding = bindPendingRoleIntentUnderLock(cwd, { ...input, correlationToken: canonicalCorrelationToken('expectedtoken') }, bind);
       assert.equal(firstBinding?.role, 'architect');
-      assert.equal(firstBinding?.provenanceKind, OMX_ADAPTED_PROVENANCE);
+      assert.equal(firstBinding?.provenanceKind, NOMX_ADAPTED_PROVENANCE);
       assert.equal(firstBinding?.alreadyBound, false);
       assert.ok(firstBinding?.claimantToken);
       const retainedIntent = (await readSubagentTrackingState(cwd)).pending_role_intents[0];
@@ -1548,7 +1548,7 @@ describe('subagents/tracker', () => {
       const replay = bindPendingRoleIntentUnderLock(cwd, { ...input, correlationToken: canonicalCorrelationToken('expectedtoken') }, bind);
       assert.deepEqual(replay, {
         role: 'architect',
-        provenanceKind: OMX_ADAPTED_PROVENANCE,
+        provenanceKind: NOMX_ADAPTED_PROVENANCE,
         claimantToken: undefined,
         alreadyBound: true,
       });
@@ -1567,15 +1567,15 @@ describe('subagents/tracker', () => {
   });
 
   it('migrates a same-workspace cwd-partitioned legacy journal on bind and still consumes one', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-legacy-'));
-    const previousOmxRoot = process.env.OMX_ROOT;
-    const previousTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-legacy-'));
+    const previousOmxRoot = process.env.NOMX_ROOT;
+    const previousTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     const nowMs = Date.now();
     try {
-      delete process.env.OMX_ROOT;
-      delete process.env.OMX_TEAM_STATE_ROOT;
-      delete process.env.OMX_STATE_ROOT;
+      delete process.env.NOMX_ROOT;
+      delete process.env.NOMX_TEAM_STATE_ROOT;
+      delete process.env.NOMX_STATE_ROOT;
       await mkdir(getBaseStateDir(cwd), { recursive: true });
       const legacyIntent = {
         role: 'architect',
@@ -1624,28 +1624,28 @@ describe('subagents/tracker', () => {
         parentThreadId: legacyConsumeIntent.parent_thread_id,
         correlationToken: legacyConsumeIntent.correlation_token,
         nowMs,
-      }), { role: 'architect', provenanceKind: OMX_ADAPTED_PROVENANCE });
+      }), { role: 'architect', provenanceKind: NOMX_ADAPTED_PROVENANCE });
     } finally {
-      if (previousOmxRoot === undefined) delete process.env.OMX_ROOT;
-      else process.env.OMX_ROOT = previousOmxRoot;
-      if (previousTeamStateRoot === undefined) delete process.env.OMX_TEAM_STATE_ROOT;
-      else process.env.OMX_TEAM_STATE_ROOT = previousTeamStateRoot;
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousOmxRoot === undefined) delete process.env.NOMX_ROOT;
+      else process.env.NOMX_ROOT = previousOmxRoot;
+      if (previousTeamStateRoot === undefined) delete process.env.NOMX_TEAM_STATE_ROOT;
+      else process.env.NOMX_TEAM_STATE_ROOT = previousTeamStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it('stamps an owned already-bound cwd-default legacy journal on bind replay without disclosing its claimant', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-bound-legacy-'));
-    const previousOmxRoot = process.env.OMX_ROOT;
-    const previousTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-bound-legacy-'));
+    const previousOmxRoot = process.env.NOMX_ROOT;
+    const previousTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     const nowMs = Date.now();
     try {
-      delete process.env.OMX_ROOT;
-      delete process.env.OMX_TEAM_STATE_ROOT;
-      delete process.env.OMX_STATE_ROOT;
+      delete process.env.NOMX_ROOT;
+      delete process.env.NOMX_TEAM_STATE_ROOT;
+      delete process.env.NOMX_STATE_ROOT;
       await mkdir(getBaseStateDir(cwd), { recursive: true });
       const legacyIntent = {
         role: 'architect',
@@ -1675,36 +1675,36 @@ describe('subagents/tracker', () => {
         return state;
       }), {
         role: 'architect',
-        provenanceKind: OMX_ADAPTED_PROVENANCE,
+        provenanceKind: NOMX_ADAPTED_PROVENANCE,
         claimantToken: undefined,
         alreadyBound: true,
       });
       assert.equal(bindCalled, false);
       assert.equal((await readSubagentTrackingState(cwd)).pending_role_intents[0]?.origin_cwd, canonicalizeOriginCwd(cwd));
     } finally {
-      if (previousOmxRoot === undefined) delete process.env.OMX_ROOT;
-      else process.env.OMX_ROOT = previousOmxRoot;
-      if (previousTeamStateRoot === undefined) delete process.env.OMX_TEAM_STATE_ROOT;
-      else process.env.OMX_TEAM_STATE_ROOT = previousTeamStateRoot;
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousOmxRoot === undefined) delete process.env.NOMX_ROOT;
+      else process.env.NOMX_ROOT = previousOmxRoot;
+      if (previousTeamStateRoot === undefined) delete process.env.NOMX_TEAM_STATE_ROOT;
+      else process.env.NOMX_TEAM_STATE_ROOT = previousTeamStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
 
   it('does not allow a shared-root workspace to claim another originless legacy journal', async () => {
-    const sharedRoot = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-shared-legacy-'));
+    const sharedRoot = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-shared-legacy-'));
     const cwdA = join(sharedRoot, 'workspace-a');
     const cwdB = join(sharedRoot, 'workspace-b');
-    const previousOmxRoot = process.env.OMX_ROOT;
-    const previousTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const previousOmxRoot = process.env.NOMX_ROOT;
+    const previousTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     const nowMs = Date.now();
     try {
-      delete process.env.OMX_ROOT;
-      delete process.env.OMX_TEAM_STATE_ROOT;
-      process.env.OMX_STATE_ROOT = sharedRoot;
+      delete process.env.NOMX_ROOT;
+      delete process.env.NOMX_TEAM_STATE_ROOT;
+      process.env.NOMX_STATE_ROOT = sharedRoot;
       await mkdir(cwdA, { recursive: true });
       await mkdir(cwdB, { recursive: true });
       const legacyIntent = {
@@ -1747,21 +1747,21 @@ describe('subagents/tracker', () => {
       }), 'not_found');
       assert.deepEqual((await readSubagentTrackingState(cwdA)).pending_role_intents, [legacyIntent]);
     } finally {
-      if (previousOmxRoot === undefined) delete process.env.OMX_ROOT;
-      else process.env.OMX_ROOT = previousOmxRoot;
-      if (previousTeamStateRoot === undefined) delete process.env.OMX_TEAM_STATE_ROOT;
-      else process.env.OMX_TEAM_STATE_ROOT = previousTeamStateRoot;
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousOmxRoot === undefined) delete process.env.NOMX_ROOT;
+      else process.env.NOMX_ROOT = previousOmxRoot;
+      if (previousTeamStateRoot === undefined) delete process.env.NOMX_TEAM_STATE_ROOT;
+      else process.env.NOMX_TEAM_STATE_ROOT = previousTeamStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(sharedRoot, { recursive: true, force: true });
     }
   });
 
   it('selects exact-origin duplicate journals deterministically and consumes every own duplicate', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-duplicate-origin-'));
-    const previousOmxRoot = process.env.OMX_ROOT;
-    const previousTeamStateRoot = process.env.OMX_TEAM_STATE_ROOT;
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-duplicate-origin-'));
+    const previousOmxRoot = process.env.NOMX_ROOT;
+    const previousTeamStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     const nowMs = Date.now();
     const scope = {
       sessionId: 'duplicate-session',
@@ -1769,9 +1769,9 @@ describe('subagents/tracker', () => {
       correlationToken: canonicalCorrelationToken('a3118d'),
     };
     try {
-      delete process.env.OMX_ROOT;
-      delete process.env.OMX_TEAM_STATE_ROOT;
-      delete process.env.OMX_STATE_ROOT;
+      delete process.env.NOMX_ROOT;
+      delete process.env.NOMX_TEAM_STATE_ROOT;
+      delete process.env.NOMX_STATE_ROOT;
       await mkdir(getBaseStateDir(cwd), { recursive: true });
       const journal = (role: string, originCwd?: string, claimantToken?: string) => ({
         role,
@@ -1801,7 +1801,7 @@ describe('subagents/tracker', () => {
         await writeJournals(duplicateOrder);
         assert.deepEqual(consumePendingRoleIntent(cwd, { ...scope, nowMs }), {
           role: 'critic',
-          provenanceKind: OMX_ADAPTED_PROVENANCE,
+          provenanceKind: NOMX_ADAPTED_PROVENANCE,
         });
         assert.equal(consumePendingRoleIntent(cwd, { ...scope, nowMs }), null);
         assert.deepEqual((await readSubagentTrackingState(cwd)).pending_role_intents, []);
@@ -1864,7 +1864,7 @@ describe('subagents/tracker', () => {
                 });
                 assert.deepEqual(binding, {
                   role: 'critic',
-                  provenanceKind: OMX_ADAPTED_PROVENANCE,
+                  provenanceKind: NOMX_ADAPTED_PROVENANCE,
                   claimantToken: undefined,
                   alreadyBound: true,
                 }, `${name}:${invocationOrder.join('-')}:${journalOrder[0]?.role}`);
@@ -1888,18 +1888,18 @@ describe('subagents/tracker', () => {
         }
       }
     } finally {
-      if (previousOmxRoot === undefined) delete process.env.OMX_ROOT;
-      else process.env.OMX_ROOT = previousOmxRoot;
-      if (previousTeamStateRoot === undefined) delete process.env.OMX_TEAM_STATE_ROOT;
-      else process.env.OMX_TEAM_STATE_ROOT = previousTeamStateRoot;
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousOmxRoot === undefined) delete process.env.NOMX_ROOT;
+      else process.env.NOMX_ROOT = previousOmxRoot;
+      if (previousTeamStateRoot === undefined) delete process.env.NOMX_TEAM_STATE_ROOT;
+      else process.env.NOMX_TEAM_STATE_ROOT = previousTeamStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it('consumes a pending role intent exactly once', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     try {
       assert.equal(
         recordPendingRoleIntent(cwd, {
@@ -1918,7 +1918,7 @@ describe('subagents/tracker', () => {
           correlationToken: canonicalCorrelationToken('architecttoken'),
           nowMs: 1_001,
         }),
-        { role: 'architect', provenanceKind: OMX_ADAPTED_PROVENANCE },
+        { role: 'architect', provenanceKind: NOMX_ADAPTED_PROVENANCE },
       );
       assert.equal(
         consumePendingRoleIntent(cwd, {
@@ -1935,7 +1935,7 @@ describe('subagents/tracker', () => {
   });
 
   it('completes retained adapted bindings only for the claimant that began them', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const input = {
       sessionId: 'sess-complete-binding',
       parentThreadId: 'thread-parent',
@@ -1982,7 +1982,7 @@ describe('subagents/tracker', () => {
   });
 
   it('requires a claimant-less bound journal to receive its durable correlation token before completion', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-claimant-less-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-claimant-less-'));
     const nowMs = Date.now();
     const intent = {
       role: 'architect',
@@ -2022,7 +2022,7 @@ describe('subagents/tracker', () => {
   });
 
   it('serializes concurrent pending role intent consumes across processes', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     try {
       assert.equal(
         recordPendingRoleIntent(cwd, {
@@ -2062,7 +2062,7 @@ describe('subagents/tracker', () => {
   });
 
   it('serializes lifecycle tracking writes with pending role intent records and consumes', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     const sessionId = 'sess-role-intent-lifecycle-race';
     const parentThreadId = 'thread-parent';
     const correlationToken = canonicalCorrelationToken('architecttoken');
@@ -2121,7 +2121,7 @@ describe('subagents/tracker', () => {
   });
 
   it('does not consume expired pending role intents', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-'));
     try {
       assert.equal(
         recordPendingRoleIntent(cwd, {
@@ -2148,7 +2148,7 @@ describe('subagents/tracker', () => {
     }
   });
   it('retains invalid durable credentials and rejects whitespace callers without fallthrough', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-credentials-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-credentials-'));
     const nowMs = Date.now();
     const scope = { session_id: 'credential-session', parent_thread_id: 'credential-parent' };
     const base = {
@@ -2193,7 +2193,7 @@ describe('subagents/tracker', () => {
   });
 
   it('rejects noncanonical caller correlation credentials without changing a retained intent', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-caller-credential-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-caller-credential-'));
     const correlationToken = canonicalCorrelationToken('caller-correlation');
     const scope = { sessionId: 'caller-session', parentThreadId: 'caller-parent', correlationToken, nowMs: Date.now() };
     try {
@@ -2209,7 +2209,7 @@ describe('subagents/tracker', () => {
     }
   });
   it('rejects every malformed completion credential without rewriting durable bound journals', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-completion-credentials-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-completion-credentials-'));
     const nowMs = Date.now();
     const correlationToken = canonicalCorrelationToken('completion-correlation');
     const claimantToken = canonicalClaimantToken('completion-claimant');
@@ -2276,14 +2276,14 @@ describe('subagents/tracker', () => {
   });
 
   it('rejects NUL and ELOOP origins before creating tracking artifacts', async () => {
-    const parent = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-origin-'));
-    const stateRoot = await mkdtemp(join(tmpdir(), 'omx-subagent-tracker-origin-state-'));
+    const parent = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-origin-'));
+    const stateRoot = await mkdtemp(join(tmpdir(), 'nomx-subagent-tracker-origin-state-'));
     const loop = join(parent, 'loop');
     const validCwd = join(parent, 'valid');
-    const previousStateRoot = process.env.OMX_STATE_ROOT;
+    const previousStateRoot = process.env.NOMX_STATE_ROOT;
     const assertNoArtifacts = () => assert.deepEqual(readdirSync(stateRoot), []);
     try {
-      process.env.OMX_STATE_ROOT = stateRoot;
+      process.env.NOMX_STATE_ROOT = stateRoot;
       await symlink(loop, loop);
       for (const cwd of [`${parent}\u0000suffix`, loop]) {
         assert.deepEqual(recordPendingRoleIntent(cwd, {
@@ -2301,8 +2301,8 @@ describe('subagents/tracker', () => {
       assert.deepEqual(state.pending_role_intents, recorded.ok ? [recorded.intent] : []);
       assert.equal(existsSync(subagentTrackingPath(validCwd)), true);
     } finally {
-      if (previousStateRoot === undefined) delete process.env.OMX_STATE_ROOT;
-      else process.env.OMX_STATE_ROOT = previousStateRoot;
+      if (previousStateRoot === undefined) delete process.env.NOMX_STATE_ROOT;
+      else process.env.NOMX_STATE_ROOT = previousStateRoot;
       await rm(parent, { recursive: true, force: true });
       await rm(stateRoot, { recursive: true, force: true });
     }

@@ -19,7 +19,7 @@ const REASONING_KEY = 'model_reasoning_effort';
 const MODEL_PROVIDER_KEY = 'model_provider';
 export const TEAM_WORKER_APPROVAL_FLAG = '--ask-for-approval';
 export const TEAM_WORKER_SANDBOX_FLAG = '--sandbox';
-export const TEAM_WORKER_INHERITED_MODEL_ENV = 'OMX_TEAM_WORKER_INHERITED_MODEL';
+export const TEAM_WORKER_INHERITED_MODEL_ENV = 'NOMX_TEAM_WORKER_INHERITED_MODEL';
 
 const LOW_COMPLEXITY_AGENT_TYPES = new Set([
   'explore',
@@ -187,7 +187,7 @@ function resolveTeamWorkerLaunchDiagnosticsFromParts(params: {
 }
 
 /**
- * Tokenize OMX_TEAM_WORKER_LAUNCH_ARGS without evaluating shell syntax.
+ * Tokenize NOMX_TEAM_WORKER_LAUNCH_ARGS without evaluating shell syntax.
  * Quoting and escaping are intentionally limited to this transport grammar.
  */
 export function splitWorkerLaunchArgs(raw: string | undefined): string[] {
@@ -246,7 +246,7 @@ export function splitWorkerLaunchArgs(raw: string | undefined): string[] {
   }
 
   if (quote !== null) {
-    throw teamWorkerLaunchArgsError('OMX_TEAM_WORKER_LAUNCH_ARGS', 'unterminated quote');
+    throw teamWorkerLaunchArgsError('NOMX_TEAM_WORKER_LAUNCH_ARGS', 'unterminated quote');
   }
   if (tokenStarted) args.push(token);
   return args;
@@ -533,10 +533,10 @@ function selectTeamWorkerModel(params: {
 export function resolveTeamWorkerLaunchArgs(options: ResolveTeamWorkerLaunchArgsOptions): string[] {
   const envArgs = splitWorkerLaunchArgs(options.existingRaw);
   const inheritedArgs = options.inheritedArgs ?? [];
-  const envParsed = parseTeamWorkerLaunchArgs(envArgs, 'OMX_TEAM_WORKER_LAUNCH_ARGS');
+  const envParsed = parseTeamWorkerLaunchArgs(envArgs, 'NOMX_TEAM_WORKER_LAUNCH_ARGS');
   if (envParsed.wantsBypass && envParsed.policyKind === 'direct-policy') {
     throw teamWorkerLaunchArgsError(
-      'OMX_TEAM_WORKER_LAUNCH_ARGS',
+      'NOMX_TEAM_WORKER_LAUNCH_ARGS',
       'bypass cannot be combined with direct approval or sandbox policy',
     );
   }
@@ -569,7 +569,7 @@ export function resolveTeamWorkerLaunchDiagnostics(
 ): ResolvedTeamWorkerLaunchDiagnostics {
   const envArgs = splitWorkerLaunchArgs(options.existingRaw);
   const inheritedArgs = options.inheritedArgs ?? [];
-  const envParsed = parseTeamWorkerLaunchArgs(envArgs, 'OMX_TEAM_WORKER_LAUNCH_ARGS');
+  const envParsed = parseTeamWorkerLaunchArgs(envArgs, 'NOMX_TEAM_WORKER_LAUNCH_ARGS');
   const inheritedParsed = parseTeamWorkerLaunchArgs(inheritedArgs, 'inherited leader worker launch arguments');
   const actualLaunchArgs = resolveTeamWorkerLaunchArgs(options);
 

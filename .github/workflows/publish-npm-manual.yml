@@ -40,8 +40,8 @@ jobs:
           set -euo pipefail
           VERSION=$(node -p "require('./package.json').version")
           test "${{ inputs.tag }}" = "v${VERSION}"
-          if npm view "oh-my-codex@${VERSION}" version >/dev/null 2>&1; then
-            echo "oh-my-codex@${VERSION} already exists on npm; skipping"
+          if npm view "nomx@${VERSION}" version >/dev/null 2>&1; then
+            echo "nomx@${VERSION} already exists on npm; skipping"
             exit 0
           fi
       - run: npm pack --dry-run
@@ -62,7 +62,7 @@ jobs:
           set -euo pipefail
           VERSION=$(node -p "require('./package.json').version")
           if npm publish --access public --provenance 2>&1 | tee npm-publish.log; then
-            echo "Published oh-my-codex@${VERSION} with provenance"
+            echo "Published nomx@${VERSION} with provenance"
           elif grep -Eiq 'TLOG_CREATE_ENTRY_ERROR|tlog|rekor|transparency log' npm-publish.log && [ "${{ inputs.allow_without_provenance }}" = "true" ]; then
             echo "::warning::Provenance publish failed due to Sigstore/Rekor tlog outage; retrying without provenance"
             npm publish --access public
@@ -75,11 +75,11 @@ jobs:
           set -euo pipefail
           VERSION=$(node -p "require('./package.json').version")
           for i in $(seq 1 20); do
-            if [ "$(npm view "oh-my-codex@${VERSION}" version 2>/dev/null || true)" = "$VERSION" ]; then
-              npm view oh-my-codex version dist-tags --json
+            if [ "$(npm view "nomx@${VERSION}" version 2>/dev/null || true)" = "$VERSION" ]; then
+              npm view nomx version dist-tags --json
               exit 0
             fi
             sleep 15
           done
-          echo "npm did not expose oh-my-codex@${VERSION} in time" >&2
+          echo "npm did not expose nomx@${VERSION} in time" >&2
           exit 1

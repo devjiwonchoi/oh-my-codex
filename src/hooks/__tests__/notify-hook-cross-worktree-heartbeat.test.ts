@@ -9,7 +9,7 @@ import { join } from 'node:path';
 const NOTIFY_HOOK_SCRIPT = new URL('../../../dist/scripts/notify-hook.js', import.meta.url);
 
 async function withTempDir(run: (cwd: string) => Promise<void>): Promise<void> {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-notify-cross-worktree-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-notify-cross-worktree-'));
   try {
     await run(cwd);
   } finally {
@@ -33,15 +33,15 @@ function runWorkerNotify(
 
   const inheritedEnv: NodeJS.ProcessEnv = {
     ...process.env,
-    OMX_TEAM_WORKER: teamWorker,
+    NOMX_TEAM_WORKER: teamWorker,
     TMUX: '',
     TMUX_PANE: '',
   };
-  if (!Object.prototype.hasOwnProperty.call(extraEnv, 'OMX_TEAM_STATE_ROOT')) {
-    delete inheritedEnv.OMX_TEAM_STATE_ROOT;
+  if (!Object.prototype.hasOwnProperty.call(extraEnv, 'NOMX_TEAM_STATE_ROOT')) {
+    delete inheritedEnv.NOMX_TEAM_STATE_ROOT;
   }
-  if (!Object.prototype.hasOwnProperty.call(extraEnv, 'OMX_TEAM_LEADER_CWD')) {
-    delete inheritedEnv.OMX_TEAM_LEADER_CWD;
+  if (!Object.prototype.hasOwnProperty.call(extraEnv, 'NOMX_TEAM_LEADER_CWD')) {
+    delete inheritedEnv.NOMX_TEAM_LEADER_CWD;
   }
 
   return spawnSync(process.execPath, [NOTIFY_HOOK_SCRIPT.pathname, JSON.stringify(payload)], {
@@ -54,10 +54,10 @@ describe('notify-hook cross-worktree heartbeat resolution', () => {
   it('logs only the latest user input preview instead of concatenating prior inputs', async () => {
     await withTempDir(async (root) => {
       const cwd = join(root, 'latest-input-preview');
-      await mkdir(join(cwd, '.omx', 'logs'), { recursive: true });
-      await mkdir(join(cwd, '.omx', 'state'), { recursive: true });
-      await writeFile(join(cwd, '.omx', 'managed'), 'test fixture managed workspace');
-      await writeFile(join(cwd, '.omx', 'state', 'session.json'), JSON.stringify({ session_id: 'thread-latest-preview' }));
+      await mkdir(join(cwd, '.nomx', 'logs'), { recursive: true });
+      await mkdir(join(cwd, '.nomx', 'state'), { recursive: true });
+      await writeFile(join(cwd, '.nomx', 'managed'), 'test fixture managed workspace');
+      await writeFile(join(cwd, '.nomx', 'state', 'session.json'), JSON.stringify({ session_id: 'thread-latest-preview' }));
 
       const payload = {
         cwd,
@@ -75,7 +75,7 @@ describe('notify-hook cross-worktree heartbeat resolution', () => {
       });
 
       assert.equal(result.status, 0, `notify-hook failed: ${result.stderr || result.stdout}`);
-      const turnLogPath = join(cwd, '.omx', 'logs', `turns-${new Date().toISOString().split('T')[0]}.jsonl`);
+      const turnLogPath = join(cwd, '.nomx', 'logs', `turns-${new Date().toISOString().split('T')[0]}.jsonl`);
       const lines = (await readFile(turnLogPath, 'utf8')).trim().split('\n');
       const entry = JSON.parse(lines[lines.length - 1]) as {
         input_preview?: string;
@@ -86,14 +86,14 @@ describe('notify-hook cross-worktree heartbeat resolution', () => {
     });
   });
 
-  it('writes heartbeat under OMX_TEAM_STATE_ROOT even when payload cwd is a different worktree', async () => {
+  it('writes heartbeat under NOMX_TEAM_STATE_ROOT even when payload cwd is a different worktree', async () => {
     await withTempDir(async (root) => {
       const leaderCwd = join(root, 'leader');
       const workerCwd = join(root, 'worker-worktree');
       const teamName = 'cross-root';
       const workerName = 'worker-1';
 
-      const leaderWorkerDir = join(leaderCwd, '.omx', 'state', 'team', teamName, 'workers', workerName);
+      const leaderWorkerDir = join(leaderCwd, '.nomx', 'state', 'team', teamName, 'workers', workerName);
       await mkdir(leaderWorkerDir, { recursive: true });
       await mkdir(workerCwd, { recursive: true });
       await writeFile(join(leaderWorkerDir, 'identity.json'), JSON.stringify({
@@ -102,11 +102,11 @@ describe('notify-hook cross-worktree heartbeat resolution', () => {
         role: 'executor',
         assigned_tasks: [],
         worktree_path: workerCwd,
-        team_state_root: join(leaderCwd, '.omx', 'state'),
+        team_state_root: join(leaderCwd, '.nomx', 'state'),
       }, null, 2));
 
       const result = runWorkerNotify(workerCwd, `${teamName}/${workerName}`, {
-        OMX_TEAM_STATE_ROOT: join(leaderCwd, '.omx', 'state'),
+        NOMX_TEAM_STATE_ROOT: join(leaderCwd, '.nomx', 'state'),
       });
       assert.equal(result.status, 0, `notify-hook failed: ${result.stderr || result.stdout}`);
 
@@ -115,7 +115,7 @@ describe('notify-hook cross-worktree heartbeat resolution', () => {
       const heartbeat = JSON.parse(await readFile(heartbeatPath, 'utf8')) as { turn_count?: number };
       assert.equal(heartbeat.turn_count, 1);
 
-      const wrongHeartbeatPath = join(workerCwd, '.omx', 'state', 'team', teamName, 'workers', workerName, 'heartbeat.json');
+      const wrongHeartbeatPath = join(workerCwd, '.nomx', 'state', 'team', teamName, 'workers', workerName, 'heartbeat.json');
       assert.equal(existsSync(wrongHeartbeatPath), false, 'heartbeat should not be written under worker cwd state root');
     });
   });
@@ -125,9 +125,9 @@ describe('notify-hook cross-worktree heartbeat resolution', () => {
       const leaderCwd = join(root, 'leader');
       const teamName = 'cross-team-layout';
       const workerName = 'worker-1';
-      const workerCwd = join(leaderCwd, '.omx', 'team', teamName, 'worktrees', workerName);
+      const workerCwd = join(leaderCwd, '.nomx', 'team', teamName, 'worktrees', workerName);
 
-      const leaderWorkerDir = join(leaderCwd, '.omx', 'state', 'team', teamName, 'workers', workerName);
+      const leaderWorkerDir = join(leaderCwd, '.nomx', 'state', 'team', teamName, 'workers', workerName);
       await mkdir(leaderWorkerDir, { recursive: true });
       await mkdir(workerCwd, { recursive: true });
       await writeFile(join(leaderWorkerDir, 'identity.json'), JSON.stringify({
@@ -136,29 +136,29 @@ describe('notify-hook cross-worktree heartbeat resolution', () => {
         role: 'executor',
         assigned_tasks: [],
         worktree_path: workerCwd,
-        team_state_root: join(leaderCwd, '.omx', 'state'),
+        team_state_root: join(leaderCwd, '.nomx', 'state'),
       }, null, 2));
 
       const result = runWorkerNotify(workerCwd, `${teamName}/${workerName}`, {
-        OMX_TEAM_STATE_ROOT: join(leaderCwd, '.omx', 'state'),
+        NOMX_TEAM_STATE_ROOT: join(leaderCwd, '.nomx', 'state'),
       });
       assert.equal(result.status, 0, `notify-hook failed: ${result.stderr || result.stdout}`);
 
       const heartbeatPath = join(leaderWorkerDir, 'heartbeat.json');
       assert.equal(existsSync(heartbeatPath), true, 'heartbeat should still resolve to leader-owned team state');
 
-      const wrongHeartbeatPath = join(workerCwd, '.omx', 'state', 'team', teamName, 'workers', workerName, 'heartbeat.json');
+      const wrongHeartbeatPath = join(workerCwd, '.nomx', 'state', 'team', teamName, 'workers', workerName, 'heartbeat.json');
       assert.equal(existsSync(wrongHeartbeatPath), false, 'team worktree cwd should not become the authoritative team state root');
     });
   });
 
-  it('falls back to worker identity/config metadata when OMX_TEAM_STATE_ROOT is absent', async () => {
+  it('falls back to worker identity/config metadata when NOMX_TEAM_STATE_ROOT is absent', async () => {
     await withTempDir(async (root) => {
       const leaderCwd = join(root, 'leader');
       const workerCwd = join(root, 'worker-worktree');
       const teamName = 'cross-meta';
       const workerName = 'worker-1';
-      const teamStateRoot = join(leaderCwd, '.omx', 'state');
+      const teamStateRoot = join(leaderCwd, '.nomx', 'state');
 
       const teamRoot = join(teamStateRoot, 'team', teamName);
       const leaderWorkerDir = join(teamRoot, 'workers', workerName);
@@ -188,7 +188,7 @@ describe('notify-hook cross-worktree heartbeat resolution', () => {
       );
 
       const result = runWorkerNotify(workerCwd, `${teamName}/${workerName}`, {
-        OMX_TEAM_LEADER_CWD: leaderCwd,
+        NOMX_TEAM_LEADER_CWD: leaderCwd,
       });
       assert.equal(result.status, 0, `notify-hook failed: ${result.stderr || result.stdout}`);
 

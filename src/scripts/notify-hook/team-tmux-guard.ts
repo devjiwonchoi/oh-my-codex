@@ -22,7 +22,7 @@ function buildSafePasteArgv(target: string, prompt: string): {
   deleteBufferArgv: string[];
 } {
   nextTmuxBufferId += 1;
-  const bufferName = `omx-pane-input-${process.pid}-${Date.now()}-${nextTmuxBufferId}`;
+  const bufferName = `nomx-pane-input-${process.pid}-${Date.now()}-${nextTmuxBufferId}`;
   return {
     bufferName,
     setBufferArgv: ['set-buffer', '-b', bufferName, '--', prompt],

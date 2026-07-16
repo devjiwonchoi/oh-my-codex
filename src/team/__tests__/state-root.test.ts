@@ -13,26 +13,26 @@ import {
 import { resolveTeamStateDirForWorker } from '../../scripts/notify-hook/team-worker.js';
 
 describe('state-root', () => {
-  it('resolveCanonicalTeamStateRoot resolves to leader .omx/state', () => {
+  it('resolveCanonicalTeamStateRoot resolves to leader .nomx/state', () => {
     assert.equal(
       resolveCanonicalTeamStateRoot('/tmp/demo/project', {}),
-      '/tmp/demo/project/.omx/state',
+      '/tmp/demo/project/.nomx/state',
     );
   });
 
-  it('prefers OMX_TEAM_STATE_ROOT when present', () => {
+  it('prefers NOMX_TEAM_STATE_ROOT when present', () => {
     assert.equal(
       resolveCanonicalTeamStateRoot('/tmp/demo/project', {
-        OMX_TEAM_STATE_ROOT: '/tmp/shared/team-state',
+        NOMX_TEAM_STATE_ROOT: '/tmp/shared/team-state',
       }),
       '/tmp/shared/team-state',
     );
   });
 
-  it('resolves relative OMX_TEAM_STATE_ROOT from the leader cwd', () => {
+  it('resolves relative NOMX_TEAM_STATE_ROOT from the leader cwd', () => {
     assert.equal(
       resolveCanonicalTeamStateRoot('/tmp/demo/project', {
-        OMX_TEAM_STATE_ROOT: '../shared/state',
+        NOMX_TEAM_STATE_ROOT: '../shared/state',
       }),
       '/tmp/demo/shared/state',
     );
@@ -40,17 +40,17 @@ describe('state-root', () => {
 
 
 
-  it('honors OMX_ROOT as boxed workspace root when no explicit team state root is set', () => {
-    const previousOmxRoot = process.env.OMX_ROOT;
+  it('honors NOMX_ROOT as boxed workspace root when no explicit team state root is set', () => {
+    const previousNomxRoot = process.env.NOMX_ROOT;
     try {
-      process.env.OMX_ROOT = '/tmp/omx-box';
+      process.env.NOMX_ROOT = '/tmp/nomx-box';
       assert.equal(
         resolveCanonicalTeamStateRoot('/tmp/demo/project'),
-        '/tmp/omx-box/.omx/state',
+        '/tmp/nomx-box/.nomx/state',
       );
     } finally {
-      if (typeof previousOmxRoot === 'string') process.env.OMX_ROOT = previousOmxRoot;
-      else delete process.env.OMX_ROOT;
+      if (typeof previousNomxRoot === 'string') process.env.NOMX_ROOT = previousNomxRoot;
+      else delete process.env.NOMX_ROOT;
     }
   });
 
@@ -89,8 +89,8 @@ describe('state-root', () => {
     }, null, 2));
   }
 
-  it('resolves worker root from OMX_TEAM_STATE_ROOT only when identity validates', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-state-root-env-'));
+  it('resolves worker root from NOMX_TEAM_STATE_ROOT only when identity validates', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'nomx-state-root-env-'));
     const stateRoot = join(root, 'state');
     const worktree = join(root, 'worktree');
     await mkdir(worktree, { recursive: true });
@@ -98,36 +98,36 @@ describe('state-root', () => {
 
     assert.equal(
       await resolveWorkerTeamStateRootPath(worktree, { teamName: 'team-a', workerName: 'worker-1' }, {
-        OMX_TEAM_STATE_ROOT: stateRoot,
+        NOMX_TEAM_STATE_ROOT: stateRoot,
       }),
       stateRoot,
     );
 
     const rejected = await resolveWorkerTeamStateRootPath(worktree, { teamName: 'team-a', workerName: 'worker-2' }, {
-      OMX_TEAM_STATE_ROOT: stateRoot,
+      NOMX_TEAM_STATE_ROOT: stateRoot,
     });
     assert.equal(rejected, null);
   });
 
   it('resolves from leader cwd state root when worker identity validates', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-state-root-leader-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-state-root-leader-'));
     const leader = join(root, 'leader');
     const worktree = join(root, 'worker');
-    const stateRoot = join(leader, '.omx', 'state');
+    const stateRoot = join(leader, '.nomx', 'state');
     await mkdir(worktree, { recursive: true });
     await writeIdentity(stateRoot, 'team-a', 'worker-1', worktree);
 
     const resolved = await resolveWorkerTeamStateRoot(worktree, { teamName: 'team-a', workerName: 'worker-1' }, {
-      OMX_TEAM_LEADER_CWD: leader,
+      NOMX_TEAM_LEADER_CWD: leader,
     });
     assert.equal(resolved.ok, true);
     assert.equal(resolved.stateRoot, stateRoot);
     assert.equal(resolved.source, 'leader_cwd');
   });
 
-  it('allows cwd .omx/state only when identity exists and worktree path matches cwd', async () => {
-    const worktree = await mkdtemp(join(tmpdir(), 'omx-state-root-cwd-'));
-    const stateRoot = join(worktree, '.omx', 'state');
+  it('allows cwd .nomx/state only when identity exists and worktree path matches cwd', async () => {
+    const worktree = await mkdtemp(join(tmpdir(), 'nomx-state-root-cwd-'));
+    const stateRoot = join(worktree, '.nomx', 'state');
     await writeIdentity(stateRoot, 'team-a', 'worker-1', worktree);
 
     const resolved = await resolveWorkerTeamStateRoot(worktree, { teamName: 'team-a', workerName: 'worker-1' }, {});
@@ -139,9 +139,9 @@ describe('state-root', () => {
 
 
   it('resolves non-git worker notify root from identity metadata without probing local cwd state', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-state-root-notify-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-state-root-notify-'));
     const leader = join(root, 'leader');
-    const leaderHintRoot = join(leader, '.omx', 'state');
+    const leaderHintRoot = join(leader, '.nomx', 'state');
     const canonicalStateRoot = join(root, 'canonical-state');
     const worktree = join(root, 'worker');
     await mkdir(worktree, { recursive: true });
@@ -149,7 +149,7 @@ describe('state-root', () => {
     await writeIdentity(canonicalStateRoot, 'team-a', 'worker-1', worktree);
 
     const resolved = await resolveWorkerNotifyTeamStateRoot(worktree, { teamName: 'team-a', workerName: 'worker-1' }, {
-      OMX_TEAM_LEADER_CWD: leader,
+      NOMX_TEAM_LEADER_CWD: leader,
     });
     assert.equal(resolved.ok, true);
     assert.equal(resolved.stateRoot, canonicalStateRoot);
@@ -159,14 +159,14 @@ describe('state-root', () => {
 
 
   it('accepts non-git worker notify roots with canonical markers but no identity', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-state-root-notify-markers-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-state-root-notify-markers-'));
     const stateRoot = join(root, 'state');
     const worktree = join(root, 'worktree');
     await mkdir(join(stateRoot, 'team', 'team-a', 'workers', 'worker-1'), { recursive: true });
     await mkdir(worktree, { recursive: true });
 
     const workerDirResolved = await resolveWorkerNotifyTeamStateRoot(worktree, { teamName: 'team-a', workerName: 'worker-1' }, {
-      OMX_TEAM_STATE_ROOT: stateRoot,
+      NOMX_TEAM_STATE_ROOT: stateRoot,
     });
     assert.equal(workerDirResolved.ok, true);
     assert.equal(workerDirResolved.stateRoot, stateRoot);
@@ -175,7 +175,7 @@ describe('state-root', () => {
     const configStateRoot = join(root, 'config-state');
     await writeTeamMetadata(configStateRoot, 'team-a', 'config.json', [{ name: 'worker-2' }]);
     const configResolved = await resolveWorkerNotifyTeamStateRoot(worktree, { teamName: 'team-a', workerName: 'worker-2' }, {
-      OMX_TEAM_STATE_ROOT: configStateRoot,
+      NOMX_TEAM_STATE_ROOT: configStateRoot,
     });
     assert.equal(configResolved.ok, true);
     assert.equal(configResolved.stateRoot, configStateRoot);
@@ -184,7 +184,7 @@ describe('state-root', () => {
     const manifestStateRoot = join(root, 'manifest-state');
     await writeTeamMetadata(manifestStateRoot, 'team-a', 'manifest.v2.json', [{ name: 'worker-3' }]);
     const manifestResolved = await resolveWorkerNotifyTeamStateRoot(worktree, { teamName: 'team-a', workerName: 'worker-3' }, {
-      OMX_TEAM_STATE_ROOT: manifestStateRoot,
+      NOMX_TEAM_STATE_ROOT: manifestStateRoot,
     });
     assert.equal(manifestResolved.ok, true);
     assert.equal(manifestResolved.stateRoot, manifestStateRoot);
@@ -192,7 +192,7 @@ describe('state-root', () => {
   });
 
   it('rejects non-git worker notify roots without a matching canonical marker', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-state-root-notify-reject-markers-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-state-root-notify-reject-markers-'));
     const stateRoot = join(root, 'state');
     const worktree = join(root, 'worktree');
     await mkdir(stateRoot, { recursive: true });
@@ -200,7 +200,7 @@ describe('state-root', () => {
 
     assert.equal(
       await resolveWorkerNotifyTeamStateRootPath(worktree, { teamName: 'team-a', workerName: 'worker-1' }, {
-        OMX_TEAM_STATE_ROOT: stateRoot,
+        NOMX_TEAM_STATE_ROOT: stateRoot,
       }),
       null,
     );
@@ -209,7 +209,7 @@ describe('state-root', () => {
     await writeTeamMetadata(wrongTeamRoot, 'team-a', 'config.json', [{ name: 'worker-1' }], { name: 'other-team' });
     assert.equal(
       await resolveWorkerNotifyTeamStateRootPath(worktree, { teamName: 'team-a', workerName: 'worker-1' }, {
-        OMX_TEAM_STATE_ROOT: wrongTeamRoot,
+        NOMX_TEAM_STATE_ROOT: wrongTeamRoot,
       }),
       null,
     );
@@ -219,15 +219,15 @@ describe('state-root', () => {
     await writeTeamMetadata(missingWorkerRoot, 'team-a', 'manifest.v2.json', [{ name: 'worker-3' }]);
     assert.equal(
       await resolveWorkerNotifyTeamStateRootPath(worktree, { teamName: 'team-a', workerName: 'worker-1' }, {
-        OMX_TEAM_STATE_ROOT: missingWorkerRoot,
+        NOMX_TEAM_STATE_ROOT: missingWorkerRoot,
       }),
       null,
     );
   });
 
-  it('does not guess cwd .omx/state for non-git worker notify resolution', async () => {
-    const worktree = await mkdtemp(join(tmpdir(), 'omx-state-root-notify-no-cwd-'));
-    const stateRoot = join(worktree, '.omx', 'state');
+  it('does not guess cwd .nomx/state for non-git worker notify resolution', async () => {
+    const worktree = await mkdtemp(join(tmpdir(), 'nomx-state-root-notify-no-cwd-'));
+    const stateRoot = join(worktree, '.nomx', 'state');
     await writeIdentity(stateRoot, 'team-a', 'worker-1', worktree);
 
     const notifyResolved = await resolveWorkerNotifyTeamStateRootPath(worktree, { teamName: 'team-a', workerName: 'worker-1' }, {});
@@ -240,13 +240,13 @@ describe('state-root', () => {
 
 
   it('notify-hook worker state resolution reuses the non-git resolver', async () => {
-    const previousStateRoot = process.env.OMX_TEAM_STATE_ROOT;
-    const previousLeaderCwd = process.env.OMX_TEAM_LEADER_CWD;
+    const previousStateRoot = process.env.NOMX_TEAM_STATE_ROOT;
+    const previousLeaderCwd = process.env.NOMX_TEAM_LEADER_CWD;
     try {
-      delete process.env.OMX_TEAM_STATE_ROOT;
-      delete process.env.OMX_TEAM_LEADER_CWD;
-      const worktree = await mkdtemp(join(tmpdir(), 'omx-state-root-notify-reuse-'));
-      const stateRoot = join(worktree, '.omx', 'state');
+      delete process.env.NOMX_TEAM_STATE_ROOT;
+      delete process.env.NOMX_TEAM_LEADER_CWD;
+      const worktree = await mkdtemp(join(tmpdir(), 'nomx-state-root-notify-reuse-'));
+      const stateRoot = join(worktree, '.nomx', 'state');
       await writeIdentity(stateRoot, 'team-a', 'worker-1', worktree);
 
       assert.equal(
@@ -254,15 +254,15 @@ describe('state-root', () => {
         null,
       );
     } finally {
-      if (typeof previousStateRoot === 'string') process.env.OMX_TEAM_STATE_ROOT = previousStateRoot;
-      else delete process.env.OMX_TEAM_STATE_ROOT;
-      if (typeof previousLeaderCwd === 'string') process.env.OMX_TEAM_LEADER_CWD = previousLeaderCwd;
-      else delete process.env.OMX_TEAM_LEADER_CWD;
+      if (typeof previousStateRoot === 'string') process.env.NOMX_TEAM_STATE_ROOT = previousStateRoot;
+      else delete process.env.NOMX_TEAM_STATE_ROOT;
+      if (typeof previousLeaderCwd === 'string') process.env.NOMX_TEAM_LEADER_CWD = previousLeaderCwd;
+      else delete process.env.NOMX_TEAM_LEADER_CWD;
     }
   });
 
   it('rejects missing identity, ambiguous root, and worktree mismatch', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-state-root-reject-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-state-root-reject-'));
     const stateRoot = join(root, 'state');
     const worktree = join(root, 'worker');
     const otherWorktree = join(root, 'other-worker');
@@ -271,14 +271,14 @@ describe('state-root', () => {
 
     assert.equal(
       await resolveWorkerTeamStateRootPath(worktree, { teamName: 'team-a', workerName: 'worker-1' }, {
-        OMX_TEAM_STATE_ROOT: stateRoot,
+        NOMX_TEAM_STATE_ROOT: stateRoot,
       }),
       null,
     );
 
     await writeIdentity(stateRoot, 'team-a', 'worker-1', otherWorktree);
     const mismatch = await resolveWorkerTeamStateRoot(worktree, { teamName: 'team-a', workerName: 'worker-1' }, {
-      OMX_TEAM_STATE_ROOT: stateRoot,
+      NOMX_TEAM_STATE_ROOT: stateRoot,
     });
     assert.equal(mismatch.ok, false);
     assert.equal(mismatch.reason, 'identity_worktree_mismatch');

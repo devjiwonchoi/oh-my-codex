@@ -7,22 +7,22 @@ import { getNotificationConfig } from '../config.js';
 
 const ENV_KEYS = [
   'CODEX_HOME',
-  'OMX_NOTIFY_TEMP',
-  'OMX_NOTIFY_TEMP_CONTRACT',
-  'OMX_NOTIFY_PROFILE',
-  'OMX_DISCORD_WEBHOOK_URL',
-  'OMX_DISCORD_NOTIFIER_BOT_TOKEN',
-  'OMX_DISCORD_NOTIFIER_CHANNEL',
-  'OMX_TELEGRAM_BOT_TOKEN',
-  'OMX_TELEGRAM_CHAT_ID',
-  'OMX_SLACK_WEBHOOK_URL',
+  'NOMX_NOTIFY_TEMP',
+  'NOMX_NOTIFY_TEMP_CONTRACT',
+  'NOMX_NOTIFY_PROFILE',
+  'NOMX_DISCORD_WEBHOOK_URL',
+  'NOMX_DISCORD_NOTIFIER_BOT_TOKEN',
+  'NOMX_DISCORD_NOTIFIER_CHANNEL',
+  'NOMX_TELEGRAM_BOT_TOKEN',
+  'NOMX_TELEGRAM_CHAT_ID',
+  'NOMX_SLACK_WEBHOOK_URL',
 ] as const;
 
 let tempCodexHome: string;
 
 async function writeCodexConfig(contents: unknown): Promise<void> {
   await mkdir(tempCodexHome, { recursive: true });
-  await writeFile(join(tempCodexHome, '.omx-config.json'), JSON.stringify(contents, null, 2));
+  await writeFile(join(tempCodexHome, '.nomx-config.json'), JSON.stringify(contents, null, 2));
 }
 
 function clearEnv(): void {
@@ -34,7 +34,7 @@ function clearEnv(): void {
 describe('notification temp mode', () => {
   beforeEach(async () => {
     clearEnv();
-    tempCodexHome = await mkdtemp(join(tmpdir(), 'omx-notify-temp-'));
+    tempCodexHome = await mkdtemp(join(tmpdir(), 'nomx-notify-temp-'));
     process.env.CODEX_HOME = tempCodexHome;
   });
 
@@ -58,9 +58,9 @@ describe('notification temp mode', () => {
         },
       },
     });
-    process.env.OMX_NOTIFY_PROFILE = 'file-profile';
-    process.env.OMX_SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/temp-only';
-    process.env.OMX_NOTIFY_TEMP_CONTRACT = JSON.stringify({
+    process.env.NOMX_NOTIFY_PROFILE = 'file-profile';
+    process.env.NOMX_SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/temp-only';
+    process.env.NOMX_NOTIFY_TEMP_CONTRACT = JSON.stringify({
       active: true,
       selectors: ['slack'],
       canonicalSelectors: ['slack'],
@@ -76,7 +76,7 @@ describe('notification temp mode', () => {
   });
 
   it('temp contract with no valid configured provider disables dispatch config', () => {
-    process.env.OMX_NOTIFY_TEMP_CONTRACT = JSON.stringify({
+    process.env.NOMX_NOTIFY_TEMP_CONTRACT = JSON.stringify({
       active: true,
       selectors: ['telegram'],
       canonicalSelectors: ['telegram'],

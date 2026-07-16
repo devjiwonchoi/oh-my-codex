@@ -37,14 +37,14 @@ function roleIntentArgs(role: string, parentThread: string): string[] {
 }
 
 async function withFreshEnv(fn: () => Promise<void>): Promise<void> {
-  const prior = { OMX_SESSION_ID: process.env.OMX_SESSION_ID, CODEX_SESSION_ID: process.env.CODEX_SESSION_ID, SESSION_ID: process.env.SESSION_ID };
-  delete process.env.OMX_SESSION_ID;
+  const prior = { NOMX_SESSION_ID: process.env.NOMX_SESSION_ID, CODEX_SESSION_ID: process.env.CODEX_SESSION_ID, SESSION_ID: process.env.SESSION_ID };
+  delete process.env.NOMX_SESSION_ID;
   delete process.env.CODEX_SESSION_ID;
   delete process.env.SESSION_ID;
   try {
     await fn();
   } finally {
-    for (const key of ['OMX_SESSION_ID', 'CODEX_SESSION_ID', 'SESSION_ID'] as const) {
+    for (const key of ['NOMX_SESSION_ID', 'CODEX_SESSION_ID', 'SESSION_ID'] as const) {
       if (prior[key] === undefined) delete process.env[key];
       else process.env[key] = prior[key];
     }
@@ -82,7 +82,7 @@ async function seedAuthenticatedLeader(cwd: string, sessionId: string, event: 'S
 describe('#3181 durable bootstrap-order recovery', () => {
   for (const { label, event } of DELIVERIES) {
     it(`${label}: same-session resume recovers the exact adapted Architect intent/receipt/spawn_task_name before any spawn`, async () => {
-      const cwd = await mkdtemp(join(tmpdir(), 'omx-3181-recover-'));
+      const cwd = await mkdtemp(join(tmpdir(), 'nomx-3181-recover-'));
       await withFreshEnv(async () => {
         try {
           const sessionId = `codex-native-${event}`;
@@ -119,7 +119,7 @@ describe('#3181 durable bootstrap-order recovery', () => {
   }
 
   it('idempotent retry after crash-during-recovery converges to one intent/receipt', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-3181-recover-retry-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-3181-recover-retry-'));
     await withFreshEnv(async () => {
       try {
         const sessionId = 'codex-native-retry';
@@ -138,8 +138,8 @@ describe('#3181 durable bootstrap-order recovery', () => {
   });
 
   it('foreign-session resume fails closed and never adopts the foreign leader', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-3181-recover-foreign-'));
-    const prior = process.env.OMX_SESSION_ID;
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-3181-recover-foreign-'));
+    const prior = process.env.NOMX_SESSION_ID;
     try {
       delete process.env.CODEX_SESSION_ID;
       delete process.env.SESSION_ID;
@@ -152,19 +152,19 @@ describe('#3181 durable bootstrap-order recovery', () => {
       // A foreign process selects session A by environment while the usable pointer is A's
       // session.json — but resumes from a DIFFERENT workspace is simulated by pointing the
       // env at A while attempting to bind a foreign leader thread.
-      process.env.OMX_SESSION_ID = 'codex-native-A';
+      process.env.NOMX_SESSION_ID = 'codex-native-A';
       const foreign = (await invoke(cwd, roleIntentArgs('architect', 'attacker-thread'))).json as { ok: boolean; reason?: string };
       assert.equal(foreign.ok, false);
       assert.equal(foreign.reason, 'native_anchor_mismatch');
     } finally {
-      if (prior === undefined) delete process.env.OMX_SESSION_ID;
-      else process.env.OMX_SESSION_ID = prior;
+      if (prior === undefined) delete process.env.NOMX_SESSION_ID;
+      else process.env.NOMX_SESSION_ID = prior;
       await rm(cwd, { recursive: true, force: true });
     }
   });
 
   it('malformed/corrupt durable tracker on resume fails closed (native_anchor_unavailable) and never overwrites the evidence', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'omx-3181-recover-malformed-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-3181-recover-malformed-'));
     await withFreshEnv(async () => {
       try {
         const sessionId = 'codex-native-malformed';
@@ -174,7 +174,7 @@ describe('#3181 durable bootstrap-order recovery', () => {
         // the CLI strict-reads it and fails closed rather than reading it as empty and
         // overwriting it via the legacy path (which would erase leader/subagent evidence).
         const corrupt = '{ corrupt tracker not valid json';
-        await mkdir(join(cwd, '.omx', 'state'), { recursive: true });
+        await mkdir(join(cwd, '.nomx', 'state'), { recursive: true });
         await writeFile(subagentTrackingPath(cwd), corrupt);
 
         // A spoofed parent AND the real native leader both fail closed on a corrupt tracker.

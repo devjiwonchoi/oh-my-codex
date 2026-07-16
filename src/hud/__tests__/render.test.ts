@@ -46,16 +46,16 @@ describe('renderHud – empty context', () => {
     assert.ok(result.includes('No active modes.'));
   });
 
-  it('includes the [OMX] label', () => {
+  it('includes the [NOMX] label', () => {
     const result = renderHud(emptyCtx(), 'focused');
-    assert.ok(result.includes('[OMX]'));
+    assert.ok(result.includes('[NOMX]'));
   });
 
   it('renders plain text with no ANSI escapes when colors are disabled', () => {
     setColorEnabled(false);
     const result = renderHud(emptyCtx(), 'focused');
     assert.equal(/\x1b\[[0-9;]*m/.test(result), false);
-    assert.equal(result.includes('[OMX]'), true);
+    assert.equal(result.includes('[NOMX]'), true);
   });
 });
 
@@ -65,19 +65,19 @@ describe('renderHud – version', () => {
   it('strips the "v" prefix from a semver version', () => {
     const ctx = { ...emptyCtx(), version: 'v1.2.3' };
     const result = renderHud(ctx, 'focused');
-    assert.ok(result.includes('[OMX#1.2.3]'));
+    assert.ok(result.includes('[NOMX#1.2.3]'));
   });
 
   it('keeps a plain version number as-is', () => {
     const ctx = { ...emptyCtx(), version: '2.0.0' };
     const result = renderHud(ctx, 'focused');
-    assert.ok(result.includes('[OMX#2.0.0]'));
+    assert.ok(result.includes('[NOMX#2.0.0]'));
   });
 
   it('omits hash suffix when version is null', () => {
     const result = renderHud(emptyCtx(), 'focused');
-    assert.ok(result.includes('[OMX]'));
-    assert.ok(!result.includes('[OMX#'));
+    assert.ok(result.includes('[NOMX]'));
+    assert.ok(!result.includes('[NOMX#'));
   });
 });
 
@@ -433,7 +433,7 @@ describe('renderHud – ultragoal', () => {
         activeGoal: {
           id: 'G003-tests',
           title: 'HUD progress display',
-          objective: 'show active ultragoal objective in OMX HUD',
+          objective: 'show active ultragoal objective in NOMX HUD',
           status: 'in_progress',
           index: 3,
         },
@@ -444,7 +444,7 @@ describe('renderHud – ultragoal', () => {
     const result = stripSgr(renderHud(ctx, 'focused'));
 
     assert.ok(result.includes('ultragoal 2/5 ▶ G003-tests: HUD progress display'));
-    assert.ok(!result.includes('objective: show active ultragoal objective in OMX HUD'));
+    assert.ok(!result.includes('objective: show active ultragoal objective in NOMX HUD'));
     assert.ok(!result.includes('목표'));
   });
 
@@ -524,7 +524,7 @@ describe('renderHud – ultragoal', () => {
   });
 
   it('truncates long ultragoal objectives', () => {
-    const longObjective = 'show active ultragoal objective in OMX HUD '.repeat(8);
+    const longObjective = 'show active ultragoal objective in NOMX HUD '.repeat(8);
     const ctx = {
       ...emptyCtx(),
       ultragoal: {
@@ -549,7 +549,7 @@ describe('renderHud – ultragoal', () => {
     };
 
     const result = stripSgr(renderHud(ctx, 'focused'));
-    assert.ok(result.includes('objective: show active ultragoal objective in OMX HUD'));
+    assert.ok(result.includes('objective: show active ultragoal objective in NOMX HUD'));
     assert.ok(result.includes('…'));
     assert.ok(!result.includes(longObjective));
   });
@@ -607,7 +607,7 @@ describe('renderHud – ultragoal', () => {
         activeGoal: {
           id: 'G002-active',
           title: 'Active HUD status',
-          objective: 'show three active workflow statuses in the OMX HUD without clipping',
+          objective: 'show three active workflow statuses in the NOMX HUD without clipping',
           status: 'in_progress',
           index: 2,
         },
@@ -639,7 +639,7 @@ describe('renderHud – ultragoal', () => {
 
     const result = stripSgr(renderHud(ctx, 'focused', { maxWidth: 260, maxLines: 6 }));
 
-    assert.ok(result.startsWith('[OMX]'));
+    assert.ok(result.startsWith('[NOMX]'));
     assert.ok(result.includes('ralplan:review'));
     assert.ok(result.includes('qa:adversarial-e2e'));
     assert.ok(result.includes('G002-active: Active HUD status'));

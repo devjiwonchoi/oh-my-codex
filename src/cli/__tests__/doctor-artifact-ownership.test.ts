@@ -9,11 +9,11 @@ import {
 } from "../doctor.js";
 
 describe("repo artifact ownership doctor check", () => {
-	it("reports root-owned files under .omx/plans with exact remediation guidance", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-doctor-artifacts-"));
+	it("reports root-owned files under .nomx/plans with exact remediation guidance", async () => {
+		const wd = await mkdtemp(join(tmpdir(), "nomx-doctor-artifacts-"));
 		try {
-			const artifact = join(wd, ".omx", "plans", "root-owned.md");
-			await mkdir(join(wd, ".omx", "plans"), { recursive: true });
+			const artifact = join(wd, ".nomx", "plans", "root-owned.md");
+			await mkdir(join(wd, ".nomx", "plans"), { recursive: true });
 			await writeFile(artifact, "# plan\n");
 
 			const check = await checkRepoArtifactOwnership(wd, {
@@ -34,7 +34,7 @@ describe("repo artifact ownership doctor check", () => {
 			});
 
 			assert.equal(check.status, "warn");
-			assert.match(check.message, /\.omx[\\/]plans[\\/]root-owned\.md \(root-owned uid=0 gid=0\)/);
+			assert.match(check.message, /\.nomx[\\/]plans[\\/]root-owned\.md \(root-owned uid=0 gid=0\)/);
 			assert.match(check.message, /sudo chown -R \$\(id -u\):\$\(id -g\)/);
 			assert.match(check.message, /nomx doctor --force/);
 		} finally {
@@ -43,10 +43,10 @@ describe("repo artifact ownership doctor check", () => {
 	});
 
 	it("does not warn about root-owned repo artifacts when doctor runs as root", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-doctor-artifacts-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-doctor-artifacts-"));
 		try {
-			const artifact = join(wd, ".omx", "plans", "root-owned.md");
-			await mkdir(join(wd, ".omx", "plans"), { recursive: true });
+			const artifact = join(wd, ".nomx", "plans", "root-owned.md");
+			await mkdir(join(wd, ".nomx", "plans"), { recursive: true });
 			await writeFile(artifact, "# plan\n");
 
 			const check = await checkRepoArtifactOwnership(wd, {
@@ -70,7 +70,7 @@ describe("repo artifact ownership doctor check", () => {
 			assert.equal(check.status, "pass");
 			assert.equal(
 				check.message,
-				"repo-local .omx/.beads artifacts are writable by the current user",
+				"repo-local .nomx/.beads artifacts are writable by the current user",
 			);
 		} finally {
 			await rm(wd, { recursive: true, force: true });
@@ -78,7 +78,7 @@ describe("repo artifact ownership doctor check", () => {
 	});
 
 	it("reports owner-mismatched files for non-root doctor runs", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-doctor-artifacts-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-doctor-artifacts-"));
 		try {
 			const artifact = join(wd, ".beads", "state.json");
 			await mkdir(join(wd, ".beads"), { recursive: true });
@@ -109,7 +109,7 @@ describe("repo artifact ownership doctor check", () => {
 	});
 
 	it("reports non-writable files under repo-local artifact directories", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-doctor-artifacts-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-doctor-artifacts-"));
 		try {
 			const artifact = join(wd, ".beads", "state.json");
 			await mkdir(join(wd, ".beads"), { recursive: true });
@@ -141,10 +141,10 @@ describe("repo artifact ownership doctor check", () => {
 	});
 
 	it("repairs only when the repo root is owned by the current user", async () => {
-		const wd = await mkdtemp(join(tmpdir(), "omx-doctor-artifacts-"));
+		const wd = await mkdtemp(join(tmpdir(), "nomx-doctor-artifacts-"));
 		try {
-			const artifact = join(wd, ".omx", "plans", "root-owned.md");
-			await mkdir(join(wd, ".omx", "plans"), { recursive: true });
+			const artifact = join(wd, ".nomx", "plans", "root-owned.md");
+			await mkdir(join(wd, ".nomx", "plans"), { recursive: true });
 			await writeFile(artifact, "# plan\n");
 			const calls: string[] = [];
 			const ownerUid = 1000;
@@ -194,7 +194,7 @@ describe("repo artifact ownership doctor check", () => {
 			});
 
 			assert.equal(nonWritable.repaired, 0);
-			assert.deepEqual(nonWritable.skipped, [".omx/plans/root-owned.md: not writable by current user"]);
+			assert.deepEqual(nonWritable.skipped, [".nomx/plans/root-owned.md: not writable by current user"]);
 
 			const blocked = await repairRepoArtifactOwnership(wd, {
 				currentUid: ownerUid,

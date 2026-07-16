@@ -2,10 +2,9 @@ import { existsSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import { parse as parseToml } from "@iarna/toml";
+import { resolveNamespaceEnvironment } from "../identity/index.js";
 
-export const OMX_LORE_COMMIT_GUARD_ENV = "OMX_LORE_COMMIT_GUARD";
-
-const ENABLED_VALUES = new Set(["1", "true", "yes", "on"]);
+export const NOMX_LORE_COMMIT_GUARD_ENV = "NOMX_LORE_COMMIT_GUARD";
 
 interface CodexLoreCommitGuardConfig {
 	env?: Record<string, unknown>;
@@ -15,9 +14,14 @@ interface CodexLoreCommitGuardConfig {
 export function isLoreCommitGuardEnabled(
 	env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-	const raw = env[OMX_LORE_COMMIT_GUARD_ENV];
-	if (typeof raw !== "string") return false;
-	return ENABLED_VALUES.has(raw.trim().toLowerCase());
+	try {
+		const resolved = resolveNamespaceEnvironment({ suffix: "LORE_COMMIT_GUARD", kind: "boolean" }, env).value;
+		return resolved === true;
+	} catch {
+		// This guard is opt-in. Invalid input must preserve the default-off
+		// behavior rather than blocking an unrelated Codex launch.
+		return false;
+	}
 }
 
 function resolveCodexHome(env: NodeJS.ProcessEnv): string {
@@ -36,9 +40,11 @@ export function readConfiguredLoreCommitGuardValue(
 
 	try {
 		const parsed = parseToml(readFileSync(configPath, "utf-8")) as CodexLoreCommitGuardConfig;
-		const value =
-			parsed?.shell_environment_policy?.set?.[OMX_LORE_COMMIT_GUARD_ENV]
-			?? parsed?.env?.[OMX_LORE_COMMIT_GUARD_ENV];
+		const configured = {
+			...Object.fromEntries(Object.entries(parsed?.env ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === "string")),
+			...Object.fromEntries(Object.entries(parsed?.shell_environment_policy?.set ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === "string")),
+		};
+		const value = resolveNamespaceEnvironment({ suffix: "LORE_COMMIT_GUARD", kind: "string" }, configured).value;
 		return typeof value === "string" ? value : undefined;
 	} catch {
 		// Invalid config leaves the guard at its default-off behavior.

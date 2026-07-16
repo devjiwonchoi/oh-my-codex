@@ -10,7 +10,7 @@ import { getCurrentTmuxPaneId } from '../notifications/tmux.js';
 import { getStateDir, getStatePath } from '../mcp/state-paths.js';
 import { TRACKED_WORKFLOW_MODES } from '../state/workflow-transition.js';
 import { isRunningUnderCmux, resolveTmuxBinaryForPlatform } from '../utils/platform-command.js';
-import { resolveOmxCliEntryPath } from '../utils/paths.js';
+import { resolveNomxCliEntryPath } from '../utils/paths.js';
 import { createInitialInteractiveSelectionState, createInitialQuestionWizardState, renderInteractiveQuestionFrame, renderQuestionWizardFrame } from './ui.js';
 import type { NormalizedQuestionItem, QuestionAnswer, QuestionRecord, QuestionRendererState } from './types.js';
 
@@ -46,7 +46,7 @@ function isPaneId(value: string | null | undefined): value is string {
 }
 
 function hasExplicitQuestionPaneTarget(env: NodeJS.ProcessEnv): boolean {
-  return isPaneId(safeString(env.OMX_QUESTION_RETURN_PANE || env.OMX_LEADER_PANE_ID).trim());
+  return isPaneId(safeString(env.NOMX_QUESTION_RETURN_PANE || env.NOMX_LEADER_PANE_ID).trim());
 }
 
 function hasInteractiveQuestionTty(options?: {
@@ -92,7 +92,7 @@ export function resolveQuestionRendererStrategy(
   },
 ): QuestionRendererStrategy {
   const platform = options?.platform ?? process.platform;
-  if (safeString(env.OMX_QUESTION_TEST_RENDERER).trim() === 'noop') return 'test-noop';
+  if (safeString(env.NOMX_QUESTION_TEST_RENDERER).trim() === 'noop') return 'test-noop';
   if (hasNativeWindowsPsmuxBridge(env, platform)) return 'windows-psmux-shell-pane';
   if (hasWindowsConsoleReturnBridge(env, platform)) return 'windows-console';
   if (safeString(env.TMUX).trim() !== '') return 'inside-tmux';
@@ -336,13 +336,13 @@ function resolveQuestionUiProcessArgs(
     env?: NodeJS.ProcessEnv;
   },
 ): string[] {
-  const omxBin = resolveOmxCliEntryPath({
+  const nomxBin = resolveNomxCliEntryPath({
     argv1: process.argv[1],
     cwd: options.cwd,
     env: options.env,
   }) || process.argv[1];
-  if (!omxBin) throw new Error('Unable to resolve OMX CLI entry path for question UI launch.');
-  return [omxBin, 'question', '--ui', '--state-path', recordPath];
+  if (!nomxBin) throw new Error('Unable to resolve NOMX CLI entry path for question UI launch.');
+  return [nomxBin, 'question', '--ui', '--state-path', recordPath];
 }
 
 export function buildQuestionUiTmuxArgs(
@@ -356,10 +356,10 @@ export function buildQuestionUiTmuxArgs(
   },
 ): string[] {
   const envEntries: Array<[string, string]> = [];
-  if (options.sessionId) envEntries.push(['OMX_SESSION_ID', options.sessionId]);
+  if (options.sessionId) envEntries.push(['NOMX_SESSION_ID', options.sessionId]);
   if (options.returnTarget) {
-    envEntries.push(['OMX_QUESTION_RETURN_TARGET', options.returnTarget]);
-    envEntries.push(['OMX_QUESTION_RETURN_TRANSPORT', 'tmux-send-keys']);
+    envEntries.push(['NOMX_QUESTION_RETURN_TARGET', options.returnTarget]);
+    envEntries.push(['NOMX_QUESTION_RETURN_TRANSPORT', 'tmux-send-keys']);
   }
   const command = [process.execPath, ...resolveQuestionUiProcessArgs(recordPath, options)];
 
@@ -402,10 +402,10 @@ function buildQuestionUiProcessEnv(
 ): NodeJS.ProcessEnv {
   return {
     ...baseEnv,
-    ...(options.sessionId ? { OMX_SESSION_ID: options.sessionId } : {}),
+    ...(options.sessionId ? { NOMX_SESSION_ID: options.sessionId } : {}),
     ...(options.returnTarget ? {
-      OMX_QUESTION_RETURN_TARGET: options.returnTarget,
-      OMX_QUESTION_RETURN_TRANSPORT: 'tmux-send-keys',
+      NOMX_QUESTION_RETURN_TARGET: options.returnTarget,
+      NOMX_QUESTION_RETURN_TRANSPORT: 'tmux-send-keys',
     } : {}),
   };
 }
@@ -417,7 +417,7 @@ function quoteCmdArg(value: string): string {
 function buildWindowsConsoleStartCommand(command: string, args: string[]): string {
   return [
     'start',
-    '"OMX Question"',
+    '"NOMX Question"',
     '/wait',
     quoteCmdArg(command),
     ...args.map(quoteCmdArg),
@@ -438,10 +438,10 @@ function buildWindowsPsmuxQuestionUiCommand(
   },
 ): string {
   const envEntries: Array<[string, string]> = [];
-  if (options.sessionId) envEntries.push(['OMX_SESSION_ID', options.sessionId]);
+  if (options.sessionId) envEntries.push(['NOMX_SESSION_ID', options.sessionId]);
   if (options.returnTarget) {
-    envEntries.push(['OMX_QUESTION_RETURN_TARGET', options.returnTarget]);
-    envEntries.push(['OMX_QUESTION_RETURN_TRANSPORT', 'tmux-send-keys']);
+    envEntries.push(['NOMX_QUESTION_RETURN_TARGET', options.returnTarget]);
+    envEntries.push(['NOMX_QUESTION_RETURN_TRANSPORT', 'tmux-send-keys']);
   }
   const envPrefix = envEntries.map(([key, value]) => `set "${key}=${value.replace(/%/g, '%%').replace(/"/g, '""')}"`).join(' && ');
   const command = [process.execPath, ...resolveQuestionUiProcessArgs(recordPath, options)]
@@ -465,7 +465,7 @@ function launchWindowsPsmuxShellQuestionPane(
   const rawPane = execTmux([
     'new-window',
     '-n',
-    'OMX Question',
+    'NOMX Question',
     '-P',
     '-F',
     '#{pane_id}',
@@ -500,7 +500,7 @@ function defaultSpawnDetachedRenderer(command: string, args: string[], options: 
 
 function defaultExecTmux(args: string[]): string {
   const tmux = resolveTmuxBinaryForPlatform();
-  if (!tmux) throw new Error('tmux is unavailable; nomx question requires tmux for OMX-owned question UI rendering.');
+  if (!tmux) throw new Error('tmux is unavailable; nomx question requires tmux for NOMX-owned question UI rendering.');
   return execFileSync(tmux, args, {
     encoding: 'utf-8',
     ...(process.platform === 'win32' ? { windowsHide: true } : {}),
@@ -560,7 +560,7 @@ function resolveReturnTarget(options: {
   sessionId?: string;
 }): string | undefined {
   const env = options.env ?? process.env;
-  const explicitPane = safeString(env.OMX_QUESTION_RETURN_PANE || env.OMX_LEADER_PANE_ID).trim();
+  const explicitPane = safeString(env.NOMX_QUESTION_RETURN_PANE || env.NOMX_LEADER_PANE_ID).trim();
   if (isPaneId(explicitPane)) return explicitPane;
 
   const envPane = safeString(env.TMUX_PANE).trim();
@@ -828,7 +828,7 @@ export function launchQuestionRenderer(
 
   if (strategy === 'unsupported') {
     throw new Error(
-      'nomx question cannot open a visible renderer because this process is outside an attached tmux pane and has no explicit tmux return bridge. Codex App/outside-tmux sessions need an attached tmux OMX CLI session or OMX_QUESTION_RETURN_PANE bridge. Run nomx question from inside tmux.',
+      'nomx question cannot open a visible renderer because this process is outside an attached tmux pane and has no explicit tmux return bridge. Codex App/outside-tmux sessions need an attached tmux NOMX CLI session or NOMX_QUESTION_RETURN_PANE bridge. Run nomx question from inside tmux.',
     );
   }
 
@@ -886,7 +886,7 @@ export function launchQuestionRenderer(
         [
           'new-window',
           '-n',
-          'OMX Question',
+          'NOMX Question',
           ...newWindowTargetArgs,
           '-P',
           '-F',
@@ -921,7 +921,7 @@ export function launchQuestionRenderer(
         ? [
             'new-window',
             '-n',
-            'OMX Question',
+            'NOMX Question',
             ...newWindowTargetArgs,
             '-P',
             '-F',
@@ -985,7 +985,7 @@ export function launchQuestionRenderer(
       nowIso: launchedAt,
     });
     const baseName = basename(options.recordPath, '.json').replace(/[^A-Za-z0-9_-]+/g, '-').slice(0, 32) || 'question';
-    const sessionName = `omx-question-${baseName}`;
+    const sessionName = `nomx-question-${baseName}`;
     const output = execTmux([
       'new-session',
       '-d',

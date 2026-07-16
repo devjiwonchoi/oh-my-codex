@@ -36,7 +36,7 @@ function relativeToRepo(path: string): string {
 }
 
 function canonicalContextPackRelativePath(slug: string): string {
-  return `.omx/context/context-20260507T120000Z-${slug}.json`;
+  return `.nomx/context/context-20260507T120000Z-${slug}.json`;
 }
 
 function buildContextPackOutcome(relativePackPath: string): string {
@@ -53,7 +53,7 @@ async function writeContextPack(
   testSpecPath: string,
   roles: string[],
 ): Promise<string> {
-  const contextDir = join(tempDir, '.omx', 'context');
+  const contextDir = join(tempDir, '.nomx', 'context');
   await mkdir(contextDir, { recursive: true });
   const packPath = join(tempDir, canonicalContextPackRelativePath(slug));
   const prdContent = await readFile(prdPath, 'utf-8');
@@ -91,7 +91,7 @@ async function writeContextPackWithEntries(
     relationPath?: unknown;
   }>,
 ): Promise<string> {
-  const contextDir = join(tempDir, '.omx', 'context');
+  const contextDir = join(tempDir, '.nomx', 'context');
   await mkdir(contextDir, { recursive: true });
   const packPath = join(tempDir, canonicalContextPackRelativePath(slug));
   const prdContent = await readFile(prdPath, 'utf-8');
@@ -114,7 +114,7 @@ async function writeContextPackWithEntries(
 }
 
 async function setup(): Promise<void> {
-  tempDir = await mkdtemp(join(tmpdir(), 'omx-planning-artifacts-'));
+  tempDir = await mkdtemp(join(tmpdir(), 'nomx-planning-artifacts-'));
 }
 
 async function cleanup(): Promise<void> {
@@ -153,7 +153,7 @@ describe('planning artifacts', () => {
   });
 
   it('requires both PRD and test spec for planning completion', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-issue-827.md'), '# PRD\n');
 
@@ -165,7 +165,7 @@ describe('planning artifacts', () => {
 
 
   it('resolves matching Team DAG sidecar before markdown handoff', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-repo-aware.md'),
@@ -184,7 +184,7 @@ describe('planning artifacts', () => {
   });
 
   it('falls back to embedded Team DAG handoff when sidecar is absent', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-repo-aware.md'),
@@ -201,7 +201,7 @@ describe('planning artifacts', () => {
   });
 
   it('returns none for Team DAG resolution when planning is incomplete', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-repo-aware.md'), '# PRD\n');
 
@@ -215,7 +215,7 @@ describe('planning artifacts', () => {
 
 
   it('does not approve latest PRD launch hints without a matching test spec slug', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-alpha.md'), '# Alpha\n\nLaunch via nomx team 2:executor "Execute alpha"\n');
     await writeFile(join(plansDir, 'test-spec-other.md'), '# Other Test Spec\n');
@@ -224,7 +224,7 @@ describe('planning artifacts', () => {
   });
 
   it('does not resolve Team DAG artifacts without a matching test spec slug', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-repo-aware.md'), '# PRD\n');
     await writeFile(join(plansDir, 'test-spec-other.md'), '# Other Test Spec\n');
@@ -238,8 +238,8 @@ describe('planning artifacts', () => {
   });
 
   it('prefers timestamped PRD/test-spec pairs while keeping legacy artifacts compatible', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
-    const specsDir = join(tempDir, '.omx', 'specs');
+    const plansDir = join(tempDir, '.nomx', 'plans');
+    const specsDir = join(tempDir, '.nomx', 'specs');
     await mkdir(plansDir, { recursive: true });
     await mkdir(specsDir, { recursive: true });
     await writeFile(
@@ -283,7 +283,7 @@ describe('planning artifacts', () => {
   });
 
   it('keeps legacy test-spec compatibility aliases for non-timestamped PRDs', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-alpha.md'),
@@ -310,8 +310,8 @@ describe('planning artifacts', () => {
 
 
   it('parses $ralph aliases with single-quoted task text for approved launch hints', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
-    const specsDir = join(tempDir, '.omx', 'specs');
+    const plansDir = join(tempDir, '.nomx', 'plans');
+    const specsDir = join(tempDir, '.nomx', 'specs');
     await mkdir(plansDir, { recursive: true });
     await mkdir(specsDir, { recursive: true });
     await writeFile(
@@ -331,8 +331,8 @@ describe('planning artifacts', () => {
   });
 
   it('includes approved Ralph launch context with test and deep-interview artifacts', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
-    const specsDir = join(tempDir, '.omx', 'specs');
+    const plansDir = join(tempDir, '.nomx', 'plans');
+    const specsDir = join(tempDir, '.nomx', 'specs');
     await mkdir(plansDir, { recursive: true });
     await mkdir(specsDir, { recursive: true });
     await writeFile(
@@ -351,8 +351,8 @@ describe('planning artifacts', () => {
   });
 
   it('parses $team aliases with single-quoted task text for approved launch hints', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
-    const specsDir = join(tempDir, '.omx', 'specs');
+    const plansDir = join(tempDir, '.nomx', 'plans');
+    const specsDir = join(tempDir, '.nomx', 'specs');
     await mkdir(plansDir, { recursive: true });
     await mkdir(specsDir, { recursive: true });
     await writeFile(
@@ -375,8 +375,8 @@ describe('planning artifacts', () => {
   });
 
   it('includes approved team launch context with staffing and matching artifacts', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
-    const specsDir = join(tempDir, '.omx', 'specs');
+    const plansDir = join(tempDir, '.nomx', 'plans');
+    const specsDir = join(tempDir, '.nomx', 'specs');
     await mkdir(plansDir, { recursive: true });
     await mkdir(specsDir, { recursive: true });
     await writeFile(
@@ -398,8 +398,8 @@ describe('planning artifacts', () => {
   });
 
   it('binds approved team handoff context to the selected PRD slug in multi-plan repos', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
-    const specsDir = join(tempDir, '.omx', 'specs');
+    const plansDir = join(tempDir, '.nomx', 'plans');
+    const specsDir = join(tempDir, '.nomx', 'specs');
     await mkdir(plansDir, { recursive: true });
     await mkdir(specsDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-alpha.md'), '# Alpha\n\nLaunch via nomx team 2:executor "Execute alpha"\n');
@@ -420,8 +420,8 @@ describe('planning artifacts', () => {
   });
 
   it('binds approved handoff context to the selected PRD slug in multi-plan repos', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
-    const specsDir = join(tempDir, '.omx', 'specs');
+    const plansDir = join(tempDir, '.nomx', 'plans');
+    const specsDir = join(tempDir, '.nomx', 'specs');
     await mkdir(plansDir, { recursive: true });
     await mkdir(specsDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-alpha.md'), '# Alpha\n\nLaunch via nomx ralph "Execute alpha"\n');
@@ -440,7 +440,7 @@ describe('planning artifacts', () => {
   });
 
   it('binds approved launch hints to the requested prd path', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const alphaPrdPath = join(plansDir, 'prd-alpha.md');
     await writeFile(alphaPrdPath, '# Alpha\n\nLaunch via nomx ralph "Execute alpha"\n');
@@ -456,7 +456,7 @@ describe('planning artifacts', () => {
   });
 
   it('binds approved launch hints through canonical-equivalent requested PRD aliases', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     const alphaPrdPath = join(plansDir, 'prd-alpha.md');
     await writeFile(alphaPrdPath, '# Alpha\n\nLaunch via nomx ralph "Execute alpha"\n');
@@ -465,12 +465,12 @@ describe('planning artifacts', () => {
     await writeFile(join(plansDir, 'test-spec-zeta.md'), '# Zeta Test Spec\n');
 
     const aliases = [
-      '.omx/plans/prd-alpha.md',
+      '.nomx/plans/prd-alpha.md',
       'prd-alpha.md',
       alphaPrdPath,
-      '.omx/plans/../plans/prd-alpha.md',
+      '.nomx/plans/../plans/prd-alpha.md',
       '../plans/prd-alpha.md',
-      join(tempDir, '.omx', 'plans', '..', 'plans', 'prd-alpha.md'),
+      join(tempDir, '.nomx', 'plans', '..', 'plans', 'prd-alpha.md'),
     ];
 
     for (const prdPath of aliases) {
@@ -487,16 +487,16 @@ describe('planning artifacts', () => {
   });
 
   it('does not bind requested PRD aliases that do not resolve to a discovered canonical PRD', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-alpha.md'), '# Alpha\n\nLaunch via nomx ralph "Execute alpha"\n');
     await writeFile(join(plansDir, 'test-spec-alpha.md'), '# Alpha Test Spec\n');
 
     const rejectedAliases = [
-      '.omx/plans/prd-missing.md',
+      '.nomx/plans/prd-missing.md',
       '../prd-alpha.md',
-      join('..', basename(tempDir), '.omx', 'plans', 'prd-alpha.md'),
-      join(tempDir, '.omx', 'prd-alpha.md'),
+      join('..', basename(tempDir), '.nomx', 'plans', 'prd-alpha.md'),
+      join(tempDir, '.nomx', 'prd-alpha.md'),
       relative(process.cwd(), join(plansDir, 'prd-alpha.md')),
     ];
 
@@ -509,7 +509,7 @@ describe('planning artifacts', () => {
   });
 
   it('honors the requested Ralph task when a single plan lists multiple Ralph launch hints', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-issue-909.md'),
@@ -529,7 +529,7 @@ describe('planning artifacts', () => {
   });
 
   it('reuses one planning artifact scan while task lookup checks older same-lineage PRDs', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     const task = 'Execute cached planning artifact lineage lookup';
     await mkdir(plansDir, { recursive: true });
     await writeFile(
@@ -569,7 +569,7 @@ describe('planning artifacts', () => {
   });
 
   it('fails closed for bare Ralph lookups when a single plan lists multiple Ralph launch hints', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-issue-909-bare.md'),
@@ -587,7 +587,7 @@ describe('planning artifacts', () => {
   });
 
   it('ignores Ralph launch hints that appear only inside indented code blocks', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     const task = 'Execute hidden indented ralph plan';
     await mkdir(plansDir, { recursive: true });
     await writeFile(
@@ -605,7 +605,7 @@ describe('planning artifacts', () => {
   });
 
   it('does not let Ralph launch hints span hidden markdown gaps', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
 
     const scenarios = [
@@ -652,7 +652,7 @@ describe('planning artifacts', () => {
   });
 
   it('normalizes wrapped linked-Ralph team launch hints for exact command matching', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     const task = 'Execute wrapped linked ralph team plan';
     const command = `$team ralph 5:debugger ${JSON.stringify(task)}`;
     await mkdir(plansDir, { recursive: true });
@@ -678,7 +678,7 @@ describe('planning artifacts', () => {
   });
 
   it('keeps exact-command normalization bounded to visible whitespace-only variants', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
 
     const task = 'Execute exact-command normalization state table plan';
@@ -742,7 +742,7 @@ describe('planning artifacts', () => {
   });
 
   it('does not normalize whitespace that changes the quoted task payload', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
 
     const task = 'Execute embedded\nnewline task';
@@ -777,7 +777,7 @@ describe('planning artifacts', () => {
   });
 
   it('ignores Team launch hints that appear only inside fenced code blocks', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     const task = 'Execute hidden fenced team plan';
     await mkdir(plansDir, { recursive: true });
     await writeFile(
@@ -797,7 +797,7 @@ describe('planning artifacts', () => {
   });
 
   it('ignores Ralph launch hints that appear only inside nested commented blocks', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     const task = 'Execute hidden commented ralph plan';
     await mkdir(plansDir, { recursive: true });
     await writeFile(
@@ -822,7 +822,7 @@ describe('planning artifacts', () => {
   });
 
   it('honors the requested team task when a single plan lists multiple team launch hints', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-issue-910.md'),
@@ -844,7 +844,7 @@ describe('planning artifacts', () => {
   });
 
   it('fails closed when a single plan repeats the same team task in multiple launch hints', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     const prdPath = join(plansDir, 'prd-issue-910-duplicate.md');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
@@ -866,7 +866,7 @@ describe('planning artifacts', () => {
   });
 
   it('uses the requested team launch signature to disambiguate same-task launch hints', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     const sharedTask = 'Execute shared team handoff';
     await mkdir(plansDir, { recursive: true });
     await writeFile(
@@ -898,7 +898,7 @@ describe('planning artifacts', () => {
   });
 
   it('resolves Team launch hints when PRD recommends Team plus Ultragoal and separates Ralph follow-up', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     const sharedTask = 'Implement durable parallel delivery with Team and Ultragoal';
     await mkdir(plansDir, { recursive: true });
     await writeFile(
@@ -931,7 +931,7 @@ describe('planning artifacts', () => {
   });
 
   it('keeps same-task team launch-hint selection ambiguous when the full signature repeats', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     const sharedTask = 'Execute shared duplicate team handoff';
     await mkdir(plansDir, { recursive: true });
     await writeFile(
@@ -956,7 +956,7 @@ describe('planning artifacts', () => {
   });
 
   it('rehydrates the exact team launch hint by command when one PRD repeats the same task', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     const sharedTask = 'Ship feature';
     const primaryCommand = `nomx team 2:executor ${JSON.stringify(sharedTask)}`;
     const secondaryCommand = `$team ralph 5:debugger ${JSON.stringify(sharedTask)}`;
@@ -986,7 +986,7 @@ describe('planning artifacts', () => {
   });
 
   it('fails closed for bare team lookups when a single plan lists multiple team launch hints', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-issue-910-bare.md'),
@@ -1005,7 +1005,7 @@ describe('planning artifacts', () => {
 
 
   it('attaches bounded approved repository context from a matching latest-plan sidecar', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-issue-2039.md'),
@@ -1024,7 +1024,7 @@ describe('planning artifacts', () => {
   });
 
   it('prefers exact timestamped repository context sidecars for timestamped PRDs', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-20260427T153100Z-alpha.md'),
@@ -1048,7 +1048,7 @@ describe('planning artifacts', () => {
   });
 
   it('does not attach stale repository context from a different PRD slug', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-alpha.md'), '# Alpha\n\nLaunch via nomx team 2:executor "Execute alpha"\n');
     await writeFile(join(plansDir, 'test-spec-alpha.md'), '# Alpha Test Spec\n');
@@ -1064,7 +1064,7 @@ describe('planning artifacts', () => {
   });
 
   it('falls back to an inline approved repository context section when no sidecar exists', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(
       join(plansDir, 'prd-inline.md'),
@@ -1080,8 +1080,8 @@ describe('planning artifacts', () => {
   });
 
   it('surfaces deep-interview specs for downstream traceability', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
-    const specsDir = join(tempDir, '.omx', 'specs');
+    const plansDir = join(tempDir, '.nomx', 'plans');
+    const specsDir = join(tempDir, '.nomx', 'specs');
     await mkdir(plansDir, { recursive: true });
     await mkdir(specsDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-issue-827.md'), '# PRD\n');
@@ -1097,7 +1097,7 @@ describe('planning artifacts', () => {
   });
 
   it('loads a matching Team DAG sidecar for the latest PRD slug', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-alpha.md'), '# Alpha\n');
     await writeFile(join(plansDir, 'test-spec-alpha.md'), '# Alpha Test\n');
@@ -1113,7 +1113,7 @@ describe('planning artifacts', () => {
   });
 
   it('prefers exact timestamped Team DAG sidecars for timestamped PRDs', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-20260427T153100Z-alpha.md'), '# Alpha\n');
     await writeFile(join(plansDir, 'test-spec-20260427T153100Z-alpha.md'), '# Alpha Test\n');
@@ -1136,7 +1136,7 @@ describe('planning artifacts', () => {
   });
 
   it('does not overmatch sidecars for a different slug prefix', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-foo.md'), '# Foo\n');
     await writeFile(join(plansDir, 'test-spec-foo.md'), '# Foo Test\n');
@@ -1152,7 +1152,7 @@ describe('planning artifacts', () => {
   });
 
   it('prefers sidecar DAG over embedded PRD Team DAG Handoff block', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-beta.md'), '# Beta\n\n## Team DAG Handoff\n```json\n{"schema_version":1,"nodes":[{"id":"markdown","subject":"Markdown"}]}\n```\n');
     await writeFile(join(plansDir, 'test-spec-beta.md'), '# Beta Test\n');
@@ -1167,7 +1167,7 @@ describe('planning artifacts', () => {
   });
 
   it('reports multiple matching sidecars and chooses the lexicographically latest', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-gamma.md'), '# Gamma\n');
     await writeFile(join(plansDir, 'test-spec-gamma.md'), '# Gamma Test\n');
@@ -1187,7 +1187,7 @@ describe('planning artifacts', () => {
 
 
   it('does not load a Team DAG handoff when the latest PRD lacks a matching test spec', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-epsilon.md'), '# Epsilon\n');
     await writeFile(join(plansDir, 'test-spec-other.md'), '# Other Test\n');
@@ -1203,7 +1203,7 @@ describe('planning artifacts', () => {
   });
 
   it('rejects a Team DAG sidecar whose declared plan_slug does not match the latest PRD', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-zeta.md'), '# Zeta\n');
     await writeFile(join(plansDir, 'test-spec-zeta.md'), '# Zeta Test\n');
@@ -1220,7 +1220,7 @@ describe('planning artifacts', () => {
   });
 
   it('fails open with explicit parse error metadata for malformed DAG sidecars', async () => {
-    const plansDir = join(tempDir, '.omx', 'plans');
+    const plansDir = join(tempDir, '.nomx', 'plans');
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, 'prd-delta.md'), '# Delta\n');
     await writeFile(join(plansDir, 'test-spec-delta.md'), '# Delta Test\n');

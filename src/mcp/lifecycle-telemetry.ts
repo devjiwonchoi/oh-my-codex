@@ -3,8 +3,8 @@ import { homedir, platform } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { McpServerName } from './bootstrap.js';
 
-const LIFECYCLE_LOG_ENV = 'OMX_MCP_LIFECYCLE_LOG';
-const LIFECYCLE_LOG_DIR_ENV = 'OMX_MCP_LIFECYCLE_LOG_DIR';
+const LIFECYCLE_LOG_ENV = 'NOMX_MCP_LIFECYCLE_LOG';
+const LIFECYCLE_LOG_DIR_ENV = 'NOMX_MCP_LIFECYCLE_LOG_DIR';
 const MAX_LOG_BYTES = 4 * 1024 * 1024;
 const MAX_LINE_BYTES = 4 * 1024;
 
@@ -36,18 +36,18 @@ export function resolveMcpLifecycleLogDir(
   if (explicitDir) return explicitDir;
 
   if (currentPlatform === 'darwin') {
-    return join(home, 'Library', 'Logs', 'oh-my-codex', 'mcp');
+    return join(home, 'Library', 'Logs', 'nomx', 'mcp');
   }
 
   if (currentPlatform === 'win32') {
     const localAppData = env.LOCALAPPDATA?.trim();
     return localAppData
-      ? join(localAppData, 'oh-my-codex', 'Logs', 'mcp')
-      : join(home, 'AppData', 'Local', 'oh-my-codex', 'Logs', 'mcp');
+      ? join(localAppData, 'nomx', 'Logs', 'mcp')
+      : join(home, 'AppData', 'Local', 'nomx', 'Logs', 'mcp');
   }
 
   const xdgStateHome = env.XDG_STATE_HOME?.trim();
-  return join(xdgStateHome || join(home, '.local', 'state'), 'oh-my-codex', 'mcp');
+  return join(xdgStateHome || join(home, '.local', 'state'), 'nomx', 'mcp');
 }
 
 function sanitizeLogBasename(value: string | null): string {

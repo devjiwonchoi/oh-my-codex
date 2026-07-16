@@ -17,7 +17,7 @@ import {
 import { ultragoalCommand, ULTRAGOAL_HELP } from '../ultragoal.js';
 
 async function withCwd<T>(run: (cwd: string) => Promise<T>): Promise<T> {
-  const cwd = await mkdtemp(join(tmpdir(), 'omx-ultragoal-cli-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'nomx-ultragoal-cli-'));
   const previous = process.cwd();
   try {
     process.chdir(cwd);
@@ -42,7 +42,7 @@ function cleanQualityGate(): string {
     },
     architectureInvariantGate: {
       status: 'passed',
-      sourceArtifacts: ['.omx/ultragoal/brief.md', '.omx/ultragoal/goals.json'],
+      sourceArtifacts: ['.nomx/ultragoal/brief.md', '.nomx/ultragoal/goals.json'],
       invariants: [],
       evidence: 'architect verified no additional architecture invariants were declared in the brief',
     },
@@ -81,30 +81,30 @@ describe('cli/ultragoal', () => {
       ['checkpoint', '--goal-id', 'G001-first', '--status', 'complete', '--evidence', 'worker evidence'],
     ];
     const envCases: Array<[string, string]> = [
-      ['OMX_TEAM_WORKER', 'display-team/worker-1'],
-      ['OMX_TEAM_INTERNAL_WORKER', 'internal-team/worker-1'],
+      ['NOMX_TEAM_WORKER', 'display-team/worker-1'],
+      ['NOMX_TEAM_INTERNAL_WORKER', 'internal-team/worker-1'],
     ];
 
     for (const [envName, envValue] of envCases) {
       for (const args of mutators) {
         await withCwd(async (cwd) => {
-          const previousPublic = process.env.OMX_TEAM_WORKER;
-          const previousInternal = process.env.OMX_TEAM_INTERNAL_WORKER;
-          delete process.env.OMX_TEAM_WORKER;
-          delete process.env.OMX_TEAM_INTERNAL_WORKER;
+          const previousPublic = process.env.NOMX_TEAM_WORKER;
+          const previousInternal = process.env.NOMX_TEAM_INTERNAL_WORKER;
+          delete process.env.NOMX_TEAM_WORKER;
+          delete process.env.NOMX_TEAM_INTERNAL_WORKER;
           process.env[envName] = envValue;
           try {
             const result = await capture(() => ultragoalCommand(args));
             assert.equal(result.exitCode, 1, `${envName} should block ${args[0]}`);
             assert.match(result.stderr.join('\n'), /leader-owned/i);
             assert.match(result.stderr.join('\n'), /report checkpoint evidence upward/i);
-            assert.equal(existsSync(join(cwd, '.omx/ultragoal/goals.json')), false);
-            assert.equal(existsSync(join(cwd, '.omx/ultragoal/ledger.jsonl')), false);
+            assert.equal(existsSync(join(cwd, '.nomx/ultragoal/goals.json')), false);
+            assert.equal(existsSync(join(cwd, '.nomx/ultragoal/ledger.jsonl')), false);
           } finally {
-            if (typeof previousPublic === 'string') process.env.OMX_TEAM_WORKER = previousPublic;
-            else delete process.env.OMX_TEAM_WORKER;
-            if (typeof previousInternal === 'string') process.env.OMX_TEAM_INTERNAL_WORKER = previousInternal;
-            else delete process.env.OMX_TEAM_INTERNAL_WORKER;
+            if (typeof previousPublic === 'string') process.env.NOMX_TEAM_WORKER = previousPublic;
+            else delete process.env.NOMX_TEAM_WORKER;
+            if (typeof previousInternal === 'string') process.env.NOMX_TEAM_INTERNAL_WORKER = previousInternal;
+            else delete process.env.NOMX_TEAM_INTERNAL_WORKER;
           }
         });
       }
@@ -114,10 +114,10 @@ describe('cli/ultragoal', () => {
   it('allows ultragoal help and status from Team worker environments', async () => {
     await withCwd(async () => {
       await capture(() => ultragoalCommand(['create-goals', '--brief', '- First milestone']));
-      const previousPublic = process.env.OMX_TEAM_WORKER;
-      const previousInternal = process.env.OMX_TEAM_INTERNAL_WORKER;
-      process.env.OMX_TEAM_WORKER = 'display-team/worker-1';
-      process.env.OMX_TEAM_INTERNAL_WORKER = 'internal-team/worker-1';
+      const previousPublic = process.env.NOMX_TEAM_WORKER;
+      const previousInternal = process.env.NOMX_TEAM_INTERNAL_WORKER;
+      process.env.NOMX_TEAM_WORKER = 'display-team/worker-1';
+      process.env.NOMX_TEAM_INTERNAL_WORKER = 'internal-team/worker-1';
       try {
         const help = await capture(() => ultragoalCommand(['help']));
         assert.equal(help.exitCode, undefined);
@@ -127,10 +127,10 @@ describe('cli/ultragoal', () => {
         assert.equal(status.exitCode, undefined);
         assert.match(status.stdout.join('\n'), /ultragoal:/);
       } finally {
-        if (typeof previousPublic === 'string') process.env.OMX_TEAM_WORKER = previousPublic;
-        else delete process.env.OMX_TEAM_WORKER;
-        if (typeof previousInternal === 'string') process.env.OMX_TEAM_INTERNAL_WORKER = previousInternal;
-        else delete process.env.OMX_TEAM_INTERNAL_WORKER;
+        if (typeof previousPublic === 'string') process.env.NOMX_TEAM_WORKER = previousPublic;
+        else delete process.env.NOMX_TEAM_WORKER;
+        if (typeof previousInternal === 'string') process.env.NOMX_TEAM_INTERNAL_WORKER = previousInternal;
+        else delete process.env.NOMX_TEAM_INTERNAL_WORKER;
       }
     });
   });
@@ -166,7 +166,7 @@ describe('cli/ultragoal', () => {
       assert.match(output, /After a completed aggregate run/);
       assert.match(output, /nomx ultragoal checkpoint --goal-id G001-first-milestone --status complete/);
 
-      const goals = JSON.parse(await readFile(join(cwd, '.omx/ultragoal/goals.json'), 'utf-8')) as { activeGoalId?: string; codexGoalMode?: string; codexObjective?: string };
+      const goals = JSON.parse(await readFile(join(cwd, '.nomx/ultragoal/goals.json'), 'utf-8')) as { activeGoalId?: string; codexGoalMode?: string; codexObjective?: string };
       assert.equal(goals.activeGoalId, 'G001-first-milestone');
       assert.equal(goals.codexGoalMode, 'aggregate');
       assert.match(goals.codexObjective ?? '', /Complete the durable ultragoal plan/);
@@ -182,7 +182,7 @@ describe('cli/ultragoal', () => {
       const defaultGuidance = await capture(() => ultragoalCommand(['complete-goals']));
       assert.equal(defaultGuidance.stdout.join('\n').includes(LEADER_CONDUCTOR_BLOCK), true);
 
-      const stateDir = join(cwd, '.omx/state');
+      const stateDir = join(cwd, '.nomx/state');
       const unsupportedEvidence = {
         status: 'unsupported' as const,
         reason: 'native_subagents_unsupported' as const,
@@ -218,8 +218,8 @@ describe('cli/ultragoal', () => {
         observedAt: roleRoutingEvidence.observed_at,
         expiresAt: roleRoutingEvidence.expires_at,
       };
-      const previousSessionId = process.env.OMX_SESSION_ID;
-      process.env.OMX_SESSION_ID = sessionId;
+      const previousSessionId = process.env.NOMX_SESSION_ID;
+      process.env.NOMX_SESSION_ID = sessionId;
       try {
         writeRoleRoutingMarker(stateDir, roleRoutingEvidence);
         assert.equal(existsSync(join(stateDir, NATIVE_SUBAGENT_ROLE_ROUTING_MARKER_FILE)), true);
@@ -230,8 +230,8 @@ describe('cli/ultragoal', () => {
         assert.equal(roleRoutingOutput.includes(LEADER_CONDUCTOR_BLOCK), false);
         assert.equal(roleRoutingOutput.includes(buildUnsupportedNativeSubagentGuidance(unsupportedEvidence)), false);
       } finally {
-        if (typeof previousSessionId === 'string') process.env.OMX_SESSION_ID = previousSessionId;
-        else delete process.env.OMX_SESSION_ID;
+        if (typeof previousSessionId === 'string') process.env.NOMX_SESSION_ID = previousSessionId;
+        else delete process.env.NOMX_SESSION_ID;
       }
     });
   });
@@ -240,7 +240,7 @@ describe('cli/ultragoal', () => {
     await withCwd(async (cwd) => {
       await capture(() => ultragoalCommand(['create-goals', '--brief', '- First milestone']));
       await capture(() => ultragoalCommand(['complete-goals']));
-      const goals = JSON.parse(await readFile(join(cwd, '.omx/ultragoal/goals.json'), 'utf-8')) as { codexObjective: string };
+      const goals = JSON.parse(await readFile(join(cwd, '.nomx/ultragoal/goals.json'), 'utf-8')) as { codexObjective: string };
       const checkpoint = await capture(() => ultragoalCommand([
         'checkpoint',
         '--goal-id', 'G001-first-milestone',
@@ -260,7 +260,7 @@ describe('cli/ultragoal', () => {
     await withCwd(async (cwd) => {
       await capture(() => ultragoalCommand(['create-goals', '--brief', '- Final milestone']));
       await capture(() => ultragoalCommand(['complete-goals']));
-      const goals = JSON.parse(await readFile(join(cwd, '.omx/ultragoal/goals.json'), 'utf-8')) as { codexObjective: string };
+      const goals = JSON.parse(await readFile(join(cwd, '.nomx/ultragoal/goals.json'), 'utf-8')) as { codexObjective: string };
 
       const checkpoint = await capture(() => ultragoalCommand([
         'checkpoint',
@@ -274,7 +274,7 @@ describe('cli/ultragoal', () => {
       const output = checkpoint.stdout.join('\n');
       assert.equal(checkpoint.exitCode, undefined);
       assert.match(output, /Terminal next step for another goal in this same Codex thread\/session: run \/goal clear/);
-      assert.match(output, /OMX shell commands and hooks do not call \/goal clear or hidden thread\/goal\/clear routes/);
+      assert.match(output, /NOMX shell commands and hooks do not call \/goal clear or hidden thread\/goal\/clear routes/);
       assert.doesNotMatch(output, /cleared Codex goal state/i);
     });
   });
@@ -288,7 +288,7 @@ describe('cli/ultragoal', () => {
       assert.match(output, /get_goal reports status complete before create_goal/);
       assert.match(output, /Run \/goal clear in the Codex UI before starting another goal/);
       assert.ok(output.indexOf('get_goal reports status complete before create_goal') < output.indexOf('create_goal payload'));
-      assert.match(output, /OMX did not and cannot clear hidden Codex goal state/);
+      assert.match(output, /NOMX did not and cannot clear hidden Codex goal state/);
     });
   });
 
@@ -296,7 +296,7 @@ describe('cli/ultragoal', () => {
     await withCwd(async (cwd) => {
       await capture(() => ultragoalCommand(['create-goals', '--brief', '- First milestone']));
       await capture(() => ultragoalCommand(['complete-goals']));
-      const goals = JSON.parse(await readFile(join(cwd, '.omx/ultragoal/goals.json'), 'utf-8')) as { codexObjective: string };
+      const goals = JSON.parse(await readFile(join(cwd, '.nomx/ultragoal/goals.json'), 'utf-8')) as { codexObjective: string };
 
       const checkpoint = await capture(() => ultragoalCommand([
         'checkpoint',
@@ -351,7 +351,7 @@ describe('cli/ultragoal', () => {
         'checkpoint',
         '--goal-id', 'G001-first',
         '--status', 'complete',
-        '--evidence', 'Actual planned work done for .omx/ultragoal/goals.json G001-first; validation complete; reviews clean.',
+        '--evidence', 'Actual planned work done for .nomx/ultragoal/goals.json G001-first; validation complete; reviews clean.',
         '--codex-goal-json', JSON.stringify({ goal: { objective: taskObjective, status: 'complete' } }),
         '--quality-gate-json', cleanQualityGate(),
       ]));
@@ -372,7 +372,7 @@ describe('cli/ultragoal', () => {
         '--kind', 'add_subgoal',
         '--title', 'Prompt submit bridge',
         '--objective', 'Implement bounded prompt-submit bridge behavior.',
-        '--evidence', '.omx/ultragoal G002-cli-and-prompt-submit-bridge needs a structured CLI bridge before hook wiring.',
+        '--evidence', '.nomx/ultragoal G002-cli-and-prompt-submit-bridge needs a structured CLI bridge before hook wiring.',
         '--rationale', 'A structured CLI mutation keeps steering explicit and audited without broad natural-language mutation.',
         '--idempotency-key', 'g002-cli-add-subgoal',
         '--json',
@@ -392,7 +392,7 @@ describe('cli/ultragoal', () => {
       assert.equal(parsed.audit.idempotencyKey, 'g002-cli-add-subgoal');
       assert.equal(parsed.summary.pending, 2);
 
-      const ledger = await readFile(join(cwd, '.omx/ultragoal/ledger.jsonl'), 'utf-8');
+      const ledger = await readFile(join(cwd, '.nomx/ultragoal/ledger.jsonl'), 'utf-8');
       assert.match(ledger, /"event":"steering_accepted"/);
       assert.match(ledger, /g002-cli-add-subgoal/);
     });
@@ -406,7 +406,7 @@ describe('cli/ultragoal', () => {
         '--kind', 'add_subgoal',
         '--title', 'Prompt submit bridge',
         '--objective', 'Implement bounded prompt-submit bridge behavior.',
-        '--evidence', '.omx/ultragoal G002-cli-and-prompt-submit-bridge evidence.',
+        '--evidence', '.nomx/ultragoal G002-cli-and-prompt-submit-bridge evidence.',
         '--rationale', 'Explicit structured steering should be idempotent.',
         '--idempotency-key', 'same-cli-steer',
         '--json',
@@ -458,7 +458,7 @@ describe('cli/ultragoal', () => {
         'steer',
         '--kind', 'annotate_ledger',
         '--source', 'forged',
-        '--evidence', '.omx/ultragoal G002 invalid source evidence.',
+        '--evidence', '.nomx/ultragoal G002 invalid source evidence.',
         '--rationale', 'Invalid sources must not enter the steering audit.',
         '--json',
       ]));
@@ -470,7 +470,7 @@ describe('cli/ultragoal', () => {
         'steer',
         '--kind', 'annotate_ledger',
         '--source', 'finding',
-        '--evidence', '.omx/ultragoal G002 reviewer finding evidence.',
+        '--evidence', '.nomx/ultragoal G002 reviewer finding evidence.',
         '--rationale', 'The CLI should report the actual accepted audit source.',
         '--json',
       ]));
@@ -487,7 +487,7 @@ describe('cli/ultragoal', () => {
         'steer',
         '--kind', 'revise_pending_wording',
         '--target-goal-id', 'G999-missing',
-        '--evidence', '.omx/ultragoal G002-cli-and-prompt-submit-bridge invalid target evidence.',
+        '--evidence', '.nomx/ultragoal G002-cli-and-prompt-submit-bridge invalid target evidence.',
         '--rationale', 'This intentionally uses a missing goal to prove rejection audit output.',
         '--title', 'New title',
         '--json',
@@ -580,7 +580,7 @@ describe('cli/ultragoal', () => {
     await withCwd(async (cwd) => {
       await capture(() => ultragoalCommand(['create-goals', '--brief', '- Final milestone']));
       await capture(() => ultragoalCommand(['complete-goals']));
-      const goals = JSON.parse(await readFile(join(cwd, '.omx/ultragoal/goals.json'), 'utf-8')) as { codexObjective: string };
+      const goals = JSON.parse(await readFile(join(cwd, '.nomx/ultragoal/goals.json'), 'utf-8')) as { codexObjective: string };
 
       const blocked = await capture(() => ultragoalCommand([
         'record-review-blockers',
@@ -605,7 +605,7 @@ describe('cli/ultragoal', () => {
     await withCwd(async (cwd) => {
       await capture(() => ultragoalCommand(['create-goals', '--brief', '- First milestone']));
       await capture(() => ultragoalCommand(['complete-goals']));
-      const goals = JSON.parse(await readFile(join(cwd, '.omx/ultragoal/goals.json'), 'utf-8')) as { codexObjective: string };
+      const goals = JSON.parse(await readFile(join(cwd, '.nomx/ultragoal/goals.json'), 'utf-8')) as { codexObjective: string };
 
       const missing = await capture(() => ultragoalCommand([
         'checkpoint',
@@ -652,7 +652,7 @@ describe('cli/ultragoal', () => {
     });
   });
 
-  it('rejects null get_goal snapshots for completion without mutating OMX progress', async () => {
+  it('rejects null get_goal snapshots for completion without mutating NOMX progress', async () => {
     await withCwd(async (cwd) => {
       await capture(() => ultragoalCommand(['create-goals', '--brief', '- First milestone']));
       await capture(() => ultragoalCommand(['complete-goals']));
@@ -669,9 +669,9 @@ describe('cli/ultragoal', () => {
       assert.equal(rejected.exitCode, 1);
       assert.match(rejected.stderr.join('\n'), /no active goal\/null/);
       assert.match(rejected.stderr.join('\n'), /call create_goal/);
-      assert.match(rejected.stderr.join('\n'), /do not mark complete from OMX state alone/);
+      assert.match(rejected.stderr.join('\n'), /do not mark complete from NOMX state alone/);
 
-      const plan = JSON.parse(await readFile(join(cwd, '.omx/ultragoal/goals.json'), 'utf-8')) as { activeGoalId?: string; goals: Array<{ status: string }> };
+      const plan = JSON.parse(await readFile(join(cwd, '.nomx/ultragoal/goals.json'), 'utf-8')) as { activeGoalId?: string; goals: Array<{ status: string }> };
       assert.equal(plan.activeGoalId, 'G001-first-milestone');
       assert.equal(plan.goals[0].status, 'in_progress');
     });
@@ -681,7 +681,7 @@ describe('cli/ultragoal', () => {
     await withCwd(async (cwd) => {
       await capture(() => ultragoalCommand(['create-goals', '--brief', '- First milestone']));
       await capture(() => ultragoalCommand(['complete-goals']));
-      const goals = JSON.parse(await readFile(join(cwd, '.omx/ultragoal/goals.json'), 'utf-8')) as { codexObjective: string };
+      const goals = JSON.parse(await readFile(join(cwd, '.nomx/ultragoal/goals.json'), 'utf-8')) as { codexObjective: string };
 
       const malformed = await capture(() => ultragoalCommand([
         'checkpoint',
@@ -717,7 +717,7 @@ describe('cli/ultragoal', () => {
       assert.equal(parsed.summary.failed, 0);
       assert.equal(parsed.plan.activeGoalId, 'G001-first-milestone');
 
-      const ledger = await readFile(join(cwd, '.omx/ultragoal/ledger.jsonl'), 'utf-8');
+      const ledger = await readFile(join(cwd, '.nomx/ultragoal/ledger.jsonl'), 'utf-8');
       assert.match(ledger, /"event":"goal_blocked"/);
     });
   });
@@ -770,12 +770,12 @@ describe('cli/ultragoal', () => {
       assert.match(output, /Required external decision: make the GHCR package public/);
       assert.match(output, /Do not run complete-goals --retry-failed again/);
 
-      const plan = JSON.parse(await readFile(join(cwd, '.omx/ultragoal/goals.json'), 'utf-8')) as { activeGoalId?: string; goals: Array<{ status: string; nonRetriable?: boolean }> };
+      const plan = JSON.parse(await readFile(join(cwd, '.nomx/ultragoal/goals.json'), 'utf-8')) as { activeGoalId?: string; goals: Array<{ status: string; nonRetriable?: boolean }> };
       assert.equal(plan.activeGoalId, undefined);
       assert.equal(plan.goals[0].status, 'needs_user_decision');
       assert.equal(plan.goals[0].nonRetriable, true);
 
-      const ledger = await readFile(join(cwd, '.omx/ultragoal/ledger.jsonl'), 'utf-8');
+      const ledger = await readFile(join(cwd, '.nomx/ultragoal/ledger.jsonl'), 'utf-8');
       assert.match(ledger, /"event":"goal_needs_user_decision"/);
       assert.match(ledger, /GHCR_PULL_ACCESS/);
     });

@@ -8,28 +8,28 @@ import { installSkills, parseSkillFrontmatter } from '../setup.js';
 
 describe('skill frontmatter validation', () => {
   it('accepts valid SKILL.md frontmatter with quoted values and nested metadata', () => {
-    const content = `---\nname: ask\ndescription: "Guide on using oh-my-codex plugin"\nmetadata:\n  short-description: Quick help\n---\n\n# Help\n`;
+    const content = `---\nname: plan\ndescription: "Guide on using nomx plugin"\nmetadata:\n  short-description: Quick help\n---\n\n# Help\n`;
 
     assert.deepEqual(parseSkillFrontmatter(content), {
-      name: 'ask',
-      description: 'Guide on using oh-my-codex plugin',
+      name: 'plan',
+      description: 'Guide on using nomx plugin',
     });
   });
 
   it('rejects SKILL.md frontmatter without a description', () => {
-    const content = `---\nname: ask\n---\n\n# Help\n`;
+    const content = `---\nname: plan\n---\n\n# Help\n`;
 
     assert.throws(
-      () => parseSkillFrontmatter(content, '/tmp/ask/SKILL.md'),
+      () => parseSkillFrontmatter(content, '/tmp/plan/SKILL.md'),
       /missing a non-empty frontmatter "description"/i,
     );
   });
 
   it('rejects SKILL.md frontmatter with unterminated quoted strings', () => {
-    const content = `---\nname: ask\ndescription: "broken\n---\n\n# Help\n`;
+    const content = `---\nname: plan\ndescription: "broken\n---\n\n# Help\n`;
 
     assert.throws(
-      () => parseSkillFrontmatter(content, '/tmp/ask/SKILL.md'),
+      () => parseSkillFrontmatter(content, '/tmp/plan/SKILL.md'),
       /unterminated quoted string/i,
     );
   });
@@ -37,14 +37,14 @@ describe('skill frontmatter validation', () => {
 
 describe('nomx setup skill validation', () => {
   it('fails before installing a malformed shipped-style SKILL.md', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-setup-skill-validation-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-setup-skill-validation-'));
     const srcDir = join(root, 'src-skills');
     const dstDir = join(root, 'dst-skills');
-    const skillDir = join(srcDir, 'ask');
+    const skillDir = join(srcDir, 'plan');
 
     try {
       await mkdir(skillDir, { recursive: true });
-      await writeFile(join(skillDir, 'SKILL.md'), `---\nname: ask\ndescription: "broken\n---\n\n# Help\n`);
+      await writeFile(join(skillDir, 'SKILL.md'), `---\nname: plan\ndescription: "broken\n---\n\n# Help\n`);
       await writeFile(join(skillDir, 'notes.md'), 'extra file\n');
 
       await assert.rejects(
@@ -54,11 +54,11 @@ describe('nomx setup skill validation', () => {
           { backupRoot: join(root, 'backups'), baseRoot: root },
           { force: false, dryRun: false, verbose: false },
         ),
-        /src-skills\/ask\/SKILL\.md.*unterminated quoted string/i,
+        /src-skills\/plan\/SKILL\.md.*unterminated quoted string/i,
       );
 
-      assert.equal(existsSync(join(dstDir, 'ask', 'SKILL.md')), false);
-      assert.equal(existsSync(join(dstDir, 'ask', 'notes.md')), false);
+      assert.equal(existsSync(join(dstDir, 'plan', 'SKILL.md')), false);
+      assert.equal(existsSync(join(dstDir, 'plan', 'notes.md')), false);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

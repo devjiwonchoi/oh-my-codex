@@ -164,7 +164,7 @@ export function reconcileCodexGoalSnapshot(
     const diagnostic = effectiveSnapshot.unavailableReason === 'db_schema_context_error'
       ? ' Codex goal state is unavailable due to a DB/schema/context error; this is distinct from a normal missing or incomplete goal.'
       : '';
-    const message = `Codex goal snapshot is absent or reports no active goal/null; call get_goal and pass its JSON with --codex-goal-json. If get_goal reports no active goal/null while OMX still has in-progress workflow state, call create_goal with the intended workflow objective before checkpointing; do not mark complete from OMX state alone.${diagnostic}${detail}`;
+    const message = `Codex goal snapshot is absent or reports no active goal/null; call get_goal and pass its JSON with --codex-goal-json. If get_goal reports no active goal/null while NOMX still has in-progress workflow state, call create_goal with the intended workflow objective before checkpointing; do not mark complete from NOMX state alone.${diagnostic}${detail}`;
     if (options.requireSnapshot) errors.push(message);
     else warnings.push(message);
     return { ok: errors.length === 0, snapshot: effectiveSnapshot, warnings, errors };
@@ -201,12 +201,12 @@ export function formatCodexGoalReconciliation(reconciliation: CodexGoalReconcili
 
 export function buildCodexGoalTerminalCleanupNotice(workflowLabel: string): string {
   return [
-    `${workflowLabel}: Codex goal is complete and OMX durable workflow artifacts are complete.`,
-    'Terminal next step for another goal in this same Codex thread/session: run /goal clear in the Codex UI before calling create_goal for the next OMX goal.',
-    'OMX shell commands and hooks do not call /goal clear or hidden thread/goal/clear routes; if a future Codex tool surface exposes explicit clear/reset, use that tool instead.',
+    `${workflowLabel}: Codex goal is complete and NOMX durable workflow artifacts are complete.`,
+    'Terminal next step for another goal in this same Codex thread/session: run /goal clear in the Codex UI before calling create_goal for the next NOMX goal.',
+    'NOMX shell commands and hooks do not call /goal clear or hidden thread/goal/clear routes; if a future Codex tool surface exposes explicit clear/reset, use that tool instead.',
   ].join('\n');
 }
 
 export function buildCompletedCodexGoalRemediation(workflowLabel: string): string {
-  return `${workflowLabel}: get_goal reports a completed Codex goal still attached to this thread. Run /goal clear in the Codex UI before starting another goal in this same thread/session; OMX did not and cannot clear hidden Codex goal state from shell/hooks.`;
+  return `${workflowLabel}: get_goal reports a completed Codex goal still attached to this thread. Run /goal clear in the Codex UI before starting another goal in this same thread/session; NOMX did not and cannot clear hidden Codex goal state from shell/hooks.`;
 }

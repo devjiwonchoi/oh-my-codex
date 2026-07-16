@@ -229,7 +229,7 @@ export function resolveTmuxBinaryForPlatform(
 const CMUX_RUNTIME_ENV_SIGNALS = ['CMUX_SOCKET_PATH', 'CMUX_SOCKET'] as const;
 
 /**
- * Detects whether OMX is running under cmux, whose `tmux` binary is a shim
+ * Detects whether NOMX is running under cmux, whose `tmux` binary is a shim
  * (`~/.cmuxterm/.../tmux` -> `cmux __tmux-compat`) that does not implement
  * tmux's `split-window -e KEY=VALUE` environment option. Under cmux the `-e`
  * flags leak into the spawned pane's shell command, so pane-spawn callers must

@@ -20,7 +20,8 @@ import {
 import { readFileSync } from 'fs';
 import { createHash, randomUUID } from 'crypto';
 import { dirname, join } from 'path';
-import { omxRoot, omxLogsDir, sameFilePath } from '../utils/paths.js';
+import { isLegacyOmxSessionId, NOMX_SESSION_ID_PREFIX } from '../identity/index.js';
+import { nomxRoot, nomxLogsDir, sameFilePath } from '../utils/paths.js';
 import {
   getBaseStateDirWithSource,
   resolveWorkingDirectoryForState,
@@ -181,9 +182,9 @@ export function resolveSessionPointerContext(cwd: string): SessionPointerContext
 
 function attemptedStateRootSource(): AttemptedStateRootSource {
   try {
-    if (process.env.OMX_TEAM_STATE_ROOT?.trim()) return 'team-env';
-    if (process.env.OMX_ROOT?.trim()) return 'omx-root-env';
-    if (process.env.OMX_STATE_ROOT?.trim()) return 'omx-state-root-env';
+    if (process.env.NOMX_TEAM_STATE_ROOT?.trim()) return 'team-env';
+    if (process.env.NOMX_ROOT?.trim()) return 'nomx-root-env';
+    if (process.env.NOMX_STATE_ROOT?.trim()) return 'nomx-state-root-env';
     return 'cwd-default';
   } catch {
     return 'unresolved';
@@ -280,9 +281,9 @@ export interface SessionStartOptions {
   nativeSessionSwitchedAt?: string;
   /**
    * Compatibility-only metadata. Alias candidacy always comes from
-   * process.env.OMX_SESSION_ID, never from this option.
+   * process.env.NOMX_SESSION_ID, never from this option.
    */
-  ownerOmxSessionId?: string;
+  ownerNomxSessionId?: string;
   /** The caller proved the env candidate with actual tmux pane/session tags. */
   ownerAliasVerified?: boolean;
   tmuxSessionName?: string;
@@ -630,7 +631,7 @@ function createSessionState(
     nativeSessionId?: string;
     previousNativeSessionId?: string;
     nativeSessionSwitchedAt?: string;
-    ownerOmxSessionId?: string;
+    ownerNomxSessionId?: string;
     startedAt?: string;
     tmuxSessionName?: string;
     tmuxPaneId?: string;
@@ -640,7 +641,7 @@ function createSessionState(
   const nativeSessionId = normalizeNonempty(options.nativeSessionId);
   const previousNativeSessionId = normalizeNonempty(options.previousNativeSessionId);
   const nativeSessionSwitchedAt = normalizeNonempty(options.nativeSessionSwitchedAt);
-  const ownerOmxSessionId = normalizeSessionId(options.ownerOmxSessionId);
+  const ownerNomxSessionId = normalizeSessionId(options.ownerNomxSessionId);
   const tmuxSessionName = normalizeNonempty(options.tmuxSessionName);
   const tmuxPaneId = normalizeNonempty(options.tmuxPaneId);
   return {
@@ -648,7 +649,7 @@ function createSessionState(
     ...(nativeSessionId ? { native_session_id: nativeSessionId } : {}),
     ...(previousNativeSessionId ? { previous_native_session_id: previousNativeSessionId } : {}),
     ...(nativeSessionSwitchedAt ? { native_session_switched_at: nativeSessionSwitchedAt } : {}),
-    ...(ownerOmxSessionId ? { owner_omx_session_id: ownerOmxSessionId } : {}),
+    ...(ownerNomxSessionId ? { owner_omx_session_id: ownerNomxSessionId } : {}),
     started_at: options.startedAt ?? nowIso,
     cwd,
     pid,
@@ -681,7 +682,7 @@ function verifiedOwnerCandidate(
   options: SessionStartOptions,
 ): string | undefined {
   if (context.rootSource === 'team-env' || options.ownerAliasVerified !== true) return undefined;
-  return normalizeSessionId(process.env.OMX_SESSION_ID);
+  return normalizeSessionId(process.env.NOMX_SESSION_ID);
 }
 
 function mergeOwnerAlias(
@@ -706,10 +707,10 @@ function isStartCompatible(existing: SessionState, requestedSessionId: string): 
     || currentOwnerAlias(existing) === requestedSessionId;
 }
 
-function getOmxLaunchSessionId(state: SessionState): string | undefined {
-  if (state.session_id.startsWith('omx-')) return state.session_id;
+function getNomxLaunchSessionId(state: SessionState): string | undefined {
+  if (state.session_id.startsWith(NOMX_SESSION_ID_PREFIX) || isLegacyOmxSessionId(state.session_id)) return state.session_id;
   const owner = currentOwnerAlias(state);
-  return owner?.startsWith('omx-') ? owner : undefined;
+  return owner?.startsWith(NOMX_SESSION_ID_PREFIX) || isLegacyOmxSessionId(owner) ? owner : undefined;
 }
 
 interface SessionPointerLockOwnerV1 {
@@ -1330,9 +1331,9 @@ function startPointerTransition(
     const pid = resolvePid(options);
     const platform = options.platform ?? process.platform;
     const ownerCandidate = verifiedOwnerCandidate(context, options);
-    let ownerOmxSessionId: string | undefined;
+    let ownerNomxSessionId: string | undefined;
     try {
-      ownerOmxSessionId = mergeOwnerAlias(
+      ownerNomxSessionId = mergeOwnerAlias(
         existing,
         ownerCandidate,
         ownerCandidate !== undefined,
@@ -1350,7 +1351,7 @@ function startPointerTransition(
       nativeSessionId: options.nativeSessionId ?? existing?.native_session_id,
       previousNativeSessionId: options.previousNativeSessionId ?? existing?.previous_native_session_id,
       nativeSessionSwitchedAt: options.nativeSessionSwitchedAt ?? existing?.native_session_switched_at,
-      ...(ownerOmxSessionId ? { ownerOmxSessionId } : {}),
+      ...(ownerNomxSessionId ? { ownerNomxSessionId } : {}),
       tmuxSessionName: options.tmuxSessionName ?? existing?.tmux_session_name,
       tmuxPaneId: options.tmuxPaneId ?? existing?.tmux_pane_id,
     });
@@ -1404,32 +1405,32 @@ function reconcileNativeTransition(
 
     if (!existing) {
       const ownerCandidate = verifiedOwnerCandidate(context, options);
-      const ownerOmxSessionId = ownerCandidate;
+      const ownerNomxSessionId = ownerCandidate;
       return {
         state: createSessionState(context.cwd, nativeSessionId, pid, platform, linuxIdentity, {
           nativeSessionId,
-          ...(ownerOmxSessionId ? { ownerOmxSessionId } : {}),
+          ...(ownerNomxSessionId ? { ownerNomxSessionId } : {}),
         }),
       };
     }
 
     const existingNativeSessionId = normalizeSessionId(existing.native_session_id);
     if (existingNativeSessionId && existingNativeSessionId !== nativeSessionId) {
-      const ownerOmxSessionId = getOmxLaunchSessionId(existing);
+      const ownerNomxSessionId = getNomxLaunchSessionId(existing);
       return {
         state: createSessionState(context.cwd, nativeSessionId, pid, platform, linuxIdentity, {
           nativeSessionId,
-          ...(ownerOmxSessionId ? {
+          ...(ownerNomxSessionId ? {
             previousNativeSessionId: existingNativeSessionId,
             nativeSessionSwitchedAt: nowIso,
-            ownerOmxSessionId,
+            ownerNomxSessionId,
           } : {}),
         }),
-        ...(ownerOmxSessionId ? {
+        ...(ownerNomxSessionId ? {
           replacementLog: {
             event: 'native_session_replaced',
-            session_id: ownerOmxSessionId,
-            ...(existing.session_id !== ownerOmxSessionId ? { active_session_id: existing.session_id } : {}),
+            session_id: ownerNomxSessionId,
+            ...(existing.session_id !== ownerNomxSessionId ? { active_session_id: existing.session_id } : {}),
             previous_native_session_id: existingNativeSessionId,
             replaced_by_native_session_id: nativeSessionId,
             pid,
@@ -1440,9 +1441,9 @@ function reconcileNativeTransition(
     }
 
     const ownerCandidate = verifiedOwnerCandidate(context, options);
-    let ownerOmxSessionId: string | undefined;
+    let ownerNomxSessionId: string | undefined;
     try {
-      ownerOmxSessionId = mergeOwnerAlias(
+      ownerNomxSessionId = mergeOwnerAlias(
         existing,
         ownerCandidate,
         ownerCandidate !== undefined,
@@ -1457,7 +1458,7 @@ function reconcileNativeTransition(
         nativeSessionId,
         previousNativeSessionId: existing.previous_native_session_id,
         nativeSessionSwitchedAt: existing.native_session_switched_at,
-        ...(ownerOmxSessionId ? { ownerOmxSessionId } : {}),
+        ...(ownerNomxSessionId ? { ownerNomxSessionId } : {}),
         startedAt: existing.started_at,
         tmuxSessionName: existing.tmux_session_name,
         tmuxPaneId: existing.tmux_pane_id,
@@ -1468,7 +1469,7 @@ function reconcileNativeTransition(
 
 /**
  * Reconcile a native SessionStart without borrowing another root's pointer.
- * A different native ID retains the existing OMX owner chain, but never binds a
+ * A different native ID retains the existing NOMX owner chain, but never binds a
  * new owner alias during that replacement transition.
  */
 export async function reconcileNativeSessionStart(
@@ -1647,12 +1648,12 @@ export async function writeSessionEnd(
 /** Reset session-scoped HUD/metrics files at launch. */
 export async function resetSessionMetrics(cwd: string, sessionId?: string): Promise<void> {
   const context = resolveSessionPointerContext(cwd);
-  const omxDir = omxRoot(context.cwd);
-  await nodeMkdir(omxDir, { recursive: true });
+  const nomxDir = nomxRoot(context.cwd);
+  await nodeMkdir(nomxDir, { recursive: true });
   await transactionDependencies.fs.mkdir(context.baseStateDir, { recursive: true });
 
   const now = new Date().toISOString();
-  await nodeWriteFile(join(omxDir, 'metrics.json'), JSON.stringify({
+  await nodeWriteFile(join(nomxDir, 'metrics.json'), JSON.stringify({
     total_turns: 0,
     session_turns: 0,
     last_activity: now,
@@ -1682,7 +1683,7 @@ async function appendToLogAtContext(
 ): Promise<void> {
   const logsDir = historyDirectory(context);
   await nodeMkdir(logsDir, { recursive: true });
-  const logFile = join(logsDir, `omx-${new Date().toISOString().slice(0, 10)}.jsonl`);
+  const logFile = join(logsDir, `nomx-${new Date().toISOString().slice(0, 10)}.jsonl`);
   await appendFile(logFile, `${JSON.stringify({ ...entry, _ts: new Date().toISOString() })}\n`);
 }
 
@@ -1710,8 +1711,8 @@ export async function appendPromptSessionProvenanceRejection(
  * context. Lifecycle transitions use appendToLogAtContext instead.
  */
 export async function appendToLog(cwd: string, entry: Record<string, unknown>): Promise<void> {
-  const logsDir = omxLogsDir(cwd);
+  const logsDir = nomxLogsDir(cwd);
   await nodeMkdir(logsDir, { recursive: true });
-  const logFile = join(logsDir, `omx-${new Date().toISOString().slice(0, 10)}.jsonl`);
+  const logFile = join(logsDir, `nomx-${new Date().toISOString().slice(0, 10)}.jsonl`);
   await appendFile(logFile, `${JSON.stringify({ ...entry, _ts: new Date().toISOString() })}\n`);
 }

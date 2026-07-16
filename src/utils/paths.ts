@@ -1,5 +1,5 @@
 /**
- * Path utilities for oh-my-codex
+ * Path utilities for NOMX
  * Resolves Codex CLI config, skills, prompts, and state directories
  */
 
@@ -9,29 +9,30 @@ import { readdir, readFile, realpath } from "fs/promises";
 import { dirname, isAbsolute, join, resolve } from "path";
 import { homedir } from "os";
 import { fileURLToPath } from "url";
+import { NOMX_IDENTITY, resolveNamespaceEnvironment, resolveNamespacePath } from "../identity/index.js";
 
 /** Codex CLI home directory (~/.codex/) */
 export function codexHome(): string {
   return process.env.CODEX_HOME || join(homedir(), ".codex");
 }
 
-export const OMX_ENTRY_PATH_ENV = "OMX_ENTRY_PATH";
-export const OMX_STARTUP_CWD_ENV = "OMX_STARTUP_CWD";
+export const NOMX_ENTRY_PATH_ENV = "NOMX_ENTRY_PATH";
+export const NOMX_STARTUP_CWD_ENV = "NOMX_STARTUP_CWD";
 
-function resolveOmxRootCandidate(raw?: string): string | null {
+function resolveNomxRootCandidate(raw?: string): string | null {
   if (typeof raw !== "string") return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
   return isAbsolute(trimmed) ? trimmed : resolve(trimmed);
 }
 
-/** Optional override root for OMX runtime files. */
-export function omxRoot(projectRoot?: string): string {
-  const override =
-    resolveOmxRootCandidate(process.env.OMX_ROOT)
-    ?? resolveOmxRootCandidate(process.env.OMX_STATE_ROOT);
-  if (override) return join(override, ".omx");
-  return join(projectRoot || process.cwd(), ".omx");
+/** Optional override root for NOMX runtime files. */
+export function nomxRoot(projectRoot?: string, env: NodeJS.ProcessEnv = process.env): string {
+  const base = projectRoot || process.cwd();
+  const override = resolveNamespacePath("ROOT", env, base).value
+    ?? resolveNamespacePath("STATE_ROOT", env, base).value;
+  if (override) return join(resolveNomxRootCandidate(override) ?? override, NOMX_IDENTITY.projectDirectoryName);
+  return join(base, NOMX_IDENTITY.projectDirectoryName);
 }
 
 
@@ -63,7 +64,7 @@ export function sameFilePath(leftPath: string, rightPath: string): boolean {
   return canonicalizeComparablePath(leftPath) === canonicalizeComparablePath(rightPath);
 }
 
-export function resolveOmxEntryPath(
+export function resolveNomxEntryPath(
   options: {
     argv1?: string | null;
     cwd?: string;
@@ -74,30 +75,32 @@ export function resolveOmxEntryPath(
   const hasExplicitArgv1 = Object.prototype.hasOwnProperty.call(options, "argv1");
   const argv1 = hasExplicitArgv1 ? options.argv1 : process.argv[1];
   const rawPath = typeof argv1 === "string" ? argv1.trim() : "";
+  const startupCwd = String(
+    resolveNamespaceEnvironment({ suffix: "STARTUP_CWD", kind: "path", base: cwd }, env).value ?? cwd,
+  );
   if (hasExplicitArgv1 && rawPath !== "") {
-    const startupCwd = String(env[OMX_STARTUP_CWD_ENV] ?? "").trim() || cwd;
     return resolveLauncherPath(rawPath, startupCwd);
   }
 
-  const fromEnv = String(env[OMX_ENTRY_PATH_ENV] ?? "").trim();
+  const fromEnv = String(
+    resolveNamespaceEnvironment({ suffix: "ENTRY_PATH", kind: "path", base: startupCwd }, env).value ?? "",
+  );
   if (fromEnv !== "") {
-    const startupCwd = String(env[OMX_STARTUP_CWD_ENV] ?? "").trim() || cwd;
     return resolveLauncherPath(fromEnv, startupCwd);
   }
 
   if (rawPath === "") return null;
 
-  const startupCwd = String(env[OMX_STARTUP_CWD_ENV] ?? "").trim() || cwd;
   return resolveLauncherPath(rawPath, startupCwd);
 }
 
-function isOmxCliEntryPath(value: string | null | undefined): boolean {
+function isNomxCliEntryPath(value: string | null | undefined): boolean {
   if (typeof value !== "string") return false;
   const normalized = value.trim().replace(/\\/g, "/");
   return normalized.endsWith('/dist/cli/nomx.js') || normalized.endsWith('/nomx.js')
 }
 
-export function resolveOmxCliEntryPath(
+export function resolveNomxCliEntryPath(
   options: {
     argv1?: string | null;
     cwd?: string;
@@ -105,15 +108,15 @@ export function resolveOmxCliEntryPath(
     packageRootDir?: string;
   } = {},
 ): string | null {
-  const entry = resolveOmxEntryPath(options);
-  if (isOmxCliEntryPath(entry)) return entry;
+  const entry = resolveNomxEntryPath(options);
+  if (isNomxCliEntryPath(entry)) return entry;
 
   const packageRootDir = options.packageRootDir || packageRoot();
   const fallback = resolveLauncherPath(join(packageRootDir, 'dist', 'cli', 'nomx.js'), options.cwd || process.cwd());
   return existsSync(fallback) ? fallback : entry;
 }
 
-export function rememberOmxLaunchContext(
+export function rememberNomxLaunchContext(
   options: {
     argv1?: string | null;
     cwd?: string;
@@ -121,25 +124,25 @@ export function rememberOmxLaunchContext(
   } = {},
 ): void {
   const { cwd = process.cwd(), env = process.env } = options;
-  if (String(env[OMX_STARTUP_CWD_ENV] ?? "").trim() === "") {
-    env[OMX_STARTUP_CWD_ENV] = cwd;
+  if (env[NOMX_STARTUP_CWD_ENV] === undefined) {
+    env[NOMX_STARTUP_CWD_ENV] = cwd;
   }
   const hasExplicitArgv1 = Object.prototype.hasOwnProperty.call(options, "argv1");
   const explicitArgv1 = typeof options.argv1 === "string" ? options.argv1.trim() : "";
-  if (String(env[OMX_ENTRY_PATH_ENV] ?? "").trim() !== "" && (!hasExplicitArgv1 || explicitArgv1 === "")) return;
+  if (env[NOMX_ENTRY_PATH_ENV] !== undefined && (!hasExplicitArgv1 || explicitArgv1 === "")) return;
 
   const resolved = hasExplicitArgv1
-    ? resolveOmxEntryPath({
+    ? resolveNomxEntryPath({
       argv1: options.argv1,
       cwd,
       env,
     })
-    : resolveOmxEntryPath({
+    : resolveNomxEntryPath({
       cwd,
       env,
     });
   if (resolved) {
-    env[OMX_ENTRY_PATH_ENV] = resolved;
+    env[NOMX_ENTRY_PATH_ENV] = resolved;
   }
 }
 
@@ -305,14 +308,14 @@ async function hashSkillDirectory(
   return hashes;
 }
 
-/** oh-my-codex state directory (.omx/state/) */
-export function omxStateDir(projectRoot?: string): string {
-  return join(omxRoot(projectRoot), "state");
+/** NOMX state directory (.nomx/state/) */
+export function nomxStateDir(projectRoot?: string): string {
+  return join(nomxRoot(projectRoot), "state");
 }
 
-/** oh-my-codex project memory file (.omx/project-memory.json) */
-export function omxProjectMemoryPath(projectRoot?: string): string {
-  return join(omxRoot(projectRoot), "project-memory.json");
+/** nomx project memory file (.nomx/project-memory.json) */
+export function nomxProjectMemoryPath(projectRoot?: string): string {
+  return join(nomxRoot(projectRoot), "project-memory.json");
 }
 
 /** Repository-visible project memory file used as canonical startup context. */
@@ -320,22 +323,22 @@ export function canonicalProjectMemoryPath(projectRoot?: string): string {
   return join(projectRoot || process.cwd(), "project-memory.json");
 }
 
-/** CLI-compatible repository-local project memory file (.omx/project-memory.json). */
+/** CLI-compatible repository-local project memory file (.nomx/project-memory.json). */
 export function repoLocalProjectMemoryPath(projectRoot?: string): string {
-  return join(projectRoot || process.cwd(), ".omx", "project-memory.json");
+  return join(projectRoot || process.cwd(), ".nomx", "project-memory.json");
 }
 
 /**
  * Project memory read order for startup context.
  *
  * Keep the repository-visible root file first for existing SessionStart compatibility,
- * then include the CLI/MCP project-memory location before boxed OMX runtime memory.
+ * then include the CLI/MCP project-memory location before boxed NOMX runtime memory.
  */
 export function projectMemoryPathCandidates(projectRoot?: string): string[] {
   const candidates = [
     canonicalProjectMemoryPath(projectRoot),
     repoLocalProjectMemoryPath(projectRoot),
-    omxProjectMemoryPath(projectRoot),
+    nomxProjectMemoryPath(projectRoot),
   ];
   return candidates.filter((path, index) => candidates.indexOf(path) === index);
 }
@@ -348,40 +351,67 @@ export function resolveProjectMemoryPath(projectRoot?: string): string | null {
   return null;
 }
 
-/** oh-my-codex notepad file (.omx/notepad.md) */
-export function omxNotepadPath(projectRoot?: string): string {
-  return join(omxRoot(projectRoot), "notepad.md");
+/** nomx notepad file (.nomx/notepad.md) */
+export function nomxNotepadPath(projectRoot?: string): string {
+  return join(nomxRoot(projectRoot), "notepad.md");
 }
 
-/** oh-my-codex wiki directory (repository-root omx_wiki/) */
-export function omxWikiDir(projectRoot?: string): string {
-  return join(projectRoot || process.cwd(), "omx_wiki");
+/** nomx wiki directory (repository-root nomx_wiki/) */
+export function nomxWikiDir(projectRoot?: string): string {
+  return join(projectRoot || process.cwd(), "nomx_wiki");
 }
 
 /** Legacy project-local wiki directory used before wiki pages became repository-tracked. */
-export function omxLegacyWikiDir(projectRoot?: string): string {
-  return join(projectRoot || process.cwd(), ".omx", "wiki");
+export function nomxLegacyWikiDir(projectRoot?: string): string {
+  return join(projectRoot || process.cwd(), ".nomx", "wiki");
 }
 
-/** oh-my-codex plans directory (.omx/plans/) */
-export function omxPlansDir(projectRoot?: string): string {
-  return join(omxRoot(projectRoot), "plans");
+/** nomx plans directory (.nomx/plans/) */
+export function nomxPlansDir(projectRoot?: string): string {
+  return join(nomxRoot(projectRoot), "plans");
 }
 
-/** oh-my-codex adapters directory (.omx/adapters/) */
-export function omxAdaptersDir(projectRoot?: string): string {
-  return join(omxRoot(projectRoot), "adapters");
+/** nomx adapters directory (.nomx/adapters/) */
+export function nomxAdaptersDir(projectRoot?: string): string {
+  return join(nomxRoot(projectRoot), "adapters");
 }
 
-/** oh-my-codex logs directory (.omx/logs/) */
-export function omxLogsDir(projectRoot?: string): string {
-  return join(omxRoot(projectRoot), "logs");
+/** nomx logs directory (.nomx/logs/) */
+export function nomxLogsDir(projectRoot?: string): string {
+  return join(nomxRoot(projectRoot), "logs");
 }
 
-/** User-scope install/update stamp path ($CODEX_HOME/.omx/install-state.json) */
-export function omxUserInstallStampPath(codexHomeDir?: string): string {
-  return join(codexHomeDir || codexHome(), ".omx", "install-state.json");
+/** User-scope install/update stamp path ($CODEX_HOME/.nomx/install-state.json) */
+export function nomxUserInstallStampPath(codexHomeDir?: string): string {
+  return join(codexHomeDir || codexHome(), ".nomx", "install-state.json");
 }
+
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const omxRoot = nomxRoot;
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const resolveOmxEntryPath = resolveNomxEntryPath;
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const resolveOmxCliEntryPath = resolveNomxCliEntryPath;
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const rememberOmxLaunchContext = rememberNomxLaunchContext;
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const omxStateDir = nomxStateDir;
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const omxProjectMemoryPath = nomxProjectMemoryPath;
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const omxNotepadPath = nomxNotepadPath;
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const omxWikiDir = nomxWikiDir;
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const omxLegacyWikiDir = nomxLegacyWikiDir;
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const omxPlansDir = nomxPlansDir;
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const omxAdaptersDir = nomxAdaptersDir;
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const omxLogsDir = nomxLogsDir;
+/** @deprecated Import the canonical NOMX-named helpers instead. */
+export const omxUserInstallStampPath = nomxUserInstallStampPath;
 
 /** Get the package root directory (where agents/, skills/, prompts/ live) */
 export function packageRoot(): string {

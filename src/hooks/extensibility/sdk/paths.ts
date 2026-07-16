@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { omxRoot } from '../../../utils/paths.js';
+import { nomxRoot } from '../../../utils/paths.js';
 
 export function sanitizeHookPluginName(name: string): string {
   const cleaned = (name || 'unknown-plugin').replace(/[^a-zA-Z0-9._-]/g, '-');
@@ -7,7 +7,7 @@ export function sanitizeHookPluginName(name: string): string {
 }
 
 export function hookPluginRootDir(cwd: string, pluginName: string): string {
-  return join(omxRoot(cwd), 'state', 'hooks', 'plugins', sanitizeHookPluginName(pluginName));
+  return join(nomxRoot(cwd), 'state', 'hooks', 'plugins', sanitizeHookPluginName(pluginName));
 }
 
 export function hookPluginTmuxStatePath(cwd: string, pluginName: string): string {
@@ -20,9 +20,9 @@ export function hookPluginDataPath(cwd: string, pluginName: string): string {
 
 export function hookPluginLogPath(cwd: string, now = new Date()): string {
   const day = now.toISOString().slice(0, 10);
-  return join(omxRoot(cwd), 'logs', `hooks-${day}.jsonl`);
+  return join(nomxRoot(cwd), 'logs', `hooks-${day}.jsonl`);
 }
 
-export function omxRootStateFilePath(cwd: string, fileName: string): string {
-  return join(omxRoot(cwd), 'state', fileName);
+export function nomxRootStateFilePath(cwd: string, fileName: string): string {
+  return join(nomxRoot(cwd), 'state', fileName);
 }

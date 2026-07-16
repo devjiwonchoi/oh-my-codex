@@ -5,6 +5,7 @@ import { once } from 'node:events';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { listProcessTable } from '../bootstrap.js';
 
 const STARTUP_SETTLE_MS = 150;
 const SPAWN_TIMEOUT_MS = 1_500;
@@ -114,8 +115,8 @@ function spawnEntrypoint(entrypoint: EntryPoint): {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      OMX_MCP_DUPLICATE_SIBLING_INITIAL_DELAY_MS: '5000',
-      OMX_MCP_LIFECYCLE_LOG: 'off',
+      NOMX_MCP_DUPLICATE_SIBLING_INITIAL_DELAY_MS: '5000',
+      NOMX_MCP_LIFECYCLE_LOG: 'off',
     },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -219,14 +220,18 @@ describe('MCP stdio lifecycle runtime regression (built entrypoints)', () => {
     });
   }
 
-  it('uninitialized older duplicate entrypoints self-exit while the newest sibling survives', async () => {
+  it('uninitialized older duplicate entrypoints self-exit while the newest sibling survives', async (t) => {
+    if (listProcessTable() === null) {
+      t.skip('process-table inspection is unavailable in this environment');
+      return;
+    }
     const entrypoint = IDLE_ENTRYPOINTS[0];
     const sharedEnv = {
       ...process.env,
-      OMX_MCP_PARENT_WATCHDOG_INTERVAL_MS: '250',
-      OMX_MCP_DUPLICATE_SIBLING_WATCHDOG_INTERVAL_MS: '250',
-      OMX_MCP_DUPLICATE_SIBLING_PRE_TRAFFIC_GRACE_MS: '500',
-      OMX_MCP_LIFECYCLE_LOG: 'off',
+      NOMX_MCP_PARENT_WATCHDOG_INTERVAL_MS: '250',
+      NOMX_MCP_DUPLICATE_SIBLING_WATCHDOG_INTERVAL_MS: '250',
+      NOMX_MCP_DUPLICATE_SIBLING_PRE_TRAFFIC_GRACE_MS: '500',
+      NOMX_MCP_LIFECYCLE_LOG: 'off',
     };
     const older = spawn(process.execPath, [join(process.cwd(), 'dist', 'mcp', entrypoint.file)], {
       cwd: process.cwd(),
@@ -279,10 +284,10 @@ describe('MCP stdio lifecycle runtime regression (built entrypoints)', () => {
     const entrypoint = IDLE_ENTRYPOINTS[0];
     const sharedEnv = {
       ...process.env,
-      OMX_MCP_PARENT_WATCHDOG_INTERVAL_MS: '250',
-      OMX_MCP_DUPLICATE_SIBLING_WATCHDOG_INTERVAL_MS: '250',
-      OMX_MCP_DUPLICATE_SIBLING_PRE_TRAFFIC_GRACE_MS: '500',
-      OMX_MCP_LIFECYCLE_LOG: 'off',
+      NOMX_MCP_PARENT_WATCHDOG_INTERVAL_MS: '250',
+      NOMX_MCP_DUPLICATE_SIBLING_WATCHDOG_INTERVAL_MS: '250',
+      NOMX_MCP_DUPLICATE_SIBLING_PRE_TRAFFIC_GRACE_MS: '500',
+      NOMX_MCP_LIFECYCLE_LOG: 'off',
     };
     const older = spawn(process.execPath, [join(process.cwd(), 'dist', 'mcp', entrypoint.file)], {
       cwd: process.cwd(),
@@ -346,17 +351,21 @@ describe('MCP stdio lifecycle runtime regression (built entrypoints)', () => {
     }
   });
 
-  it('pre-traffic sibling hard cap cleans up no-traffic app-server children and records telemetry', async () => {
+  it('pre-traffic sibling hard cap cleans up no-traffic app-server children and records telemetry', async (t) => {
+    if (listProcessTable() === null) {
+      t.skip('process-table inspection is unavailable in this environment');
+      return;
+    }
     const entrypoint = IDLE_ENTRYPOINTS[0];
-    const logDir = await mkdtemp(join(tmpdir(), 'omx-mcp-runtime-lifecycle-'));
+    const logDir = await mkdtemp(join(tmpdir(), 'nomx-mcp-runtime-lifecycle-'));
     const sharedEnv = {
       ...process.env,
-      OMX_MCP_PARENT_WATCHDOG_INTERVAL_MS: '250',
-      OMX_MCP_DUPLICATE_SIBLING_INITIAL_DELAY_MS: '0',
-      OMX_MCP_DUPLICATE_SIBLING_WATCHDOG_INTERVAL_MS: '250',
-      OMX_MCP_DUPLICATE_SIBLING_PRE_TRAFFIC_GRACE_MS: '60000',
-      OMX_MCP_MAX_SIBLINGS_PER_ENTRYPOINT: '4',
-      OMX_MCP_LIFECYCLE_LOG_DIR: logDir,
+      NOMX_MCP_PARENT_WATCHDOG_INTERVAL_MS: '250',
+      NOMX_MCP_DUPLICATE_SIBLING_INITIAL_DELAY_MS: '0',
+      NOMX_MCP_DUPLICATE_SIBLING_WATCHDOG_INTERVAL_MS: '250',
+      NOMX_MCP_DUPLICATE_SIBLING_PRE_TRAFFIC_GRACE_MS: '60000',
+      NOMX_MCP_MAX_SIBLINGS_PER_ENTRYPOINT: '4',
+      NOMX_MCP_LIFECYCLE_LOG_DIR: logDir,
     };
     const children: ChildProcess[] = [];
     const stdout: string[] = [];

@@ -6,31 +6,28 @@ import {
   readUsableSessionState,
   type SessionState,
 } from '../hooks/session.js';
+import { NOMX_IDENTITY, resolveNamespaceEnvironment, resolveNamespacePath } from '../identity/index.js';
 
 export const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 export const STATE_MODE_SEGMENT_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const STATE_FILE_SUFFIX = '-state.json';
 const STATE_FILE_NAME_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
-const WORKDIR_ALLOWLIST_ENV = 'OMX_MCP_WORKDIR_ROOTS';
-const OMX_ROOT_ENV = 'OMX_ROOT';
-const OMX_STATE_ROOT_ENV = 'OMX_STATE_ROOT';
-const OMX_TEAM_STATE_ROOT_ENV = 'OMX_TEAM_STATE_ROOT';
-const OMX_SESSION_ID_ENV = 'OMX_SESSION_ID';
+const WORKDIR_ALLOWLIST_SUFFIX = 'MCP_WORKDIR_ROOTS';
 
 export const WRITABLE_STATE_SCOPE_ERRORS = {
   unusableSession: 'Cannot resolve writable state scope: session.json is present but unusable.',
-  unboundEnvironment: 'Cannot resolve writable state scope: OMX_SESSION_ID is not bound to session.json.',
+  unboundEnvironment: 'Cannot resolve writable state scope: NOMX_SESSION_ID is not bound to session.json.',
 } as const;
 
 
-export type StateRootSource = 'team-env' | 'omx-root-env' | 'omx-state-root-env' | 'cwd-default';
+export type StateRootSource = 'team-env' | 'nomx-root-env' | 'nomx-state-root-env' | 'cwd-default';
 export type SessionScopeSource = 'explicit' | 'env' | 'session-json' | 'native-alias' | 'root';
 
 export interface ResolvedSessionMetadata {
   sessionId: string;
   nativeSessionId?: string;
   nativeSessionAliases: string[];
-  ownerOmxSessionId?: string;
+  ownerNomxSessionId?: string;
   ownerCodexSessionId?: string;
   ownerCodexThreadId?: string;
   leaderPaneId?: string;
@@ -199,7 +196,10 @@ function canonicalizeExistingPath(path: string): string {
 }
 
 function parseAllowedWorkingDirectoryRoots(): string[] {
-  const raw = process.env[WORKDIR_ALLOWLIST_ENV];
+  const resolvedEnvironment = resolveNamespaceEnvironment(
+    { suffix: WORKDIR_ALLOWLIST_SUFFIX, kind: 'string' },
+  );
+  const raw = typeof resolvedEnvironment.value === 'string' ? resolvedEnvironment.value : undefined;
   if (typeof raw !== 'string' || raw.trim() === '') return [];
 
   const roots = raw
@@ -208,12 +208,12 @@ function parseAllowedWorkingDirectoryRoots(): string[] {
     .filter(Boolean)
     .map((part) => {
       if (part.includes('\0')) {
-        throw new Error(`${WORKDIR_ALLOWLIST_ENV} contains an invalid root with a NUL byte`);
+        throw new Error(`${resolvedEnvironment.canonicalName} contains an invalid root with a NUL byte`);
       }
       const resolvedRoot = resolvePath(part);
       const realRoot = canonicalizeExistingPath(resolvedRoot);
       if (realRoot !== resolvedRoot) {
-        throw new Error(`${WORKDIR_ALLOWLIST_ENV} root "${resolvedRoot}" resolves through a symlink to "${realRoot}"`);
+        throw new Error(`${resolvedEnvironment.canonicalName} root "${resolvedRoot}" resolves through a symlink to "${realRoot}"`);
       }
       return realRoot;
     });
@@ -234,29 +234,38 @@ function enforceWorkingDirectoryPolicy(resolvedWorkingDirectory: string): string
   const allowed = roots.some((root) => isWithinRoot(canonicalWorkingDirectory, root));
   if (!allowed) {
     throw new Error(
-      `workingDirectory "${canonicalWorkingDirectory}" is outside allowed roots (${WORKDIR_ALLOWLIST_ENV})`,
+      `workingDirectory "${canonicalWorkingDirectory}" is outside allowed roots (NOMX_MCP_WORKDIR_ROOTS)`,
     );
   }
   return canonicalWorkingDirectory;
 }
 
 export function getBaseStateDirWithSource(workingDirectory?: string): { baseStateDir: string; rootSource: StateRootSource } {
-  const teamStateRootOverride = process.env[OMX_TEAM_STATE_ROOT_ENV]?.trim();
-  if (typeof teamStateRootOverride === 'string' && teamStateRootOverride !== '') {
+  const teamStateRootOverride = resolveNamespacePath('TEAM_STATE_ROOT').value;
+  if (teamStateRootOverride) {
     return { baseStateDir: resolveWorkingDirectoryForState(teamStateRootOverride), rootSource: 'team-env' };
   }
 
-  const omxRootOverride = process.env[OMX_ROOT_ENV]?.trim();
-  if (typeof omxRootOverride === 'string' && omxRootOverride !== '') {
-    return { baseStateDir: join(resolveWorkingDirectoryForState(omxRootOverride), '.omx', 'state'), rootSource: 'omx-root-env' };
+  const nomxRootOverride = resolveNamespacePath('ROOT').value;
+  if (nomxRootOverride) {
+    return {
+      baseStateDir: join(resolveWorkingDirectoryForState(nomxRootOverride), NOMX_IDENTITY.projectDirectoryName, 'state'),
+      rootSource: 'nomx-root-env',
+    };
   }
 
-  const omxStateRootOverride = process.env[OMX_STATE_ROOT_ENV]?.trim();
-  if (typeof omxStateRootOverride === 'string' && omxStateRootOverride !== '') {
-    return { baseStateDir: join(resolveWorkingDirectoryForState(omxStateRootOverride), '.omx', 'state'), rootSource: 'omx-state-root-env' };
+  const nomxStateRootOverride = resolveNamespacePath('STATE_ROOT').value;
+  if (nomxStateRootOverride) {
+    return {
+      baseStateDir: join(resolveWorkingDirectoryForState(nomxStateRootOverride), NOMX_IDENTITY.projectDirectoryName, 'state'),
+      rootSource: 'nomx-state-root-env',
+    };
   }
 
-  return { baseStateDir: join(resolveWorkingDirectoryForState(workingDirectory), '.omx', 'state'), rootSource: 'cwd-default' };
+  return {
+    baseStateDir: join(resolveWorkingDirectoryForState(workingDirectory), NOMX_IDENTITY.projectDirectoryName, 'state'),
+    rootSource: 'cwd-default',
+  };
 }
 export function getBaseStateDir(workingDirectory?: string): string {
   return getBaseStateDirWithSource(workingDirectory).baseStateDir;
@@ -284,7 +293,8 @@ export interface ResolvedStateScope {
 }
 
 function readSessionIdFromEnvironment(env: NodeJS.ProcessEnv = process.env): string | undefined {
-  const candidates = [env[OMX_SESSION_ID_ENV], env.CODEX_SESSION_ID, env.SESSION_ID];
+  const namespaceSessionId = resolveNamespaceEnvironment({ suffix: 'SESSION_ID', kind: 'string' }, env).value;
+  const candidates = [namespaceSessionId, env.CODEX_SESSION_ID, env.SESSION_ID];
   for (const candidate of candidates) {
     const sessionId = normalizeSessionId(candidate);
     if (sessionId) return sessionId;
@@ -292,11 +302,15 @@ function readSessionIdFromEnvironment(env: NodeJS.ProcessEnv = process.env): str
   return undefined;
 }
 
+function readNamespaceSessionId(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  return normalizeSessionId(resolveNamespaceEnvironment({ suffix: 'SESSION_ID', kind: 'string' }, env).value);
+}
+
 
 function resolveCanonicalSessionId(candidate: string | undefined, metadata: ResolvedSessionMetadata | undefined): string | undefined {
   if (!candidate) return undefined;
   if (!metadata) return candidate;
-  return metadata.nativeSessionAliases.includes(candidate) || metadata.ownerOmxSessionId === candidate
+  return metadata.nativeSessionAliases.includes(candidate) || metadata.ownerNomxSessionId === candidate
     ? metadata.sessionId
     : candidate;
 }
@@ -328,7 +342,7 @@ function normalizeSessionMetadata(state: SessionState | null, sourcePath?: strin
   ]
     .map(normalizeSessionId)
     .filter((value): value is string => Boolean(value)))];
-  const ownerOmxSessionId = normalizeSessionId(raw.owner_omx_session_id);
+  const ownerNomxSessionId = normalizeSessionId(raw.owner_omx_session_id);
   const ownerCodexSessionId = normalizeSessionId(raw.owner_codex_session_id);
   const ownerCodexThreadId = typeof raw.owner_codex_thread_id === 'string' && raw.owner_codex_thread_id.trim()
     ? raw.owner_codex_thread_id.trim()
@@ -346,7 +360,7 @@ function normalizeSessionMetadata(state: SessionState | null, sourcePath?: strin
     sessionId,
     ...(nativeSessionId ? { nativeSessionId } : {}),
     nativeSessionAliases,
-    ...(ownerOmxSessionId ? { ownerOmxSessionId } : {}),
+    ...(ownerNomxSessionId ? { ownerNomxSessionId } : {}),
     ...(ownerCodexSessionId ? { ownerCodexSessionId } : {}),
     ...(ownerCodexThreadId ? { ownerCodexThreadId } : {}),
     ...(leaderPaneId ? { leaderPaneId } : {}),
@@ -376,7 +390,7 @@ export async function readCurrentSessionId(workingDirectory?: string): Promise<s
 
   if (metadata?.sessionId) return metadata.sessionId;
 
-  const localStateDir = join(cwd, '.omx', 'state');
+  const localStateDir = join(cwd, '.nomx', 'state');
   if (resolvePath(baseStateDir) !== resolvePath(localStateDir)) {
     return undefined;
   }
@@ -386,7 +400,7 @@ export async function readCurrentSessionId(workingDirectory?: string): Promise<s
 
 function isKnownSessionAlias(sessionId: string, metadata: ResolvedSessionMetadata): boolean {
   return metadata.nativeSessionAliases.includes(sessionId)
-    || metadata.ownerOmxSessionId === sessionId
+    || metadata.ownerNomxSessionId === sessionId
     || metadata.ownerCodexSessionId === sessionId;
 }
 
@@ -395,7 +409,7 @@ function isKnownSessionAlias(sessionId: string, metadata: ResolvedSessionMetadat
  * Writable scope precedence:
  * - explicit session_id preserves explicit fork writes;
  * - a usable session.json supplies the only implicit session scope;
- * - OMX_SESSION_ID may bind a known alias only when the live tmux pane proves
+ * - NOMX_SESSION_ID may bind a known alias only when the live tmux pane proves
  *   the canonical session tag;
  * - root writes are allowed only when session.json is absent.
  */
@@ -420,7 +434,7 @@ export async function resolveWritableStateScope(
     if (existsSync(join(baseStateDir, 'session.json'))) {
       throw new Error(WRITABLE_STATE_SCOPE_ERRORS.unusableSession);
     }
-    if (normalizeSessionId(process.env[OMX_SESSION_ID_ENV])) {
+    if (readNamespaceSessionId()) {
       throw new Error(WRITABLE_STATE_SCOPE_ERRORS.unboundEnvironment);
     }
     return {
@@ -429,7 +443,7 @@ export async function resolveWritableStateScope(
     };
   }
 
-  const envSessionId = normalizeSessionId(process.env[OMX_SESSION_ID_ENV]);
+  const envSessionId = readNamespaceSessionId();
   if (!envSessionId || envSessionId === metadata.sessionId) {
     return {
       source: 'session',

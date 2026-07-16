@@ -115,7 +115,7 @@ function safeString(value: unknown): string {
 }
 
 export function resolveQuestionRunId(env: NodeJS.ProcessEnv = process.env): string | undefined {
-  return safeString(env.OMX_RUN_ID) || safeString(env.OMX_RUN_ID_OVERRIDE) || safeString(env.OMX_CURRENT_RUN_ID) || undefined;
+  return safeString(env.NOMX_RUN_ID) || safeString(env.NOMX_RUN_ID_OVERRIDE) || safeString(env.NOMX_CURRENT_RUN_ID) || undefined;
 }
 
 function truncateSummary(value: string, max = 600): string {

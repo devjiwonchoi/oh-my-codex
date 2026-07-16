@@ -18,9 +18,9 @@ import {
 
 describe('notify-hook state I/O session authority', () => {
   it('uses an explicit session id before the current session pointer', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-state-io-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-state-io-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       await mkdir(join(stateDir, 'sessions', 'sess-current'), { recursive: true });
       await mkdir(join(stateDir, 'sessions', 'sess-explicit'), { recursive: true });
       await writeFile(
@@ -49,9 +49,9 @@ describe('notify-hook state I/O session authority', () => {
   });
 
   it('does not read current-session data when an explicit session has no state file', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-state-io-missing-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-state-io-missing-'));
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       await mkdir(join(stateDir, 'sessions', 'sess-current'), { recursive: true });
       await writeFile(
         join(stateDir, 'session.json'),
@@ -77,7 +77,7 @@ describe('notify-hook state I/O session authority', () => {
   });
 
   it('resolves current session from authoritative team state root without cwd inference', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-state-io-team-root-'));
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-state-io-team-root-'));
     try {
       const teamStateRoot = join(wd, 'team-state-root');
       await mkdir(join(teamStateRoot, 'sessions', 'sess-team-root'), { recursive: true });
@@ -105,11 +105,11 @@ describe('notify-hook state I/O session authority', () => {
     }
   });
 
-  it('prefers OMX_SESSION_ID over stale session.json for notify state writes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-state-io-env-'));
-    const previousSessionId = process.env.OMX_SESSION_ID;
+  it('prefers NOMX_SESSION_ID over stale session.json for notify state writes', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-state-io-env-'));
+    const previousSessionId = process.env.NOMX_SESSION_ID;
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       await mkdir(join(stateDir, 'sessions', 'sess-env'), { recursive: true });
       await mkdir(join(stateDir, 'sessions', 'sess-stale'), { recursive: true });
       await writeFile(
@@ -117,7 +117,7 @@ describe('notify-hook state I/O session authority', () => {
         JSON.stringify({ session_id: 'sess-stale', cwd: join(wd, '..', 'other-worktree') }, null, 2),
         'utf-8',
       );
-      process.env.OMX_SESSION_ID = 'sess-env';
+      process.env.NOMX_SESSION_ID = 'sess-env';
 
       assert.equal(await readCurrentSessionId(stateDir), 'sess-env');
       assert.equal(await resolveScopedStateDir(stateDir), join(stateDir, 'sessions', 'sess-env'));
@@ -128,55 +128,55 @@ describe('notify-hook state I/O session authority', () => {
       ) as { turn_count?: unknown };
       assert.equal(value.turn_count, 7);
     } finally {
-      if (typeof previousSessionId === 'string') process.env.OMX_SESSION_ID = previousSessionId;
-      else delete process.env.OMX_SESSION_ID;
+      if (typeof previousSessionId === 'string') process.env.NOMX_SESSION_ID = previousSessionId;
+      else delete process.env.NOMX_SESSION_ID;
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it('maps native Codex session aliases to the canonical OMX session', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-state-io-native-alias-'));
-    const previousOmxSessionId = process.env.OMX_SESSION_ID;
+  it('maps native Codex session aliases to the canonical NOMX session', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-state-io-native-alias-'));
+    const previousOmxSessionId = process.env.NOMX_SESSION_ID;
     const previousCodexSessionId = process.env.CODEX_SESSION_ID;
     try {
-      const stateDir = join(wd, '.omx', 'state');
-      await mkdir(join(stateDir, 'sessions', 'omx-canonical'), { recursive: true });
+      const stateDir = join(wd, '.nomx', 'state');
+      await mkdir(join(stateDir, 'sessions', 'nomx-canonical'), { recursive: true });
       await writeFile(
         join(stateDir, 'session.json'),
         JSON.stringify({
-          session_id: 'omx-canonical',
+          session_id: 'nomx-canonical',
           native_session_id: 'codex-native',
           cwd: wd,
         }, null, 2),
         'utf-8',
       );
-      delete process.env.OMX_SESSION_ID;
+      delete process.env.NOMX_SESSION_ID;
       process.env.CODEX_SESSION_ID = 'codex-native';
 
-      assert.equal(await readCurrentSessionId(stateDir), 'omx-canonical');
-      assert.equal(await resolveScopedStateDir(stateDir), join(stateDir, 'sessions', 'omx-canonical'));
+      assert.equal(await readCurrentSessionId(stateDir), 'nomx-canonical');
+      assert.equal(await resolveScopedStateDir(stateDir), join(stateDir, 'sessions', 'nomx-canonical'));
 
       await writeScopedJson(stateDir, 'hud-state.json', undefined, { turn_count: 11 });
       const value = JSON.parse(
-        await readFile(join(stateDir, 'sessions', 'omx-canonical', 'hud-state.json'), 'utf-8'),
+        await readFile(join(stateDir, 'sessions', 'nomx-canonical', 'hud-state.json'), 'utf-8'),
       ) as { turn_count?: unknown };
       assert.equal(value.turn_count, 11);
     } finally {
-      if (typeof previousOmxSessionId === 'string') process.env.OMX_SESSION_ID = previousOmxSessionId;
-      else delete process.env.OMX_SESSION_ID;
+      if (typeof previousOmxSessionId === 'string') process.env.NOMX_SESSION_ID = previousOmxSessionId;
+      else delete process.env.NOMX_SESSION_ID;
       if (typeof previousCodexSessionId === 'string') process.env.CODEX_SESSION_ID = previousCodexSessionId;
       else delete process.env.CODEX_SESSION_ID;
       await rm(wd, { recursive: true, force: true });
     }
   });
 
-  it('maps the recorded OMX owner alias to the canonical session for implicit and explicit writes', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-state-io-owner-alias-'));
-    const previousOmxSessionId = process.env.OMX_SESSION_ID;
+  it('maps the recorded NOMX owner alias to the canonical session for implicit and explicit writes', async () => {
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-state-io-owner-alias-'));
+    const previousOmxSessionId = process.env.NOMX_SESSION_ID;
     try {
-      const stateDir = join(wd, '.omx', 'state');
-      const canonicalSessionId = 'omx-canonical';
-      const ownerSessionId = 'omx-owner';
+      const stateDir = join(wd, '.nomx', 'state');
+      const canonicalSessionId = 'nomx-canonical';
+      const ownerSessionId = 'nomx-owner';
       await mkdir(join(stateDir, 'sessions', canonicalSessionId), { recursive: true });
       await writeFile(
         join(stateDir, 'session.json'),
@@ -187,7 +187,7 @@ describe('notify-hook state I/O session authority', () => {
         }, null, 2),
         'utf-8',
       );
-      process.env.OMX_SESSION_ID = ownerSessionId;
+      process.env.NOMX_SESSION_ID = ownerSessionId;
 
       assert.equal(await readCurrentSessionId(stateDir), canonicalSessionId);
       assert.equal(
@@ -206,24 +206,24 @@ describe('notify-hook state I/O session authority', () => {
       assert.equal(value.turn_count, 12);
       assert.equal(existsSync(join(stateDir, 'sessions', ownerSessionId)), false);
     } finally {
-      if (typeof previousOmxSessionId === 'string') process.env.OMX_SESSION_ID = previousOmxSessionId;
-      else delete process.env.OMX_SESSION_ID;
+      if (typeof previousOmxSessionId === 'string') process.env.NOMX_SESSION_ID = previousOmxSessionId;
+      else delete process.env.NOMX_SESSION_ID;
       await rm(wd, { recursive: true, force: true });
     }
   });
 
   it('uses the immutable target scope without consulting a stale environment session', async () => {
-    const wd = await mkdtemp(join(tmpdir(), 'omx-notify-state-io-context-'));
-    const previousOmxSessionId = process.env.OMX_SESSION_ID;
+    const wd = await mkdtemp(join(tmpdir(), 'nomx-notify-state-io-context-'));
+    const previousOmxSessionId = process.env.NOMX_SESSION_ID;
     try {
-      const stateDir = join(wd, '.omx', 'state');
+      const stateDir = join(wd, '.nomx', 'state');
       const scope = {
         targetSessionId: 'fork-existing',
         ownerCodexSessionId: 'payload-owner',
         allowedStorageSessionIds: ['fork-existing'],
       };
       await mkdir(join(stateDir, 'sessions', 'fork-existing'), { recursive: true });
-      process.env.OMX_SESSION_ID = 'stale-singleton';
+      process.env.NOMX_SESSION_ID = 'stale-singleton';
 
       assert.equal(
         await getScopedStatePathAtScope(stateDir, 'hud-state.json', scope),
@@ -233,8 +233,8 @@ describe('notify-hook state I/O session authority', () => {
       assert.deepEqual(await readScopedJsonAtScope(stateDir, 'hud-state.json', scope, null), { turn_count: 1 });
       assert.equal(existsSync(join(stateDir, 'sessions', 'stale-singleton')), false);
     } finally {
-      if (typeof previousOmxSessionId === 'string') process.env.OMX_SESSION_ID = previousOmxSessionId;
-      else delete process.env.OMX_SESSION_ID;
+      if (typeof previousOmxSessionId === 'string') process.env.NOMX_SESSION_ID = previousOmxSessionId;
+      else delete process.env.NOMX_SESSION_ID;
       await rm(wd, { recursive: true, force: true });
     }
   });

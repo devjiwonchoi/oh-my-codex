@@ -17,18 +17,18 @@ import { join } from "node:path";
 // We need to mock fs before importing config, so we use dynamic imports
 // after setting up mocks per test.
 
-const PROFILE_ENV_KEY = "OMX_NOTIFY_PROFILE";
+const PROFILE_ENV_KEY = "NOMX_NOTIFY_PROFILE";
 
 function clearProfileEnv(): void {
   delete process.env.CODEX_HOME;
   delete process.env[PROFILE_ENV_KEY];
-  delete process.env.OMX_DISCORD_NOTIFIER_BOT_TOKEN;
-  delete process.env.OMX_DISCORD_NOTIFIER_CHANNEL;
-  delete process.env.OMX_DISCORD_WEBHOOK_URL;
-  delete process.env.OMX_DISCORD_MENTION;
-  delete process.env.OMX_TELEGRAM_BOT_TOKEN;
-  delete process.env.OMX_TELEGRAM_CHAT_ID;
-  delete process.env.OMX_SLACK_WEBHOOK_URL;
+  delete process.env.NOMX_DISCORD_NOTIFIER_BOT_TOKEN;
+  delete process.env.NOMX_DISCORD_NOTIFIER_CHANNEL;
+  delete process.env.NOMX_DISCORD_WEBHOOK_URL;
+  delete process.env.NOMX_DISCORD_MENTION;
+  delete process.env.NOMX_TELEGRAM_BOT_TOKEN;
+  delete process.env.NOMX_TELEGRAM_CHAT_ID;
+  delete process.env.NOMX_SLACK_WEBHOOK_URL;
 }
 
 // ---------- resolveProfileConfig (pure function, no fs needed) ----------
@@ -87,7 +87,7 @@ describe("resolveProfileConfig", () => {
     assert.deepEqual(result, workProfile);
   });
 
-  it("resolves OMX_NOTIFY_PROFILE env var when no explicit name", () => {
+  it("resolves NOMX_NOTIFY_PROFILE env var when no explicit name", () => {
     process.env[PROFILE_ENV_KEY] = "personal";
     const personalProfile = {
       enabled: true,
@@ -262,8 +262,8 @@ describe("getNotificationConfig with profiles", () => {
   });
 
   it("env-only config still works without profiles", async () => {
-    process.env.OMX_TELEGRAM_BOT_TOKEN = "123:abc";
-    process.env.OMX_TELEGRAM_CHAT_ID = "999";
+    process.env.NOMX_TELEGRAM_BOT_TOKEN = "123:abc";
+    process.env.NOMX_TELEGRAM_CHAT_ID = "999";
 
     const { getNotificationConfig } = await import("../config.js");
     const config = getNotificationConfig();
@@ -275,8 +275,8 @@ describe("getNotificationConfig with profiles", () => {
   it("getNotificationConfig passes profileName to resolver", async () => {
     // When no file config exists and only env, profileName is a no-op
     // but should not break anything
-    process.env.OMX_TELEGRAM_BOT_TOKEN = "123:abc";
-    process.env.OMX_TELEGRAM_CHAT_ID = "999";
+    process.env.NOMX_TELEGRAM_BOT_TOKEN = "123:abc";
+    process.env.NOMX_TELEGRAM_CHAT_ID = "999";
 
     const { getNotificationConfig } = await import("../config.js");
     const config = getNotificationConfig("nonexistent");
@@ -285,12 +285,12 @@ describe("getNotificationConfig with profiles", () => {
   });
 
   it("applies a valid env Discord mention to the selected profile", async () => {
-    const codexHome = await mkdtemp(join(tmpdir(), "omx-notify-profile-"));
+    const codexHome = await mkdtemp(join(tmpdir(), "nomx-notify-profile-"));
     try {
       process.env.CODEX_HOME = codexHome;
-      process.env.OMX_DISCORD_MENTION = "<@12345678901234567>";
+      process.env.NOMX_DISCORD_MENTION = "<@12345678901234567>";
       await mkdir(codexHome, { recursive: true });
-      await writeFile(join(codexHome, ".omx-config.json"), JSON.stringify({
+      await writeFile(join(codexHome, ".nomx-config.json"), JSON.stringify({
         notifications: {
           enabled: true,
           profiles: {
@@ -322,11 +322,11 @@ describe("getNotificationConfig with profiles", () => {
   });
 
   it("applies env Discord mention without overriding explicit profile or event mentions", async () => {
-    const codexHome = await mkdtemp(join(tmpdir(), "omx-notify-profile-"));
+    const codexHome = await mkdtemp(join(tmpdir(), "nomx-notify-profile-"));
     try {
       process.env.CODEX_HOME = codexHome;
-      process.env.OMX_DISCORD_MENTION = "<@12345678901234567>";
-      await writeFile(join(codexHome, ".omx-config.json"), JSON.stringify({
+      process.env.NOMX_DISCORD_MENTION = "<@12345678901234567>";
+      await writeFile(join(codexHome, ".nomx-config.json"), JSON.stringify({
         notifications: {
           enabled: true,
           profiles: {
@@ -406,7 +406,7 @@ describe("getActiveProfileName", () => {
     clearProfileEnv();
   });
 
-  it("returns env var value when OMX_NOTIFY_PROFILE is set", async () => {
+  it("returns env var value when NOMX_NOTIFY_PROFILE is set", async () => {
     process.env[PROFILE_ENV_KEY] = "my-profile";
     const { getActiveProfileName } = await import("../config.js");
     const name = getActiveProfileName();
@@ -509,8 +509,8 @@ describe("profile edge cases", () => {
   });
 
   it("env vars merge into selected profile config", async () => {
-    process.env.OMX_TELEGRAM_BOT_TOKEN = "env-token";
-    process.env.OMX_TELEGRAM_CHAT_ID = "env-chat";
+    process.env.NOMX_TELEGRAM_BOT_TOKEN = "env-token";
+    process.env.NOMX_TELEGRAM_CHAT_ID = "env-chat";
 
     const { buildConfigFromEnv, resolveProfileConfig } = await import(
       "../config.js"

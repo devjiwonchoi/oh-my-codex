@@ -2,7 +2,7 @@ import { existsSync } from 'fs';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { spawnSync } from 'child_process';
 import { join } from 'path';
-import { omxRoot } from '../utils/paths.js';
+import { nomxRoot } from '../utils/paths.js';
 import { getPackageRoot } from '../utils/package.js';
 import { resolveCodexPane } from '../scripts/tmux-hook-engine.js';
 import { resolveTmuxBinaryForPlatform } from '../utils/platform-command.js';
@@ -50,8 +50,8 @@ const DEFAULT_CONFIG: TmuxHookConfig = {
   allowed_modes: ['ralph', 'ultrawork', 'team'],
   cooldown_ms: 15000,
   max_injections_per_session: 200,
-  prompt_template: 'Continue from current mode state. [OMX_TMUX_INJECT]',
-  marker: '[OMX_TMUX_INJECT]',
+  prompt_template: 'Continue from current mode state. [NOMX_TMUX_INJECT]',
+  marker: '[NOMX_TMUX_INJECT]',
   dry_run: false,
   log_level: 'info',
   skip_if_scrolling: true,
@@ -59,7 +59,7 @@ const DEFAULT_CONFIG: TmuxHookConfig = {
 
 const HELP = `
 Usage:
-  nomx tmux-hook init       Create .omx/tmux-hook.json
+  nomx tmux-hook init       Create .nomx/tmux-hook.json
   nomx tmux-hook status     Show config + runtime state summary
   nomx tmux-hook validate   Validate config and tmux target reachability
   nomx tmux-hook test       Run a synthetic notify-hook turn (end-to-end)
@@ -90,20 +90,20 @@ export async function tmuxHookCommand(args: string[]): Promise<void> {
   }
 }
 
-function omxDir(cwd = process.cwd()): string {
-  return omxRoot(cwd);
+function nomxDir(cwd = process.cwd()): string {
+  return nomxRoot(cwd);
 }
 
 function tmuxHookConfigPath(cwd = process.cwd()): string {
-  return join(omxDir(cwd), 'tmux-hook.json');
+  return join(nomxDir(cwd), 'tmux-hook.json');
 }
 
 function tmuxHookStatePath(cwd = process.cwd()): string {
-  return join(omxDir(cwd), 'state', 'tmux-hook-state.json');
+  return join(nomxDir(cwd), 'state', 'tmux-hook-state.json');
 }
 
 function tmuxHookLogPath(cwd = process.cwd()): string {
-  return join(omxDir(cwd), 'logs', `tmux-hook-${new Date().toISOString().split('T')[0]}.jsonl`);
+  return join(nomxDir(cwd), 'logs', `tmux-hook-${new Date().toISOString().split('T')[0]}.jsonl`);
 }
 
 function parseConfig(raw: unknown): TmuxHookConfig {
@@ -197,7 +197,7 @@ async function loadConfigForCommand(
         console.log(`Detected tmux session: ${initResult.detectedSession}`);
       }
       if (initResult.usedPlaceholderTarget) {
-        console.log('Could not auto-detect a tmux target. Edit `.omx/tmux-hook.json` when ready.');
+        console.log('Could not auto-detect a tmux target. Edit `.nomx/tmux-hook.json` when ready.');
         if (commandName === 'validate') {
           console.log('Validation skipped until `target.value` is configured.');
         }
@@ -332,7 +332,7 @@ async function initTmuxHookConfig(opts?: { silent?: boolean; cwd?: string }): Pr
   const cwd = opts?.cwd ?? process.cwd();
   const silent = opts?.silent ?? false;
   const configPath = tmuxHookConfigPath(cwd);
-  await mkdir(omxDir(cwd), { recursive: true });
+  await mkdir(nomxDir(cwd), { recursive: true });
 
   if (existsSync(configPath)) {
     if (!silent) {
@@ -480,5 +480,5 @@ async function testTmuxHook(args: string[]): Promise<void> {
   console.log('tmux-hook test: notify-hook executed.');
   console.log(`thread_id=${threadId}`);
   console.log(`turn_id=${turnId}`);
-  console.log('Check: .omx/logs/tmux-hook-YYYY-MM-DD.jsonl for skip/reason codes.');
+  console.log('Check: .nomx/logs/tmux-hook-YYYY-MM-DD.jsonl for skip/reason codes.');
 }

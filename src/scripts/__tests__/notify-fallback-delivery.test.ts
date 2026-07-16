@@ -17,7 +17,7 @@ function deliveryKeyHash(threadId: string, turnId: string): string {
 }
 
 async function withState(run: (stateDir: string) => Promise<void>): Promise<void> {
-  const root = await mkdtemp(join(tmpdir(), 'omx-notify-fallback-delivery-'));
+  const root = await mkdtemp(join(tmpdir(), 'nomx-notify-fallback-delivery-'));
   try { await run(join(root, 'state')); } finally { await rm(root, { recursive: true, force: true }); }
 }
 
@@ -72,8 +72,8 @@ describe('notify fallback delivery', () => {
   }));
 
   it('isolates workspace roots and turns while retaining delivered authority', async () => {
-    const rootA = await mkdtemp(join(tmpdir(), 'omx-notify-isolation-a-'));
-    const rootB = await mkdtemp(join(tmpdir(), 'omx-notify-isolation-b-'));
+    const rootA = await mkdtemp(join(tmpdir(), 'nomx-notify-isolation-a-'));
+    const rootB = await mkdtemp(join(tmpdir(), 'nomx-notify-isolation-b-'));
     try {
       let starts = 0;
       const build = (stateDir: string, turnId: string, threadId = 'thread') => ({
@@ -135,8 +135,8 @@ describe('notify fallback delivery', () => {
   }));
 });
   it('fails closed when the delivery store root is a symlink', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'omx-notify-symlink-'));
-    const external = await mkdtemp(join(tmpdir(), 'omx-notify-external-'));
+    const root = await mkdtemp(join(tmpdir(), 'nomx-notify-symlink-'));
+    const external = await mkdtemp(join(tmpdir(), 'nomx-notify-external-'));
     try {
       const stateDir = join(root, 'state');
       await mkdir(stateDir, { recursive: true });

@@ -6,10 +6,10 @@ import { join } from 'node:path';
 import { startMode } from '../base.js';
 
 const STATE_ENV_KEYS = [
-  'OMX_ROOT',
-  'OMX_STATE_ROOT',
-  'OMX_TEAM_STATE_ROOT',
-  'OMX_SESSION_ID',
+  'NOMX_ROOT',
+  'NOMX_STATE_ROOT',
+  'NOMX_TEAM_STATE_ROOT',
+  'NOMX_SESSION_ID',
   'CODEX_SESSION_ID',
   'SESSION_ID',
 ] as const;
@@ -37,9 +37,9 @@ describe('modes/base tmux pane capture', () => {
       const prev = process.env.TMUX_PANE;
       const prevTmux = process.env.TMUX;
       const prevPath = process.env.PATH;
-      const prevHudOwner = process.env.OMX_TMUX_HUD_OWNER;
+      const prevHudOwner = process.env.NOMX_TMUX_HUD_OWNER;
       process.env.TMUX_PANE = '%123';
-      const wd = await mkdtemp(join(tmpdir(), 'omx-mode-pane-'));
+      const wd = await mkdtemp(join(tmpdir(), 'nomx-mode-pane-'));
       try {
         const fakeBin = join(wd, 'fake-bin');
         await mkdir(fakeBin, { recursive: true });
@@ -54,10 +54,10 @@ exit 1
         await chmod(fakeTmux, 0o755);
         process.env.PATH = `${fakeBin}:${process.env.PATH || ''}`;
         process.env.TMUX = '/tmp/tmux-test';
-        process.env.OMX_TMUX_HUD_OWNER = '1';
+        process.env.NOMX_TMUX_HUD_OWNER = '1';
 
         await startMode('ralph', 'test', 1, wd);
-        const raw = JSON.parse(await readFile(join(wd, '.omx', 'state', 'ralph-state.json'), 'utf-8'));
+        const raw = JSON.parse(await readFile(join(wd, '.nomx', 'state', 'ralph-state.json'), 'utf-8'));
         assert.equal(raw.tmux_pane_id, '%123');
         assert.equal(raw.tmux_window_id, '@7');
         assert.ok(typeof raw.tmux_pane_set_at === 'string' && raw.tmux_pane_set_at.length > 0);
@@ -68,8 +68,8 @@ exit 1
         else delete process.env.TMUX;
         if (typeof prevPath === 'string') process.env.PATH = prevPath;
         else delete process.env.PATH;
-        if (typeof prevHudOwner === 'string') process.env.OMX_TMUX_HUD_OWNER = prevHudOwner;
-        else delete process.env.OMX_TMUX_HUD_OWNER;
+        if (typeof prevHudOwner === 'string') process.env.NOMX_TMUX_HUD_OWNER = prevHudOwner;
+        else delete process.env.NOMX_TMUX_HUD_OWNER;
         await rm(wd, { recursive: true, force: true });
       }
     });
@@ -77,9 +77,9 @@ exit 1
 
   it('blocks exclusive mode startup when another exclusive state file is malformed', async () => {
     await withIsolatedStateEnv(async () => {
-      const wd = await mkdtemp(join(tmpdir(), 'omx-mode-malformed-'));
+      const wd = await mkdtemp(join(tmpdir(), 'nomx-mode-malformed-'));
       try {
-        const stateDir = join(wd, '.omx', 'state');
+        const stateDir = join(wd, '.nomx', 'state');
         await mkdir(stateDir, { recursive: true });
         await writeFile(join(stateDir, 'ralph-state.json'), '{ "active": true');
 
