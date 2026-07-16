@@ -7,6 +7,10 @@ import { describe, it } from 'node:test';
 
 import { ralplanCommand } from '../../cli/ralplan.js';
 import { readSubagentTrackingState, recordSubagentTurnForSession } from '../../subagents/tracker.js';
+import {
+  __resetSessionPointerTransactionDependenciesForTests,
+  __setSessionPointerTransactionDependenciesForTests,
+} from '../../hooks/session.js';
 import { dispatchCodexNativeHook } from '../codex-native-hook.js';
 
 async function invokeRoleIntent(cwd: string, args: string[]) {
@@ -138,6 +142,34 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
       ], { cwd, stdio: 'pipe', env: process.env });
       assert.equal((await readSubagentTrackingState(cwd)).sessions[nativeSessionId], undefined);
 
+      // The fallback watcher retains its terminal update for a child that was
+      // already proven by native lifecycle tracking, without creating a new
+      // entry for the title helper above.
+      const childThreadId = 'codex-native-known-child';
+      await recordSubagentTurnForSession(cwd, {
+        sessionId: nativeSessionId,
+        threadId: childThreadId,
+        kind: 'subagent',
+        leaderThreadId: nativeSessionId,
+        timestamp: new Date().toISOString(),
+      });
+      execFileSync(process.execPath, [
+        join(process.cwd(), 'dist', 'scripts', 'notify-hook.js'),
+        JSON.stringify({
+          cwd,
+          type: 'agent-turn-complete',
+          source: 'notify-fallback-watcher',
+          session_id: nativeSessionId,
+          thread_id: childThreadId,
+          turn_id: 'child-complete-turn',
+          input_messages: ['[notify-fallback] synthesized from rollout task_complete'],
+          last_assistant_message: 'done',
+        }),
+      ], { cwd, stdio: 'pipe', env: process.env });
+      const completedChild = (await readSubagentTrackingState(cwd)).sessions[nativeSessionId]?.threads[childThreadId];
+      assert.equal(completedChild?.completion_source, 'notify-fallback-watcher');
+      assert.ok(completedChild?.completed_at);
+
       // The first real leader tool call is bound to the native session id. It
       // attests the actual app conversation even though SessionStart already
       // created the pointer.
@@ -206,6 +238,56 @@ describe('#3181 end-to-end fresh App turn bootstrap', () => {
       if (priorEnv.NOMX_SESSION_ID !== undefined) process.env.NOMX_SESSION_ID = priorEnv.NOMX_SESSION_ID;
       if (priorEnv.CODEX_SESSION_ID !== undefined) process.env.CODEX_SESSION_ID = priorEnv.CODEX_SESSION_ID;
       if (priorEnv.SESSION_ID !== undefined) process.env.SESSION_ID = priorEnv.SESSION_ID;
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('refreshes and attests the same native root when PID identity is permission-indeterminate', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'nomx-3181-e2e-indeterminate-'));
+    const nativeSessionId = 'codex-native-indeterminate-root';
+    try {
+      await dispatchCodexNativeHook(
+        { hook_event_name: 'SessionStart', cwd, session_id: nativeSessionId },
+        { cwd, sessionOwnerPid: process.pid },
+      );
+      __setSessionPointerTransactionDependenciesForTests({ probePid: () => 'indeterminate' });
+      await dispatchCodexNativeHook(
+        {
+          hook_event_name: 'PreToolUse',
+          cwd,
+          session_id: nativeSessionId,
+          thread_id: nativeSessionId,
+          tool_name: 'Bash',
+          tool_use_id: 'tool-indeterminate-root',
+          tool_input: { command: 'nomx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json' },
+        },
+        { cwd, sessionOwnerPid: process.pid },
+      );
+      const state = await readSubagentTrackingState(cwd);
+      assert.equal(state.sessions[nativeSessionId]?.leader_thread_id, nativeSessionId);
+      assert.ok(state.sessions[nativeSessionId]?.leader_attested_at);
+      const receipt = await invokeRoleIntent(cwd, ['role-intent', 'write', '--role', 'architect', '--parent-thread', nativeSessionId, '--json']);
+      assert.equal(receipt.exitCode, undefined);
+      assert.equal(JSON.parse(receipt.stdout.join('\n')).ok, true);
+
+      // An indeterminate pointer may only be refreshed by its exact persisted
+      // native session. A different root-shaped native id cannot replace it.
+      const foreignNativeSessionId = 'codex-native-indeterminate-foreign';
+      await dispatchCodexNativeHook(
+        {
+          hook_event_name: 'PreToolUse',
+          cwd,
+          session_id: foreignNativeSessionId,
+          thread_id: foreignNativeSessionId,
+          tool_name: 'Bash',
+          tool_use_id: 'tool-indeterminate-foreign',
+          tool_input: { command: 'nomx ralplan role-intent write --role architect --parent-thread "$CODEX_THREAD_ID" --json' },
+        },
+        { cwd, sessionOwnerPid: process.pid },
+      );
+      assert.equal((await readSubagentTrackingState(cwd)).sessions[foreignNativeSessionId]?.leader_attested_at, undefined);
+    } finally {
+      __resetSessionPointerTransactionDependenciesForTests();
       await rm(cwd, { recursive: true, force: true });
     }
   });

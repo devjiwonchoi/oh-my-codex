@@ -1379,14 +1379,21 @@ function reconcileNativeTransition(
   options: SessionStartOptions,
 ): (pointer: SessionPointerReadResult, context: SessionPointerContext) => NativeReconcileTransition {
   return (pointer, context) => {
-    if (pointer.status !== 'absent' && pointer.status !== 'stale-dead' && pointer.status !== 'usable') {
+    const pointerNativeSessionId = normalizeSessionId(pointer.state?.native_session_id);
+    // A permission-isolated hook can prove neither PID death nor identity, but
+    // a root-shaped native event for the exact persisted native session is
+    // still safe to refresh. Do not use indeterminate evidence to adopt a
+    // different native session.
+    const sameNativeIndeterminate = pointer.status === 'identity-indeterminate'
+      && pointerNativeSessionId === nativeSessionId;
+    if (pointer.status !== 'absent' && pointer.status !== 'stale-dead' && pointer.status !== 'usable' && !sameNativeIndeterminate) {
       throw unusablePointerAbort(context, nativeSessionId, pointer);
     }
 
     const pid = resolvePid(options);
     const platform = options.platform ?? process.platform;
     const linuxIdentity = sessionIdentityFor(pid, platform);
-    const existing = pointer.status === 'usable' ? pointer.state : undefined;
+    const existing = pointer.status === 'usable' || sameNativeIndeterminate ? pointer.state : undefined;
     const nowIso = new Date().toISOString();
 
     if (!existing) {

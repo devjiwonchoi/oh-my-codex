@@ -9589,7 +9589,7 @@ export async function dispatchCodexNativeHook(
     // process, so the pointer PID alone is not leadership evidence. Best-effort;
     // never blocks PreToolUse.
     if (
-      (pointer.status === 'absent' || pointer.status === 'usable' || pointer.status === 'stale-dead')
+      (pointer.status === 'absent' || pointer.status === 'usable' || pointer.status === 'stale-dead' || pointer.status === 'identity-indeterminate')
       && nativeSessionId
       && readPayloadAgentRole(payload) === ""
       && !hasSubagentThreadSpawnProvenance(payload)

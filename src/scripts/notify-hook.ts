@@ -547,6 +547,7 @@ async function main() {
   const inputMessages = normalizeInputMessages(payload);
   const latestUserInput = safeString(inputMessages.length > 0 ? inputMessages[inputMessages.length - 1] : '');
   const isTurnComplete = isTurnCompletePayload(payload);
+  const isNotifyFallbackTaskComplete = isNotifyFallbackTaskCompletePayload(payload);
 
   const isTeamWorker = false;
   const stateDir = getBaseStateDir(cwd);
@@ -613,8 +614,26 @@ async function main() {
   // Turn-complete notifications do not carry trusted root/child provenance.
   // In particular, App title-generation turns can arrive before the real
   // conversation and have a different thread id. Never let such an event
-  // create or classify tracker entries: native SessionStart and receipt-backed
-  // dispatch are the authoritative subagent lifecycle sources.
+  // create or classify tracker entries. The fallback watcher may only close a
+  // subagent that native lifecycle evidence already established.
+  if (!isTeamWorker && canWriteLeaderScopedState && isNotifyFallbackTaskComplete) {
+    try {
+      const threadId = safeString(payload['thread-id'] || payload.thread_id || '');
+      const sessionId = getEffectiveSessionId();
+      if (sessionId && threadId) {
+        const { recordKnownSubagentCompletionForSession } = await import('../subagents/tracker.js');
+        await recordKnownSubagentCompletionForSession(cwd, {
+          sessionId,
+          threadId,
+          turnId: safeString(payload['turn-id'] || payload.turn_id || ''),
+          completionSource: 'notify-fallback-watcher',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch {
+      // Non-critical: fallback completion must not block the notify hook.
+    }
+  }
 
   // 1. Log the turn
   const normalizedInputMessages = normalizeInputMessages(payload);

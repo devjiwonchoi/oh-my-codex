@@ -1659,6 +1659,37 @@ export async function recordSubagentTurnForSession(cwd: string, input: RecordSub
   });
 }
 
+/**
+ * Notify fallback events lack lifecycle provenance, so they may only close an
+ * already trusted subagent. They must never create a tracker entry or infer a
+ * leader/child relationship from turn-complete payload fields.
+ */
+export async function recordKnownSubagentCompletionForSession(
+  cwd: string,
+  input: { sessionId: string; threadId: string; turnId?: string; completionSource: string; timestamp?: string },
+): Promise<boolean> {
+  const sessionId = input.sessionId.trim();
+  const threadId = input.threadId.trim();
+  if (!sessionId || !threadId) return false;
+  return withCrossProcessFileLockSync(subagentTrackingPath(cwd), (context) => {
+    const current = readSubagentTrackingStateSync(cwd);
+    const session = current.sessions[sessionId];
+    if (!isTrustedSubagentThread(session, threadId)) return false;
+    const next = recordSubagentTurn(current, {
+      sessionId,
+      threadId,
+      kind: 'subagent',
+      ...(input.turnId?.trim() ? { turnId: input.turnId.trim() } : {}),
+      completed: true,
+      completionSource: input.completionSource,
+      ...(input.timestamp ? { timestamp: input.timestamp } : {}),
+    });
+    context.assertOwnership();
+    writeSubagentTrackingStateSync(cwd, next, context.publish);
+    return true;
+  });
+}
+
 export function summarizeSubagentSession(
   state: SubagentTrackingState,
   sessionId: string,
