@@ -85,8 +85,6 @@ describe('CI Rust gates', () => {
     assert.match(workflow, /changes:\s*\n\s+name:\s*Detect CI lanes/);
     for (const outputName of [
       'full_suite',
-      'docs_changed',
-      'docs_only',
       'ts_changed',
       'rust_changed',
       'native_changed',
@@ -105,15 +103,12 @@ describe('CI Rust gates', () => {
     assert.match(changesJob, /shared config, workflow, manifest, lockfile, or packaging change/);
   });
 
-  it('classifies docs, TypeScript, Rust/native, shared config, renames, and unknown paths explicitly', () => {
+  it('classifies TypeScript, Rust/native, shared config, renames, and unknown paths explicitly', () => {
     const workflow = readCiWorkflow();
     const changesJob = jobBlock(workflow, 'changes');
 
     assert.match(changesJob, /function pathsFromNameStatus/);
     assert.match(changesJob, /if \(\/\^\[RC\]\/\.test\(status\)\) return parts\.slice\(1, 3\)/);
-    assert.match(changesJob, /function isDocs\(path\)/);
-    assert.match(changesJob, /\^docs\\\//);
-    assert.match(changesJob, /README\|CHANGELOG\|CONTRIBUTING\|COVERAGE\|DEMO\|RELEASE_BODY\|RELEASE_PROTOCOL/);
     assert.match(changesJob, /function isTs\(path\)/);
     assert.match(changesJob, /\^src\\\/\.\*\\\.\(ts\|tsx\|mts\|cts\)\$/);
     assert.match(changesJob, /function isRust\(path\)/);
@@ -123,47 +118,10 @@ describe('CI Rust gates', () => {
     assert.match(changesJob, /function isSharedConfig\(path\)/);
     assert.match(changesJob, /\^\\\.github\\\//);
     assert.match(changesJob, /package\(-lock\)\?\\\.json/);
-    assert.match(changesJob, /function isGjcPlanningEvidence\(path\)/);
-    assert.match(changesJob, /function isGjcRuntimeAffecting\(path\)/);
     assert.match(changesJob, /const unknown = paths\.filter/);
   });
 
-  it('keeps benign .gjc planning and quality evidence artifacts out of full-suite CI', () => {
-    const result = classifyChangedPaths([
-      '.gjc/plans/prd-issue-2663.md',
-      '.gjc/ultragoal/ledger.jsonl',
-      '.gjc/quality-gates/final-quality-gate.json',
-      '.gjc/session-1/planning-evidence/test-spec.json',
-    ]);
-
-    assert.equal(result.full_suite, 'false');
-    assert.equal(result.ts_changed, 'false');
-    assert.equal(result.shared_config_changed, 'false');
-    assert.equal(result.reason, 'gjc planning/evidence artifacts only');
-  });
-
-  it('routes runtime-affecting .gjc artifacts to the focused TypeScript/runtime gate without full-suite fallback', () => {
-    const result = classifyChangedPaths(['.gjc/runtime/session-state.json']);
-
-    assert.equal(result.full_suite, 'false');
-    assert.equal(result.ts_changed, 'true');
-    assert.equal(result.shared_config_changed, 'false');
-    assert.match(result.reason, /gjc runtime-affecting artifact/);
-  });
-
-  it('keeps unknown .gjc paths fail-closed while preserving normal TS/config behavior', () => {
-    const unknownGjc = classifyChangedPaths(['.gjc/random/output.bin']);
-    assert.deepEqual(
-      {
-        full_suite: unknownGjc.full_suite,
-        reason: unknownGjc.reason,
-      },
-      {
-        full_suite: 'true',
-        reason: 'unclassified path(s): .gjc/random/output.bin',
-      },
-    );
-
+  it('preserves normal TypeScript and shared-config behavior', () => {
     const sourceChange = classifyChangedPaths(['src/verification/ci-status.ts']);
     assert.equal(sourceChange.full_suite, 'false');
     assert.equal(sourceChange.ts_changed, 'true');
@@ -192,7 +150,6 @@ describe('CI Rust gates', () => {
   it('gates expensive jobs by lane while preserving full-suite fail-closed behavior', () => {
     const workflow = readCiWorkflow();
 
-    assertJobIf(workflow, 'docs-check', /full_suite == 'true'.*docs_changed == 'true'/s);
     for (const jobName of ['rustfmt', 'clippy', 'rust-tests']) {
       assertJobIf(workflow, jobName, /full_suite == 'true'.*rust_changed == 'true'.*native_changed == 'true'/s);
     }
@@ -283,7 +240,7 @@ describe('CI Rust gates', () => {
 
     assert.match(
       workflow,
-      /needs:\s*\[changes, docs-check, rustfmt, clippy, rust-tests, lint, typecheck, build-dist, test, coverage-team-critical, ralph-persistence-gate, build\]/,
+      /needs:\s*\[changes, rustfmt, clippy, rust-tests, lint, typecheck, build-dist, test, coverage-team-critical, ralph-persistence-gate, build\]/,
     );
   });
 
@@ -300,7 +257,6 @@ describe('CI Rust gates', () => {
     const ciStatusJob = jobBlock(workflow, 'ci-status');
     const requiredJobs = [
       'changes',
-      'docs-check',
       'rustfmt',
       'clippy',
       'rust-tests',
@@ -315,7 +271,7 @@ describe('CI Rust gates', () => {
 
     assert.match(
       ciStatusJob,
-      /needs:\s*\[changes, docs-check, rustfmt, clippy, rust-tests, lint, typecheck, build-dist, test, coverage-team-critical, ralph-persistence-gate, build\]/,
+      /needs:\s*\[changes, rustfmt, clippy, rust-tests, lint, typecheck, build-dist, test, coverage-team-critical, ralph-persistence-gate, build\]/,
     );
 
     for (const jobName of requiredJobs) {
@@ -327,7 +283,6 @@ describe('CI Rust gates', () => {
     assert.match(ciStatusJob, /check_job\(\) \{/);
     assert.match(ciStatusJob, /must succeed when active/);
     assert.match(ciStatusJob, /inactive lane should be success or skipped/);
-    assert.match(ciStatusJob, /docs_active=false/);
     assert.match(ciStatusJob, /rust_active=false/);
     assert.match(ciStatusJob, /ts_active=false/);
     assert.match(ciStatusJob, /dist_active=false/);
@@ -357,7 +312,6 @@ describe('CI Rust gates', () => {
 
     for (const jobName of [
       'changes',
-      'docs-check',
       'rustfmt',
       'clippy',
       'rust-tests',

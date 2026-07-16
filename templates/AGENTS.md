@@ -13,7 +13,6 @@ Role prompts under `prompts/*.md` are narrower execution surfaces. They must fol
 When OMX is installed, load the installed prompt/skill/agent surfaces from `~/.codex/prompts`, `~/.codex/skills`, and `~/.codex/agents` (or the project-local `./.codex/...` equivalents when project scope is active).
 
 <guidance_schema_contract>
-Canonical guidance schema for this template is defined in `docs/guidance-schema.md`.
 Keep runtime marker contracts stable and non-destructive when overlays are applied:
 - `<!-- OMX:RUNTIME:START --> ... <!-- OMX:RUNTIME:END -->`
 - `<!-- OMX:TEAM:WORKER:START --> ... <!-- OMX:TEAM:WORKER:END -->`

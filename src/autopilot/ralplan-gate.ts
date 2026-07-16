@@ -177,9 +177,6 @@ export function buildAutopilotRalplanUltragoalGateError(
       '',
       'Fix:',
       ...diagnostic.remediation.map((line) => `  ${line}`),
-      '',
-      'Docs:',
-      `  ${diagnostic.docs}`,
     ].filter((line): line is string => line !== null).join('\n');
   }
   const details = decision.evidence?.blockedDetails?.length

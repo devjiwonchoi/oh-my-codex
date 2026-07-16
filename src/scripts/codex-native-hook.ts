@@ -163,10 +163,6 @@ import {
   reconcileDeepInterviewQuestionEnforcementFromAnsweredRecords,
 } from "../question/deep-interview.js";
 import { readAutopilotDeepInterviewQuestionWaitState } from "../question/autopilot-wait.js";
-import {
-  evaluateFinalHandoffDocumentRefresh,
-  isFinalHandoffDocumentRefreshCandidate,
-} from "../document-refresh/enforcer.js";
 import { buildExecFollowupStopOutput } from "../exec/followup.js";
 import {
   MAX_NATIVE_STDIN_JSON_BYTES,
@@ -10048,25 +10044,6 @@ async function buildStopHookOutput(
         canonicalSessionId,
         { allowRepeatDuringStopHook: true },
       );
-    }
-
-    if (isFinalHandoffDocumentRefreshCandidate(lastAssistantMessage)) {
-      const documentRefreshWarning = evaluateFinalHandoffDocumentRefresh(cwd, lastAssistantMessage);
-      if (documentRefreshWarning) {
-        return await maybeReturnRepeatableStopOutput(
-          payload,
-          stateDir,
-          buildRepeatableStopSignature(
-            payload,
-            "document-refresh-stop",
-            documentRefreshWarning.triggeringPaths.join("|"),
-            canonicalSessionId,
-          ),
-          { systemMessage: documentRefreshWarning.message },
-          canonicalSessionId,
-          { allowRepeatDuringStopHook: false },
-        );
-      }
     }
 
     return null;

@@ -32,8 +32,6 @@ export interface PromptInventoryReport {
 const PROMPT_SURFACE_FILES = [
   'AGENTS.md',
   'templates/AGENTS.md',
-  'docs/prompt-guidance-contract.md',
-  'docs/guidance-schema.md',
   'src/hooks/prompt-guidance-contract.ts',
   'src/config/generator.ts',
   'src/cli/setup.ts',
@@ -43,7 +41,6 @@ const PROMPT_SURFACE_DIRS = [
   'prompts',
   'skills',
   'templates/model-instructions',
-  'docs/prompt-guidance-fragments',
 ];
 
 const MARKERS = [

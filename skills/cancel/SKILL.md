@@ -53,8 +53,6 @@ For Ralph-targeted cancellation (standalone or linked), completion is defined by
 2. If Ralph is linked to Ultrawork or Ecomode in the same scope, that linked mode is also terminalized/non-active.
 4. Cancellation MUST remain scope-safe: no mutation of unrelated sessions.
 
-See: `docs/contracts/ralph-cancel-contract.md`.
-
 Active modes are still cancelled in dependency order:
 1. Autopilot (includes linked ultragoal/ultraqa/ecomode cleanup plus explicit legacy Ralph cleanup)
 2. Ralph (cleans its linked ultrawork or ecomode)

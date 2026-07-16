@@ -10,8 +10,6 @@ const ralplanSkill = readFileSync(join(__dirname, '../../../skills/ralplan/SKILL
 const codeReviewSkill = readFileSync(join(__dirname, '../../../skills/code-review/SKILL.md'), 'utf-8');
 const ultragoalSkill = readFileSync(join(__dirname, '../../../skills/ultragoal/SKILL.md'), 'utf-8');
 const pipelineSkill = readFileSync(join(__dirname, '../../../skills/pipeline/SKILL.md'), 'utf-8');
-const skillsDocs = readFileSync(join(__dirname, '../../../docs/skills.html'), 'utf-8');
-const gettingStartedDocs = readFileSync(join(__dirname, '../../../docs/getting-started.html'), 'utf-8');
 
 describe('autopilot skill default Ultragoal contract', () => {
   it('makes deep-interview -> ralplan -> ultragoal -> code-review -> ultraqa the recommended/default contract', () => {
@@ -108,12 +106,9 @@ describe('autopilot skill default Ultragoal contract', () => {
     assert.match(ralplanSkill, /omx ralplan role-intent write/i);
   });
 
-  it('documents ralplan consensus completion in pipeline and public docs', () => {
+  it('documents ralplan consensus completion in the runtime pipeline contract', () => {
     assert.match(pipelineSkill, /Plan\/test-spec files alone are not consensus evidence/i);
     assert.match(pipelineSkill, /Architect approval followed by Critic approval/i);
-    assert.match(skillsDocs, /not just PRD\/test-spec files/i);
-    assert.match(skillsDocs, /never leaving ralplan until Architect\/Critic consensus evidence is recorded/i);
-    assert.match(gettingStartedDocs, /Architect review evidence and then Critic review evidence are recorded/i);
   });
 
   it('does not preserve the old broad phase lifecycle as primary behavior', () => {

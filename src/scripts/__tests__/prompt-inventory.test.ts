@@ -12,7 +12,6 @@ describe('prompt inventory', () => {
       await mkdir(join(root, 'templates'), { recursive: true });
       await mkdir(join(root, 'prompts'), { recursive: true });
       await mkdir(join(root, 'skills', 'worker'), { recursive: true });
-      await mkdir(join(root, 'docs', 'prompt-guidance-fragments'), { recursive: true });
       await mkdir(join(root, 'src', 'hooks'), { recursive: true });
       await mkdir(join(root, 'src', 'config'), { recursive: true });
       await mkdir(join(root, 'src', 'cli'), { recursive: true });
@@ -25,9 +24,8 @@ describe('prompt inventory', () => {
       );
       await writeFile(join(root, 'prompts', 'executor.md'), `# Executor\nDO NOT stop early.\n${repeated}\n`);
       await writeFile(join(root, 'skills', 'worker', 'SKILL.md'), '# Worker\nALWAYS claim tasks.\n');
-      await writeFile(join(root, 'docs', 'prompt-guidance-contract.md'), '# Contract\n');
-      await writeFile(join(root, 'docs', 'guidance-schema.md'), '# Schema\n');
-      await writeFile(join(root, 'docs', 'prompt-guidance-fragments', 'core.md'), 'fragment\n');
+      await mkdir(join(root, 'prompts', 'guidance-fragments'), { recursive: true });
+      await writeFile(join(root, 'prompts', 'guidance-fragments', 'core.md'), 'fragment\n');
       await writeFile(join(root, 'src', 'hooks', 'prompt-guidance-contract.ts'), 'export {};\n');
       await writeFile(join(root, 'src', 'config', 'generator.ts'), 'export {};\n');
       await writeFile(join(root, 'src', 'cli', 'setup.ts'), 'export {};\n');
@@ -35,10 +33,8 @@ describe('prompt inventory', () => {
       const paths = listPromptSurfacePaths(root);
       assert.deepEqual(paths, [
         'AGENTS.md',
-        'docs/guidance-schema.md',
-        'docs/prompt-guidance-contract.md',
-        'docs/prompt-guidance-fragments/core.md',
         'prompts/executor.md',
+        'prompts/guidance-fragments/core.md',
         'skills/worker/SKILL.md',
         'src/cli/setup.ts',
         'src/config/generator.ts',

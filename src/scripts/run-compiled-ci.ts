@@ -4,14 +4,8 @@ import { join } from "node:path";
 
 const SOURCE_CHECKOUT_SENTINELS = [
   "src/catalog/manifest.json",
-  "docs/troubleshooting.md",
+  "templates/catalog-manifest.json",
   ".github/workflows/ci.yml",
-] as const;
-
-const INSTALLED_PACKAGE_TEST_FILES = [
-  "dist/scripts/__tests__/smoke-packed-install.test.js",
-  "dist/cli/__tests__/nested-help-routing.test.js",
-  "dist/cli/__tests__/mcp-parity.test.js",
 ] as const;
 
 const INSTALLED_PACKAGE_CLI_SMOKE_COMMANDS = [
@@ -58,16 +52,12 @@ function runSourceCheckoutGate(): void {
   run(npmBin(), ["run", "verify:native-agents"]);
   run(npmBin(), ["run", "verify:plugin-bundle"]);
   run(npmBin(), ["run", "test:node"]);
-  run(process.execPath, ["dist/scripts/generate-catalog-docs.js", "--check"]);
+  run(process.execPath, ["dist/scripts/sync-catalog.js", "--check"]);
 }
 
 function runInstalledPackageGate(): void {
   run(npmBin(), ["run", "verify:native-agents"]);
   run(npmBin(), ["run", "verify:plugin-bundle"]);
-  run(process.execPath, [
-    "dist/scripts/run-test-files.js",
-    ...INSTALLED_PACKAGE_TEST_FILES,
-  ]);
   for (const argv of INSTALLED_PACKAGE_CLI_SMOKE_COMMANDS) {
     run(process.execPath, ["dist/cli/omx.js", ...argv]);
   }

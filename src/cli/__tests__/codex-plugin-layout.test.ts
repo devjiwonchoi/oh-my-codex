@@ -1383,12 +1383,9 @@ process.stdin.on('end', () => {
     }
   });
 
-  it('documents marketplace-aware cache semantics without replacing full setup', async () => {
+  it('keeps marketplace-aware cache semantics in runtime skills without replacing full setup', async () => {
     const staleCachePath = '~/.codex/plugins/cache/omc/oh-my-codex';
     const docsToCheck = [
-      'README.md',
-      'docs/troubleshooting.md',
-      'docs/hooks-extension.md',
       'skills/doctor/SKILL.md',
       'skills/help/SKILL.md',
       'plugins/oh-my-codex/skills/doctor/SKILL.md',
@@ -1404,8 +1401,8 @@ process.stdin.on('end', () => {
     const combined = combinedDocs.join('\n');
     assert.match(combined, /plugins\/cache\/\$MARKETPLACE_NAME\/oh-my-codex\/\$VERSION\//);
     assert.match(combined, /not a replacement for `npm install -g oh-my-codex` plus `omx setup`/);
-    assert.match(combined, /legacy setup mode installs native agents(?:\/| and )prompts|plugin setup mode archives stale legacy prompt\/native-agent files/);
-    assert.match(combined, /plugin-scoped companion metadata for official Codex lifecycle hooks/i);
-    assert.match(combined, /legacy\/fallback native Codex hook registrations|legacy setup mode installs prompts\/native agents and \.codex\/hooks\.json/i);
+    assert.match(combined, /legacy setup installs native agents, while plugin setup archives stale legacy native-agent files/);
+    assert.match(combined, /plugin-scoped companion metadata for optional MCP compatibility servers and apps/i);
+    assert.match(combined, /native\/runtime hooks and the rest of OMX runtime wiring stay setup-owned/i);
   });
 });

@@ -34,9 +34,4 @@ describe('prompt orchestration boundary', () => {
       assert.match(loadSurface(surface), /report recommended handoffs upward/i);
     }
   });
-
-  it('guidance schema documents upward-only handoff limits for role prompts', () => {
-    assert.match(loadSurface('docs/guidance-schema.md'), /report upward, do not recursively orchestrate/i);
-    assert.match(loadSurface('docs/guidance-schema.md'), /recommend handoffs upward to the orchestrator/i);
-  });
 });

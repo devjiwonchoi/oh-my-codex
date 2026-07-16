@@ -1,8 +1,4 @@
 import {
-  buildDocumentRefreshAdvisoryOutput,
-  evaluateStagedDocumentRefresh,
-} from "../document-refresh/enforcer.js";
-import {
   OMX_LORE_COMMIT_GUARD_ENV,
   isLoreCommitGuardEnabled,
   readConfiguredLoreCommitGuardValue,
@@ -10,8 +6,6 @@ import {
 import { resolveCodexExecutionSurface } from "./codex-execution-surface.js";
 
 type CodexHookPayload = Record<string, unknown>;
-
-type GitRepositorySelection = "current-cwd" | "explicit-target";
 
 export interface NormalizedPreToolUsePayload {
   toolName: string;
@@ -463,7 +457,6 @@ interface GitCommitCommandParseResult {
   environmentStartsClean: boolean;
   unsetEnvironmentNames: string[];
   inlineMessage: string | null;
-  repositorySelection: GitRepositorySelection;
   requiresExternalMessageSource: boolean;
 }
 
@@ -736,14 +729,6 @@ function gitOptionConsumesNextValue(token: string): boolean {
     || token === "--attr-source";
 }
 
-function gitOptionSelectsRepository(token: string): boolean {
-  return token === "-C"
-    || token === "--git-dir"
-    || token === "--work-tree"
-    || token.startsWith("--git-dir=")
-    || token.startsWith("--work-tree=");
-}
-
 function gitOptionStopsBeforeSubcommand(token: string): boolean {
   return token === "-h"
     || token === "--help"
@@ -778,15 +763,6 @@ function findGitSubcommandIndex(tokens: string[], gitTokenIndex: number): number
   return index < tokens.length ? index : -1;
 }
 
-function readGitRepositorySelection(tokens: string[], gitTokenIndex: number, subcommandIndex: number): GitRepositorySelection {
-  for (let index = gitTokenIndex + 1; index < subcommandIndex; index += 1) {
-    const token = tokens[index] ?? "";
-    if (gitOptionSelectsRepository(token)) return "explicit-target";
-    if (gitOptionConsumesNextValue(token)) index += 1;
-  }
-  return "current-cwd";
-}
-
 export function parseGitCommitCommand(commandText: string): GitCommitCommandParseResult {
   const shellTokens = tokenizeShellCommandWithBoundaries(commandText);
   const tokens = shellTokens ? tokenValues(shellTokens) : null;
@@ -797,7 +773,6 @@ export function parseGitCommitCommand(commandText: string): GitCommitCommandPars
       environmentStartsClean: false,
       unsetEnvironmentNames: [],
       inlineMessage: null,
-      repositorySelection: "current-cwd",
       requiresExternalMessageSource: false,
     };
   }
@@ -810,7 +785,6 @@ export function parseGitCommitCommand(commandText: string): GitCommitCommandPars
       environmentStartsClean: false,
       unsetEnvironmentNames: [],
       inlineMessage: null,
-      repositorySelection: "current-cwd",
       requiresExternalMessageSource: false,
     };
   }
@@ -823,12 +797,10 @@ export function parseGitCommitCommand(commandText: string): GitCommitCommandPars
       environmentStartsClean: false,
       unsetEnvironmentNames: [],
       inlineMessage: null,
-      repositorySelection: "current-cwd",
       requiresExternalMessageSource: false,
     };
   }
 
-  const repositorySelection = readGitRepositorySelection(tokens, gitTokenIndex, subcommandIndex);
   const { inlineEnvironment, environmentStartsClean, unsetEnvironmentNames } = readInlineEnvironmentAssignments(shellTokens ?? [], gitTokenIndex);
   const messageParts: string[] = [];
   let requiresExternalMessageSource = false;
@@ -875,7 +847,6 @@ export function parseGitCommitCommand(commandText: string): GitCommitCommandPars
     environmentStartsClean,
     unsetEnvironmentNames,
     inlineMessage: messageParts.length > 0 ? messageParts.join("\n\n").trim() : null,
-    repositorySelection,
     requiresExternalMessageSource,
   };
 }
@@ -1010,22 +981,6 @@ function buildGitCommitEnforcementOutput(commandText: string): Record<string, un
       ...errors.map((error) => `- ${error}`),
     ].join("\n"),
   };
-}
-
-
-function buildDocumentRefreshPreToolUseOutput(
-  commandText: string,
-  cwd: string,
-): Record<string, unknown> | null {
-  const parsed = parseGitCommitCommand(commandText);
-  if (!parsed.isGitCommit) return null;
-
-  if (parsed.repositorySelection !== "current-cwd") return null;
-
-  const warning = evaluateStagedDocumentRefresh(cwd, parsed.inlineMessage);
-  if (!warning) return null;
-
-  return buildDocumentRefreshAdvisoryOutput(warning, "PreToolUse");
 }
 
 
@@ -1332,11 +1287,6 @@ export function buildNativePreToolUseOutput(
   if (teamEnforcement) return teamEnforcement;
   const questionEnforcement = buildOmxQuestionPreToolUseEnforcementOutput(normalized.normalizedCommand, payload);
   if (questionEnforcement) return questionEnforcement;
-  const documentRefreshWarning = buildDocumentRefreshPreToolUseOutput(
-    normalized.normalizedCommand,
-    safeString(payload.cwd).trim() || process.cwd(),
-  );
-  if (documentRefreshWarning) return documentRefreshWarning;
   const sloppyFallbackWarning = buildSloppyFallbackPreToolUseOutput(normalized.normalizedCommand);
   if (sloppyFallbackWarning) return sloppyFallbackWarning;
   if (!matchesDestructiveFixture(normalized.normalizedCommand)) return null;

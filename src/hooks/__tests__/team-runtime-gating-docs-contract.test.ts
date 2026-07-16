@@ -14,7 +14,6 @@ function read(path: string): string {
 describe('team runtime gating docs contract', () => {
   it('keeps operator-facing team surfaces explicit about outside-tmux/Codex App gating', () => {
     const surfaces = [
-      'README.md',
       'skills/team/SKILL.md',
       'src/cli/team.ts',
       'templates/AGENTS.md',

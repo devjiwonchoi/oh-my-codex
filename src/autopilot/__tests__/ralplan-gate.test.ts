@@ -1123,7 +1123,6 @@ describe('autopilot ralplan gate', () => {
       assert.match(error, /architect thread_id: thread-architect found: no kind=missing completed=no/);
       assert.match(error, /session_id: sess-autopilot-diagnostic-missing-session session_found=no/);
       assert.match(error, /Re-run native ralplan Architect\/Critic reviews/);
-      assert.match(error, /docs\/contracts\/ralplan-consensus-gate\.md/);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }

@@ -55,7 +55,7 @@ describe('package bin contract', () => {
     assert.equal(pkg.scripts?.['test:explore'], 'cargo test -p omx-explore-harness && node --test dist/cli/__tests__/explore.test.js dist/hooks/__tests__/explore-routing.test.js dist/hooks/__tests__/explore-sparkshell-guidance-contract.test.js');
     assert.equal(pkg.scripts?.['test:team:cross-rebase-smoke:compiled'], 'node dist/scripts/run-test-files.js dist/team/__tests__/cross-rebase-smoke.test.js');
     assert.equal(pkg.scripts?.['test:node'], 'node dist/scripts/run-test-files.js dist');
-    assert.equal(pkg.scripts?.test, 'npm run build && npm run verify:native-agents && npm run verify:plugin-bundle && npm run test:node && node dist/scripts/generate-catalog-docs.js --check');
+    assert.equal(pkg.scripts?.test, 'npm run build && npm run verify:native-agents && npm run verify:plugin-bundle && npm run test:node && node dist/scripts/sync-catalog.js --check');
     assert.equal(pkg.scripts?.['test:ci:compiled'], 'node dist/scripts/run-compiled-ci.js');
     assert.equal(
       pkg.scripts?.['coverage:team-critical'],
@@ -75,7 +75,7 @@ describe('package bin contract', () => {
     );
     assert.equal(
       pkg.scripts?.['test:ralph-persistence:compiled'],
-      'node dist/scripts/run-test-files.js dist/cli/__tests__/session-scoped-runtime.test.js dist/mcp/__tests__/trace-server.test.js dist/hud/__tests__/state.test.js dist/mcp/__tests__/state-server-ralph-phase.test.js dist/ralph/__tests__/persistence.test.js dist/verification/__tests__/ralph-persistence-gate.test.js',
+      'node dist/scripts/run-test-files.js dist/cli/__tests__/session-scoped-runtime.test.js dist/mcp/__tests__/trace-server.test.js dist/hud/__tests__/state.test.js dist/mcp/__tests__/state-server-ralph-phase.test.js dist/ralph/__tests__/persistence.test.js',
     );
     assert.equal(
       pkg.scripts?.['test:plugin-boundaries:compiled'],
@@ -91,6 +91,27 @@ describe('package bin contract', () => {
     }
 
     assert.equal(pkg.files?.includes('dist/'), true, 'expected package files allowlist to include dist/');
+    assert.ok(pkg.files?.includes('!dist/**/__tests__/**'), 'compiled tests should stay out of the published package');
+    assert.ok(pkg.files?.includes('!dist/**/*.js.map'), 'source maps should stay out of the published package');
+    assert.ok(pkg.files?.includes('!dist/**/*.d.ts.map'), 'declaration maps should stay out of the published package');
+    for (const script of [
+      'build-api',
+      'build-explore-harness',
+      'build-sparkshell',
+      'check-runtime-syntax',
+      'check-version-sync',
+      'cleanup-explore-harness',
+      'generate-native-release-manifest',
+      'prompt-inventory',
+      'run-test-files',
+      'smoke-packed-install',
+      'sync-catalog',
+      'test-reply-listener-live',
+      'test-sparkshell',
+      'verify-native-release-assets',
+    ]) {
+      assert.ok(pkg.files?.includes(`!dist/scripts/${script}.*`), `${script} should stay out of the published package`);
+    }
     assert.equal(pkg.files?.includes('bin/'), false, 'did not expect broad bin/ allowlist in package files');
     assert.equal(pkg.files?.includes('agents/'), false, 'native agent TOMLs are setup output, not package input');
     assert.ok(pkg.files?.includes('Cargo.toml'));
@@ -98,6 +119,10 @@ describe('package bin contract', () => {
     assert.ok(pkg.files?.includes('crates/'));
     assert.ok(pkg.files?.includes('plugins/'));
     assert.ok(pkg.files?.includes('.agents/plugins/marketplace.json'));
+    assert.equal(pkg.files?.includes('src/scripts/'), false, 'did not expect broad source script packaging');
+    assert.ok(pkg.files?.includes('src/scripts/prepare-build.js'));
+    assert.ok(pkg.files?.includes('src/scripts/ask-claude.sh'));
+    assert.ok(pkg.files?.includes('src/scripts/ask-gemini.sh'));
 
     const binPath = join(process.cwd(), 'dist', 'cli', 'omx.js');
     const compiledCliPath = join(process.cwd(), 'dist', 'cli', 'index.js');

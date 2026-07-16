@@ -12,24 +12,6 @@ const templateManifestPath = join(root, 'templates', 'catalog-manifest.json');
 const generatedDir = join(root, 'src', 'catalog', 'generated');
 const generatedPublicCatalogPath = join(generatedDir, 'public-catalog.json');
 
-const docsToScan = [
-  join(root, 'docs', 'index.html'),
-  join(root, 'docs', 'skills.html'),
-  join(root, 'docs', 'agents.html'),
-  join(root, 'README.md'),
-  join(root, 'CONTRIBUTING.md'),
-  join(root, 'src', 'cli', 'setup.ts'),
-  join(root, 'src', 'cli', 'doctor.ts'),
-];
-
-const forbiddenCountLiterals = [
-  /\b30\b/,
-  /\b40\b/,
-  /30\+/,
-  /\(40\)/,
-  /expected\s+30\+/,
-];
-
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (value && typeof value === 'object') {
@@ -46,9 +28,7 @@ function canonicalize(value: unknown): unknown {
 function assertDeepEqual(label: string, actual: unknown, expected: unknown): void {
   const left = JSON.stringify(canonicalize(actual));
   const right = JSON.stringify(canonicalize(expected));
-  if (left !== right) {
-    throw new Error(label);
-  }
+  if (left !== right) throw new Error(label);
 }
 
 function normalizePublicContract(contract: Record<string, unknown> | null | undefined): Record<string, unknown> | null | undefined {
@@ -62,18 +42,6 @@ function normalizePublicContract(contract: Record<string, unknown> | null | unde
     aliases: contract.aliases,
     internalHidden: contract.internalHidden,
   };
-}
-
-function assertNoHardcodedCountLiterals(): void {
-  const violations: string[] = [];
-  for (const file of docsToScan) {
-    const content = readFileSync(file, 'utf8');
-    const matched = forbiddenCountLiterals.some((re) => re.test(content));
-    if (matched) violations.push(file);
-  }
-  if (violations.length > 0) {
-    throw new Error(`catalog_docs_hardcoded_counts:${violations.join(',')}`);
-  }
 }
 
 function main(): void {
@@ -97,8 +65,6 @@ function main(): void {
       normalizePublicContract(generatedRaw),
       normalizePublicContract(publicContract as unknown as Record<string, unknown>),
     );
-
-    assertNoHardcodedCountLiterals();
     console.log('catalog check ok');
     return;
   }

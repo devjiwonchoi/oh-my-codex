@@ -8,7 +8,6 @@ import { KEYWORD_TRIGGER_DEFINITIONS } from '../keyword-registry.js';
 const repoRoot = new URL('../../..', import.meta.url).pathname;
 const skillDir = join(repoRoot, 'skills', 'prometheus-strict');
 const skillPath = join(skillDir, 'SKILL.md');
-const readmePath = join(skillDir, 'README.md');
 const promptNames = [
   'prometheus-strict-metis',
   'prometheus-strict-momus',
@@ -39,15 +38,9 @@ describe('prometheus-strict clean-room contract', () => {
 
   it('keeps the skill planning-only, OMX-native, and clean-room credited', () => {
     assert.ok(existsSync(skillPath), 'prometheus-strict skill must exist');
-    assert.ok(existsSync(readmePath), 'prometheus-strict README must exist');
 
     const skill = readRepoFile(skillPath);
-    const readme = readRepoFile(readmePath);
-
-    for (const [label, content] of [
-      ['skill', skill],
-      ['readme', readme],
-    ] as const) {
+    for (const [label, content] of [['skill', skill]] as const) {
       assert.match(content, /clean-room/i, `${label} must state the clean-room boundary`);
       assert.match(
         content,
@@ -464,23 +457,6 @@ ${oracle}`, /Default-absorb prior[\s\S]+Plan-A-vs-Plan-B[\s\S]+scope boundary[\s
     assert.match(skill, /checklist clearance/i, 'Final_Checklist must reference checklist clearance');
     assert.match(skill, /Oracle Pass 2 self-verification/i, 'Final_Checklist must reference Oracle Pass 2 self-verification');
     assert.match(skill, /Post-plan Metis gap check/i, 'Final_Checklist must reference the post-plan Metis gap check');
-  });
-
-  it('pins the public docs entry for the skill handoff path', () => {
-    assert.ok(existsSync(skillPath), 'prometheus-strict skill must exist');
-
-    const docs = readRepoFile(join(repoRoot, 'docs', 'skills.html'));
-    assert.match(docs, /\$prometheus-strict/i, 'docs must advertise the explicit prometheus-strict skill token');
-    assert.match(docs, /Metis/i, 'docs must mention the Metis role');
-    assert.match(docs, /Momus/i, 'docs must mention the Momus role');
-    assert.match(docs, /Oracle/i, 'docs must mention the Oracle role');
-    assert.match(docs, /\$ultragoal/i, 'docs must preserve the OMX-native ultragoal handoff');
-    assert.match(docs, /\.omx\/plans\/prometheus-strict\//i, 'docs must preserve the durable plan artifact path');
-    assert.match(
-      docs,
-      /Inspired by OMO Prometheus[\s\S]*code-yeongyu\/oh-my-openagent[\s\S]*reimplemented from concept under MIT/i,
-      'docs must preserve clean-room concept credit',
-    );
   });
 
   it('wires catalog, agent definitions, and explicit keyword activation', () => {

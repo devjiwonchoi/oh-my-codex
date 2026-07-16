@@ -208,9 +208,9 @@ fi
 ```
 
 ### Fix: Missing/Outdated AGENTS.md
-Fetch latest from GitHub and write to `~/.codex/AGENTS.md`:
+Copy the installed template to `~/.codex/AGENTS.md`:
 ```
-WebFetch(url: "https://raw.githubusercontent.com/Yeachan-Heo/oh-my-codex/main/docs/AGENTS.md", prompt: "Return the complete raw markdown content exactly as-is")
+Copy `templates/AGENTS.md` from the installed oh-my-codex package to `~/.codex/AGENTS.md`.
 ```
 
 ### Fix: Legacy Curl-Installed Content

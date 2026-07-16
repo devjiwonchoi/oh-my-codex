@@ -39,7 +39,6 @@ export interface RalplanConsensusGateDiagnostic {
   distinct_thread_ids: boolean | null;
   pair_problem: string | null;
   remediation: string[];
-  docs: string;
 }
 
 export interface RalplanConsensusGateEvidence {
@@ -746,7 +745,6 @@ function buildTrackerBackedNativeConsensusDiagnostic(
         'Re-run native ralplan Architect/Critic reviews.',
         'Or repair the review artifact so agent_role, provenance_kind, session_id, thread_id, and tracker_path point to completed native subagent threads in the current tracker.',
       ],
-    docs: 'docs/contracts/ralplan-consensus-gate.md',
   };
 }
 

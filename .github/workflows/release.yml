@@ -192,16 +192,11 @@ jobs:
           name: native-release-assets
           path: release-assets/*
           if-no-files-found: error
-      - name: Generate release body
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: node dist/scripts/generate-release-body.js --template RELEASE_BODY.md --out RELEASE_BODY.generated.md
       - name: Attach native assets to GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           name: ${{ github.ref_name }}
-          body_path: RELEASE_BODY.generated.md
+          generate_release_notes: true
           files: release-assets/*
           fail_on_unmatched_files: true
       - name: Write release summary
