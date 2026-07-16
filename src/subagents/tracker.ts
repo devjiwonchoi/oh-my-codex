@@ -1021,14 +1021,25 @@ export type LeaderBootstrapFailureReason =
  * #3181 Phase 1 carrier write. Durably attest the authenticated leader thread for a
  * session from native-hook-reconciled metadata. Idempotent and fail-closed: it seeds
  * `leader_thread_id` + `leader_attested_at` + `leader_attest_source` only when the
- * session has no conflicting leader already. A different existing leader is NEVER
- * overwritten (returns `native_anchor_mismatch`) so a stale/foreign leader cannot be
- * replaced from a later turn. Authority for `leaderThreadId` is the caller's native
- * payload thread; it must never be derived from a native session id.
+ * session has no conflicting durable leader already. The sole exception is a
+ * caller-proven same-native repair of pre-#3181, un-attested tracker inference; it
+ * cannot override foreign child evidence. Authority for `leaderThreadId` is the
+ * caller's native payload thread; it must never be derived from a native session id.
  */
 export function attestLeaderThread(
   cwd: string,
-  input: { sessionId: string; leaderThreadId: string; source: string; nowMs?: number },
+  input: {
+    sessionId: string;
+    leaderThreadId: string;
+    source: string;
+    /**
+     * Native PreToolUse may repair only same-native, pre-#3181 tracker
+     * inference. It never overrides a durable attestation or subagent
+     * evidence owned by another session.
+     */
+    repairUnattestedCurrentSession?: boolean;
+    nowMs?: number;
+  },
 ): { ok: true; alreadyAttested: boolean } | { ok: false; reason: 'native_anchor_unavailable' | 'native_anchor_mismatch' } {
   const sessionId = input.sessionId.trim();
   const leaderThreadId = input.leaderThreadId.trim();
@@ -1042,15 +1053,24 @@ export function attestLeaderThread(
     const read = readSubagentTrackingStateSyncStrict(cwd);
     if (!read.ok) return { ok: false, reason: 'native_anchor_unavailable' as const };
     const state = read.state;
-    // Atomic positive counter-evidence: a thread tracked as a subagent in ANY session is
-    // never attested as a leader. Checked under the same lock as the write so a concurrent
-    // child record cannot race in between a caller's pre-check and this attestation.
-    if (threadIsTrackedAsSubagent(state, leaderThreadId)) {
-      return { ok: false, reason: 'native_anchor_mismatch' as const };
-    }
     const existing = state.sessions[sessionId];
     const existingLeader = existing?.leader_thread_id?.trim();
-    if (existingLeader && existingLeader !== leaderThreadId) {
+    const existingThread = existing?.threads?.[leaderThreadId];
+    const hasForeignSubagentEvidence = Object.entries(state.sessions).some(([trackedSessionId, session]) => (
+      trackedSessionId !== sessionId && session.threads?.[leaderThreadId]?.kind === 'subagent'
+    ));
+    const mayRepairUnattestedCurrentSession = input.repairUnattestedCurrentSession === true
+      && !existing?.leader_attested_at
+      && !hasForeignSubagentEvidence;
+    // Atomic positive counter-evidence: a thread tracked as a subagent is never attested
+    // as a leader, except for one narrowly-scoped migration repair. That repair is allowed
+    // only for un-attested evidence in this same canonical native session; child evidence
+    // in any other session always wins. Checked under the same lock as the write so a
+    // concurrent child record cannot race in between a caller's pre-check and attestation.
+    if (threadIsTrackedAsSubagent(state, leaderThreadId) && !(mayRepairUnattestedCurrentSession && existingThread?.kind === 'subagent')) {
+      return { ok: false, reason: 'native_anchor_mismatch' as const };
+    }
+    if (existingLeader && existingLeader !== leaderThreadId && !mayRepairUnattestedCurrentSession) {
       return { ok: false, reason: 'native_anchor_mismatch' as const };
     }
     if (existing && existingLeader === leaderThreadId && existing.leader_attested_at) {
@@ -1060,6 +1080,15 @@ export function attestLeaderThread(
       ? { ...existing }
       : { session_id: sessionId, updated_at: nowIso, threads: {} };
     session.leader_thread_id = leaderThreadId;
+    if (session.threads[leaderThreadId]) {
+      session.threads = {
+        ...session.threads,
+        [leaderThreadId]: {
+          ...session.threads[leaderThreadId],
+          kind: 'leader',
+        },
+      };
+    }
     session.leader_attested_at = nowIso;
     session.leader_attest_source = source;
     session.updated_at = nowIso;

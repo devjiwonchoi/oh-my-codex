@@ -446,8 +446,10 @@ function defaultIsPidAlive(pid: number): boolean {
   try {
     process.kill(pid, 0);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    // EPERM proves the process exists but is outside this hook's permission
+    // boundary. Treat it as live; only ESRCH is positive stale evidence.
+    return (error as NodeJS.ErrnoException).code === 'EPERM';
   }
 }
 

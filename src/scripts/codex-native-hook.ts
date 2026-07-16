@@ -9582,21 +9582,25 @@ export async function dispatchCodexNativeHook(
     // the first in-turn `nomx ralplan role-intent write`. On a fresh App session
     // turn where SessionStart did not establish the pointer, reconcile the canonical
     // pointer and attest the leader here so the first command can bootstrap. Strictly
-    // gated to a fresh (absent-pointer) LEADER turn: no canonical session yet, a present
-    // native session id, a leader-shaped thread (absent or equal to the native session
-    // id), and no subagent/typed-role provenance. Best-effort; never blocks PreToolUse.
+    // gated to a positively root-shaped LEADER turn: a present native session
+    // id, thread_id === native session id, and no subagent/typed-role
+    // provenance. This deliberately also refreshes a same-native usable or
+    // stale pointer: native hooks can be permission-isolated from the owner
+    // process, so the pointer PID alone is not leadership evidence. Best-effort;
+    // never blocks PreToolUse.
     if (
-      allowImplicitSessionSideEffects
-      && !canonicalSessionId
+      (pointer.status === 'absent' || pointer.status === 'usable' || pointer.status === 'stale-dead')
       && nativeSessionId
       && readPayloadAgentRole(payload) === ""
       && !hasSubagentThreadSpawnProvenance(payload)
     ) {
       const preToolUseLeaderThreadId = readPayloadThreadId(payload);
+      const pointerNativeSessionId = safeString(pointer.state?.native_session_id).trim();
+      const canRepairUnattestedSameNativeSession = pointerNativeSessionId === nativeSessionId;
       if (
         preToolUseLeaderThreadId
         && preToolUseLeaderThreadId === nativeSessionId
-        && !(await isThreadTrackedAsSubagent(cwd, nativeSessionId))
+        && (!(await isThreadTrackedAsSubagent(cwd, nativeSessionId)) || canRepairUnattestedSameNativeSession)
       ) {
         try {
           const ownerOmxSessionId = await resolveVerifiedOwnerOmxSessionId();
@@ -9613,6 +9617,15 @@ export async function dispatchCodexNativeHook(
               sessionId: bootstrapSessionId,
               leaderThreadId: bootstrapLeaderThreadId,
               source: 'native-pretooluse',
+              // Old notify-hook releases inferred a leader from any completed
+              // turn. A title helper can therefore have left an un-attested
+              // same-native session pointing at the wrong thread. Only a
+              // root-shaped turn for that exact persisted native session can
+              // repair the legacy inference; real child evidence elsewhere
+              // still rejects inside attestLeaderThread.
+              ...(canRepairUnattestedSameNativeSession
+                ? { repairUnattestedCurrentSession: true }
+                : {}),
             });
           }
         } catch {
