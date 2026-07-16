@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-16T19:39:44.281Z",
+  "generatedAt": "2026-07-16T23:48:57.540Z",
   "version": "2026.02.28.1",
   "counts": {
-    "skillCount": 11,
+    "skillCount": 12,
     "promptCount": 33,
-    "activeSkillCount": 11,
+    "activeSkillCount": 12,
     "activeAgentCount": 20
   },
   "coreSkills": [
@@ -75,6 +75,13 @@
     {
       "name": "best-practice-research",
       "category": "planning",
+      "status": "active",
+      "core": false,
+      "internalRequired": false
+    },
+    {
+      "name": "ai-slop-cleaner",
+      "category": "shortcut",
       "status": "active",
       "core": false,
       "internalRequired": false

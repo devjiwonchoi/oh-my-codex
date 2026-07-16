@@ -1167,8 +1167,12 @@
       ]
     },
     "skills": {
-      "digest": "6d657cb6e791d04fa5d0ffb76f65843cd13246cc0c4d1eaed667578d7ed476d8",
+      "digest": "7b06f52b5b5768d3513cc0d707421f6ded62d909543ea1886ff5f259ff5a998b",
       "files": [
+        {
+          "digest": "e68889b039b4117b0f7887e328464083685c400043cc72de9a029d1e1b23e648",
+          "path": "skills/ai-slop-cleaner/SKILL.md"
+        },
         {
           "digest": "239f95eaf0838455d14f94c469c9aa3169c18ea6d7294080fceedc3af027d363",
           "path": "skills/autopilot/SKILL.md"

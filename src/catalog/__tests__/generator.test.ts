@@ -40,7 +40,8 @@ describe('catalog reader/contract', () => {
     assert.equal(contract.internalHidden.includes('worker'), false);
     assert.ok(contract.coreSkills.includes('autopilot'));
     assert.ok(contract.coreSkills.includes('ultragoal'));
-    assert.equal(contract.counts.skillCount, 11);
+    assert.equal(contract.counts.skillCount, 12);
+    assert.ok(contract.skills.some((skill) => skill.name === 'ai-slop-cleaner' && skill.status === 'active'));
     assert.deepEqual(contract.aliases, []);
   });
 

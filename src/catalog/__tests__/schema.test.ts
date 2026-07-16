@@ -11,6 +11,7 @@ function readSourceManifest(): unknown {
 
 describe('catalog schema', () => {
   const retainedSkills = [
+    'ai-slop-cleaner',
     'autopilot',
     'best-practice-research',
     'code-review',
