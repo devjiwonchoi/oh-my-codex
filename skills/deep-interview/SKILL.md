@@ -68,7 +68,15 @@ If no flag is provided, use **Standard**.
 - Treat `[from-code][auto-confirmed]` and other non-user fact discoveries as context/transcript updates, not interview rounds: do not create a pending user-input obligation or increment the user-facing round number for facts the agent can safely establish.
 - Auto-confirm only descriptive facts. If a finding implies what the new feature should do, which pattern it should follow, which tradeoff to accept, or what should stay in/out of scope, route the entire decision-bearing question to the user as `[from-user]` even when code or research facts are available.
 - Use native structured input for every interview round when available; otherwise ask exactly one concise plain-text question and wait for the answer.
-- Re-score ambiguity after each answer and show progress transparently
+- Re-score ambiguity after each answer and show progress transparently. Every user-facing round must include this Markdown table before its one next question or closure statement:
+
+  ```markdown
+  | Round | Target | Ambiguity | Readiness gate |
+  | --- | --- | --- | --- |
+  | 3 | Decision boundaries | 18% | Non-goals unresolved |
+  ```
+
+  `Ambiguity` must be a percentage. `Readiness gate` must state the active closure status or the one gate still blocking crystallization.
 - Once ambiguity is at or below the active profile threshold, stop ordinary questioning. Run the practical closure audit: crystallize/handoff when readiness gates pass; otherwise ask only the final closure question needed to satisfy a named gate.
 - Treat `max_rounds` as a stop cap, not evidence that more rounds are needed.
 - Do not hand off to execution while ambiguity remains above threshold unless user explicitly opts to proceed with warning

@@ -77,6 +77,7 @@ import {
   type SkillActiveState,
 } from "../hooks/keyword-detector.js";
 import { buildDeepInterviewConfigInstruction } from "../hooks/deep-interview-config-instruction.js";
+import { validateDeepInterviewProgress } from "../hooks/deep-interview-progress.js";
 import {
   SLOPPY_FALLBACK_GROUNDING_PATTERNS,
   SLOPPY_FALLBACK_IMPLEMENTATION_CONTEXT_PATTERNS,
@@ -166,6 +167,7 @@ export interface NativeHookDispatchResult {
 }
 
 const TERMINAL_MODE_PHASES = new Set(["complete", "completed", "failed", "cancelled"]);
+const DEEP_INTERVIEW_PROGRESS_TABLE_GUIDANCE = "After every user-facing deep-interview round, include this visible Markdown table: `| Round | Target | Ambiguity | Readiness gate |` followed by exactly one current row; ambiguity must be a percentage. Do this before the one next question or closure statement.";
 const SKILL_STOP_BLOCKERS = new Set(["ralplan"]);
 const LEADER_CONDUCTOR_GOLDEN_RULE = "Main-root Conductor golden rule: delegate implementation work; do not self-execute source or plan edits.";
 const NATIVE_STOP_STATE_FILE = "native-stop-state.json";
@@ -2108,7 +2110,7 @@ function resolveExecutionEnvironment(
     surface: executionSurface.launcher === "native" ? "native-hook / Codex App" : "direct Codex CLI",
     parallelWorkGuidance: "use native Codex subagents for independent bounded work",
     questionGuidance: "use native structured input when available; otherwise ask one concise plain-text question",
-    deepInterviewInstruction: "Ask each deep-interview round through native structured input when available; otherwise ask exactly one concise plain-text question and wait for the answer.",
+    deepInterviewInstruction: `Ask each deep-interview round through native structured input when available; otherwise ask exactly one concise plain-text question and wait for the answer. ${DEEP_INTERVIEW_PROGRESS_TABLE_GUIDANCE}`,
     leaderPaneHint: "",
   };
 }
@@ -8653,6 +8655,62 @@ async function buildDeepInterviewQuestionStopOutput(
   };
 }
 
+
+async function buildDeepInterviewProgressStopOutput(
+  payload: CodexHookPayload,
+  cwd: string,
+  stateDir: string,
+  sessionId: string,
+  threadId: string,
+): Promise<{ output: Record<string, unknown>; signatureValue: string } | null> {
+  const lastAssistantMessage = safeString(payload.last_assistant_message ?? payload.lastAssistantMessage);
+  // Older Stop payloads do not include the response. Preserve their existing
+  // behavior instead of inventing a failure the model cannot repair.
+  if (!lastAssistantMessage.trim()) return null;
+
+  const modeState = await readStopSessionPinnedState("deep-interview-state.json", cwd, sessionId, stateDir);
+  const canonicalState = await readVisibleSkillActiveStateForStateDir(stateDir, sessionId);
+  const hasActiveDeepInterview = Boolean(
+    canonicalState
+      && modeState?.active === true
+      && !TERMINAL_MODE_PHASES.has(safeString(modeState.current_phase).trim().toLowerCase())
+      && safeString(modeState.current_phase).trim().toLowerCase() !== "completing"
+      && listActiveSkills(canonicalState).some((entry) => (
+        entry.skill === "deep-interview"
+        && matchesSkillStopContext(entry, canonicalState, sessionId, threadId)
+      )),
+  );
+  if (!hasActiveDeepInterview) return null;
+
+  const progress = validateDeepInterviewProgress(lastAssistantMessage);
+  if (!progress.ok || !progress.progress) {
+    const missing = progress.missing.join(", ");
+    return {
+      signatureValue: lastAssistantMessage,
+      output: {
+        decision: "block",
+        stopReason: "deep_interview_progress_required",
+        reason: \`Deep interview response is missing the required progress table fields: \${missing}.\`,
+        systemMessage:
+          \`Before continuing, restate the current interview progress as a Markdown table with columns \\\`Round\\\`, \\\`Target\\\`, \\\`Ambiguity\\\`, and \\\`Readiness gate\\\`, then ask exactly one next question or state the closure result. Missing fields: \${missing}.\`,
+      },
+    };
+  }
+
+  const nowIso = new Date().toISOString();
+  const statePath = join(stateDir, "sessions", sessionId, "deep-interview-state.json");
+  await writeFile(statePath, JSON.stringify({
+    ...modeState,
+    interview_progress: {
+      schema_version: 1,
+      ...progress.progress,
+      updated_at: nowIso,
+    },
+    updated_at: nowIso,
+  }, null, 2));
+  return null;
+}
+
 function resolveRepeatableStopSessionId(
   payload: CodexHookPayload,
   canonicalSessionId?: string,
@@ -9039,6 +9097,25 @@ async function buildStopHookOutput(
           "deep-interview-question-stop",
           deepInterviewQuestionOutput.obligationId,
           deepInterviewQuestionOutput.output,
+          canonicalSessionId,
+        );
+      }
+
+
+      const deepInterviewProgressOutput = await buildDeepInterviewProgressStopOutput(
+        payload,
+        cwd,
+        stateDir,
+        canonicalSessionId,
+        threadId,
+      );
+      if (deepInterviewProgressOutput) {
+        return await returnPersistentStopBlock(
+          payload,
+          stateDir,
+          "deep-interview-progress-stop",
+          deepInterviewProgressOutput.signatureValue,
+          deepInterviewProgressOutput.output,
           canonicalSessionId,
         );
       }
@@ -9582,21 +9659,25 @@ export async function dispatchCodexNativeHook(
     // the first in-turn `nomx ralplan role-intent write`. On a fresh App session
     // turn where SessionStart did not establish the pointer, reconcile the canonical
     // pointer and attest the leader here so the first command can bootstrap. Strictly
-    // gated to a fresh (absent-pointer) LEADER turn: no canonical session yet, a present
-    // native session id, a leader-shaped thread (absent or equal to the native session
-    // id), and no subagent/typed-role provenance. Best-effort; never blocks PreToolUse.
+    // gated to a positively root-shaped LEADER turn: a present native session
+    // id, thread_id === native session id, and no subagent/typed-role
+    // provenance. This deliberately also refreshes a same-native usable or
+    // stale pointer: native hooks can be permission-isolated from the owner
+    // process, so the pointer PID alone is not leadership evidence. Best-effort;
+    // never blocks PreToolUse.
     if (
-      allowImplicitSessionSideEffects
-      && !canonicalSessionId
+      (pointer.status === 'absent' || pointer.status === 'usable' || pointer.status === 'stale-dead' || pointer.status === 'identity-indeterminate')
       && nativeSessionId
       && readPayloadAgentRole(payload) === ""
       && !hasSubagentThreadSpawnProvenance(payload)
     ) {
       const preToolUseLeaderThreadId = readPayloadThreadId(payload);
+      const pointerNativeSessionId = safeString(pointer.state?.native_session_id).trim();
+      const canRepairUnattestedSameNativeSession = pointerNativeSessionId === nativeSessionId;
       if (
         preToolUseLeaderThreadId
         && preToolUseLeaderThreadId === nativeSessionId
-        && !(await isThreadTrackedAsSubagent(cwd, nativeSessionId))
+        && (!(await isThreadTrackedAsSubagent(cwd, nativeSessionId)) || canRepairUnattestedSameNativeSession)
       ) {
         try {
           const ownerOmxSessionId = await resolveVerifiedOwnerOmxSessionId();
@@ -9613,6 +9694,15 @@ export async function dispatchCodexNativeHook(
               sessionId: bootstrapSessionId,
               leaderThreadId: bootstrapLeaderThreadId,
               source: 'native-pretooluse',
+              // Old notify-hook releases inferred a leader from any completed
+              // turn. A title helper can therefore have left an un-attested
+              // same-native session pointing at the wrong thread. Only a
+              // root-shaped turn for that exact persisted native session can
+              // repair the legacy inference; real child evidence elsewhere
+              // still rejects inside attestLeaderThread.
+              ...(canRepairUnattestedSameNativeSession
+                ? { repairUnattestedCurrentSession: true }
+                : {}),
             });
           }
         } catch {
