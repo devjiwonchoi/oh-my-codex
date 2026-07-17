@@ -18,8 +18,9 @@ function skillNames(): string[] {
 
 describe('skill catalog hygiene', () => {
   it('ships only the supported core workflow skills', () => {
-    assert.deepEqual(skillNames(), [
-      'autopilot',
+  assert.deepEqual(skillNames(), [
+    'ai-slop-cleaner',
+    'autopilot',
       'best-practice-research',
       'code-review',
       'deep-interview',

@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { setup } from '../setup.js';
 
 const CORE_SKILLS = [
+  'ai-slop-cleaner',
   'autopilot',
   'best-practice-research',
   'code-review',
